@@ -22,7 +22,7 @@ async function runSpecialist(request: {
   repoPath: string;
   headRef: string;
   baseRef?: string;
-}) {
+}): Promise<{ result: { sessionId: string } }> {
   const response = await fetch("/api/v1/specialists/run", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -32,13 +32,28 @@ async function runSpecialist(request: {
     const error = await response.json();
     throw new Error(error.error?.message || "Failed to run specialist");
   }
-  return response.json();
+  const payload = (await response.json()) as {
+    data?: {
+      result?: {
+        sessionId?: unknown;
+      };
+    };
+  };
+  const sessionId = payload.data?.result?.sessionId;
+  if (typeof sessionId !== "string" || sessionId.trim().length === 0) {
+    throw new Error("Invalid specialist run response shape");
+  }
+  return {
+    result: {
+      sessionId,
+    },
+  };
 }
 
 async function runDirective(request: {
   input: string;
   sessionId?: string;
-}) {
+}): Promise<{ sessionId: string }> {
   const response = await fetch("/api/v1/runs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -51,7 +66,12 @@ async function runDirective(request: {
     const error = await response.json();
     throw new Error(error.error?.message || "Failed to run directive");
   }
-  return response.json();
+  const payload = (await response.json()) as { data?: { sessionId?: unknown } };
+  const sessionId = payload.data?.sessionId;
+  if (typeof sessionId !== "string" || sessionId.trim().length === 0) {
+    throw new Error("Invalid directive run response shape");
+  }
+  return { sessionId };
 }
 
 export function MissionControlPage() {
