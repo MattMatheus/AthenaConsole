@@ -1,7 +1,14 @@
 Operating checklist:
+- Read `planning/prompts/active/next-agent-seed-prompt.md` before story execution.
 - Start from the first story in `planning/backlog/active/README.md` and open the referenced story file.
+- If no actionable story exists, return exactly `no tasks available`.
 - Implement acceptance criteria end-to-end before moving to follow-up refinements.
 - Keep API and UI contracts typed; avoid `any` and implicit shape assumptions.
 - Add/adjust targeted tests for new behavior and error paths.
 - Report validation commands and outcomes with concrete pass/fail details.
+- Complete handoff operations after successful delivery:
+  - update `planning/vision/handoff.md`,
+  - move the story to `planning/backlog/completed/`,
+  - update `planning/backlog/active/README.md`,
+  - update `planning/prompts/active/next-agent-seed-prompt.md`.
 - Keep handoff artifacts short: deliverables, validations, and blockers only.
