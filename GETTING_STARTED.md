@@ -18,17 +18,29 @@ cd athena
 
 ## 3. Set Up Environment Variables
 
-Copy the example environment file and add your LLM API key.
+Copy the example environment file, then choose either OpenAI or Azure AI Foundry.
 
 ```bash
 cp packages/core/.env.example .env
 ```
 
-At minimum, set this in `.env`:
+At minimum, set one of these options in `.env`:
 
 ```env
+# Option A: OpenAI-compatible setup
 ATHENA_OPENAI_API_KEY=your_api_key_here
+
+# Option B: Azure AI Foundry setup
+ATHENA_FOUNDRY_ENABLED=true
+ATHENA_FOUNDRY_PROJECT_ENDPOINT=https://<your-project>.services.ai.azure.com
+ATHENA_FOUNDRY_DEPLOYMENT=<your-deployment-name>
+ATHENA_FOUNDRY_API_VERSION=2024-05-01-preview
+ATHENA_FOUNDRY_USE_ENTRA_ID=true
+# Optional fallback when Entra ID is unavailable:
+# ATHENA_FOUNDRY_API_KEY=your_foundry_key_here
 ```
+
+For Foundry + Entra ID auth in local development, run `az login` before starting Athena.
 
 ## 4. Start The Local Stack
 
@@ -68,8 +80,10 @@ athena persona run --name code-review --repo . --head main --stdout summary
 If `athena` is not in your PATH yet, run the same command via npm:
 
 ```bash
-npm run athena -- persona run --name code-review --repo . --head main --stdout summary
+npm run athena -- persona run --name code-review --repo ../.. --head main --stdout summary
 ```
+
+Note: the persona `code-review` run aborts when the target repository has uncommitted changes. Commit or stash local edits first.
 
 ## Container Build Context Hygiene
 
