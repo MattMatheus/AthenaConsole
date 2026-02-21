@@ -9,8 +9,12 @@ async function fetchSpecialists(): Promise<string[]> {
   if (!response.ok) {
     throw new Error("Failed to fetch specialists");
   }
-  const data = await response.json();
-  return data.items;
+  const payload = (await response.json()) as { data?: { items?: unknown } };
+  const items = payload.data?.items;
+  if (!Array.isArray(items) || items.some((item) => typeof item !== "string")) {
+    throw new Error("Invalid specialists response shape");
+  }
+  return items;
 }
 
 async function runSpecialist(request: {
@@ -66,6 +70,9 @@ export function MissionControlPage() {
   const specialistsQuery = useQuery({
     queryKey: ["specialists"],
     queryFn: fetchSpecialists,
+    staleTime: 10_000,
+    retry: 5,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10_000),
   });
 
   const runSpecialistMutation = useMutation({
@@ -89,7 +96,7 @@ export function MissionControlPage() {
       name: selectedSpecialist,
       repoPath,
       headRef,
-      baseRef: baseRef || undefined,
+      ...(baseRef ? { baseRef } : {}),
     });
   };
 
@@ -132,13 +139,29 @@ export function MissionControlPage() {
                 value={selectedSpecialist}
                 onChange={(e) => setSelectedSpecialist(e.target.value)}
                 required
+                disabled={specialistsQuery.isLoading || specialistsQuery.isError}
               >
-                <option value="" disabled>Select a specialist...</option>
+                <option value="" disabled>
+                  {specialistsQuery.isLoading
+                    ? "Loading specialists..."
+                    : specialistsQuery.isError
+                      ? "Specialists unavailable"
+                      : "Select a specialist..."}
+                </option>
                 {specialistsQuery.data?.map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </div>
+
+            {specialistsQuery.isError && (
+              <p className={styles.error}>
+                {(specialistsQuery.error as Error).message}{" "}
+                <button type="button" onClick={() => specialistsQuery.refetch()}>
+                  Retry
+                </button>
+              </p>
+            )}
 
             <div className={styles.field}>
               <label htmlFor="repo">Repository Path</label>
