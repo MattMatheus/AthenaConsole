@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Stage 3: Work Management System
 
 ## Objectives

@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Website Analytics Event Model
 
 This document defines the baseline analytics contract for TeamOrchestrator.com.

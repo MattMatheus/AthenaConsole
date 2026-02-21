@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Team Orchestrator: Brand Identity & Strategy
 
 ## 1. Core Essence

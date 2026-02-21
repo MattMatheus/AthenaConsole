@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Team Orchestrator: Performance & Fidelity Model
 
 ## 1. The Calibration Framework

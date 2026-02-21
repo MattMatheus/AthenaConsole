@@ -1,16 +1,20 @@
-# Handoff Summary: Cycle 2026.02.25
+<!-- AUDIENCE: Internal/Technical -->
+
+# Handoff Summary: Cycle 2026.02.21
 
 ## Delivered
-- Added root local stack definition at `docker-compose.local.yml`.
-- Stack includes only local dev loop services (`api`, `console`) with source mounts and local-first env defaults.
-- Removed non-core local dependencies from this primary path (no Redis/monitoring sidecars in local compose).
-- Updated quickstart doc to use local compose as primary startup command: `packages/core/docs/user/00-quickstart.md`.
-- Added maintenance note to keep `docker-compose.local.yml` aligned with `packages/core/infrastructure/docker-compose.yml`: `planning/developer/00-onboarding.md`.
+- Updated `planning/README.md` with canonical owners for `backlog/`, `prompts/`, `developer/`, and `architecture/`.
+- Added explicit `*.marketing.md` governance policy in `planning/README.md`.
+- Added mandatory audience header comments to all Markdown docs under `planning/` (`Internal/Technical` or `Public/Marketing`).
+- Documented explicit cycle handoff protocol and ordering in `planning/README.md`.
+- Removed obsolete duplicate archive artifact: `planning/archive/handoff-historical.md`.
+- Moved completed story to `planning/backlog/completed/2026.02.21-foundational-governance-and-process.md` and updated active backlog/prompt pointers.
 
 ## Validation
-- `podman compose -f docker-compose.local.yml config` passed.
-- `podman compose version` passed (`podman` delegates to external compose provider in this environment).
+- Verified all planning Markdown documents include `<!-- AUDIENCE: ... -->` header (`MISSING_COUNT=0`).
+- Verified active backlog now starts with `planning/backlog/active/2026.02.22-infrastructure-and-reliability.md`.
+- Verified next-agent directive points to `2026.02.22-infrastructure-and-reliability.md`.
 
-## Next Story Context
-- Next active story: `planning/backlog/active/2026.02.26-write-local-quickstart-guide.md`.
-- `docker-compose.local.yml` is ready and should be the canonical command in `GETTING_STARTED.md` (`podman compose -f docker-compose.local.yml up --build`).
+## Next Story
+- `planning/backlog/active/2026.02.22-infrastructure-and-reliability.md`
+- Focus: `/api/v1/health`, `docker-compose.prod.yml`, production-compose docs, and root `.dockerignore` with measured build impact.

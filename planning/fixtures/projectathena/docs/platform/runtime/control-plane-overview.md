@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 ---
 title: Athena Control Plane Overview
 description: Core control-plane architecture and execution boundaries.

@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Public/Marketing -->
+
 # Team Orchestrator Internal Documentation
 
 This folder contains internal project documentation and metadata.

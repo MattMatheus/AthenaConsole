@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Project Architecture
 
 Project Athena is API-first. The control plane is the canonical execution surface, and CLI/API paths converge on the same services.

@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Release 001: The Age of Orchestration
 
 This inaugural release marks the evolution of Project Athena from a single-agent runner to a true multi-agent orchestrator. It introduces foundational capabilities for security, governance, and developer experience, setting the stage for robust, production-grade autonomous operations.

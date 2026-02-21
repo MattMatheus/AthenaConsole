@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Contributing Guide
 
 We welcome contributions to Project Athena! This guide outlines the process for contributing new features, bug fixes, and improvements.

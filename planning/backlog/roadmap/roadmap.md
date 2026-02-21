@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Team Orchestrator Roadmap
 
 This roadmap outlines the key milestones for Team Orchestrator as it evolves from a local agent runner into a production-grade, distributed orchestration platform.

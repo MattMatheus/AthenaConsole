@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Azure Application Insights Observability
 
 This document defines the Milestone 5 baseline for control-plane telemetry in Azure.

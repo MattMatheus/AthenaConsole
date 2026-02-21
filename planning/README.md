@@ -1,34 +1,69 @@
-# Team Orchestrator Internal Documentation
+<!-- AUDIENCE: Internal/Technical -->
 
-This directory contains internal project management, architectural, and developer-focused documentation.
+# Team Orchestrator Planning Governance
 
-## Consolidation Notes
+This directory is the internal system of record for planning, architecture, delivery workflow, and agent-cycle execution.
 
-- This folder consolidates content that previously lived under:
-  - `packages/core/planning/`
-  - `apps/marketing/planning/`
-- Where files shared the same relative path and had different content, the marketing variant was retained with a `.marketing` suffix (for example: `archive/handoff.marketing.md`).
-- New planning artifacts should be created under `planning/` only.
+## Canonical Ownership
 
-## 🛠 Developer Guide
+- `planning/backlog/` owner: Product + Engineering leads.
+  - Maintains active sequence order, story quality, acceptance criteria, and completion state.
+- `planning/prompts/` owner: Agent operations owner (Engineering).
+  - Maintains seed prompts and cycle directives that point to the next active story.
+- `planning/developer/` owner: Engineering.
+  - Maintains technical playbooks, standards, and implementation guides.
+- `planning/architecture/` owner: Architecture group (Engineering leadership).
+  - Maintains ADRs, system contracts, and long-lived design decisions.
 
-For contributors and developers extending the Team Orchestrator platform.
+Ownership is canonical: for each subtree above, only the listed owner group can approve structural changes.
 
-- [**Architecture**](developer/01-architecture.md) - Deep dive into the system design.
-- [**Setup**](developer/02-setup.md) - Setting up the development environment.
-- [**Contributing**](developer/03-contributing.md) - Guidelines for contributing to the project.
-- [**Extending Team Orchestrator**](developer/04-extending.md) - How to add new providers or tools.
-- [**Standards**](developer/05-standards.md) - Development and test standards.
-- [**CLI Reference**](developer/06-cli-reference.md) - Comprehensive command-line reference.
+## Audience Labeling Policy
 
-## 📂 Project Management
+Every Markdown document under `planning/` must begin with an audience header comment:
 
-- [**Backlog**](backlog/active/README.md) - Project roadmap and task tracking.
-- [**Architecture Decisions**](architecture/rbac-foundation-and-permission-model.md) - Detailed ADRs and models.
-- [**Research**](research/active/README.md) - Active research and experiments.
-- [**Archive**](archive/README.md) - Historical records and past stages.
-- [**Prompts**](prompts/active/next-agent-seed-prompt.md) - Internal agent seed prompts.
+- `<!-- AUDIENCE: Internal/Technical -->`
+- `<!-- AUDIENCE: Public/Marketing -->`
+
+Use `Internal/Technical` by default. Use `Public/Marketing` only for public-track planning artifacts (typically `*.marketing.md`).
+
+## `.marketing.md` Policy
+
+`.marketing.md` files are a separate, public-facing planning track for website/content operations and messaging.
+
+- They are not the source of truth for internal platform engineering execution.
+- Internal execution artifacts must live in the non-marketing counterpart under `planning/`.
+- If both variants exist, keep both only when they intentionally serve different audiences.
+- If they become duplicates, remove the stale copy from `planning/archive/`.
+
+## Cycle Handoff Protocol (Mandatory)
+
+At the end of each development cycle, execute this order:
+
+1. Validate deliverables against story acceptance criteria and record validation outcomes.
+2. Truncate and rewrite `planning/vision/handoff.md` with only:
+   - delivered changes,
+   - validation status,
+   - minimal context needed for the next story.
+3. Move the completed story from `planning/backlog/active/` to `planning/backlog/completed/`.
+4. Update `planning/backlog/active/README.md` so the top item is the next executable story.
+5. Update `planning/prompts/active/next-agent-seed-prompt.md` so `Backlog Item` points to that next story.
+6. If any artifact is superseded during the cycle, archive or delete it in the same change.
+
+A cycle is incomplete until all six steps are done.
+
+## Archive Hygiene
+
+`planning/archive/` is for historical context only. Remove obsolete duplicates when they no longer add unique value.
+
+## Directory Guide
+
+- [**Backlog**](backlog/active/README.md) - Prioritized implementation queue.
+- [**Architecture Decisions**](architecture/rbac-foundation-and-permission-model.md) - ADRs and design records.
+- [**Developer Guides**](developer/01-architecture.md) - Engineering workflows and technical standards.
+- [**Research**](research/active/README.md) - Active investigations and experiments.
+- [**Archive**](archive/README.md) - Historical records and retained legacy artifacts.
+- [**Prompts**](prompts/active/next-agent-seed-prompt.md) - Agent-cycle directives.
 
 ---
 
-*For public user documentation, see `docs/README.md`.*
+For public user docs, see `docs/README.md`.

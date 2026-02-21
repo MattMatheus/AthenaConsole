@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Getting Started
 
 ProjectAthena is a CLI-first agent runtime. Current implementation stage: Stage 8 (in progress).

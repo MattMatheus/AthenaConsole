@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 ---
 title: Audit Events
 description: Event taxonomy for mission evidence and audit logs.

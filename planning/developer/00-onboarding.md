@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Agent Onboarding & Project State
 
 Welcome to Project Athena. This document is the primary entry point for agents to understand the project's mission, current state, and engineering standards.

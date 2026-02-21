@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # GitHub Actions CI/CD (Milestone 5)
 
 This document defines the repository-level CI/CD baseline for Azure deployment of ProjectAthena control-plane and console components.

@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Stage 5: Context Management + Distill Placeholder Hardening (Implementation Prep)
 
 ## Objective

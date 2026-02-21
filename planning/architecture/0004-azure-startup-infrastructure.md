@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # ADR 0004: Azure Startup Infrastructure Design
 
 ## Status

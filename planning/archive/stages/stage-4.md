@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Stage 4: Memory System (Completed)
 
 ## Objectives (from plan)

@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # ProjectAthena Docs Sync
 
 Story: `02.04-implement-projectathena-docs-sync-script-and-guardrails`

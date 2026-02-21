@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 Here's a medium-detail summary of the key features and concepts we've discussed for Team Orchestrator so far. This captures the core vision, architecture, and evolving ideas from our conversation—structured so your PM agent can easily prioritize, group into epics/features/stories, and slot into the roadmap.Core Product Vision
 
 - Tagline / Positioning: "Stop prompting. Start delegating." → A control plane / mission control for digital workforce of specialist AI agents.

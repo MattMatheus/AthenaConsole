@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Docs Search Index Schema
 
 Story: `02.02-implement-docs-search-index-output`

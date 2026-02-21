@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Public/Marketing -->
+
 # Active Backlog Sprint Plan (2026-02-19)
 
 This sprint now shifts from docs productization to discoverability and growth instrumentation.

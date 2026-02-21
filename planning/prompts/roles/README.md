@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Personas
 
 Personas are repo-local agent definitions that describe what an Athena run should do and how it should behave.

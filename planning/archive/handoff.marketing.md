@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Public/Marketing -->
+
 # Handoff Snapshot (2026-02-19, Story 03.04 Complete)
 
 ## Current State

@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 ---
 title: Agent Orchestration Lifecycle
 description: Lifecycle model for assignment, relay, and completion.

@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # OpenClaw Agent Runtime Design Notes
 
 ## 1) Agent Loop And Subagent Management

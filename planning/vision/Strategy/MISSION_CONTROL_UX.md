@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Team Orchestrator: Mission Control UX & Design Philosophy
 
 ## 1. The "Glass Cockpit" Dashboard

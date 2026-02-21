@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # CLI Reference
 
 This document provides a reference for the various commands available in the `athena` CLI.

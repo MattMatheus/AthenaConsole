@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Active Research
 
 - `planning/research/active/16.01-agent-sandbox-execution-backend-contract.md`

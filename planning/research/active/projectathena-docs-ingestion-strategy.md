@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # ProjectAthena Docs Ingestion Strategy
 
 Date: 2026-02-19

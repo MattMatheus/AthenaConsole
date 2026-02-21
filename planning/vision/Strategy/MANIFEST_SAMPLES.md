@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Team Orchestrator: Standardized Flight Manifests
 
 These templates demonstrate how Athena interprets high-level objectives into specific specialist units and mission relays.

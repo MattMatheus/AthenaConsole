@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Public/Marketing -->
+
 # Agent Onboarding & Project State
 
 Welcome to TeamOrchestrator.com. This is the public website repository for Team Orchestrator.

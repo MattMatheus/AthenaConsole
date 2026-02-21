@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Team Orchestrator: Flight Path (Roadmap)
 
 This roadmap outlines the trajectory for Team Orchestrator, moving from core infrastructure to a fully governed, multi-specialist mission control plane.

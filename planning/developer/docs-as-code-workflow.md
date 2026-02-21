@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Docs-As-Code Workflow
 
 This document defines the baseline for authoring, reviewing, and publishing documentation and blog content from this repository.

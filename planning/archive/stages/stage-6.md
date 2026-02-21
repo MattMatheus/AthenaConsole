@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Stage 6: System Scheduling Integration (Completed)
 
 ## Objectives (from plan)

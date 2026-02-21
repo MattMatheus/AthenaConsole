@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Stage 0: Foundation And Scaffolding
 
 ## Objectives

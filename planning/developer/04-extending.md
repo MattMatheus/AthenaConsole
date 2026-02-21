@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Extending Project Athena
 
 This guide covers extension points that preserve control-plane contracts and Stage 8 operational controls.

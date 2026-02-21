@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Stage 1: CLI-First Runtime Baseline
 
 ## Objectives

@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Architecture: UI Design & Console Architecture
 
 This document outlines the architectural principles, technology choices, and design patterns for the Project Athena Web Console.

@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Public/Marketing -->
+
 # TeamOrchestrator.com Implementation Plan
 
 ## Current Progress Snapshot

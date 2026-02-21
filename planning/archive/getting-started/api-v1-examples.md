@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # API v1 Request/Response Examples
 
 This page documents example request and success response payloads for the full `/api/v1` surface.

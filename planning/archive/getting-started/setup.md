@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Detailed Setup Guide
 
 ## Prerequisites

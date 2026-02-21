@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Deployment Smoke Checks
 
 Use this guide to validate static route integrity and internal links before handoff or deployment.

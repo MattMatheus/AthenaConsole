@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # 03 - Telemetry, Retention, and Debuggability Contracts
 
 ## Goal

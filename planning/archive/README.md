@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Docs Archive
 
 This folder contains historical implementation-stage records and internal handoff materials.

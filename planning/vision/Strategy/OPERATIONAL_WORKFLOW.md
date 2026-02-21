@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Team Orchestrator: Operational Workflow & Swarm Coordination
 
 ## 1. The Collaborative Loop
