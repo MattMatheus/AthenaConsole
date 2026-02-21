@@ -15,12 +15,37 @@ locals {
   )
 
   workload_identity_subject = "system:serviceaccount:${var.workload_identity_namespace}:${var.workload_identity_service_account_name}"
+  budget_alert_thresholds   = [50, 75, 90]
 }
 
 resource "azurerm_resource_group" "this" {
   name     = var.resource_group_name
   location = var.location
   tags     = local.common_tags
+}
+
+resource "azurerm_consumption_budget_resource_group" "startup_credit_guardrail" {
+  name              = "budget-${local.base_name}"
+  resource_group_id = azurerm_resource_group.this.id
+  amount            = var.monthly_budget_amount_usd
+  time_grain        = "Monthly"
+
+  time_period {
+    start_date = var.budget_start_date
+    end_date   = var.budget_end_date
+  }
+
+  dynamic "notification" {
+    for_each = local.budget_alert_thresholds
+    content {
+      enabled        = true
+      operator       = "GreaterThan"
+      threshold      = notification.value
+      threshold_type = "Actual"
+      contact_emails = var.budget_alert_contact_emails
+      contact_roles  = ["Owner"]
+    }
+  }
 }
 
 resource "azurerm_virtual_network" "this" {
@@ -169,6 +194,14 @@ resource "azurerm_role_assignment" "control_plane_key_vault_secrets_user" {
 
   scope                = var.key_vault_resource_id
   role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.control_plane_workload.principal_id
+}
+
+resource "azurerm_role_assignment" "control_plane_cost_management_reader" {
+  count = var.cost_management_scope_resource_id == null ? 0 : 1
+
+  scope                = var.cost_management_scope_resource_id
+  role_definition_name = "Cost Management Reader"
   principal_id         = azurerm_user_assigned_identity.control_plane_workload.principal_id
 }
 

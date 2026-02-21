@@ -27,6 +27,7 @@ This environment provisions Milestone 5 baseline infrastructure for Project Athe
 - Redis defaults to `Basic C0`.
 - Static Web App defaults to `Free` tier.
 - East US (`eastus`) is the default region for pricing and Azure OpenAI alignment.
+- A resource-group monthly budget is provisioned with alert thresholds at **50%**, **75%**, and **90%** of `monthly_budget_amount_usd`.
 - New subscriptions can fail AKS creation due to vCPU quota limits. If this occurs, request quota increase or reduce competing regional usage.
 - Some subscriptions enforce AKS VM SKU allow-lists. Override `aks_node_vm_size` with an allowed size when required.
 
@@ -55,12 +56,15 @@ If `terraform plan` fails with authentication or subscription constraints, resol
 - Workbook and dashboard outputs are emitted for quick operator access:
   - `application_insights_workbook_id`
   - `application_insights_dashboard_id`
+- Budget output:
+  - `resource_group_budget_id`
 
 ## Workload Identity Notes
 
 - Optional role assignment inputs are available for least-privilege runtime access:
   - `openai_account_resource_id` with role `Cognitive Services OpenAI User`
   - `key_vault_resource_id` with role `Key Vault Secrets User`
+  - `cost_management_scope_resource_id` with role `Cost Management Reader` (required for Azure Billing API-backed admin cost visualization)
 - After apply, use output `control_plane_workload_identity_client_id` as the Kubernetes service account annotation:
   - `azure.workload.identity/client-id: <output-client-id>`
 - Ensure control-plane pods run with:

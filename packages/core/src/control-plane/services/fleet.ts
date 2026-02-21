@@ -31,6 +31,11 @@ const PROVIDER_COST_SETTINGS_SCHEMA_VERSION = 1;
 const DEFAULT_COST_SETTINGS_FILE = "provider-cost-settings.json";
 const DEFAULT_COST_SETTINGS_LOCK_FILE = "provider-cost-settings.lock";
 
+export interface FleetExternalCostProvider {
+  provider: string;
+  getMonthlyCostUsd(request: { month: string; windowStart: string; windowEnd: string }): Promise<number | undefined>;
+}
+
 export class LocalFleetMetricsProvider implements IFleetMetricsProvider {
   readonly source = "local" as const;
 
@@ -85,7 +90,8 @@ export class LocalFleetService implements FleetService {
     private readonly config: AthenaConfig,
     private readonly metricsProvider: IFleetMetricsProvider,
     private readonly runService: RunService,
-    private readonly eventService: EventService
+    private readonly eventService: EventService,
+    private readonly externalCostProvider?: FleetExternalCostProvider
   ) {
     this.providerCostSettingsDir = resolve(config.workspaceRoot, config.stateDir, "fleet");
     this.providerCostSettingsPath = resolve(this.providerCostSettingsDir, DEFAULT_COST_SETTINGS_FILE);
@@ -272,12 +278,53 @@ export class LocalFleetService implements FleetService {
       cursor = page.nextCursor;
     } while (cursor);
 
-    const tokenMix = deriveTokenMix([...providerTotals.values()]);
+    const tokenMix = deriveTokenMix([...personaTotals.values()]);
+    const localProviderBreakdown = [...providerTotals.entries()]
+      .map(([provider, totals]) => ({
+        provider,
+        estimatedSpendUsd: roundTo6(totals.spend),
+        inputTokens: totals.input,
+        outputTokens: totals.output,
+        totalTokens: totals.total
+      }))
+      .sort((left, right) => right.estimatedSpendUsd - left.estimatedSpendUsd);
+    const localTotalEstimatedSpendUsd = roundTo6(
+      localProviderBreakdown.reduce((acc, row) => acc + row.estimatedSpendUsd, 0)
+    );
+
+    let externalTotalEstimatedSpendUsd: number | undefined;
+    if (this.externalCostProvider) {
+      try {
+        const external = await this.externalCostProvider.getMonthlyCostUsd({
+          month,
+          windowStart: window.windowStart,
+          windowEnd: window.windowEnd
+        });
+        if (external !== undefined && Number.isFinite(external) && external >= 0) {
+          externalTotalEstimatedSpendUsd = roundTo6(external);
+        }
+      } catch {
+        // Billing API failures should not break fleet summary reads.
+      }
+    }
+
+    const providerBreakdown =
+      externalTotalEstimatedSpendUsd === undefined
+        ? localProviderBreakdown
+        : [
+            {
+              provider: this.externalCostProvider?.provider ?? "external",
+              estimatedSpendUsd: externalTotalEstimatedSpendUsd,
+              inputTokens: 0,
+              outputTokens: 0,
+              totalTokens: 0
+            }
+          ];
     return {
       month,
       windowStart: window.windowStart,
       windowEnd: window.windowEnd,
-      totalEstimatedSpendUsd: roundTo6([...providerTotals.values()].reduce((acc, row) => acc + row.spend, 0)),
+      totalEstimatedSpendUsd: externalTotalEstimatedSpendUsd ?? localTotalEstimatedSpendUsd,
       personaBreakdown: [...personaTotals.entries()]
         .map(([personaName, totals]) => ({
           personaName,
@@ -287,15 +334,7 @@ export class LocalFleetService implements FleetService {
           totalTokens: totals.total
         }))
         .sort((left, right) => right.estimatedSpendUsd - left.estimatedSpendUsd),
-      providerBreakdown: [...providerTotals.entries()]
-        .map(([provider, totals]) => ({
-          provider,
-          estimatedSpendUsd: roundTo6(totals.spend),
-          inputTokens: totals.input,
-          outputTokens: totals.output,
-          totalTokens: totals.total
-        }))
-        .sort((left, right) => right.estimatedSpendUsd - left.estimatedSpendUsd),
+      providerBreakdown,
       tokenMix
     };
   }

@@ -69,3 +69,8 @@ output "control_plane_workload_identity_principal_id" {
   description = "Principal ID for the control-plane user-assigned managed identity."
   value       = azurerm_user_assigned_identity.control_plane_workload.principal_id
 }
+
+output "resource_group_budget_id" {
+  description = "Resource group monthly budget guardrail resource ID."
+  value       = azurerm_consumption_budget_resource_group.startup_credit_guardrail.id
+}

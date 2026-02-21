@@ -7,9 +7,9 @@ Every development cycle must consume the next story in this list and move it to 
 
 ## Active Sequence
 
-### Milestone 5: Cloud-Native & Azure Deployment
-1. **[2026.05.06-cost-governance-and-quotas.md](2026.05.06-cost-governance-and-quotas.md)**
-   - Implement budget alerts and K8s resource quotas to protect startup credits.
+### Docs Operations Track
+1. **[03.05-define-content-backup-and-rollback-process.md](03.05-define-content-backup-and-rollback-process.md)**
+   - Define backup and rollback procedures for docs/content regressions.
 
 ---
 *For the long-term plan, see `planning/backlog/roadmap/roadmap.md`.*

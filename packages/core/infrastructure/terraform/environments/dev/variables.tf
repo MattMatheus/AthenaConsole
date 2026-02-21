@@ -94,6 +94,12 @@ variable "key_vault_resource_id" {
   default     = null
 }
 
+variable "cost_management_scope_resource_id" {
+  description = "Optional scope where Cost Management Reader is granted to the control-plane managed identity."
+  type        = string
+  default     = null
+}
+
 variable "static_web_app_custom_domain" {
   description = "Optional custom domain to bind to the Static Web App."
   type        = string
@@ -122,6 +128,30 @@ variable "application_insights_daily_cap_gb" {
   description = "Application Insights daily ingestion cap in GB to control credits burn."
   type        = number
   default     = 1
+}
+
+variable "monthly_budget_amount_usd" {
+  description = "Monthly budget amount in USD for the environment resource group."
+  type        = number
+  default     = 250
+}
+
+variable "budget_start_date" {
+  description = "Budget monitoring period start date (RFC3339)."
+  type        = string
+  default     = "2026-01-01T00:00:00Z"
+}
+
+variable "budget_end_date" {
+  description = "Budget monitoring period end date (RFC3339)."
+  type        = string
+  default     = "2030-01-01T00:00:00Z"
+}
+
+variable "budget_alert_contact_emails" {
+  description = "Optional email recipients for budget threshold notifications."
+  type        = list(string)
+  default     = []
 }
 
 variable "tags" {

@@ -3,6 +3,7 @@ import type { AthenaConfig } from "../shared/config.js";
 import { DefaultAzureCredential } from "@azure/identity";
 
 const DEFAULT_OPENAI_SCOPE = "https://cognitiveservices.azure.com/.default";
+const DEFAULT_AZURE_MANAGEMENT_SCOPE = "https://management.azure.com/.default";
 const KEY_VAULT_SCOPE = "https://vault.azure.net/.default";
 const KEY_VAULT_API_VERSION = "7.4";
 
@@ -84,4 +85,12 @@ export function createOpenAiApiKeyResolver(config: AthenaConfig): (() => Promise
     cachedApiKey = parsed.value?.trim() || undefined;
     return cachedApiKey;
   };
+}
+
+export function createAzureManagementTokenProvider(config: AthenaConfig): (() => Promise<string>) | undefined {
+  if (!config.azure?.enabled || !config.azure.billing?.enabled) {
+    return undefined;
+  }
+  const scope = config.azure.billing.audience ?? DEFAULT_AZURE_MANAGEMENT_SCOPE;
+  return async () => getBearerToken(config, scope);
 }

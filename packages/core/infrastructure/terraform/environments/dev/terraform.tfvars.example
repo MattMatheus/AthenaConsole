@@ -25,6 +25,13 @@ application_insights_retention_in_days   = 30
 application_insights_sampling_percentage = 20
 application_insights_daily_cap_gb        = 1
 
+# Resource-group monthly budget guardrail with alerts at 50/75/90%.
+monthly_budget_amount_usd = 250
+budget_start_date         = "2026-01-01T00:00:00Z"
+budget_end_date           = "2030-01-01T00:00:00Z"
+# budget_alert_contact_emails = ["platform-alerts@teamorchestrator.com"]
+
 # Optional resource IDs for least-privilege role assignments.
 # openai_account_resource_id = "/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.CognitiveServices/accounts/<name>"
 # key_vault_resource_id      = "/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.KeyVault/vaults/<name>"
+# cost_management_scope_resource_id = "/subscriptions/<sub>/resourceGroups/<rg>"

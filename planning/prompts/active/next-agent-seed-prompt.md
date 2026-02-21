@@ -6,9 +6,9 @@ Your task is to begin the next development cycle by executing the top story in t
 
 ## Primary Task
 
-- **Backlog Item:** `planning/backlog/active/2026.05.06-cost-governance-and-quotas.md`
+- **Backlog Item:** `planning/backlog/active/03.05-define-content-backup-and-rollback-process.md`
 
-Review the story and its acceptance criteria, then begin implementation. This task focuses on budget guardrails, Kubernetes resource quotas/limits for execution namespaces, cleanup policies for orphaned workloads, and exposing cost visualization in the admin experience.
+Review the story and its acceptance criteria, then implement the backup and rollback workflow documentation for content operations. Focus on clear rollback triggers, operator runbook steps, and post-rollback verification guidance.
 
 ## Agent Workflow (Mandatory)
 

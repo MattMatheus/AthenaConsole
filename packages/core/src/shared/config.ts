@@ -39,6 +39,14 @@ export interface AthenaConfig {
     managedIdentityClientId?: string;
     keyVaultUrl?: string;
     openaiApiKeySecretName?: string;
+    billing?: {
+      enabled: boolean;
+      audience: string;
+      scopeResourceId?: string;
+      subscriptionId?: string;
+      resourceGroupName?: string;
+      apiVersion: string;
+    };
   };
   httpProviderUrl: string | undefined;
   httpProviderApiKey: string | undefined;
@@ -144,7 +152,12 @@ const DEFAULT_CONFIG: AthenaConfig = {
   azure: {
     enabled: false,
     openaiUseEntraId: false,
-    openaiAudience: "https://cognitiveservices.azure.com/.default"
+    openaiAudience: "https://cognitiveservices.azure.com/.default",
+    billing: {
+      enabled: false,
+      audience: "https://management.azure.com/.default",
+      apiVersion: "2023-03-01"
+    }
   },
   httpProviderUrl: undefined,
   httpProviderApiKey: undefined,
@@ -579,6 +592,24 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
   const azureKeyVaultUrl = env.ATHENA_AZURE_KEY_VAULT_URL ?? process.env.ATHENA_AZURE_KEY_VAULT_URL;
   const azureOpenAiApiKeySecretName =
     env.ATHENA_AZURE_OPENAI_KEY_SECRET_NAME ?? process.env.ATHENA_AZURE_OPENAI_KEY_SECRET_NAME;
+  const azureBillingEnabled = parseBoolean(
+    env.ATHENA_AZURE_BILLING_ENABLED ?? process.env.ATHENA_AZURE_BILLING_ENABLED,
+    DEFAULT_CONFIG.azure!.billing!.enabled
+  );
+  const azureBillingAudience =
+    env.ATHENA_AZURE_BILLING_AUDIENCE ??
+    process.env.ATHENA_AZURE_BILLING_AUDIENCE ??
+    DEFAULT_CONFIG.azure!.billing!.audience;
+  const azureBillingScopeResourceId =
+    env.ATHENA_AZURE_BILLING_SCOPE_RESOURCE_ID ?? process.env.ATHENA_AZURE_BILLING_SCOPE_RESOURCE_ID;
+  const azureBillingSubscriptionId =
+    env.ATHENA_AZURE_BILLING_SUBSCRIPTION_ID ?? process.env.ATHENA_AZURE_BILLING_SUBSCRIPTION_ID;
+  const azureBillingResourceGroupName =
+    env.ATHENA_AZURE_BILLING_RESOURCE_GROUP_NAME ?? process.env.ATHENA_AZURE_BILLING_RESOURCE_GROUP_NAME;
+  const azureBillingApiVersion =
+    env.ATHENA_AZURE_BILLING_API_VERSION ??
+    process.env.ATHENA_AZURE_BILLING_API_VERSION ??
+    DEFAULT_CONFIG.azure!.billing!.apiVersion;
   const fleetMetricsProvider = parseFleetMetricsProvider(
     env.ATHENA_FLEET_METRICS_PROVIDER ?? process.env.ATHENA_FLEET_METRICS_PROVIDER
   );
@@ -684,7 +715,17 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
       openaiAudience: azureOpenAiAudience,
       ...(azureManagedIdentityClientId !== undefined ? { managedIdentityClientId: azureManagedIdentityClientId } : {}),
       ...(azureKeyVaultUrl !== undefined ? { keyVaultUrl: azureKeyVaultUrl } : {}),
-      ...(azureOpenAiApiKeySecretName !== undefined ? { openaiApiKeySecretName: azureOpenAiApiKeySecretName } : {})
+      ...(azureOpenAiApiKeySecretName !== undefined ? { openaiApiKeySecretName: azureOpenAiApiKeySecretName } : {}),
+      billing: {
+        enabled: azureBillingEnabled,
+        audience: azureBillingAudience,
+        ...(azureBillingScopeResourceId !== undefined ? { scopeResourceId: azureBillingScopeResourceId } : {}),
+        ...(azureBillingSubscriptionId !== undefined ? { subscriptionId: azureBillingSubscriptionId } : {}),
+        ...(azureBillingResourceGroupName !== undefined
+          ? { resourceGroupName: azureBillingResourceGroupName }
+          : {}),
+        apiVersion: azureBillingApiVersion
+      }
     },
     httpProviderUrl: env.ATHENA_HTTP_PROVIDER_URL ?? process.env.ATHENA_HTTP_PROVIDER_URL,
     httpProviderApiKey: env.ATHENA_HTTP_PROVIDER_API_KEY ?? process.env.ATHENA_HTTP_PROVIDER_API_KEY,

@@ -43,6 +43,7 @@ import { LocalA2aDlqService, LocalEventService } from "./services/event-dlq.js";
 import { LocalA2aFlowService } from "./services/a2a-flow.js";
 import { LocalA2aObservabilityService } from "./services/a2a-observability.js";
 import { LocalCapabilityService, LocalFleetMetricsProvider, LocalFleetService } from "./services/fleet.js";
+import { AzureBillingFleetCostProvider } from "./azure-billing-cost-provider.js";
 import { LocalIdentityService } from "./services/identity.js";
 import { LocalGovernanceAuditService } from "./services/governance-audit.js";
 import {
@@ -186,6 +187,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     selectedFleetMetricsProvider === "k8s"
       ? new K8sMetricsProvider(executionBackend, options.k8sMetricsProviderOptions)
       : new LocalFleetMetricsProvider(stateStore, runtimeActiveDir, runtimeCancelDir);
+  const azureBillingCostProvider = new AzureBillingFleetCostProvider(options.config);
 
   const authorizer = new ServiceAuthorizer(options.config, eventService);
   const runService = new AuthorizedRunService(
@@ -237,7 +239,13 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     governanceAuditService,
     identityService,
     fleetService: new AuthorizedFleetService(
-      new LocalFleetService(options.config, fleetMetricsProvider, runService, eventService),
+      new LocalFleetService(
+        options.config,
+        fleetMetricsProvider,
+        runService,
+        eventService,
+        azureBillingCostProvider.isEnabled() ? azureBillingCostProvider : undefined
+      ),
       authorizer
     ),
     capabilityService: new LocalCapabilityService(executionBackend, fleetMetricsProvider, sandboxExecutionBackend),

@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: athena-cleanup
+  namespace: athena
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: athena-cleanup
+  namespace: athena
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: athena-cleanup
+  namespace: athena
+subjects:
+  - kind: ServiceAccount
+    name: athena-cleanup
+    namespace: athena
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: athena-cleanup
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: athena-orphaned-workload-cleanup
+  namespace: athena
+spec:
+  schedule: "15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 600
+      template:
+        spec:
+          serviceAccountName: athena-cleanup
+          restartPolicy: Never
+          containers:
+            - name: cleanup
+              image: bitnami/kubectl:1.30
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: NAMESPACE
+                  value: "athena"
+                - name: JOB_TTL_SECONDS
+                  value: "86400"
+                - name: PVC_TTL_SECONDS
+                  value: "172800"
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  set -eu
+                  now="$(date -u +%s)"
+                  namespace="${NAMESPACE:-athena}"
+                  job_ttl="${JOB_TTL_SECONDS:-86400}"
+                  pvc_ttl="${PVC_TTL_SECONDS:-172800}"
+
+                  kubectl -n "${namespace}" get jobs \
+                    -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.completionTime}{"\n"}{end}' \
+                    | while IFS="$(printf '\t')" read -r name completion; do
+                        [ -n "${name}" ] || continue
+                        [ -n "${completion}" ] || continue
+                        completed_epoch="$(date -u -d "${completion}" +%s 2>/dev/null || true)"
+                        [ -n "${completed_epoch}" ] || continue
+                        age="$((now - completed_epoch))"
+                        if [ "${age}" -ge "${job_ttl}" ]; then
+                          kubectl -n "${namespace}" delete job "${name}" --ignore-not-found=true
+                        fi
+                      done
+
+                  kubectl -n "${namespace}" get pvc \
+                    -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.phase}{"\t"}{.metadata.creationTimestamp}{"\n"}{end}' \
+                    | while IFS="$(printf '\t')" read -r name phase created_at; do
+                        [ -n "${name}" ] || continue
+                        [ -n "${created_at}" ] || continue
+                        [ "${phase:-}" = "Bound" ] && continue
+                        created_epoch="$(date -u -d "${created_at}" +%s 2>/dev/null || true)"
+                        [ -n "${created_epoch}" ] || continue
+                        age="$((now - created_epoch))"
+                        if [ "${age}" -ge "${pvc_ttl}" ]; then
+                          kubectl -n "${namespace}" delete pvc "${name}" --ignore-not-found=true
+                        fi
+                      done

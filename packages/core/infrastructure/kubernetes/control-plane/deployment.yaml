@@ -35,6 +35,10 @@ spec:
               value: "true"
             - name: ATHENA_AZURE_OPENAI_USE_ENTRA_ID
               value: "true"
+            - name: ATHENA_AZURE_BILLING_ENABLED
+              value: "false"
+            - name: ATHENA_AZURE_BILLING_SCOPE_RESOURCE_ID
+              value: "/subscriptions/REPLACE_WITH_SUBSCRIPTION/resourceGroups/REPLACE_WITH_RESOURCE_GROUP"
             - name: ATHENA_APPINSIGHTS_ENABLED
               value: "false"
             - name: ATHENA_APPINSIGHTS_CLOUD_ROLE_NAME

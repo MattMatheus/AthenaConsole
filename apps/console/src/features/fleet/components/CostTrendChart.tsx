@@ -18,6 +18,7 @@ export function CostTrendChart({ costSummary }: CostTrendChartProps) {
   const inputPercent = Math.round(inputRatio * 100);
   const outputPercent = Math.round(outputRatio * 100);
   const offset = 100 - inputPercent;
+  const hasAzureBillingSource = (costSummary?.providerBreakdown ?? []).some((row) => row.provider === "azure-billing");
 
   return (
     <Card className={styles.card ?? ""}>
@@ -61,6 +62,7 @@ export function CostTrendChart({ costSummary }: CostTrendChartProps) {
           <p className={styles.monthTotal ?? ""}>
             Month total: {usdFormatter.format(costSummary?.totalEstimatedSpendUsd ?? 0)}
           </p>
+          {hasAzureBillingSource ? <p className={styles.monthTotal ?? ""}>Data source: Azure Billing API</p> : null}
         </div>
       </div>
     </Card>

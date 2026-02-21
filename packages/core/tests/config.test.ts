@@ -32,6 +32,12 @@ describe("loadConfig", () => {
       expect(config.azure?.managedIdentityClientId).toBeUndefined();
       expect(config.azure?.keyVaultUrl).toBeUndefined();
       expect(config.azure?.openaiApiKeySecretName).toBeUndefined();
+      expect(config.azure?.billing?.enabled).toBe(false);
+      expect(config.azure?.billing?.audience).toBe("https://management.azure.com/.default");
+      expect(config.azure?.billing?.scopeResourceId).toBeUndefined();
+      expect(config.azure?.billing?.subscriptionId).toBeUndefined();
+      expect(config.azure?.billing?.resourceGroupName).toBeUndefined();
+      expect(config.azure?.billing?.apiVersion).toBe("2023-03-01");
       expect(config.history?.maxEntries).toBe(200);
       expect(config.memory?.enabled).toBe(false);
       expect(config.memory?.includeTranscripts).toBe(false);
@@ -104,6 +110,12 @@ describe("loadConfig", () => {
           "ATHENA_AZURE_MANAGED_IDENTITY_CLIENT_ID=11111111-2222-3333-4444-555555555555",
           "ATHENA_AZURE_KEY_VAULT_URL=https://kv-athena-dev.vault.azure.net",
           "ATHENA_AZURE_OPENAI_KEY_SECRET_NAME=athena-openai-api-key",
+          "ATHENA_AZURE_BILLING_ENABLED=true",
+          "ATHENA_AZURE_BILLING_AUDIENCE=https://management.azure.us/.default",
+          "ATHENA_AZURE_BILLING_SCOPE_RESOURCE_ID=/subscriptions/123/resourceGroups/rg-athena-dev",
+          "ATHENA_AZURE_BILLING_SUBSCRIPTION_ID=123",
+          "ATHENA_AZURE_BILLING_RESOURCE_GROUP_NAME=rg-athena-dev",
+          "ATHENA_AZURE_BILLING_API_VERSION=2024-08-01",
           "ATHENA_HTTP_PROVIDER_URL=http://localhost:9999/provider",
           "ATHENA_HTTP_PROVIDER_API_KEY=secret",
           "ATHENA_HTTP_PROVIDER_TIMEOUT_MS=1500",
@@ -180,6 +192,12 @@ describe("loadConfig", () => {
       expect(config.azure?.managedIdentityClientId).toBe("11111111-2222-3333-4444-555555555555");
       expect(config.azure?.keyVaultUrl).toBe("https://kv-athena-dev.vault.azure.net");
       expect(config.azure?.openaiApiKeySecretName).toBe("athena-openai-api-key");
+      expect(config.azure?.billing?.enabled).toBe(true);
+      expect(config.azure?.billing?.audience).toBe("https://management.azure.us/.default");
+      expect(config.azure?.billing?.scopeResourceId).toBe("/subscriptions/123/resourceGroups/rg-athena-dev");
+      expect(config.azure?.billing?.subscriptionId).toBe("123");
+      expect(config.azure?.billing?.resourceGroupName).toBe("rg-athena-dev");
+      expect(config.azure?.billing?.apiVersion).toBe("2024-08-01");
       expect(config.httpProviderUrl).toBe("http://localhost:9999/provider");
       expect(config.httpProviderApiKey).toBe("secret");
       expect(config.httpProviderTimeoutMs).toBe(1500);
