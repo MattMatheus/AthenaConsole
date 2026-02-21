@@ -12,4 +12,5 @@ Developer-oriented guides for setup, contribution, and implementation standards.
 - Docs search index schema: `planning/developer/docs-search-index-schema.md`
 - Analytics event model: `planning/developer/analytics-event-model.md`
 - Deployment smoke checks: `planning/developer/deployment-smoke-checks.md`
+- Content backup and rollback runbook: `planning/developer/content-backup-and-rollback.md`
 - ProjectAthena docs sync guide: `planning/developer/projectathena-docs-sync.md`

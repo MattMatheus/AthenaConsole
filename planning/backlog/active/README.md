@@ -7,9 +7,9 @@ Every development cycle must consume the next story in this list and move it to 
 
 ## Active Sequence
 
-### Docs Operations Track
-1. **[03.05-define-content-backup-and-rollback-process.md](03.05-define-content-backup-and-rollback-process.md)**
-   - Define backup and rollback procedures for docs/content regressions.
+### Fleet Dashboard Track
+1. **[05.01-create-fleet-api-service-for-ui.md](05.01-create-fleet-api-service-for-ui.md)**
+   - Create a typed Fleet API service abstraction for UI usage.
 
 ---
 *For the long-term plan, see `planning/backlog/roadmap/roadmap.md`.*

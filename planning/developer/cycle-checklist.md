@@ -21,6 +21,7 @@ Use this checklist at the end of every development cycle.
 - [ ] Static smoke checks pass: `npm run check:static` (or `npm run validate:deploy`).
 - [ ] URL paths remain stable for existing docs/blog routes.
 - [ ] New/updated routes resolve correctly under `/docs/*` or `/blog/*`.
+- [ ] Rollback anchor is recorded for content releases (see `planning/developer/content-backup-and-rollback.md`).
 
 ## Handoff Operations (Mandatory)
 
