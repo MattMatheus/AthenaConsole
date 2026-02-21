@@ -6,6 +6,7 @@ services:
       sh -c "npm install"
     volumes:
       - .:/workspace
+      - ${ATHENA_REPO_HOST_PATH:-.}:${ATHENA_REPO_CONTAINER_PATH:-/workspace/target-repo}
       - athena-root-node-modules:/workspace/node_modules
       - athena-api-node-modules:/workspace/apps/api/node_modules
       - athena-core-node-modules:/workspace/packages/core/node_modules
@@ -61,6 +62,7 @@ services:
       ATHENA_DEV_PROXY_TARGET: http://api:8787
     volumes:
       - .:/workspace
+      - ${ATHENA_REPO_HOST_PATH:-.}:${ATHENA_REPO_CONTAINER_PATH:-/workspace/target-repo}
       - athena-root-node-modules:/workspace/node_modules
       - athena-console-node-modules:/workspace/apps/console/node_modules
     ports:
