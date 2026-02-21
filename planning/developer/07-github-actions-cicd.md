@@ -14,6 +14,15 @@ This document defines the repository-level CI/CD baseline for Azure deployment o
   - Validates console typecheck/build.
   - On `main` pushes, deploys console to Azure Static Web Apps.
 
+## Workspace Isolation Guardrail
+
+- Do not run parallel, non-isolated CI jobs against the same workspace artifacts.
+- Jobs that write build/test outputs must use one of these patterns:
+  - Separate runner workspace per job.
+  - Distinct artifact/output directories per job and per matrix cell.
+  - Serialized execution (`concurrency`) when outputs are shared.
+- This guardrail is mandatory for deterministic test runs (including runtime fallback tests) and to prevent cross-job file mutation.
+
 ## Required Repository Secrets
 
 - `AZURE_CLIENT_ID`

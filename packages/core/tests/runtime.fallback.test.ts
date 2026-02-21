@@ -1,7 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProviderRegistry, type ProviderAdapter } from "../src/providers/index.js";
 import { AthenaError } from "../src/runtime/errors.js";
 import { createRuntime } from "../src/runtime/index.js";
@@ -46,9 +47,19 @@ function testConfig(workspaceRoot: string) {
   };
 }
 
-describe("runtime provider fallback", () => {
+describe.sequential("runtime provider fallback", () => {
+  beforeEach(() => {
+    vi.useRealTimers();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
   it("falls back to next provider on retryable failure and persists final model/provider", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-fallback-"));
+    const sessionId = `s-${randomUUID()}`;
 
     try {
       const providers = new ProviderRegistry();
@@ -61,7 +72,7 @@ describe("runtime provider fallback", () => {
         maxAttempts: 1
       });
 
-      const result = await runtime.run({ sessionId: "s1", input: "test" });
+      const result = await runtime.run({ sessionId, input: "test" });
       expect(result.provider).toBe("backup");
       expect(result.model).toBe("backup-model");
       expect(result.output).toBe("ok-from-fallback");
@@ -71,7 +82,7 @@ describe("runtime provider fallback", () => {
         fallbackHops: 1
       });
 
-      const sessionPath = join(dir, ".athena", "sessions", "s1.json");
+      const sessionPath = join(dir, ".athena", "sessions", `${sessionId}.json`);
       const sessionRecord = JSON.parse(readFileSync(sessionPath, "utf8")) as { provider: string; model: string };
       expect(sessionRecord.provider).toBe("backup");
       expect(sessionRecord.model).toBe("backup-model");
@@ -82,6 +93,7 @@ describe("runtime provider fallback", () => {
 
   it("returns PROVIDER_ERROR when at least one provider is registered but all fail", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-fallback-classification-"));
+    const sessionId = `s-${randomUUID()}`;
 
     try {
       const providers = new ProviderRegistry();
@@ -96,7 +108,7 @@ describe("runtime provider fallback", () => {
         maxAttempts: 1
       });
 
-      await expect(runtime.run({ sessionId: "s1", input: "test" })).rejects.toMatchObject({
+      await expect(runtime.run({ sessionId, input: "test" })).rejects.toMatchObject({
         code: "PROVIDER_ERROR"
       });
     } finally {

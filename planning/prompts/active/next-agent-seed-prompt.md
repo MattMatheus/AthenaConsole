@@ -6,9 +6,9 @@ Your task is to begin the next development cycle by executing the top story in t
 
 ## Primary Task
 
-- **Backlog Item:** `planning/backlog/active/2026.02.23-developer-experience-and-quality.md`
+- **Backlog Item:** `planning/backlog/active/2026.05.06-cost-governance-and-quotas.md`
 
-Review the story and its acceptance criteria, then begin implementation. This task focuses on making the test pipeline deterministic (especially `runtime.fallback` stability), adding a docs-sync CI smoke contract check, and refreshing developer onboarding/CI docs.
+Review the story and its acceptance criteria, then begin implementation. This task focuses on budget guardrails, Kubernetes resource quotas/limits for execution namespaces, cleanup policies for orphaned workloads, and exposing cost visualization in the admin experience.
 
 ## Agent Workflow (Mandatory)
 

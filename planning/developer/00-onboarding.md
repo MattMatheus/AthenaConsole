@@ -31,13 +31,22 @@ The current focus is on hardening the control plane, implementing Kyverno policy
 - **Persistence:** Use atomic, lock-guarded, and append-safe patterns for state.
 - **Boundaries:** Keep business logic in control-plane services; keep providers behind clean interfaces.
 - **Local Stack Maintenance:** Keep root `docker-compose.local.yml` aligned with `packages/core/infrastructure/docker-compose.yml` when service contracts, ports, or startup env vars change.
+- **Container Runtime:** Use Podman Compose for local orchestration:
+  - `podman compose -f docker-compose.local.yml up --build`
+  - `podman compose -f docker-compose.local.yml down --remove-orphans`
 - **Validation:** Every cycle must pass `check:schemas`, `typecheck`, `test`, and `build`.
-- **Mandatory Cycle Handoff:** Every cycle must update `planning/archive/handoff.md`, move completed stories from `planning/backlog/active/` to `planning/backlog/completed/`, and refresh `planning/prompts/active/next-agent-seed-prompt.md` for the next cycle.
+- **Mandatory Cycle Handoff:** Every cycle must update `planning/vision/handoff.md`, move completed stories from `planning/backlog/active/` to `planning/backlog/completed/`, update `planning/backlog/active/README.md`, and refresh `planning/prompts/active/next-agent-seed-prompt.md` for the next cycle.
 
 ## 4. Progressive Disclosure (Context Management)
 
 To keep your context window efficient, follow these pointers to more detailed information:
 
+- **Need planning structure orientation first?** Start with:
+  - `planning/backlog/active/README.md` (execution queue)
+  - `planning/backlog/completed/README.md` (delivery history)
+  - `planning/backlog/roadmap/roadmap.md` (future plan)
+  - `planning/prompts/active/next-agent-seed-prompt.md` (current directive)
+  - `planning/vision/handoff.md` (latest cycle output)
 - **Need Architecture Details?** See `planning/developer/01-architecture.md`.
 - **Need CLI Command Reference?** See `planning/developer/06-cli-reference.md`.
 - **Need specific Persona docs?** See `docs/personas/`.

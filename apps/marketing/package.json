@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "test": "npm run test:docs-sync-contract",
+    "test:docs-sync-contract": "node scripts/check-docs-sync-contract.mjs",
     "check:static": "node scripts/smoke-check-static-output.mjs",
     "validate:public-docs": "node scripts/validate-public-docs-output.mjs",
     "validate:deploy": "npm run build && npm run check:static && npm run validate:public-docs",
