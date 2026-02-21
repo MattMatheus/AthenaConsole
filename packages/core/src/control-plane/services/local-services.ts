@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { readdir } from "node:fs/promises";
+import { resolveSpecialistsDirectory } from "../../personas/loader.js";
 import { randomUUID } from "node:crypto";
 import { ScheduleManager, type UpsertScheduleRequest } from "../../schedule/index.js";
 import { AthenaError } from "../../runtime/errors.js";
@@ -789,18 +792,14 @@ export class LocalMemoryService implements MemoryService {
     return this.memoryManager.search(query, options);
   }
 
-  get(request: MemoryGetRequest): Promise<MemoryGetResult> {
-    return this.memoryManager.get(request);
+      get(request: MemoryGetRequest): Promise<MemoryGetResult> {
+      return this.memoryManager.get(request);
+    }
   }
-}
-
-import { readdir } from "node:fs/promises";
-import { resolveSpecialistsDirectory } from "../../personas/loader.js";
-
-// ... [skipping some imports]
-
-export class LocalSpecialistService implements SpecialistService, PersonaService {
-  constructor(
+  
+  export class LocalSpecialistService implements SpecialistService, PersonaService {
+    constructor(
+  
     private readonly config: AthenaConfig,
     private readonly eventService: EventService,
     private readonly lspService?: LspService
