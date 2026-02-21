@@ -8,7 +8,7 @@ Astro-based website for Team Orchestrator marketing, blog posts, and documentati
 - `npm run dev` — run local dev server at `http://localhost:4321`
 - `npm run build` — build static site into `dist/`
 - `npm run preview` — preview production build locally
-- `npm run sync:projectathena-docs` — sync curated reference docs from `~/Source/projectathena/docs`
+- `npm run sync:projectathena-docs` — sync curated reference docs from `../../packages/core/docs` (relative to `apps/marketing`)
 - `npm run validate:deploy` — build + smoke checks + public docs visibility checks
 
 ## Content authoring
@@ -56,7 +56,7 @@ Set `audience: internal` for docs that should never publish to `/docs/*`.
 
 ### Synced reference docs
 
-Curated reference docs are generated from `~/Source/projectathena/docs` via the ingestion manifest at `internal-docs/architecture/projectathena-docs-ingestion-manifest.json`.
+Curated reference docs are generated from `../../packages/core/docs` via the ingestion manifest at `internal-docs/architecture/projectathena-docs-ingestion-manifest.json`.
 
 ```bash
 npm run sync:projectathena-docs

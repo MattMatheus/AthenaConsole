@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { buildApiContractArtifact } from "../src/control-plane/api-artifact.js";
+import { API_V1_ROUTES } from "../src/control-plane/api-contracts.js";
 
 describe("control-plane api artifact", () => {
   it("builds an OpenAPI-style artifact with per-route schemas", () => {
     const artifact = buildApiContractArtifact(new Date("2026-02-16T00:00:00.000Z"));
 
     expect(artifact.schemaVersion).toBe(2);
-    expect(artifact.routeCount).toBe(62);
+    expect(artifact.routeCount).toBe(API_V1_ROUTES.length);
     expect(artifact.openapi.openapi).toBe("3.1.0");
     expect(artifact.openapi.paths["/api/v1/runs"]?.post?.operationId).toBe("createRun");
     expect(artifact.openapi.paths["/api/v1/runs/active"]?.get?.operationId).toBe("listActiveRuns");

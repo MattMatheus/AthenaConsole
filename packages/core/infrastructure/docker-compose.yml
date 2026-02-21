@@ -13,29 +13,35 @@ services:
   # Athena API Plane
   api:
     build:
-      context: .
-      dockerfile: Dockerfile # To be created
+      context: ../../..
+      dockerfile: packages/core/infrastructure/docker/control-plane.Dockerfile
     environment:
       - ATHENA_AUTH_ENABLED=false
       - ATHENA_DISTRIBUTED_LOCK_PROVIDER=redis
       - ATHENA_REDIS_URL=redis://redis:6379
       - ATHENA_EXECUTION_BACKEND=local-exec # Use local-exec for docker-compose dev
       - ATHENA_STATE_ROOT=/athena/state
+      - ATHENA_DEV_API_HOST=0.0.0.0
+      - ATHENA_DEV_API_PORT=8787
     volumes:
-      - ./.athena:/athena/state
+      - ../../../.athena:/athena/state
     depends_on:
       redis:
         condition: service_healthy
     ports:
-      - "3000:3000"
+      - "8787:8787"
 
   # Athena Web Console
   console:
     build:
-      context: ./packages/console
-      dockerfile: Dockerfile
+      context: ../../..
+      dockerfile: packages/core/infrastructure/docker/console.Dockerfile
     environment:
-      - VITE_API_URL=http://localhost:3000
+      - ATHENA_DEV_UI_HOST=0.0.0.0
+      - ATHENA_DEV_UI_PORT=5173
+      - ATHENA_DEV_API_HOST=api
+      - ATHENA_DEV_API_PORT=8787
+      - ATHENA_DEV_PROXY_TARGET=http://api:8787
     ports:
       - "5173:5173"
     depends_on:

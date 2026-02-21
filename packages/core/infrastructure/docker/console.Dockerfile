@@ -10,12 +10,8 @@ COPY packages/pdk/package*.json ./packages/pdk/
 RUN npm ci
 
 COPY . .
-RUN npm run build --workspace @athena/core
-RUN npm run build --workspace @athena/api
 
-ENV NODE_ENV=production
-ENV ATHENA_DEV_API_HOST=0.0.0.0
-ENV ATHENA_DEV_API_PORT=8787
-EXPOSE 8787
+WORKDIR /workspace/apps/console
+EXPOSE 5173
 
-CMD ["node", "apps/api/dist/main.js"]
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]

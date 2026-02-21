@@ -6,12 +6,12 @@ import process from 'node:process';
 
 const GENERATED_HEADER = [
   '<!-- GENERATED FILE: DO NOT EDIT -->',
-  '<!-- Source: projectathena/docs via internal-docs/architecture/projectathena-docs-ingestion-manifest.json -->',
+  '<!-- Source: docs source via internal-docs/architecture/projectathena-docs-ingestion-manifest.json -->',
 ].join('\n');
 
 const DEFAULT_MANIFEST = 'internal-docs/architecture/projectathena-docs-ingestion-manifest.json';
 const DEFAULT_DEST_ROOT = 'src/content/docs';
-const DEFAULT_SOURCE_ROOT = '~/Source/projectathena/docs';
+const DEFAULT_SOURCE_ROOT = '../../packages/core/docs';
 const DEFAULT_SECTION = 'Reference';
 const DEFAULT_SECTION_ORDER = 3;
 const DEFAULT_SYNCED_AT = '1970-01-01T00:00:00.000Z';
@@ -58,7 +58,7 @@ const printHelp = () => {
 
 Options:
   --manifest <path>       Manifest path (default: ${DEFAULT_MANIFEST})
-  --source-root <path>    Root path for projectathena/docs (default: ${DEFAULT_SOURCE_ROOT})
+  --source-root <path>    Root path for source docs (default: ${DEFAULT_SOURCE_ROOT})
   --dest-root <path>      Destination docs content root (default: ${DEFAULT_DEST_ROOT})
   --source-commit <sha>   Traceability commit value (default: unknown)
   --synced-at <iso-time>  lastSyncedAt value (default: ${DEFAULT_SYNCED_AT})

@@ -48,7 +48,7 @@ For complex agent-to-agent (A2A) interactions, the console provides:
 
 ## Developing the Console
 
-The Athena Console is built with Vite, React, and TypeScript. It is located in the `packages/console` directory.
+The Athena Console is built with Vite, React, and TypeScript. It is located in the `apps/console` directory.
 
 ### Project Structure
 
