@@ -80,7 +80,7 @@ athena persona run --name code-review --repo . --head main --stdout summary
 If `athena` is not in your PATH yet, run the same command via npm:
 
 ```bash
-npm run athena -- persona run --name code-review --repo ../.. --head main --stdout summary
+npm run athena -- persona run --name code-review --repo . --head main --stdout summary
 ```
 
 Note: the persona `code-review` run aborts when the target repository has uncommitted changes. Commit or stash local edits first.
