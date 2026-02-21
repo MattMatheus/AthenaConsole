@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "athena-prime",
+  "description": "Base Athena engineering persona that executes backlog stories end-to-end with governed, typed, test-backed delivery.",
+  "context": {
+    "promptFiles": ["prompt.md"],
+    "skillFiles": ["skills.md"],
+    "docFiles": ["docs.md", "SOUL.md", "PRINCIPLES.md"],
+    "maxFileChars": 20000,
+    "maxTotalChars": 120000
+  },
+  "skills": [
+    {
+      "id": "code-analysis",
+      "tags": ["engineering", "delivery", "orchestration"]
+    }
+  ],
+  "git": {
+    "baseRefDefault": "main",
+    "requireCleanWorktree": true,
+    "baseRefAutodetect": true
+  },
+  "review": {
+    "scope": "diff",
+    "inspectAddedDependencies": true,
+      "rubric": {
+        "correctness": true,
+        "security": true,
+        "performance": true,
+        "maintainability": true,
+        "testGaps": true
+      },
+    "maxReferencedFiles": 16,
+    "maxReferencedFileChars": 12000,
+    "includeGlobs": ["**/*"],
+    "excludeGlobs": ["**/dist/**", "**/build/**", "**/.next/**", "**/coverage/**", "**/vendor/**"]
+  },
+  "output": {
+    "defaultFormat": "both",
+    "writeJsonFile": true,
+    "writeMarkdownFile": true,
+    "stdoutDefault": "summary",
+    "findingPriority": ["P1", "P2", "P3"],
+    "confidenceRange": [0, 1]
+  }
+}
