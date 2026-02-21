@@ -1420,8 +1420,9 @@ export class PolicyAwareExecutionBackend implements ExecutionBackend {
     const workspaceSyncSubPath = normalizeSandboxWorkspaceSubPath(metadata?.sandboxWorkspaceSubPath);
     const workspaceSyncStrategy = normalizeSandboxWorkspaceSyncStrategy(metadata?.sandboxWorkspaceSyncStrategy);
     const workspaceIgnore = normalizeSandboxWorkspaceIgnoreList(metadata?.sandboxWorkspaceIgnore);
+    const workspaceHostPath = this.config.sandbox?.workspaceHostPath ?? this.config.workspaceRoot;
     return {
-      workspaceHostPath: this.config.workspaceRoot,
+      workspaceHostPath,
       workspaceMountPath,
       ...(workspaceReadOnly !== undefined ? { workspaceReadOnly } : {}),
       ...(workspaceSyncRepo ? { workspaceSyncRepo } : {}),

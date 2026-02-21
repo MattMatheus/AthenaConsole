@@ -20,10 +20,12 @@ services:
     environment:
       ATHENA_DEV_API_HOST: 0.0.0.0
       ATHENA_DEV_API_PORT: 8787
+      ATHENA_WORKSPACE_ROOT: /workspace
       ATHENA_LOCK_PROVIDER_DEFAULT: local
       ATHENA_DISTRIBUTED_LOCK_PROVIDER: local
       ATHENA_EXECUTION_PROVIDER_DEFAULT: docker
       ATHENA_SANDBOX_BACKEND_PROVIDER: docker
+      ATHENA_SANDBOX_WORKSPACE_HOST_PATH: ${ATHENA_SANDBOX_WORKSPACE_HOST_PATH:-/workspace}
       ATHENA_STATE_DIR: .athena
     volumes:
       - .:/workspace

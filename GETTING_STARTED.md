@@ -42,6 +42,12 @@ ATHENA_FOUNDRY_USE_ENTRA_ID=true
 
 For Foundry + Entra ID auth in local development, run `az login` before starting Athena.
 
+If engineer pods need access to a specific local source tree, set:
+
+```env
+ATHENA_SANDBOX_WORKSPACE_HOST_PATH=/absolute/path/to/source
+```
+
 ## 4. Start The Local Stack
 
 ```bash

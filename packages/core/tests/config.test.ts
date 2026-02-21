@@ -52,6 +52,7 @@ describe("loadConfig", () => {
       expect(config.distributedLockProvider).toBeUndefined();
       expect(config.sandbox?.enabled).toBe(false);
       expect(config.sandbox?.requireForHighSecurity).toBe(false);
+      expect(config.sandbox?.workspaceHostPath).toBeUndefined();
       expect(config.runtimeIsolation?.defaultProfile).toBe("standard");
       expect(config.runtimeIsolation?.fallbackToDefaultRuntimeClass).toBe(true);
       expect(config.runtimeIsolation?.profiles.standard.isolationProfile).toBe("standard");
@@ -130,6 +131,7 @@ describe("loadConfig", () => {
           "ATHENA_REDIS_URL=redis://redis.internal:6379/1",
           "ATHENA_SANDBOX_ENABLED=true",
           "ATHENA_SANDBOX_REQUIRE_FOR_HIGH_SECURITY=true",
+          "ATHENA_SANDBOX_WORKSPACE_HOST_PATH=/workspace/source",
           "ATHENA_RUNTIME_ISOLATION_DEFAULT_PROFILE=HIGH_SECURITY",
           "ATHENA_RUNTIME_ISOLATION_STANDARD_RUNTIME_CLASS= ",
           "ATHENA_RUNTIME_ISOLATION_STANDARD_REQUIRE_SANDBOX=true",
@@ -212,6 +214,7 @@ describe("loadConfig", () => {
       expect(config.redisUrl).toBe("redis://redis.internal:6379/1");
       expect(config.sandbox?.enabled).toBe(true);
       expect(config.sandbox?.requireForHighSecurity).toBe(true);
+      expect(config.sandbox?.workspaceHostPath).toBe("/workspace/source");
       expect(config.runtimeIsolation?.defaultProfile).toBe("high-security");
       expect(config.runtimeIsolation?.fallbackToDefaultRuntimeClass).toBe(false);
       expect(config.runtimeIsolation?.profiles.standard.isolationProfile).toBe("standard");
@@ -266,6 +269,17 @@ describe("loadConfig", () => {
       const config = loadConfig(dir);
       expect(config.sandbox?.requireForHighSecurity).toBe(true);
       expect(config.runtimeIsolation?.profiles["high-security"].requireSandbox).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("throws structured config errors for non-absolute sandbox workspace host paths", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-config-"));
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_SANDBOX_WORKSPACE_HOST_PATH=relative/path", "utf8");
+      expect(() => loadConfig(dir)).toThrow(AthenaError);
+      expect(() => loadConfig(dir)).toThrow("ATHENA_SANDBOX_WORKSPACE_HOST_PATH");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

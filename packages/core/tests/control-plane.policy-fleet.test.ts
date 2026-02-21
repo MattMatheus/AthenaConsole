@@ -671,7 +671,8 @@ describe("control-plane policy and fleet services", () => {
           ...config,
           sandbox: {
             enabled: true,
-            requireForHighSecurity: false
+            requireForHighSecurity: false,
+            workspaceHostPath: "/workspace/source"
           },
           runtimeIsolation: {
             defaultProfile: "high-security",
@@ -720,7 +721,7 @@ describe("control-plane policy and fleet services", () => {
       expect(terminateCount).toBe(1);
       expect(cleanupCount).toBe(1);
       expect(observedClaimRuntimeClasses).toEqual(["gvisor-secure"]);
-      expect(observedWorkspaceHostPath).toBe(dir);
+      expect(observedWorkspaceHostPath).toBe("/workspace/source");
       expect(observedWorkspaceMountPath).toBe("/athena/workspace");
       expect(observedWorkspaceReadOnly).toBe(true);
       expect(observedWorkspaceSyncRepo).toBe("https://github.com/acme/repo.git");

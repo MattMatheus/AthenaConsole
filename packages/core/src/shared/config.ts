@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 import { AthenaError } from "../runtime/errors.js";
 import type { AthenaRbacRole } from "./contracts.js";
 import type { ContextStrategy } from "./contracts.js";
@@ -63,6 +63,7 @@ export interface AthenaConfig {
   sandbox?: {
     enabled: boolean;
     requireForHighSecurity: boolean;
+    workspaceHostPath?: string;
   };
   runtimeIsolation?: {
     defaultProfile: ConfigRuntimeIsolationProfile;
@@ -523,6 +524,20 @@ function parseAuthzDefaultDecision(
   throw new AthenaError("CONFIG_ERROR", `${fieldName} must be one of: allow, deny. Received: ${input}.`);
 }
 
+function parseAbsolutePath(input: string | undefined, fieldName: string): string | undefined {
+  if (input === undefined) {
+    return undefined;
+  }
+  const normalized = input.trim();
+  if (!normalized) {
+    return undefined;
+  }
+  if (!isAbsolute(normalized)) {
+    throw new AthenaError("CONFIG_ERROR", `${fieldName} must be an absolute path. Received: ${input}.`);
+  }
+  return normalized;
+}
+
 function parseDotEnv(content: string): Record<string, string> {
   const result: Record<string, string> = {};
   for (const rawLine of content.split(/\r?\n/)) {
@@ -678,6 +693,10 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
     env.ATHENA_APPINSIGHTS_ENABLED ?? process.env.ATHENA_APPINSIGHTS_ENABLED,
     appInsightsEnabledDefault
   );
+  const sandboxWorkspaceHostPath = parseAbsolutePath(
+    env.ATHENA_SANDBOX_WORKSPACE_HOST_PATH ?? process.env.ATHENA_SANDBOX_WORKSPACE_HOST_PATH,
+    "ATHENA_SANDBOX_WORKSPACE_HOST_PATH"
+  );
   const defaultEventRetentionDays = Math.max(1, Math.floor(DEFAULT_CONFIG.telemetry!.events.maxAgeMs / DAY_MS));
   const eventRetentionDays = parseNumber(eventRetentionDaysRaw, defaultEventRetentionDays);
 
@@ -762,7 +781,8 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
       requireForHighSecurity: parseBoolean(
         env.ATHENA_SANDBOX_REQUIRE_FOR_HIGH_SECURITY ?? process.env.ATHENA_SANDBOX_REQUIRE_FOR_HIGH_SECURITY,
         DEFAULT_CONFIG.sandbox!.requireForHighSecurity
-      )
+      ),
+      ...(sandboxWorkspaceHostPath ? { workspaceHostPath: sandboxWorkspaceHostPath } : {})
     },
     runtimeIsolation: {
       defaultProfile: defaultRuntimeIsolationProfile,
