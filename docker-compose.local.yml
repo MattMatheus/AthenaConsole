@@ -16,7 +16,10 @@ services:
     image: node:20-bookworm-slim
     working_dir: /workspace
     command: >-
-      sh -c "npm run build --workspace @athena/core &&
+      sh -c "apt-get update &&
+      apt-get install -y --no-install-recommends git &&
+      rm -rf /var/lib/apt/lists/* &&
+      npm run build --workspace @athena/core &&
       npm run dev --workspace @athena/api"
     environment:
       ATHENA_DEV_API_HOST: 0.0.0.0
@@ -30,6 +33,7 @@ services:
       ATHENA_STATE_DIR: .athena
     volumes:
       - .:/workspace
+      - ${ATHENA_REPO_HOST_PATH:-.}:${ATHENA_REPO_CONTAINER_PATH:-/workspace/target-repo}
       - athena-root-node-modules:/workspace/node_modules
       - athena-api-node-modules:/workspace/apps/api/node_modules
       - athena-core-node-modules:/workspace/packages/core/node_modules
