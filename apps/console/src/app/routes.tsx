@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import { AppLayout } from "../layout/AppLayout";
 import { DashboardPage } from "../pages/DashboardPage";
+import { MissionControlPage } from "../pages/MissionControlPage";
 import { DlqPage } from "../pages/DlqPage";
 import { AuditTrailPage } from "../pages/AuditTrailPage";
 import { RbacPage } from "../pages/RbacPage";
@@ -17,6 +18,10 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: <DashboardPage />,
+      },
+      {
+        path: "mission-control",
+        element: <MissionControlPage />,
       },
       {
         path: "sessions",

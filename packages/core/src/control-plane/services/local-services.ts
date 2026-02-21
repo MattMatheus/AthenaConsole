@@ -794,12 +794,28 @@ export class LocalMemoryService implements MemoryService {
   }
 }
 
+import { readdir } from "node:fs/promises";
+import { resolveSpecialistsDirectory } from "../../personas/loader.js";
+
+// ... [skipping some imports]
+
 export class LocalSpecialistService implements SpecialistService, PersonaService {
   constructor(
     private readonly config: AthenaConfig,
     private readonly eventService: EventService,
     private readonly lspService?: LspService
   ) {}
+
+  async list(): Promise<string[]> {
+    const specialistsDir = resolveSpecialistsDirectory(this.config.workspaceRoot);
+    if (!existsSync(specialistsDir)) {
+      return [];
+    }
+    const entries = await readdir(specialistsDir, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory() || (entry.isFile() && entry.name.endsWith(".json")))
+      .map((entry) => entry.name.replace(/\.json$/, ""));
+  }
 
   async run(request: SpecialistRunRequest): Promise<{ result: SpecialistRunResult; stdout: string }> {
     try {

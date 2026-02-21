@@ -3,6 +3,31 @@
   gap: var(--space-4);
 }
 
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.primaryCta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-brand-700);
+  color: white;
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: var(--font-size-200);
+  transition: opacity 0.2s;
+}
+
+.primaryCta:hover {
+  opacity: 0.9;
+}
+
 .lead {
   color: var(--color-text-muted);
 }

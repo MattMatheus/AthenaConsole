@@ -169,10 +169,12 @@ export interface LspService {
 }
 
 export interface PersonaService {
+  list(): Promise<string[]>;
   run(request: SpecialistRunRequest): Promise<{ result: SpecialistRunResult; stdout: string }>;
 }
 
 export interface SpecialistService {
+  list(): Promise<string[]>;
   run(request: SpecialistRunRequest): Promise<{ result: SpecialistRunResult; stdout: string }>;
 }
 
