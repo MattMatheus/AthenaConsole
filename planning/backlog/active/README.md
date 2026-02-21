@@ -5,6 +5,14 @@ Every development cycle must consume the next story in this list and move it to 
 
 ## Active Sequence
 
+### Milestone 4: Foundational Stability
+1. **[2026.02.21-foundational-governance-and-process.md](2026.02.21-foundational-governance-and-process.md)**
+   - Establish clear ownership and processes for planning and documentation artifacts.
+2. **[2026.02.22-infrastructure-and-reliability.md](2026.02.22-infrastructure-and-reliability.md)**
+   - Implement production-ready infrastructure and reliability patterns.
+3. **[2026.02.23-developer-experience-and-quality.md](2026.02.23-developer-experience-and-quality.md)**
+   - Improve the developer toolchain, testing, and onboarding experience.
+
 ### Milestone 5: Cloud-Native & Azure Deployment
 1. **[2026.05.06-cost-governance-and-quotas.md](2026.05.06-cost-governance-and-quotas.md)**
    - Implement budget alerts and K8s resource quotas to protect startup credits.
