@@ -56,7 +56,7 @@ Set `audience: internal` for docs that should never publish to `/docs/*`.
 
 ### Synced reference docs
 
-Curated reference docs are generated from `../../packages/core/docs` via the ingestion manifest at `internal-docs/architecture/projectathena-docs-ingestion-manifest.json`.
+Curated reference docs are generated from `../../packages/core/docs` via the ingestion manifest at `planning/architecture/projectathena-docs-ingestion-manifest.json`.
 
 ```bash
 npm run sync:projectathena-docs

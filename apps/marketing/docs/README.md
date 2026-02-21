@@ -9,4 +9,4 @@ This directory contains source material intended for public consumption on the T
 
 ## Internal Documentation
 
-Internal project documentation (backlog, roadmap, architecture, prompts) has been moved to `internal-docs/`.
+Internal project documentation (backlog, roadmap, architecture, prompts) has been moved to `planning/` at the monorepo root.

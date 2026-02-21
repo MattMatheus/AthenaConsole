@@ -14,7 +14,7 @@ Use this checklist before every handoff.
 - [ ] Build passes with `npm run build`.
 - [ ] Static smoke checks pass with `npm run check:static` (or `npm run validate:deploy`).
 - [ ] Existing URLs remain stable.
-- [ ] Handoff snapshot updated in `internal-docs/archive/handoff.md`.
-- [ ] Completed stories moved from `internal-docs/backlog/active/` to `internal-docs/backlog/completed/`.
+- [ ] Handoff snapshot updated in `planning/archive/handoff.md`.
+- [ ] Completed stories moved from `planning/backlog/active/` to `planning/backlog/completed/`.
 - [ ] Active backlog ordering updated for the next cycle.
 - [ ] Seed prompt refreshed for the next cycle.

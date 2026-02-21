@@ -13,7 +13,7 @@ generatedFromManifestId: "athena-api-mission-run-endpoint"
 ---
 
 <!-- GENERATED FILE: DO NOT EDIT -->
-<!-- Source: projectathena/docs via internal-docs/architecture/projectathena-docs-ingestion-manifest.json -->
+<!-- Source: projectathena/docs via planning/architecture/projectathena-docs-ingestion-manifest.json -->
 <!-- Content SHA256: c64d8b85ca0651f0d825a7b8a1e09f330fb9c11275fb0d2d201af145d4499c93 -->
 
 # The Athena API Server

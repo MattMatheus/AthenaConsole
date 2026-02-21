@@ -25,4 +25,4 @@ For users looking to install and use Team Orchestrator.
 
 ---
 
-*For internal project documentation, see `internal-docs/README.md`.*
+*For internal project documentation, see `planning/README.md`.*

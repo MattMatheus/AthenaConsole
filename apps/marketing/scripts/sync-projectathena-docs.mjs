@@ -6,10 +6,10 @@ import process from 'node:process';
 
 const GENERATED_HEADER = [
   '<!-- GENERATED FILE: DO NOT EDIT -->',
-  '<!-- Source: docs source via internal-docs/architecture/projectathena-docs-ingestion-manifest.json -->',
+  '<!-- Source: docs source via planning/architecture/projectathena-docs-ingestion-manifest.json -->',
 ].join('\n');
 
-const DEFAULT_MANIFEST = 'internal-docs/architecture/projectathena-docs-ingestion-manifest.json';
+const DEFAULT_MANIFEST = '../../planning/architecture/projectathena-docs-ingestion-manifest.json';
 const DEFAULT_DEST_ROOT = 'src/content/docs';
 const DEFAULT_SOURCE_ROOT = '../../packages/core/docs';
 const DEFAULT_SECTION = 'Reference';

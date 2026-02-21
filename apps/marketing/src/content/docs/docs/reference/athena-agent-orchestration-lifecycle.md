@@ -13,7 +13,7 @@ generatedFromManifestId: "athena-runtime-agent-orchestration-lifecycle"
 ---
 
 <!-- GENERATED FILE: DO NOT EDIT -->
-<!-- Source: projectathena/docs via internal-docs/architecture/projectathena-docs-ingestion-manifest.json -->
+<!-- Source: projectathena/docs via planning/architecture/projectathena-docs-ingestion-manifest.json -->
 <!-- Content SHA256: 245054bd19de0b3b098a4d8a547e24e11d015997175af2a5905508f44aae4726 -->
 
 # Introduction to Project Athena

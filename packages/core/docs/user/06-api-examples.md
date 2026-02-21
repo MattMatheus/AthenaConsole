@@ -121,7 +121,7 @@ Response (`200`):
       {
         "id": "dir_triage",
         "input": "Collect failures from latest CI run",
-        "contextRefs": ["internal-docs/archive/handoff.md"],
+        "contextRefs": ["planning/archive/handoff.md"],
         "metadata": {
           "owner": "platform"
         },
