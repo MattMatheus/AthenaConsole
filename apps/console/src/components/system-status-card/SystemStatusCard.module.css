@@ -1,0 +1,41 @@
+.card {
+  width: min(44rem, 100%);
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  padding: var(--space-8);
+  box-shadow: 0 24px 48px -24px rgb(5 43 93 / 0.35);
+}
+
+.badge {
+  display: inline-block;
+  margin-bottom: var(--space-3);
+  color: var(--color-brand-700);
+  font-size: var(--font-size-200);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.title {
+  color: var(--color-brand-900);
+  font-size: var(--font-size-700);
+  line-height: 1.1;
+  margin-bottom: var(--space-4);
+}
+
+.subtitle {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-300);
+  max-width: 40ch;
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: var(--space-6);
+  }
+
+  .title {
+    font-size: var(--font-size-500);
+  }
+}

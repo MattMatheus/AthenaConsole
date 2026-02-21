@@ -1,0 +1,188 @@
+---
+import '../styles/global.css';
+
+interface Props {
+	title?: string;
+	description?: string;
+	canonicalPath?: string;
+	ogType?: 'website' | 'article';
+	ogTitle?: string;
+	ogDescription?: string;
+	ogImage?: string;
+	twitterCard?: 'summary' | 'summary_large_image';
+	twitterTitle?: string;
+	twitterDescription?: string;
+	twitterImage?: string;
+}
+
+const {
+	title = 'Team Orchestrator',
+	description = 'Mission Control for your digital workforce.',
+	canonicalPath,
+	ogType = 'website',
+	ogTitle,
+	ogDescription,
+	ogImage,
+	twitterCard = 'summary',
+	twitterTitle,
+	twitterDescription,
+	twitterImage,
+} = Astro.props;
+const pathname = Astro.url.pathname;
+const siteUrl = Astro.site ?? new URL('https://teamorchestrator.com');
+const canonicalUrl = new URL(canonicalPath ?? pathname, siteUrl).toString();
+const resolvedOgTitle = ogTitle ?? title;
+const resolvedOgDescription = ogDescription ?? description;
+const resolvedTwitterTitle = twitterTitle ?? title;
+const resolvedTwitterDescription = twitterDescription ?? description;
+const resolvedOgImage = ogImage ? new URL(ogImage, siteUrl).toString() : undefined;
+const resolvedTwitterImage = twitterImage ? new URL(twitterImage, siteUrl).toString() : undefined;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap"
+			rel="stylesheet"
+		/>
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={description} />
+		<link rel="canonical" href={canonicalUrl} />
+		<meta property="og:type" content={ogType} />
+		<meta property="og:site_name" content="Team Orchestrator" />
+		<meta property="og:title" content={resolvedOgTitle} />
+		<meta property="og:description" content={resolvedOgDescription} />
+		<meta property="og:url" content={canonicalUrl} />
+		{resolvedOgImage && <meta property="og:image" content={resolvedOgImage} />}
+		<meta name="twitter:card" content={twitterCard} />
+		<meta name="twitter:title" content={resolvedTwitterTitle} />
+		<meta name="twitter:description" content={resolvedTwitterDescription} />
+		{resolvedTwitterImage && <meta name="twitter:image" content={resolvedTwitterImage} />}
+		<title>{title}</title>
+	</head>
+	<body>
+		<header class="site-header">
+			<div class="container header-inner">
+				<a
+					class="brand"
+					href="/"
+					data-analytics-event="navigation_click"
+					data-analytics-category="navigation"
+					data-analytics-label="brand_home"
+					data-analytics-location="header"
+				>
+					Team Orchestrator
+					<span class="tech-label brand-mark">Mission Control</span>
+				</a>
+				<nav aria-label="Primary navigation">
+					<ul class="nav-list">
+						<li>
+							<a
+								class={pathname === '/' ? 'active' : undefined}
+								href="/"
+								data-analytics-event="navigation_click"
+								data-analytics-category="navigation"
+								data-analytics-label="platform"
+								data-analytics-location="header"
+							>
+								Platform
+							</a>
+						</li>
+						<li>
+							<a
+								class={pathname.startsWith('/blog') ? 'active' : undefined}
+								href="/blog"
+								data-analytics-event="navigation_click"
+								data-analytics-category="navigation"
+								data-analytics-label="blog"
+								data-analytics-location="header"
+							>
+								Blog
+							</a>
+						</li>
+						<li>
+							<a
+								class={pathname.startsWith('/docs') ? 'active' : undefined}
+								href="/docs"
+								data-analytics-event="navigation_click"
+								data-analytics-category="navigation"
+								data-analytics-label="docs"
+								data-analytics-location="header"
+							>
+								Docs
+							</a>
+						</li>
+						<li>
+							<a
+								href="mailto:hello@teamorchestrator.com"
+								data-analytics-event="cta_click"
+								data-analytics-category="cta"
+								data-analytics-label="contact_email"
+								data-analytics-location="header"
+							>
+								Contact
+							</a>
+						</li>
+					</ul>
+				</nav>
+			</div>
+		</header>
+
+		<main class="mission-main">
+			<div class="glow-orb glow-orb-1" aria-hidden="true"></div>
+			<div class="glow-orb glow-orb-2" aria-hidden="true"></div>
+			<div class="glow-orb glow-orb-3" aria-hidden="true"></div>
+			<slot />
+		</main>
+
+		<footer class="site-footer">
+			<div class="container footer-inner">
+				<p>© {new Date().getFullYear()} Team Orchestrator</p>
+				<p>Strategy powered by Athena. Results delivered by Team Orchestrator.</p>
+			</div>
+		</footer>
+		<script is:inline>
+			(() => {
+				const analyticsEventName = 'team_orchestrator_event';
+				const adapter = window.teamOrchestratorAnalytics;
+
+				const emit = (payload) => {
+					window.dispatchEvent(new CustomEvent('team-orchestrator:analytics', { detail: payload }));
+					if (Array.isArray(window.dataLayer)) {
+						window.dataLayer.push({ event: analyticsEventName, ...payload });
+					}
+					if (adapter && typeof adapter.track === 'function') {
+						adapter.track(payload);
+					}
+				};
+
+				document.addEventListener('click', (event) => {
+					const target = event.target instanceof Element
+						? event.target.closest('[data-analytics-event]')
+						: null;
+					if (!(target instanceof HTMLElement)) return;
+
+					const href = target instanceof HTMLAnchorElement ? target.href : undefined;
+					const payload = {
+						eventVersion: 1,
+						eventName: target.dataset.analyticsEvent,
+						category: target.dataset.analyticsCategory ?? 'general',
+						label: target.dataset.analyticsLabel ?? target.textContent?.trim() ?? '',
+						location: target.dataset.analyticsLocation ?? 'unknown',
+						pathname: window.location.pathname,
+						href,
+						timestamp: new Date().toISOString(),
+					};
+
+					emit(payload);
+				});
+			})();
+		</script>
+	</body>
+</html>

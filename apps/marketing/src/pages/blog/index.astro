@@ -1,0 +1,166 @@
+---
+import Button from '../../components/Button.astro';
+import Card from '../../components/Card.astro';
+import Layout from '../../layouts/Layout.astro';
+import {
+  BLOG_POSTS_PER_PAGE,
+  getArchiveSummary,
+  getPageItems,
+  getPublishedPosts,
+  getTagSummary,
+  getTotalPages,
+  slugifyTag,
+} from '../../lib/content';
+
+const posts = await getPublishedPosts();
+const pagePosts = getPageItems(posts, 1, BLOG_POSTS_PER_PAGE);
+const totalPages = getTotalPages(posts.length, BLOG_POSTS_PER_PAGE);
+const tags = getTagSummary(posts);
+const archive = getArchiveSummary(posts);
+---
+
+<Layout
+  title="Team Orchestrator Blog"
+  description="Updates, product thinking, and mission reports."
+  ogType="website"
+  twitterCard="summary"
+>
+  <section class="page-header">
+    <div class="container">
+      <p class="eyebrow">Blog</p>
+      <h1>Mission reports and product updates</h1>
+      <p class="lead">Stories from building managed autonomy for engineering teams.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container split">
+      <Card>
+        <h2>Tags</h2>
+        <ul class="link-list">
+          {tags.map((tag) => (
+            <li>
+              <a
+                href={`/blog/tags/${tag.slug}/`}
+                data-analytics-event="blog_tag_click"
+                data-analytics-category="blog"
+                data-analytics-label={tag.slug}
+                data-analytics-location="blog_index_tags_card"
+              >
+                {tag.tag}
+              </a>
+              <span class="meta"> ({tag.count})</span>
+            </li>
+          ))}
+        </ul>
+        <p>
+          <Button
+            href="/blog/tags"
+            variant="secondary"
+            analyticsEvent="blog_navigation_click"
+            analyticsCategory="blog"
+            analyticsLabel="view_all_tags"
+            analyticsLocation="blog_index_tags_card"
+          >
+            View all tags
+          </Button>
+        </p>
+      </Card>
+      <Card>
+        <h2>Archive</h2>
+        <ul class="link-list">
+          {archive.map((entry) => (
+            <li>
+              <a
+                href={`/blog/archive/${entry.year}/`}
+                data-analytics-event="blog_archive_click"
+                data-analytics-category="blog"
+                data-analytics-label={entry.year}
+                data-analytics-location="blog_index_archive_card"
+              >
+                {entry.year}
+              </a>
+              <span class="meta"> ({entry.count})</span>
+            </li>
+          ))}
+        </ul>
+        <p>
+          <Button
+            href="/blog/archive"
+            variant="secondary"
+            analyticsEvent="blog_navigation_click"
+            analyticsCategory="blog"
+            analyticsLabel="view_full_archive"
+            analyticsLocation="blog_index_archive_card"
+          >
+            View full archive
+          </Button>
+        </p>
+      </Card>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container post-grid">
+      {pagePosts.map((post) => (
+        <Card>
+          <h2>
+            <a
+              href={`/blog/${post.slug}/`}
+              data-analytics-event="blog_post_click"
+              data-analytics-category="blog"
+              data-analytics-label={post.slug}
+              data-analytics-location="blog_index_post_grid"
+            >
+              {post.data.title}
+            </a>
+          </h2>
+          <p>{post.data.description}</p>
+          <p class="meta">{post.data.pubDate.toLocaleDateString()}</p>
+          <p class="meta">
+            {post.data.tags.map((tag, index) => (
+              <>
+                {index > 0 && ' · '}
+                <a
+                  href={`/blog/tags/${slugifyTag(tag)}/`}
+                  data-analytics-event="blog_tag_click"
+                  data-analytics-category="blog"
+                  data-analytics-label={slugifyTag(tag)}
+                  data-analytics-location="blog_index_post_grid"
+                >
+                  {tag}
+                </a>
+              </>
+            ))}
+          </p>
+        </Card>
+      ))}
+    </div>
+    {totalPages > 1 && (
+      <div class="container">
+        <nav class="pagination" aria-label="Blog pagination">
+          <span class="meta">Page 1 of {totalPages}</span>
+          <ul>
+            <li><span aria-current="page">1</span></li>
+            {Array.from({ length: totalPages - 1 }, (_, index) => {
+              const pageNumber = index + 2;
+              return (
+                <li>
+                  <a
+                    href={`/blog/page/${pageNumber}/`}
+                    data-analytics-event="blog_pagination_click"
+                    data-analytics-category="blog"
+                    data-analytics-label={`page_${pageNumber}`}
+                    data-analytics-location="blog_index_pagination"
+                  >
+                    {pageNumber}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      </div>
+    )}
+  </section>
+</Layout>

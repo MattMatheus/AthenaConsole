@@ -1,0 +1,30 @@
+# Copy this file to terraform.tfvars and adjust values for your subscription.
+subscription_id = "00000000-0000-0000-0000-000000000000"
+
+project_name         = "athena"
+environment          = "dev"
+location             = "eastus"
+name_suffix          = "dev01"
+resource_group_name  = "rg-athena-dev"
+
+# Keep this as Standard_B2s to align with Milestone 5 cost guardrails.
+aks_node_vm_size = "Standard_B2s"
+
+# Workload identity mapping for control plane pods.
+workload_identity_namespace            = "athena"
+workload_identity_service_account_name = "athena-control-plane"
+
+# Static Web App custom domain.
+# For Cloudflare-managed DNS, create CNAME:
+# athena.teamorchestrator.com -> <static_web_app_default_hostname> (DNS-only / unproxied during validation).
+static_web_app_custom_domain                 = "athena.teamorchestrator.com"
+static_web_app_custom_domain_validation_type = "cname-delegation"
+
+# Application Insights startup-credit guardrails.
+application_insights_retention_in_days   = 30
+application_insights_sampling_percentage = 20
+application_insights_daily_cap_gb        = 1
+
+# Optional resource IDs for least-privilege role assignments.
+# openai_account_resource_id = "/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.CognitiveServices/accounts/<name>"
+# key_vault_resource_id      = "/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.KeyVault/vaults/<name>"

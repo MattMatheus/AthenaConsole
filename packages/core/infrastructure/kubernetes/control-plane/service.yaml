@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: athena-control-plane
+  namespace: athena
+spec:
+  selector:
+    app.kubernetes.io/name: athena-control-plane
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8787
+      targetPort: http

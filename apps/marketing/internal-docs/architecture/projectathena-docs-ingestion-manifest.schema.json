@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://teamorchestrator.com/schemas/projectathena-docs-ingestion-manifest.schema.json",
+  "title": "ProjectAthena Docs Ingestion Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifestVersion",
+    "sourceRepository",
+    "slugLockPolicy",
+    "entries"
+  ],
+  "properties": {
+    "manifestVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "sourceRepository": {
+      "type": "string",
+      "const": "projectathena/docs"
+    },
+    "slugLockPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publishedSlugImmutable",
+        "renameHandling",
+        "removedSourceHandling"
+      ],
+      "properties": {
+        "publishedSlugImmutable": {
+          "type": "boolean"
+        },
+        "renameHandling": {
+          "type": "string"
+        },
+        "removedSourceHandling": {
+          "type": "string"
+        }
+      }
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "domain",
+          "sourcePath",
+          "destinationSlug",
+          "owner",
+          "lifecycleState",
+          "slugLocked"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "sourcePath": {
+            "type": "string"
+          },
+          "destinationSlug": {
+            "type": "string",
+            "pattern": "^[a-z0-9\\-/]+$"
+          },
+          "owner": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "team",
+              "reviewers"
+            ],
+            "properties": {
+              "team": {
+                "type": "string"
+              },
+              "reviewers": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "lifecycleState": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "in_review",
+              "published",
+              "archived"
+            ]
+          },
+          "slugLocked": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

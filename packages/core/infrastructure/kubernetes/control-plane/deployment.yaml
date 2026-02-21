@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: athena-control-plane
+  namespace: athena
+  labels:
+    app.kubernetes.io/name: athena-control-plane
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: athena-control-plane
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: athena-control-plane
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: athena-control-plane
+      containers:
+        - name: athena-control-plane
+          image: placeholder.invalid/athena-control-plane:bootstrap
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8787
+          env:
+            - name: ATHENA_AUTH_ENABLED
+              value: "false"
+            - name: ATHENA_ALLOWED_ORIGINS
+              value: "https://athena.teamorchestrator.com"
+            - name: ATHENA_EXECUTION_BACKEND
+              value: "local-exec"
+            - name: ATHENA_AZURE_AUTH_ENABLED
+              value: "true"
+            - name: ATHENA_AZURE_OPENAI_USE_ENTRA_ID
+              value: "true"
+            - name: ATHENA_APPINSIGHTS_ENABLED
+              value: "false"
+            - name: ATHENA_APPINSIGHTS_CLOUD_ROLE_NAME
+              value: "athena-control-plane"
+            - name: ATHENA_APPINSIGHTS_SAMPLING_PERCENTAGE
+              value: "20"
+          readinessProbe:
+            httpGet:
+              path: /api/v1/admin/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v1/admin/health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

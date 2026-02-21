@@ -1,0 +1,114 @@
+---
+import Card from './Card.astro';
+import { proposeManifest } from '../lib/engine/manifest';
+import { createEvidenceBundle, appendTrace, archiveArtifact, finalizeBundle } from '../lib/engine/evidence';
+
+// Simulate a "Hotfix" mission using the formalized engine
+const objective = 'Fix the critical memory leak in the Auth service';
+const manifest = proposeManifest(objective);
+const bundle = createEvidenceBundle(manifest);
+
+// Simulate the mission relay path and trace events
+appendTrace(bundle, 'Interpretation', 'Strategic Architect', 'Identified Auth service as leak source.');
+appendTrace(bundle, 'Execution', 'Bug Scrubber', 'Analyzing heap dumps and proposing surgical patch.');
+archiveArtifact(bundle, 'log', '.athena/logs/heap-analysis.log', 'Heap dump analysis trace.');
+
+appendTrace(bundle, 'Verification', 'Reliability Specialist', 'Validating fix against performance benchmarks.');
+archiveArtifact(bundle, 'benchmark', '.athena/benchmarks/auth-perf.json', 'p99 latency delta: -120ms.');
+
+appendTrace(bundle, 'Final Audit', 'Security Auditor', 'Verifying patch integrity for Auth flow.');
+archiveArtifact(bundle, 'audit-log', '.athena/audit/auth-patch-signoff.json', 'Security sign-off: PASS.');
+
+finalizeBundle(bundle, true);
+
+// Generate the lines for the terminal simulation based on the manifest and bundle
+const lines = [
+  `$ athena mission launch "${objective}"`,
+  `[Athena] Objective interpreted: executing governed mission.`,
+  `[Athena] Flight Manifest proposed: ${manifest.specialists.map((s) => s.designation).join(' -> ')}.`,
+  `[Relay] Context compounding initiated via ${manifest.relayPath.join(' -> ')}.`,
+  `[Execution] ${bundle.logicTrace[1].details}`,
+  `[Verification] ${bundle.logicTrace[2].details}`,
+  `[Evidence] Mission bundle archived at .athena/evidence/${bundle.missionId}.json`,
+  `[Mission] Status: ${bundle.status}. Awaiting Flight Director final approval.`,
+];
+
+const maxLineLength = Math.max(...lines.map((line) => line.length));
+---
+
+<Card
+  as="aside"
+  elevated={true}
+  class="terminal-shell"
+  style={`--terminal-max-ch: ${maxLineLength};`}
+  aria-label="Interactive terminal demo showing a mission sequence"
+>
+  <div class="terminal-header">
+    <div class="terminal-lights" aria-hidden="true">
+      <span class="terminal-light terminal-light-red"></span>
+      <span class="terminal-light terminal-light-amber"></span>
+      <span class="terminal-light terminal-light-green"></span>
+    </div>
+    <p class="terminal-title tech-label">Mission Simulation</p>
+    <p class="terminal-state" data-terminal-state>Running</p>
+  </div>
+  <pre class="terminal-viewport" tabindex="0"><code data-terminal-log></code><span aria-hidden="true" class="terminal-cursor"></span></pre>
+  <p class="terminal-assistive sr-only" aria-live="polite" data-terminal-live></p>
+  <p class="terminal-hint">Selectable output. Press Tab to focus and copy command logs.</p>
+</Card>
+
+<script is:inline define:vars={{ lines }}>
+  (() => {
+    const root = document.currentScript?.previousElementSibling;
+    if (!(root instanceof HTMLElement)) return;
+    const logNode = root.querySelector('[data-terminal-log]');
+    const stateNode = root.querySelector('[data-terminal-state]');
+    const liveNode = root.querySelector('[data-terminal-live]');
+    const cursorNode = root.querySelector('.terminal-cursor');
+    if (!logNode || !stateNode || !liveNode || !cursorNode) return;
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const missionLines = lines;
+    const fullOutput = `${missionLines.join('\n')}\n`;
+
+    const finalize = () => {
+      stateNode.textContent = 'Mission Complete';
+      stateNode.classList.add('is-complete');
+      liveNode.textContent = 'Mission simulation complete.';
+      cursorNode.classList.add('is-hidden');
+    };
+
+    if (reduceMotion) {
+      logNode.textContent = fullOutput;
+      finalize();
+      return;
+    }
+
+    let lineIndex = 0;
+    let charIndex = 0;
+
+    const tick = () => {
+      if (lineIndex >= missionLines.length) {
+        finalize();
+        return;
+      }
+
+      const line = missionLines[lineIndex];
+      logNode.textContent += line[charIndex];
+      charIndex += 1;
+
+      if (charIndex >= line.length) {
+        logNode.textContent += '\n';
+        lineIndex += 1;
+        charIndex = 0;
+        liveNode.textContent = `Rendered ${lineIndex} of ${missionLines.length} mission log lines.`;
+        window.setTimeout(tick, 320);
+        return;
+      }
+
+      window.setTimeout(tick, 20);
+    };
+
+    window.setTimeout(tick, 180);
+  })();
+</script>

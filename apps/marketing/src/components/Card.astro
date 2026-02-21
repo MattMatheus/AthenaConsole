@@ -1,0 +1,14 @@
+---
+interface Props {
+  as?: string;
+  class?: string;
+  elevated?: boolean;
+}
+
+const { as = 'article', class: className, elevated = false, ...props } = Astro.props;
+const Tag = as;
+---
+
+<Tag class:list={['card', elevated && 'card-elevated', className]} {...props}>
+  <slot />
+</Tag>

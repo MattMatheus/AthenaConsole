@@ -1,0 +1,65 @@
+---
+import Button from '../../../components/Button.astro';
+import Card from '../../../components/Card.astro';
+import Layout from '../../../layouts/Layout.astro';
+import { getArchiveSummary, getPostsByYear, getPublishedPosts } from '../../../lib/content';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  const archive = getArchiveSummary(posts);
+
+  return archive.map((entry) => ({
+    params: { year: entry.year },
+  }));
+}
+
+const { year } = Astro.params;
+const posts = await getPublishedPosts();
+const yearPosts = getPostsByYear(posts, year ?? '');
+---
+
+<Layout title={`${year} Archive | Team Orchestrator`} description={`Blog posts from ${year}.`}>
+  <section class="page-header">
+    <div class="container">
+      <p class="eyebrow">Blog</p>
+      <h1>Archive: {year}</h1>
+      <p class="lead">{yearPosts.length} post(s) published in {year}.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container post-grid">
+      {yearPosts.map((post) => (
+        <Card>
+          <h2>
+            <a
+              href={`/blog/${post.slug}/`}
+              data-analytics-event="blog_post_click"
+              data-analytics-category="blog"
+              data-analytics-label={post.slug}
+              data-analytics-location="blog_archive_post_grid"
+            >
+              {post.data.title}
+            </a>
+          </h2>
+          <p>{post.data.description}</p>
+          <p class="meta">{post.data.pubDate.toLocaleDateString()}</p>
+        </Card>
+      ))}
+    </div>
+    <div class="container">
+      <p>
+        <Button
+          href="/blog/archive"
+          variant="secondary"
+          analyticsEvent="blog_navigation_click"
+          analyticsCategory="blog"
+          analyticsLabel="back_to_archive"
+          analyticsLocation="blog_archive_post_grid"
+        >
+          Back to archive
+        </Button>
+      </p>
+    </div>
+  </section>
+</Layout>

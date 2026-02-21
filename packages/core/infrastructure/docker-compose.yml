@@ -1,0 +1,42 @@
+services:
+  # Mimics Azure Cache for Redis
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Athena API Plane
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile # To be created
+    environment:
+      - ATHENA_AUTH_ENABLED=false
+      - ATHENA_DISTRIBUTED_LOCK_PROVIDER=redis
+      - ATHENA_REDIS_URL=redis://redis:6379
+      - ATHENA_EXECUTION_BACKEND=local-exec # Use local-exec for docker-compose dev
+      - ATHENA_STATE_ROOT=/athena/state
+    volumes:
+      - ./.athena:/athena/state
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+  # Athena Web Console
+  console:
+    build:
+      context: ./packages/console
+      dockerfile: Dockerfile
+    environment:
+      - VITE_API_URL=http://localhost:3000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api

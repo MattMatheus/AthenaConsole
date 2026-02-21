@@ -1,0 +1,41 @@
+1. The Infrastructure: Google’s "Agent Sandbox" (SIG-Apps)
+
+Google (via Kubernetes SIG-Apps) recently open-sourced Agent Sandbox, a project designed to solve the "latency vs. security" trade-off for AI agents.
+
+    The Problem: Running LLM-generated code is dangerous (untrusted execution), but spinning up a new isolated VM for every small task is too slow.
+
+    The Solution: It uses gVisor (a user-space kernel) to create "bubbles" around pods. It features a "Warm Pool" system that keeps pre-warmed, isolated pods ready, dropping cold-start latency from seconds to milliseconds.
+
+    Key API Resources:
+
+        SandboxTemplate: Your "Job Template" or blueprint.
+
+        SandboxClaim: The request to launch a specific instance.
+
+        Sandbox: The long-running, stateful pod with a stable identity.
+
+2. The Governance Layer: Kyverno
+
+Since you are punting on the harness to focus on oversight, Kyverno is your primary tool. It is a CNCF policy engine that treats "Policy-as-Code" using standard Kubernetes YAML.
+
+    Validation: Block any agent (Sandbox) from starting if it doesn't meet security specs (e.g., "No internet access for Lore-Audit agents").
+
+    Mutation: Automatically inject "sidecar" containers or environment variables (like transient Git tokens) into an agent pod at launch without the agent "knowing" they are there.
+
+    Generation: Dynamically create temporary NetworkPolicies or Secret objects specifically for a single agent session, and delete them once the session ends.
+
+3. The Paradigm: Deterministic Orchestration
+
+We identified that your "AWX for Agents" approach aligns with the Deterministic Orchestration trend.
+
+    The Concept: You use a rigid, "deterministic" framework (Kubernetes/Ansible logic) to manage a "probabilistic" worker (the AI).
+
+    The Benefit: It solves the "Trust Gap" in enterprises. By moving governance to the network and admission-control level (Kyverno) rather than the prompt level, you ensure that the agent literally cannot violate your rules, regardless of what it "thinks."
+
+Recommended Research Paths
+
+    GitHub: Explore kubernetes-sigs/agent-sandbox to see how the CRDs are structured.
+
+    Policies: Look at the Kyverno Policy Library for "Pod Security" patterns you can adapt for your agent roles.
+
+    Isolation: Research gVisor vs. Kata Containers to decide which "runtimeClass" your harness should support for high-security agent tasks.

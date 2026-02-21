@@ -1,0 +1,58 @@
+---
+title: Documentation
+description: Technical reference and onboarding material for Team Orchestrator.
+template: splash
+hero:
+  tagline: Technical reference and onboarding material for Team Orchestrator.
+  image:
+    file: ../../../assets/logo.svg
+  actions:
+    - text: Getting Started
+      link: /docs/getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: Platform Overview
+      link: /docs/foundation/platform-overview/
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Foundation
+
+<CardGrid>
+  <Card title="Platform Overview" icon="open-book">
+    Positioning, governance model, and current development trajectory. [Read more](/docs/foundation/platform-overview/)
+  </Card>
+  <Card title="Getting Started" icon="rocket">
+    Orientation to the Team Orchestrator command model and operating philosophy. [Read more](/docs/getting-started/)
+  </Card>
+</CardGrid>
+
+## Operations
+
+<CardGrid>
+  <Card title="Docs Operations Workflow" icon="setting">
+    Procedures for creating, reviewing, and publishing technical documentation. [Read more](/docs/operations/docs-operations-workflow/)
+  </Card>
+  <Card title="Content Templates" icon="document">
+    Standard templates and metadata conventions for docs and blog. [Read more](/docs/operations/content-templates-and-qa/)
+  </Card>
+  <Card title="Cycle Checklist" icon="list-format">
+    End-of-cycle checklist for documentation publishing. [Read more](/docs/operations/cycle-checklist/)
+  </Card>
+</CardGrid>
+
+## Reference
+
+<CardGrid>
+  <Card title="Agent Orchestration Lifecycle" icon="random">
+    Detailed flow of how Athena manages specialist agent teams. [Read more](/docs/reference/athena-agent-orchestration-lifecycle/)
+  </Card>
+  <Card title="Mission Run API" icon="laptop">
+    Technical documentation for the Mission Run endpoint. [Read more](/docs/reference/athena-api-mission-run-endpoint/)
+  </Card>
+  <Card title="Audit Events" icon="magnifier">
+    Lifecycle audit events for every mission phase. [Read more](/docs/reference/athena-audit-events/)
+  </Card>
+</CardGrid>

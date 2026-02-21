@@ -1,0 +1,31 @@
+import type { AthenaErrorCode } from "./base.js";
+
+export interface ScheduledTask {
+  schemaVersion?: number;
+  id: string;
+  sessionId: string;
+  input: string;
+  everyMinutes: number;
+  enabled: boolean;
+  running: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastRunAt?: string;
+  nextRunAt: string;
+}
+
+export interface ScheduledTasksStateFile {
+  schemaVersion: number;
+  tasks: ScheduledTask[];
+}
+
+export interface ScheduleRunLog {
+  id: string;
+  scheduleId: string;
+  sessionId: string;
+  startedAt: string;
+  finishedAt?: string;
+  status: "ok" | "failed" | "already-running";
+  error?: string;
+  errorCode?: AthenaErrorCode;
+}

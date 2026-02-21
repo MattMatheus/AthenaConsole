@@ -1,0 +1,98 @@
+.card {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.title {
+  color: var(--color-brand-900);
+  font-size: var(--font-size-300);
+  font-weight: 700;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.donut {
+  width: 180px;
+  height: 180px;
+}
+
+.track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-brand-200) 45%, transparent);
+  stroke-width: 4;
+}
+
+.inputArc,
+.outputArc {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: butt;
+}
+
+.inputArc {
+  stroke: var(--color-brand-600);
+}
+
+.outputArc {
+  stroke: var(--color-success);
+}
+
+.donutValue {
+  fill: var(--color-text);
+  font-size: 0.38rem;
+  font-weight: 700;
+}
+
+.donutLabel {
+  fill: var(--color-text-muted);
+  font-size: 0.2rem;
+  text-transform: uppercase;
+}
+
+.legend {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  color: var(--color-text);
+  font-size: var(--font-size-200);
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.inputSwatch {
+  background: var(--color-brand-600);
+}
+
+.outputSwatch {
+  background: var(--color-success);
+}
+
+.monthTotal {
+  color: var(--color-brand-900);
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .layout {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .legend {
+    width: 100%;
+  }
+}

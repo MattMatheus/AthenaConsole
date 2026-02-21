@@ -1,0 +1,25 @@
+{
+  "name": "@athena/marketing",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "check:static": "node scripts/smoke-check-static-output.mjs",
+    "validate:public-docs": "node scripts/validate-public-docs-output.mjs",
+    "validate:deploy": "npm run build && npm run check:static && npm run validate:public-docs",
+    "preview": "astro preview",
+    "astro": "astro",
+    "sync:projectathena-docs": "node scripts/sync-projectathena-docs.mjs"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.37.6",
+    "@astrojs/tailwind": "^6.0.2",
+    "astro": "^5.17.1"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.24",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17"
+  }
+}

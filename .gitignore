@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Build and test outputs
+dist/
+build/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+.turbo/
+
+# Runtime and local state
+.athena/
+.npm/
+.cache/
+tmp/
+temp/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Framework-specific
+.next/
+out/
+.vercel/
+
+# Python (occasionally present in tooling)
+__pycache__/
+*.pyc

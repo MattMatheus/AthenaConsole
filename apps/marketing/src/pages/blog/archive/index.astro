@@ -1,0 +1,39 @@
+---
+import Card from '../../../components/Card.astro';
+import Layout from '../../../layouts/Layout.astro';
+import { getArchiveSummary, getPublishedPosts } from '../../../lib/content';
+
+const posts = await getPublishedPosts();
+const archive = getArchiveSummary(posts);
+---
+
+<Layout title="Blog Archive | Team Orchestrator" description="Browse blog posts by year.">
+  <section class="page-header">
+    <div class="container">
+      <p class="eyebrow">Blog</p>
+      <h1>Archive</h1>
+      <p class="lead">Browse updates by publication year.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <Card as="ul" class="link-list">
+        {archive.map((entry) => (
+          <li>
+            <a
+              href={`/blog/archive/${entry.year}/`}
+              data-analytics-event="blog_archive_click"
+              data-analytics-category="blog"
+              data-analytics-label={entry.year}
+              data-analytics-location="blog_archive_index"
+            >
+              {entry.year}
+            </a>
+            <span class="meta"> ({entry.count})</span>
+          </li>
+        ))}
+      </Card>
+    </div>
+  </section>
+</Layout>

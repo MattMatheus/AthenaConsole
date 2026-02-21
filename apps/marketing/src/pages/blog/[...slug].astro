@@ -1,0 +1,76 @@
+---
+import Button from '../../components/Button.astro';
+import type { CollectionEntry } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import { getPublishedPosts, slugifyTag } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+}
+
+interface Props {
+  post: CollectionEntry<'blog'>;
+}
+
+const { post } = Astro.props;
+const { Content } = await post.render();
+const postYear = String(post.data.pubDate.getFullYear());
+---
+
+<Layout
+  title={`${post.data.title} | Team Orchestrator Blog`}
+  description={post.data.description}
+  ogType="article"
+  twitterCard="summary"
+>
+  <section class="page-header">
+    <div class="container">
+      <p class="eyebrow">Blog</p>
+      <h1>{post.data.title}</h1>
+      <p class="meta">
+        {post.data.pubDate.toLocaleDateString()} · {post.data.author}
+      </p>
+      <p class="meta">
+        {post.data.tags.map((tag, index) => (
+          <>
+            {index > 0 && ' · '}
+            <a
+              href={`/blog/tags/${slugifyTag(tag)}/`}
+              data-analytics-event="blog_tag_click"
+              data-analytics-category="blog"
+              data-analytics-label={slugifyTag(tag)}
+              data-analytics-location="blog_post_header"
+            >
+              {tag}
+            </a>
+          </>
+        ))}
+      </p>
+      <p>
+        <Button
+          href={`/blog/archive/${postYear}/`}
+          variant="secondary"
+          analyticsEvent="blog_archive_click"
+          analyticsCategory="blog"
+          analyticsLabel={postYear}
+          analyticsLocation="blog_post_header"
+        >
+          More from {postYear}
+        </Button>
+      </p>
+    </div>
+  </section>
+
+  <section class="content">
+    <div class="container">
+      <article>
+        <Content />
+      </article>
+    </div>
+  </section>
+</Layout>

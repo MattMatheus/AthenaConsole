@@ -1,0 +1,32 @@
+.dashboard {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.stateCard {
+  color: var(--color-text);
+}
+
+.stateTitle {
+  color: var(--color-brand-900);
+  font-weight: 700;
+  margin-bottom: var(--space-2);
+}
+
+.error {
+  color: var(--color-error);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-200);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+@media (max-width: 980px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}

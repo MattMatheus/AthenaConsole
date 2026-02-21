@@ -1,0 +1,32 @@
+.section {
+  border: 1px solid var(--color-border);
+  background: #fff;
+  border-radius: 0.75rem;
+}
+
+.trigger {
+  width: 100%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  font-size: var(--font-size-300);
+  font-weight: 700;
+  color: var(--color-brand-900);
+  cursor: pointer;
+}
+
+.icon {
+  transition: transform 160ms ease;
+}
+
+.iconOpen {
+  transform: rotate(180deg);
+}
+
+.body {
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-4);
+}

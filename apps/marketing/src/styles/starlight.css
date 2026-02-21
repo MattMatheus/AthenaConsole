@@ -1,0 +1,111 @@
+:root {
+  --sl-color-accent-low: #0d1a30;
+  --sl-color-accent: #5bb0ff;
+  --sl-color-accent-high: #2c8eff;
+  --sl-color-white: #e7edf7;
+  --sl-color-gray-1: #e7edf7;
+  --sl-color-gray-2: #b8c4d9;
+  --sl-color-gray-3: #5bb0ff;
+  --sl-color-gray-4: #2b3e61;
+  --sl-color-gray-5: #152745;
+  --sl-color-gray-6: #101e36;
+  --sl-color-black: #081325;
+  --sl-color-bg: #081325;
+}
+
+/* ── Custom Starlight Styling ───────────────────────────── */
+
+/* Add the Mission Control background effect */
+body {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgb(91 176 255 / 0.18), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgb(44 142 255 / 0.12), transparent),
+    radial-gradient(ellipse 40% 60% at 0% 60%, rgb(91 176 255 / 0.06), transparent) !important;
+  background-attachment: fixed;
+}
+
+/* Style the sidebar to match the card aesthetic */
+.sidebar-pane {
+  background-color: transparent !important;
+  border-inline-end: 1px solid rgb(255 255 255 / 0.06) !important;
+}
+
+.sidebar-content {
+  padding-top: 2rem !important;
+}
+
+.sidebar-content a[aria-current="page"] {
+  background-color: rgb(91 176 255 / 0.1) !important;
+  color: var(--sl-color-accent) !important;
+}
+
+/* Header customization */
+header {
+  border-bottom: 1px solid rgb(255 255 255 / 0.06) !important;
+  background: linear-gradient(180deg, rgb(8 19 37 / 0.92), rgb(8 19 37 / 0.78)) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+/* Typography refinements */
+h1, h2, h3, h4, h5, h6 {
+  color: #fff !important;
+  letter-spacing: -0.02em;
+}
+
+.content h1 {
+  background: linear-gradient(135deg, #ffffff 0%, #e7edf7 40%, #5bb0ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Code blocks style */
+pre {
+  border: 1px solid var(--sl-color-gray-4) !important;
+  background-color: var(--sl-color-accent-low) !important;
+  border-radius: 12px !important;
+}
+
+/* Glow orbs (via CSS pseudo-elements on the main container) */
+.main-frame {
+  position: relative;
+  overflow: hidden;
+}
+
+.main-frame::before {
+  content: '';
+  position: absolute;
+  top: -10rem;
+  right: -10rem;
+  width: 30rem;
+  height: 30rem;
+  background: radial-gradient(circle, rgb(91 176 255 / 0.08), transparent 70%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.main-frame::after {
+  content: '';
+  position: absolute;
+  bottom: -10rem;
+  left: -5rem;
+  width: 25rem;
+  height: 25rem;
+  background: radial-gradient(circle, rgb(44 142 255 / 0.06), transparent 70%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Tech Label style for badges or logos */
+.logo {
+  font-family: var(--sl-font-mono) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.8rem !important;
+  border: 1px solid rgba(91, 176, 255, 0.3);
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgba(91, 176, 255, 0.12), rgba(44, 142, 255, 0.06));
+}
