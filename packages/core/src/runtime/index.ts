@@ -70,7 +70,10 @@ export function createRuntime(options: RuntimeOptions = {}): Runtime {
 
       const providerId = request.provider ?? config.defaultProvider;
       const model = request.model ?? config.defaultModel;
-      const providerOrder = resolveProviderOrder(providerId, config.providerFallbackOrder);
+      const providerOrder = resolveProviderOrder(
+        providerId,
+        request.provider ? [] : config.providerFallbackOrder
+      );
       const turnStartedAt = Date.now();
       const runId = randomUUID();
       const runTraceId = randomUUID();

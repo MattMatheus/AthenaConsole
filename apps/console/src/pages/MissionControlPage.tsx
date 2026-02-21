@@ -22,6 +22,7 @@ async function runSpecialist(request: {
   repoPath: string;
   headRef: string;
   baseRef?: string;
+  provider?: string;
 }): Promise<{ result: { sessionId: string } }> {
   const response = await fetch("/api/v1/specialists/run", {
     method: "POST",
@@ -116,6 +117,7 @@ export function MissionControlPage() {
       name: selectedSpecialist,
       repoPath,
       headRef,
+      provider: "foundry",
       ...(baseRef ? { baseRef } : {}),
     });
   };
