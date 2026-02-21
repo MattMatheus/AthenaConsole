@@ -178,48 +178,69 @@ export function createRuntime(options: RuntimeOptions = {}): Runtime {
             };
 
             const runTimeoutMs = options.timeoutMs ?? config.runtimeRunTimeoutMs;
+            const now = new Date().toISOString();
+            const userEntry = sessionStore.createTranscriptEntry("user", rawInput, now);
+            await sessionStore.appendTranscript(prepared.transcriptPath, [userEntry]);
+
             const watch = cancellationWatch;
             if (!watch) {
               throw new AthenaError("SESSION_IO_ERROR", "Runtime cancellation watch was not initialized.");
             }
-            const executionPromise = runWithTimeout(
-              (signal) => runWithProviderFallback(providers, providerOrder, runRequest, maxAttempts, signal),
-              runTimeoutMs,
-              `Run timed out after ${runTimeoutMs}ms`,
-              cancellationController.signal
-            );
-            const cancellationPromise = watch.done.then((reason) => {
-              throw new AthenaError("RUN_CANCELLED", reason ? `Run cancelled: ${reason}` : "Run cancelled by API request.");
-            });
-            const execution = await Promise.race([executionPromise, cancellationPromise]);
+            try {
+              const executionPromise = runWithTimeout(
+                (signal) => runWithProviderFallback(providers, providerOrder, runRequest, maxAttempts, signal),
+                runTimeoutMs,
+                `Run timed out after ${runTimeoutMs}ms`,
+                cancellationController.signal
+              );
+              const cancellationPromise = watch.done.then((reason) => {
+                throw new AthenaError("RUN_CANCELLED", reason ? `Run cancelled: ${reason}` : "Run cancelled by API request.");
+              });
+              const execution = await Promise.race([executionPromise, cancellationPromise]);
 
-            const now = new Date().toISOString();
-            const userEntry = sessionStore.createTranscriptEntry("user", rawInput, now);
-            const assistantEntry = sessionStore.createTranscriptEntry(
-              "assistant",
-              execution.result.output,
-              now,
-              buildContextMetadataMap(context.meta, execution.reliability, runRequest.metadata)
-            );
-            await sessionStore.appendTranscript(prepared.transcriptPath, [userEntry, assistantEntry]);
-            await sessionStore.updateSessionMetadata(request.sessionId, execution.result.model, execution.result.provider);
-            const turnLatencyMs = Math.max(0, Date.now() - turnStartedAt);
-            const contextCompactions = context.meta.steps.filter((step) => step.applied).length;
+              const assistantEntry = sessionStore.createTranscriptEntry(
+                "assistant",
+                execution.result.output,
+                now,
+                buildContextMetadataMap(context.meta, execution.reliability, runRequest.metadata)
+              );
+              await sessionStore.appendTranscript(prepared.transcriptPath, [assistantEntry]);
+              await sessionStore.updateSessionMetadata(request.sessionId, execution.result.model, execution.result.provider);
+              const turnLatencyMs = Math.max(0, Date.now() - turnStartedAt);
+              const contextCompactions = context.meta.steps.filter((step) => step.applied).length;
 
-            return {
-              ...execution.result,
-              runId,
-              evidenceCount: scope.evidenceCount,
-              contextMeta: context.meta,
-              reliability: {
-                ...execution.reliability,
-                turnLatencyMs,
-                contextCompactions,
-                contextOverflowAttempts: context.meta.overflowAttempts
-              },
-              provider: execution.result.provider,
-              model: execution.result.model
-            };
+              return {
+                ...execution.result,
+                runId,
+                evidenceCount: scope.evidenceCount,
+                contextMeta: context.meta,
+                reliability: {
+                  ...execution.reliability,
+                  turnLatencyMs,
+                  contextCompactions,
+                  contextOverflowAttempts: context.meta.overflowAttempts
+                },
+                provider: execution.result.provider,
+                model: execution.result.model
+              };
+            } catch (error) {
+              const athenaError = asAthenaError(error);
+              const failureEntry = {
+                ...sessionStore.createTranscriptEntry(
+                  "assistant",
+                  athenaError.message,
+                  new Date().toISOString(),
+                  {
+                    ...buildContextMetadataMap(context.meta, undefined, runRequest.metadata),
+                    errorCode: athenaError.code
+                  }
+                ),
+                isError: true
+              };
+              await sessionStore.appendTranscript(prepared.transcriptPath, [failureEntry]);
+              await sessionStore.updateSessionMetadata(request.sessionId, model, providerId);
+              throw athenaError;
+            }
           }
         );
       } finally {
@@ -353,7 +374,7 @@ async function runWithProviderFallback(
         };
     } catch (error) {
       const athenaError = asAthenaError(error);
-      failures.push(`${providerId}:${athenaError.code}`);
+      failures.push(formatProviderFailure(providerId, athenaError));
       if (!athenaError.retryable) {
         throw athenaError;
       }
@@ -395,6 +416,56 @@ async function runWithRetry<T>(
   }
 
   throw lastError ?? new AthenaError("PROVIDER_ERROR", "Failed to complete run after retries");
+}
+
+function formatProviderFailure(providerId: string, error: AthenaError): string {
+  const detail = firstErrorDetail(error);
+  return detail ? `${providerId}:${error.code}(${detail})` : `${providerId}:${error.code}`;
+}
+
+function firstErrorDetail(error: AthenaError): string | undefined {
+  const messages = collectErrorMessages(error);
+  const usable = messages.find((message) => message && message !== error.message);
+  return usable ?? messages[0];
+}
+
+function collectErrorMessages(error: unknown, maxDepth = 6): string[] {
+  const messages: string[] = [];
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+
+  for (let depth = 0; depth < maxDepth; depth += 1) {
+    if (!current || seen.has(current)) {
+      break;
+    }
+    seen.add(current);
+    if (current instanceof AthenaError) {
+      const normalized = normalizeErrorMessage(current.message);
+      if (normalized) {
+        messages.push(normalized);
+      }
+      current = current.causeError;
+      continue;
+    }
+    if (current instanceof Error) {
+      const normalized = normalizeErrorMessage(current.message);
+      if (normalized) {
+        messages.push(normalized);
+      }
+      break;
+    }
+    const normalized = normalizeErrorMessage(String(current));
+    if (normalized) {
+      messages.push(normalized);
+    }
+    break;
+  }
+
+  return [...new Set(messages)];
+}
+
+function normalizeErrorMessage(message: string): string {
+  return message.replace(/\s+/g, " ").trim();
 }
 
 async function runWithTimeout<T>(

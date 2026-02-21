@@ -199,7 +199,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     new LocalScheduleService(options.config, executionBackend, policyService),
     authorizer
   );
-  const sessionService = new AuthorizedSessionService(new LocalSessionService(stateStore), authorizer);
+  const sessionService = new AuthorizedSessionService(new LocalSessionService(stateStore, options.config), authorizer);
   const directiveService = new AuthorizedDirectiveService(new LocalDirectiveService(stateStore), authorizer);
   const workflowService = new AuthorizedWorkflowService(new LocalWorkflowService(stateStore, runService), authorizer);
   const workService = new AuthorizedWorkService(new LocalWorkService(options.config, executionBackend), authorizer);

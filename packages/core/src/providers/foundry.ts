@@ -44,7 +44,11 @@ export class FoundryProviderAdapter implements ProviderAdapter {
     const endpoint = this.options.projectEndpoint.trim();
     const deployment = this.options.deployment.trim();
     if (!endpoint || !deployment) {
-      throw new AthenaError("PROVIDER_ERROR", "foundry provider is missing endpoint or deployment configuration", true);
+      throw new AthenaError(
+        "PROVIDER_ERROR",
+        `foundry provider is missing endpoint or deployment configuration (endpointLength=${endpoint.length}, deploymentLength=${deployment.length})`,
+        true
+      );
     }
 
     const headers: Record<string, string> = {

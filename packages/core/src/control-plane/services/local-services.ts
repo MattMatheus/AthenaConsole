@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
-import { readdir } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
+import { resolve, relative } from "node:path";
 import { resolveSpecialistsDirectory } from "../../personas/loader.js";
 import { randomUUID } from "node:crypto";
 import { ScheduleManager, type UpsertScheduleRequest } from "../../schedule/index.js";
@@ -71,7 +72,10 @@ export class LocalSessionService implements SessionService {
   private indexedAt = 0;
   private readonly indexTtlMs = 10_000;
 
-  constructor(private readonly stateStore: StateStore) {}
+  constructor(
+    private readonly stateStore: StateStore,
+    private readonly config: AthenaConfig
+  ) {}
 
   listSessions(): Promise<SessionRecord[]> {
     return this.stateStore.listSessions();
@@ -142,12 +146,13 @@ export class LocalSessionService implements SessionService {
 
   async listArtifacts(sessionId: string): Promise<SessionArtifactSummary[]> {
     assertValidSessionId(sessionId);
-    const [artifacts, transcript] = await Promise.all([
+    const [artifacts, transcript, specialistArtifacts] = await Promise.all([
       this.stateStore.listSessionRunEvidence(sessionId),
-      this.stateStore.getTranscript(sessionId)
+      this.stateStore.getTranscript(sessionId),
+      listSpecialistArtifacts(sessionId, this.config)
     ]);
     const transcriptIdsByRun = mapTranscriptEntryIdsByRunId(transcript);
-    return artifacts.map((artifact) => {
+    const baseArtifacts = artifacts.map((artifact) => {
       const transcriptEntryId = transcriptIdsByRun.get(artifact.runId);
       return {
         id: artifact.id,
@@ -163,29 +168,70 @@ export class LocalSessionService implements SessionService {
         ...(typeof transcriptEntryId === "string" ? { transcriptEntryId } : {})
       };
     });
+    const specialistSummaries = specialistArtifacts.map((artifact) => {
+      const transcriptEntryId = resolveTranscriptEntryId(transcriptIdsByRun, artifact.runId, artifact.runtimeRunIds);
+      return {
+        id: artifact.id,
+        runId: artifact.runId,
+        sessionId: artifact.sessionId,
+        traceId: artifact.traceId,
+        label: artifact.label,
+        type: artifact.type,
+        format: artifact.format,
+        artifactRef: artifact.artifactRef,
+        sizeBytes: artifact.sizeBytes,
+        createdAt: artifact.createdAt,
+        ...(typeof transcriptEntryId === "string" ? { transcriptEntryId } : {})
+      } satisfies SessionArtifactSummary;
+    });
+    return [...baseArtifacts, ...specialistSummaries].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
   }
 
   async getArtifact(sessionId: string, runId: string, artifactId: string): Promise<SessionArtifactRecord | undefined> {
     assertValidSessionId(sessionId);
     const artifact = await this.stateStore.getRunEvidence(runId, artifactId);
-    if (!artifact || artifact.sessionId !== sessionId) {
+    if (artifact && artifact.sessionId === sessionId) {
+      const transcript = await this.stateStore.getTranscript(sessionId);
+      const transcriptEntryId = mapTranscriptEntryIdsByRunId(transcript).get(runId);
+      return {
+        id: artifact.id,
+        runId: artifact.runId,
+        sessionId: artifact.sessionId,
+        traceId: artifact.traceId,
+        label: artifact.label,
+        type: artifact.type,
+        format: resolveArtifactFormat(artifact.label, artifact.type, artifact.content),
+        artifactRef: artifact.artifactRef,
+        sizeBytes: artifact.sizeBytes,
+        createdAt: artifact.createdAt,
+        ...(transcriptEntryId ? { transcriptEntryId } : {}),
+        content: mapArtifactContent(artifact.content)
+      };
+    }
+
+    const specialistArtifact = await getSpecialistArtifact(sessionId, runId, artifactId, this.config);
+    if (!specialistArtifact) {
       return undefined;
     }
     const transcript = await this.stateStore.getTranscript(sessionId);
-    const transcriptEntryId = mapTranscriptEntryIdsByRunId(transcript).get(runId);
+    const transcriptEntryId = resolveTranscriptEntryId(
+      mapTranscriptEntryIdsByRunId(transcript),
+      specialistArtifact.runId,
+      specialistArtifact.runtimeRunIds
+    );
     return {
-      id: artifact.id,
-      runId: artifact.runId,
-      sessionId: artifact.sessionId,
-      traceId: artifact.traceId,
-      label: artifact.label,
-      type: artifact.type,
-      format: resolveArtifactFormat(artifact.label, artifact.type, artifact.content),
-      artifactRef: artifact.artifactRef,
-      sizeBytes: artifact.sizeBytes,
-      createdAt: artifact.createdAt,
+      id: specialistArtifact.id,
+      runId: specialistArtifact.runId,
+      sessionId: specialistArtifact.sessionId,
+      traceId: specialistArtifact.traceId,
+      label: specialistArtifact.label,
+      type: specialistArtifact.type,
+      format: specialistArtifact.format,
+      artifactRef: specialistArtifact.artifactRef,
+      sizeBytes: specialistArtifact.sizeBytes,
+      createdAt: specialistArtifact.createdAt,
       ...(transcriptEntryId ? { transcriptEntryId } : {}),
-      content: mapArtifactContent(artifact.content)
+      content: specialistArtifact.content
     };
   }
 
@@ -347,6 +393,220 @@ function mapTranscriptEntryIdsByRunId(entries: TranscriptEntry[]): Map<string, s
     }
   }
   return byRunId;
+}
+
+function resolveTranscriptEntryId(
+  idsByRunId: Map<string, string>,
+  canonicalRunId: string,
+  aliases: string[]
+): string | undefined {
+  const direct = idsByRunId.get(canonicalRunId);
+  if (direct) {
+    return direct;
+  }
+  for (const alias of aliases) {
+    const match = idsByRunId.get(alias);
+    if (match) {
+      return match;
+    }
+  }
+  return undefined;
+}
+
+interface SpecialistSessionArtifact {
+  id: string;
+  runId: string;
+  runtimeRunIds: string[];
+  sessionId: string;
+  traceId: string;
+  label: string;
+  type: SessionArtifactSummary["type"];
+  format: SessionArtifactSummary["format"];
+  artifactRef: string;
+  sizeBytes: number;
+  createdAt: string;
+  content: SessionArtifactContent;
+}
+
+async function listSpecialistArtifacts(sessionId: string, config: AthenaConfig): Promise<SpecialistSessionArtifact[]> {
+  const candidates = await readSpecialistRunArtifacts(config, sessionId);
+  const unique = new Map<string, SpecialistSessionArtifact>();
+  for (const artifact of candidates) {
+    const key = `${artifact.runId}:${artifact.id}`;
+    if (!unique.has(key)) {
+      unique.set(key, artifact);
+    }
+  }
+  return [...unique.values()].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+}
+
+async function getSpecialistArtifact(
+  sessionId: string,
+  runId: string,
+  artifactId: string,
+  config: AthenaConfig
+): Promise<SpecialistSessionArtifact | undefined> {
+  const artifacts = await readSpecialistRunArtifacts(config, sessionId, runId);
+  return artifacts.find((artifact) => artifact.id === artifactId);
+}
+
+async function readSpecialistRunArtifacts(
+  config: AthenaConfig,
+  sessionId: string,
+  runIdFilter?: string
+): Promise<SpecialistSessionArtifact[]> {
+  const stateRoot = resolve(config.workspaceRoot, config.stateDir);
+  const runRoots = [resolve(stateRoot, "specialist-runs"), resolve(stateRoot, "persona-runs")];
+  const artifacts: SpecialistSessionArtifact[] = [];
+
+  for (const runRoot of runRoots) {
+    if (!existsSync(runRoot)) {
+      continue;
+    }
+    const entries = await readdir(runRoot, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      if (runIdFilter && entry.name !== runIdFilter) {
+        continue;
+      }
+      const runId = entry.name;
+      const auditDir = resolve(runRoot, runId);
+      const resultPath = resolve(auditDir, "result.json");
+      if (!existsSync(resultPath)) {
+        continue;
+      }
+      const resultRaw = await readFile(resultPath, "utf8");
+      const result = JSON.parse(resultRaw) as Record<string, unknown>;
+      if (result.sessionId !== sessionId) {
+        continue;
+      }
+      const createdAt = readIso(result.finishedAt) ?? readIso(result.startedAt) ?? new Date().toISOString();
+      const runtimeRunIds = new Set<string>();
+      const defaultTraceId = `specialist-${runId}`;
+      artifacts.push({
+        id: "result-json",
+        runId,
+        runtimeRunIds: [],
+        sessionId,
+        traceId: defaultTraceId,
+        label: "result.json",
+        type: "json",
+        format: "json",
+        artifactRef: relative(stateRoot, resultPath),
+        sizeBytes: Buffer.byteLength(resultRaw, "utf8"),
+        createdAt,
+        content: { kind: "json", value: result }
+      });
+
+      const reportPath = resolve(auditDir, "report.md");
+      if (existsSync(reportPath)) {
+        const reportRaw = await readFile(reportPath, "utf8");
+        artifacts.push({
+          id: "report-md",
+          runId,
+          runtimeRunIds: [],
+          sessionId,
+          traceId: defaultTraceId,
+          label: "report.md",
+          type: "text",
+          format: "markdown",
+          artifactRef: relative(stateRoot, reportPath),
+          sizeBytes: Buffer.byteLength(reportRaw, "utf8"),
+          createdAt,
+          content: { kind: "text", text: reportRaw }
+        });
+      }
+
+      const evidenceDir = resolve(auditDir, "evidence");
+      if (!existsSync(evidenceDir)) {
+        continue;
+      }
+      const evidenceEntries = await readdir(evidenceDir, { withFileTypes: true });
+      for (const evidenceEntry of evidenceEntries) {
+        if (!evidenceEntry.isFile() || !evidenceEntry.name.endsWith(".json")) {
+          continue;
+        }
+        const evidencePath = resolve(evidenceDir, evidenceEntry.name);
+        const evidenceRaw = await readFile(evidencePath, "utf8");
+        const evidence = JSON.parse(evidenceRaw) as Record<string, unknown>;
+        const evidenceId = typeof evidence.id === "string" ? evidence.id : evidenceEntry.name.replace(/\.json$/, "");
+        const traceId = typeof evidence.traceId === "string" ? evidence.traceId : defaultTraceId;
+        const label = typeof evidence.label === "string" ? evidence.label : evidenceEntry.name;
+        const type = normalizeArtifactType(evidence.type);
+        const content = normalizeSpecialistContent(evidence.content, type);
+        const runtimeRunId = typeof evidence.runtimeRunId === "string" ? evidence.runtimeRunId : undefined;
+        if (runtimeRunId) {
+          runtimeRunIds.add(runtimeRunId);
+        }
+        artifacts.push({
+          id: `evidence-${evidenceId}`,
+          runId,
+          runtimeRunIds: runtimeRunId ? [runtimeRunId] : [],
+          sessionId,
+          traceId,
+          label,
+          type,
+          format: resolveArtifactFormat(label, type, content),
+          artifactRef: relative(stateRoot, evidencePath),
+          sizeBytes: Buffer.byteLength(evidenceRaw, "utf8"),
+          createdAt: readIso(evidence.createdAt) ?? createdAt,
+          content
+        });
+      }
+
+      if (runtimeRunIds.size > 0) {
+        const aliases = [...runtimeRunIds];
+        for (const artifact of artifacts) {
+          if (artifact.runId === runId && artifact.runtimeRunIds.length === 0) {
+            artifact.runtimeRunIds = aliases;
+          }
+        }
+      }
+    }
+  }
+
+  return artifacts;
+}
+
+function normalizeSpecialistContent(
+  value: unknown,
+  fallbackType: SessionArtifactSummary["type"]
+): SessionArtifactContent {
+  if (typeof value === "object" && value !== null && "kind" in value) {
+    const row = value as Record<string, unknown>;
+    if (row.kind === "text" && typeof row.text === "string") {
+      return { kind: "text", text: row.text };
+    }
+    if (row.kind === "json" && "value" in row) {
+      return { kind: "json", value: row.value };
+    }
+    if (row.kind === "binary" && typeof row.base64 === "string") {
+      return { kind: "binary", base64: row.base64 };
+    }
+  }
+  if (fallbackType === "text") {
+    return { kind: "text", text: typeof value === "string" ? value : JSON.stringify(value, null, 2) };
+  }
+  if (fallbackType === "binary") {
+    return { kind: "binary", base64: typeof value === "string" ? value : Buffer.from(JSON.stringify(value)).toString("base64") };
+  }
+  return { kind: "json", value };
+}
+
+function normalizeArtifactType(value: unknown): SessionArtifactSummary["type"] {
+  if (value === "text" || value === "json" || value === "binary") {
+    return value;
+  }
+  return "json";
+}
+
+function readIso(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  return Number.isFinite(Date.parse(value)) ? value : undefined;
 }
 
 function mapArtifactContent(content: {

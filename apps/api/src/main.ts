@@ -9,7 +9,8 @@ async function main() {
   const parsedApiPort = rawApiPort ? Number.parseInt(rawApiPort, 10) : DEFAULT_API_PORT;
   const apiPort = Number.isInteger(parsedApiPort) && parsedApiPort > 0 ? parsedApiPort : DEFAULT_API_PORT;
 
-  const config = loadConfig(process.cwd());
+  const configRoot = process.env.ATHENA_WORKSPACE_ROOT ?? process.cwd();
+  const config = loadConfig(configRoot);
   const server = createApiServer({ config, host: apiHost, port: apiPort });
   
   console.log(`Starting API server on ${apiHost}:${apiPort}...`);
