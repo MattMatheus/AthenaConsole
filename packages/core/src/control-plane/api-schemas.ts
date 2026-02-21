@@ -639,6 +639,20 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
     path: "/api/v1/capabilities",
     responseSchema: { $ref: "#/components/schemas/CapabilitySet" }
   },
+  getHealth: {
+    operationId: "getHealth",
+    method: "GET",
+    path: "/api/v1/health",
+    responseSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        status: { type: "string", enum: ["ok"] },
+        now: { type: "string", format: "date-time" }
+      },
+      required: ["status", "now"]
+    }
+  },
   getAdminHealth: {
     operationId: "getAdminHealth",
     method: "GET",

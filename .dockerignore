@@ -1,0 +1,30 @@
+# VCS metadata
+.git
+
+# Dependencies and caches
+node_modules
+**/node_modules
+.turbo
+**/.turbo
+.cache
+**/.cache
+
+# Build output and test artifacts
+dist
+**/dist
+coverage
+**/coverage
+.nyc_output
+
+# Local runtime state
+.athena
+**/.athena
+
+# Logs and OS files
+*.log
+.DS_Store
+
+# Environment and docs-only files
+.env
+.env.*
+planning

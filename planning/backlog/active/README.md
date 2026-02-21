@@ -10,8 +10,8 @@ Every development cycle must consume the next story in this list and move it to 
 ### Milestone 4: Foundational Stability
 *Focus: Maturing the core for production-grade operations and stabilizing local development workflows (including transition to Podman).*
 
-1. **[2026.02.22-infrastructure-and-reliability.md](2026.02.22-infrastructure-and-reliability.md)**
-   - Implement production-ready infrastructure and reliability patterns (includes Podman local setup).
+1. **[2026.02.24-microsoft-foundry-premier-integration.md](2026.02.24-microsoft-foundry-premier-integration.md)**
+   - Implement Microsoft Foundry as the premier model provider (ADR 0005).
 2. **[2026.02.23-developer-experience-and-quality.md](2026.02.23-developer-experience-and-quality.md)**
    - Improve the developer toolchain, testing, and onboarding experience.
 

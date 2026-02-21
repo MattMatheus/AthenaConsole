@@ -3,6 +3,7 @@ import { defineApiRoutes, type ApiRouteContext } from "./route-registration.js";
 
 export const CORE_ROUTES = defineApiRoutes("core", [
   { method: "GET", path: "/api/v1/capabilities", handler: handleGetCapabilitiesRoute },
+  { method: "GET", path: "/api/v1/health", handler: handleGetHealthRoute },
   { method: "GET", path: "/api/v1/admin/health", handler: handleGetAdminHealthRoute }
 ]);
 
@@ -11,8 +12,16 @@ async function handleGetCapabilitiesRoute(context: ApiRouteContext): Promise<voi
 }
 
 async function handleGetAdminHealthRoute(context: ApiRouteContext): Promise<void> {
-  writeSuccess(context.res, "getAdminHealth", 200, {
+  writeSuccess(context.res, "getAdminHealth", 200, buildHealthResponse());
+}
+
+async function handleGetHealthRoute(context: ApiRouteContext): Promise<void> {
+  writeSuccess(context.res, "getHealth", 200, buildHealthResponse());
+}
+
+function buildHealthResponse() {
+  return {
     status: "ok",
     now: new Date().toISOString()
-  });
+  };
 }

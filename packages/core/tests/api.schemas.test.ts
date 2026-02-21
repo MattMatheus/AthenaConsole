@@ -27,6 +27,19 @@ describe("api schemas", () => {
     ).toThrow(AthenaError);
 
     expect(() =>
+      assertApiResponseSchema("getHealth", {
+        status: "ok",
+        now: "2026-02-21T00:00:00.000Z"
+      })
+    ).not.toThrow();
+
+    expect(() =>
+      assertApiResponseSchema("getHealth", {
+        status: "degraded"
+      })
+    ).toThrow(AthenaError);
+
+    expect(() =>
       assertApiResponseSchema("getFleetSummary", {
         total: 4,
         running: 1,

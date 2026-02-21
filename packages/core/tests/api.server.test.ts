@@ -207,6 +207,16 @@ describe("api server", () => {
     const base = `http://${bound.host}:${bound.port}`;
 
     try {
+      const healthResponse = await fetch(`${base}/api/v1/health`);
+      expect(healthResponse.status).toBe(200);
+      const healthEnvelope = (await healthResponse.json()) as {
+        ok: boolean;
+        data: { status: string; now: string };
+      };
+      expect(healthEnvelope.ok).toBe(true);
+      expect(healthEnvelope.data.status).toBe("ok");
+      expect(healthEnvelope.data.now).toEqual(expect.any(String));
+
       const capabilitiesResponse = await fetch(`${base}/api/v1/capabilities`);
       expect(capabilitiesResponse.status).toBe(200);
       const capabilitiesEnvelope = (await capabilitiesResponse.json()) as {

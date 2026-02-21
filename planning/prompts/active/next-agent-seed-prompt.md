@@ -6,9 +6,9 @@ Your task is to begin the next development cycle by executing the top story in t
 
 ## Primary Task
 
-- **Backlog Item:** `planning/backlog/active/2026.02.22-infrastructure-and-reliability.md`
+- **Backlog Item:** `planning/backlog/active/2026.02.24-microsoft-foundry-premier-integration.md`
 
-Review the story and its acceptance criteria, then begin implementation. This task focuses on infrastructure and reliability foundations, including a health endpoint, production-like compose workflow, and container build hygiene.
+Review the story and its acceptance criteria, then begin implementation. This task focuses on implementing Microsoft Foundry as the premier model provider for the orchestrator, including Entra ID authentication and provider fallback logic as defined in ADR 0005.
 
 ## Agent Workflow (Mandatory)
 

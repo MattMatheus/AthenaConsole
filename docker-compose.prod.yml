@@ -1,0 +1,46 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: packages/core/infrastructure/docker/control-plane.prod.Dockerfile
+    environment:
+      ATHENA_DEV_API_HOST: 0.0.0.0
+      ATHENA_DEV_API_PORT: 8787
+      ATHENA_LOCK_PROVIDER_DEFAULT: local
+      ATHENA_DISTRIBUTED_LOCK_PROVIDER: local
+      ATHENA_EXECUTION_PROVIDER_DEFAULT: docker
+      ATHENA_SANDBOX_BACKEND_PROVIDER: docker
+      ATHENA_STATE_DIR: /athena/state
+    volumes:
+      - athena-prod-state:/athena/state
+    ports:
+      - "8787:8787"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:8787/api/v1/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  console:
+    build:
+      context: .
+      dockerfile: packages/core/infrastructure/docker/console.prod.Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  athena-prod-state:

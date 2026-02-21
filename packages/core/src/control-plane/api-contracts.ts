@@ -49,6 +49,7 @@ export interface ApiErrorResponse {
 
 export const API_V1_ROUTES: ApiRouteDefinition[] = [
   { method: "GET", path: `${API_V1_PREFIX}/capabilities`, operationId: "getCapabilities" },
+  { method: "GET", path: `${API_V1_PREFIX}/health`, operationId: "getHealth" },
   { method: "GET", path: `${API_V1_PREFIX}/admin/health`, operationId: "getAdminHealth" },
   { method: "POST", path: `${API_V1_PREFIX}/runs`, operationId: "createRun" },
   { method: "GET", path: `${API_V1_PREFIX}/runs/active`, operationId: "listActiveRuns", queryMode: "cursor-page" },
