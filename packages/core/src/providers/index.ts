@@ -1,6 +1,8 @@
 import type { RunRequest, RunResult } from "../shared/contracts.js";
 import type { AthenaConfig } from "../shared/config.js";
 import { createOpenAiApiKeyResolver, createOpenAiAzureTokenProvider } from "./azure-auth.js";
+import { createFoundryTokenProvider } from "./foundry-auth.js";
+import { FoundryProviderAdapter } from "./foundry.js";
 import { HttpProviderAdapter } from "./http.js";
 import { LocalExecProviderAdapter } from "./local-exec.js";
 import { MockProviderAdapter } from "./mock.js";
@@ -31,7 +33,19 @@ export function createDefaultProviderRegistry(config: AthenaConfig): ProviderReg
   const registry = new ProviderRegistry();
   const openAiApiKeyResolver = createOpenAiApiKeyResolver(config);
   const openAiBearerTokenProvider = createOpenAiAzureTokenProvider(config);
+  const foundryTokenProvider = createFoundryTokenProvider(config);
   registry.register(new MockProviderAdapter());
+  if (config.foundry?.enabled) {
+    registry.register(
+      new FoundryProviderAdapter({
+        projectEndpoint: config.foundry.projectEndpoint ?? "",
+        deployment: config.foundry.deployment ?? config.defaultModel,
+        apiVersion: config.foundry.apiVersion,
+        ...(config.foundry.apiKey ? { apiKey: config.foundry.apiKey } : {}),
+        ...(foundryTokenProvider ? { getBearerToken: foundryTokenProvider } : {})
+      })
+    );
+  }
   registry.register(
     new OpenAIProviderAdapter({
       ...(config.openaiApiKey ? { apiKey: config.openaiApiKey } : {}),

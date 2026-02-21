@@ -12,12 +12,20 @@ describe("loadConfig", () => {
       const config = loadConfig(dir);
       expect(config.executionProviderDefault).toBe("docker");
       expect(config.lockProviderDefault).toBe("local");
-      expect(config.defaultProvider).toBe("mock");
-      expect(config.defaultModel).toBe("mock-model");
-      expect(config.providerFallbackOrder).toEqual([]);
+      expect(config.defaultProvider).toBe("foundry");
+      expect(config.defaultModel).toBe("gpt-4o-mini");
+      expect(config.providerFallbackOrder).toEqual(["openai"]);
       expect(config.localProviderCommand).toBe("/bin/echo");
       expect(config.openaiApiKey).toBeUndefined();
       expect(config.openaiBaseUrl).toBe("https://api.openai.com/v1");
+      expect(config.foundry?.enabled).toBe(true);
+      expect(config.foundry?.projectEndpoint).toBeUndefined();
+      expect(config.foundry?.deployment).toBeUndefined();
+      expect(config.foundry?.apiVersion).toBe("2024-05-01-preview");
+      expect(config.foundry?.useEntraId).toBe(true);
+      expect(config.foundry?.audience).toBe("https://cognitiveservices.azure.com/.default");
+      expect(config.foundry?.managedIdentityClientId).toBeUndefined();
+      expect(config.foundry?.apiKey).toBeUndefined();
       expect(config.azure?.enabled).toBe(false);
       expect(config.azure?.openaiUseEntraId).toBe(false);
       expect(config.azure?.openaiAudience).toBe("https://cognitiveservices.azure.com/.default");
@@ -78,6 +86,14 @@ describe("loadConfig", () => {
           "ATHENA_DEFAULT_MODEL=test-model",
           "ATHENA_STATE_DIR=.athena-test",
           "ATHENA_PROVIDER_FALLBACK_ORDER=provider-b,provider-c",
+          "ATHENA_FOUNDRY_ENABLED=false",
+          "ATHENA_FOUNDRY_PROJECT_ENDPOINT=https://athena-foundry.services.ai.azure.com",
+          "ATHENA_FOUNDRY_DEPLOYMENT=gpt-4o-mini",
+          "ATHENA_FOUNDRY_API_VERSION=2024-10-21",
+          "ATHENA_FOUNDRY_USE_ENTRA_ID=false",
+          "ATHENA_FOUNDRY_AUDIENCE=https://foundry.azure.us/.default",
+          "ATHENA_FOUNDRY_MANAGED_IDENTITY_CLIENT_ID=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+          "ATHENA_FOUNDRY_API_KEY=foundry-secret",
           "ATHENA_LOCAL_PROVIDER_CMD=/bin/echo",
           "ATHENA_LOCAL_PROVIDER_ARGS=arg1,arg2",
           "ATHENA_OPENAI_API_KEY=openai-secret",
@@ -146,6 +162,14 @@ describe("loadConfig", () => {
       expect(config.defaultModel).toBe("test-model");
       expect(config.stateDir).toBe(".athena-test");
       expect(config.providerFallbackOrder).toEqual(["provider-b", "provider-c"]);
+      expect(config.foundry?.enabled).toBe(false);
+      expect(config.foundry?.projectEndpoint).toBe("https://athena-foundry.services.ai.azure.com");
+      expect(config.foundry?.deployment).toBe("gpt-4o-mini");
+      expect(config.foundry?.apiVersion).toBe("2024-10-21");
+      expect(config.foundry?.useEntraId).toBe(false);
+      expect(config.foundry?.audience).toBe("https://foundry.azure.us/.default");
+      expect(config.foundry?.managedIdentityClientId).toBe("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+      expect(config.foundry?.apiKey).toBe("foundry-secret");
       expect(config.localProviderCommand).toBe("/bin/echo");
       expect(config.localProviderArgs).toEqual(["arg1", "arg2"]);
       expect(config.openaiApiKey).toBe("openai-secret");

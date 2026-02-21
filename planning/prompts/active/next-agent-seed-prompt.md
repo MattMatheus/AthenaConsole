@@ -6,9 +6,9 @@ Your task is to begin the next development cycle by executing the top story in t
 
 ## Primary Task
 
-- **Backlog Item:** `planning/backlog/active/2026.02.24-microsoft-foundry-premier-integration.md`
+- **Backlog Item:** `planning/backlog/active/2026.02.23-developer-experience-and-quality.md`
 
-Review the story and its acceptance criteria, then begin implementation. This task focuses on implementing Microsoft Foundry as the premier model provider for the orchestrator, including Entra ID authentication and provider fallback logic as defined in ADR 0005.
+Review the story and its acceptance criteria, then begin implementation. This task focuses on making the test pipeline deterministic (especially `runtime.fallback` stability), adding a docs-sync CI smoke contract check, and refreshing developer onboarding/CI docs.
 
 ## Agent Workflow (Mandatory)
 

@@ -39,13 +39,27 @@ Project Athena can be configured via environment variables. The runtime will loa
    cp .env.example .env
    ```
 2. Set the provider/model defaults used by runtime and CLI:
-   - `ATHENA_DEFAULT_PROVIDER` (example: `openai`)
+   - `ATHENA_DEFAULT_PROVIDER` (default: `foundry`)
+   - `ATHENA_PROVIDER_FALLBACK_ORDER` (default: `openai`)
    - `ATHENA_DEFAULT_MODEL` (example: `gpt-4o-mini`)
-3. Configure OpenAI-compatible connectivity:
-   - `ATHENA_OPENAI_API_KEY`: API key/token for your provider.
+3. Configure Microsoft Foundry (primary provider):
+   - `ATHENA_FOUNDRY_PROJECT_ENDPOINT`: Foundry project endpoint URL.
+   - `ATHENA_FOUNDRY_DEPLOYMENT`: Deployment name used for inference routing.
+   - `ATHENA_FOUNDRY_API_VERSION`: API version query parameter (default: `2024-05-01-preview`).
+   - `ATHENA_FOUNDRY_USE_ENTRA_ID`: Enables `DefaultAzureCredential` token auth (default: `true`).
+   - `ATHENA_FOUNDRY_AUDIENCE`: Token audience/scope (default: `https://cognitiveservices.azure.com/.default`).
+   - Optional: `ATHENA_FOUNDRY_MANAGED_IDENTITY_CLIENT_ID`.
+   - Optional explicit fallback: `ATHENA_FOUNDRY_API_KEY`.
+4. Configure OpenAI-compatible connectivity for fallback/compatibility:
+   - `ATHENA_OPENAI_API_KEY`: API key/token for your OpenAI-compatible provider.
    - `ATHENA_OPENAI_BASE_URL`: Base URL for OpenAI-compatible APIs (default: `https://api.openai.com/v1`).
 
 Notes:
+- For local Entra ID auth, run:
+  ```bash
+  az login
+  ```
+  `DefaultAzureCredential` will pick up your Azure CLI session.
 - `ATHENA_OPENAI_BASE_URL` can point to OpenAI-compatible services (for example Groq or an Ollama-compatible gateway).
 - If `ATHENA_DEFAULT_PROVIDER=openai`, `ATHENA_OPENAI_API_KEY` should be set.
 
@@ -95,7 +109,7 @@ Invalid runtime isolation values now fail fast at startup with a `CONFIG_ERROR`.
 
 -   `ATHENA_SCHEDULE_RUN_TIMEOUT_MS`: Default timeout for a scheduled task run (default: 0, which means no timeout).
 
-Provider env support for `ATHENA_OPENAI_API_KEY` and `ATHENA_OPENAI_BASE_URL` is implemented in `src/shared/config.ts`.
+Provider env support for Foundry and OpenAI keys/endpoints is implemented in `src/shared/config.ts`.
 
 ## Verifying the Installation
 

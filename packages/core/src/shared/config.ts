@@ -22,6 +22,16 @@ export interface AthenaConfig {
   localProviderArgs: string[];
   openaiApiKey?: string;
   openaiBaseUrl?: string;
+  foundry?: {
+    enabled: boolean;
+    projectEndpoint?: string;
+    deployment?: string;
+    apiVersion: string;
+    useEntraId: boolean;
+    audience: string;
+    managedIdentityClientId?: string;
+    apiKey?: string;
+  };
   azure?: {
     enabled: boolean;
     openaiUseEntraId: boolean;
@@ -119,12 +129,18 @@ const DEFAULT_CONFIG: AthenaConfig = {
   stateDir: ".athena",
   executionProviderDefault: "docker",
   lockProviderDefault: "local",
-  defaultProvider: "mock",
-  defaultModel: "mock-model",
-  providerFallbackOrder: [],
+  defaultProvider: "foundry",
+  defaultModel: "gpt-4o-mini",
+  providerFallbackOrder: ["openai"],
   localProviderCommand: "/bin/echo",
   localProviderArgs: [],
   openaiBaseUrl: DEFAULT_OPENAI_BASE_URL,
+  foundry: {
+    enabled: true,
+    apiVersion: "2024-05-01-preview",
+    useEntraId: true,
+    audience: "https://cognitiveservices.azure.com/.default"
+  },
   azure: {
     enabled: false,
     openaiUseEntraId: false,
@@ -523,6 +539,29 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
   const memorySqlitePath = env.ATHENA_MEMORY_SQLITE_PATH ?? process.env.ATHENA_MEMORY_SQLITE_PATH;
   const cliApiBaseUrl = env.ATHENA_API_BASE_URL ?? process.env.ATHENA_API_BASE_URL;
   const openaiApiKey = env.ATHENA_OPENAI_API_KEY ?? process.env.ATHENA_OPENAI_API_KEY;
+  const foundryEnabled = parseBoolean(
+    env.ATHENA_FOUNDRY_ENABLED ?? process.env.ATHENA_FOUNDRY_ENABLED,
+    DEFAULT_CONFIG.foundry?.enabled ?? true
+  );
+  const foundryProjectEndpoint = env.ATHENA_FOUNDRY_PROJECT_ENDPOINT ?? process.env.ATHENA_FOUNDRY_PROJECT_ENDPOINT;
+  const foundryDeployment = env.ATHENA_FOUNDRY_DEPLOYMENT ?? process.env.ATHENA_FOUNDRY_DEPLOYMENT;
+  const foundryApiVersion =
+    env.ATHENA_FOUNDRY_API_VERSION ??
+    process.env.ATHENA_FOUNDRY_API_VERSION ??
+    DEFAULT_CONFIG.foundry?.apiVersion ??
+    "2024-05-01-preview";
+  const foundryUseEntraId = parseBoolean(
+    env.ATHENA_FOUNDRY_USE_ENTRA_ID ?? process.env.ATHENA_FOUNDRY_USE_ENTRA_ID,
+    DEFAULT_CONFIG.foundry?.useEntraId ?? true
+  );
+  const foundryAudience =
+    env.ATHENA_FOUNDRY_AUDIENCE ??
+    process.env.ATHENA_FOUNDRY_AUDIENCE ??
+    DEFAULT_CONFIG.foundry?.audience ??
+    "https://cognitiveservices.azure.com/.default";
+  const foundryManagedIdentityClientId =
+    env.ATHENA_FOUNDRY_MANAGED_IDENTITY_CLIENT_ID ?? process.env.ATHENA_FOUNDRY_MANAGED_IDENTITY_CLIENT_ID;
+  const foundryApiKey = env.ATHENA_FOUNDRY_API_KEY ?? process.env.ATHENA_FOUNDRY_API_KEY;
   const azureAuthEnabled = parseBoolean(
     env.ATHENA_AZURE_AUTH_ENABLED ?? process.env.ATHENA_AZURE_AUTH_ENABLED,
     DEFAULT_CONFIG.azure!.enabled
@@ -618,11 +657,27 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
     lockProviderDefault,
     defaultProvider: env.ATHENA_DEFAULT_PROVIDER ?? process.env.ATHENA_DEFAULT_PROVIDER ?? DEFAULT_CONFIG.defaultProvider,
     defaultModel: env.ATHENA_DEFAULT_MODEL ?? process.env.ATHENA_DEFAULT_MODEL ?? DEFAULT_CONFIG.defaultModel,
-    providerFallbackOrder: parseCsv(env.ATHENA_PROVIDER_FALLBACK_ORDER ?? process.env.ATHENA_PROVIDER_FALLBACK_ORDER),
+    providerFallbackOrder: parseCsv(
+      env.ATHENA_PROVIDER_FALLBACK_ORDER ??
+        process.env.ATHENA_PROVIDER_FALLBACK_ORDER ??
+        DEFAULT_CONFIG.providerFallbackOrder.join(",")
+    ),
     localProviderCommand: env.ATHENA_LOCAL_PROVIDER_CMD ?? process.env.ATHENA_LOCAL_PROVIDER_CMD ?? DEFAULT_CONFIG.localProviderCommand,
     localProviderArgs: parseCsv(env.ATHENA_LOCAL_PROVIDER_ARGS ?? process.env.ATHENA_LOCAL_PROVIDER_ARGS),
     openaiBaseUrl: env.ATHENA_OPENAI_BASE_URL ?? process.env.ATHENA_OPENAI_BASE_URL ?? DEFAULT_OPENAI_BASE_URL,
     ...(openaiApiKey !== undefined ? { openaiApiKey } : {}),
+    foundry: {
+      enabled: foundryEnabled,
+      ...(foundryProjectEndpoint !== undefined ? { projectEndpoint: foundryProjectEndpoint } : {}),
+      ...(foundryDeployment !== undefined ? { deployment: foundryDeployment } : {}),
+      apiVersion: foundryApiVersion,
+      useEntraId: foundryUseEntraId,
+      audience: foundryAudience,
+      ...(foundryManagedIdentityClientId !== undefined
+        ? { managedIdentityClientId: foundryManagedIdentityClientId }
+        : {}),
+      ...(foundryApiKey !== undefined ? { apiKey: foundryApiKey } : {})
+    },
     azure: {
       enabled: azureAuthEnabled,
       openaiUseEntraId: azureOpenAiUseEntraId,

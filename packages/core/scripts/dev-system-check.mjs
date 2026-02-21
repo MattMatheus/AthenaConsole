@@ -57,9 +57,31 @@ if (!existsSync(envPath)) {
   warnings.push("No .env file found at project root; using shell environment only.");
 }
 
-const provider = env.ATHENA_DEFAULT_PROVIDER ?? "mock";
+const provider = env.ATHENA_DEFAULT_PROVIDER ?? "foundry";
+const foundryEnabled = asBoolean(env.ATHENA_FOUNDRY_ENABLED, true);
+const foundryUseEntraId = asBoolean(env.ATHENA_FOUNDRY_USE_ENTRA_ID, true);
+const fallbackProviders = (env.ATHENA_PROVIDER_FALLBACK_ORDER ?? "")
+  .split(",")
+  .map((providerId) => providerId.trim())
+  .filter(Boolean);
+
+if (provider === "foundry" && foundryEnabled) {
+  if (!env.ATHENA_FOUNDRY_PROJECT_ENDPOINT) {
+    issues.push("ATHENA_FOUNDRY_PROJECT_ENDPOINT is required when ATHENA_DEFAULT_PROVIDER=foundry.");
+  }
+  if (!env.ATHENA_FOUNDRY_DEPLOYMENT) {
+    issues.push("ATHENA_FOUNDRY_DEPLOYMENT is required when ATHENA_DEFAULT_PROVIDER=foundry.");
+  }
+  if (!foundryUseEntraId && !env.ATHENA_FOUNDRY_API_KEY) {
+    issues.push("ATHENA_FOUNDRY_API_KEY is required when ATHENA_FOUNDRY_USE_ENTRA_ID=false.");
+  }
+}
+
 if (provider === "openai" && !env.ATHENA_OPENAI_API_KEY) {
   issues.push("ATHENA_OPENAI_API_KEY is required when ATHENA_DEFAULT_PROVIDER=openai.");
+}
+if (fallbackProviders.includes("openai") && !env.ATHENA_OPENAI_API_KEY) {
+  warnings.push("ATHENA_PROVIDER_FALLBACK_ORDER includes openai but ATHENA_OPENAI_API_KEY is not set.");
 }
 
 const lockProvider = env.ATHENA_DISTRIBUTED_LOCK_PROVIDER ?? "local";
