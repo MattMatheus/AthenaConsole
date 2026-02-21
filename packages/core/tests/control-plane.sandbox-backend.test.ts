@@ -497,4 +497,33 @@ describe("sandbox backend scaffold", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("uses execution provider default when sandbox routing is enabled", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-sandbox-default-provider-"));
+    try {
+      const config = loadConfig(dir);
+      const services = createLocalControlPlaneServices({
+        config: {
+          ...config,
+          sandbox: {
+            enabled: true,
+            requireForHighSecurity: false
+          }
+        },
+        dockerSandboxBackendOptions: {
+          commandRunner: async (_command, args) => ({
+            exitCode: args[0] === "info" ? 0 : 1,
+            stdout: args[0] === "info" ? "25.0.5\n" : "",
+            stderr: "",
+            timedOut: false
+          })
+        }
+      });
+      await expect(services.capabilityService.getCapabilities()).resolves.toMatchObject({
+        supportsSandbox: true
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

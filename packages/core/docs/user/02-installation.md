@@ -64,6 +64,8 @@ Notes:
 
 ### Distributed Locking and Concurrency
 
+-   `ATHENA_EXECUTION_PROVIDER_DEFAULT`: Default sandbox execution provider for local routing. Supports `docker` (default), `k8s`, or `local-placeholder`.
+-   `ATHENA_LOCK_PROVIDER_DEFAULT`: Default distributed lock provider. Supports `local` (default), `redis`, or `k8s-lease`.
 -   `ATHENA_DISTRIBUTED_LOCK_PROVIDER`: Specifies the backend for managing distributed locks. Supports `local` (default), `redis`, or `k8s-lease`.
 -   `ATHENA_REDIS_URL`: Redis connection URL used when `ATHENA_DISTRIBUTED_LOCK_PROVIDER=redis`.
 -   `ATHENA_K8S_NAMESPACE`: Optional namespace override for `k8s-lease` distributed locking. If unset, Athena uses the pod service-account namespace or current kube context namespace.

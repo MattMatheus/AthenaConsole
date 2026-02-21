@@ -1,28 +1,16 @@
-# Handoff Summary: Cycle 2026.05.05
+# Handoff Summary: Cycle 2026.02.25
 
-This document contains the final state and deliverables from the previous development cycle. It is a transient artifact and will be replaced at the end of the next cycle.
+## Delivered
+- Added root local stack definition at `docker-compose.local.yml`.
+- Stack includes only local dev loop services (`api`, `console`) with source mounts and local-first env defaults.
+- Removed non-core local dependencies from this primary path (no Redis/monitoring sidecars in local compose).
+- Updated quickstart doc to use local compose as primary startup command: `packages/core/docs/user/00-quickstart.md`.
+- Added maintenance note to keep `docker-compose.local.yml` aligned with `packages/core/infrastructure/docker-compose.yml`: `planning/developer/00-onboarding.md`.
 
-## Key Recent Deliverables
+## Validation
+- `podman compose -f docker-compose.local.yml config` passed.
+- `podman compose version` passed (`podman` delegates to external compose provider in this environment).
 
-- **Azure Application Insights Integration (First Pass)**
-  - Optional Node.js runtime integration added in `src/observability/application-insights.ts`.
-  - Supports request/dependency telemetry with W3C correlation headers.
-  - Custom events instrumented for API requests, AI latency, and Redis lock timing.
-- **Telemetry Enrichment**
-  - Custom dimensions `runId`, `personaId`, and `tenantId` are wired in where available for filtering.
-- **Configuration & Environment**
-  - App Insights configuration added to `src/shared/config.ts` and `.env.example`.
-- **Infrastructure as Code**
-  - A new Terraform module was added at `infrastructure/terraform/modules/application-insights/`.
-  - Dev environment updated in `infrastructure/terraform/environments/dev/`.
-  - Includes workbook queries for key metrics and a portal dashboard scaffold.
-- **Deployment Workflow**
-  - The control-plane deployment now sets App Insights environment variables if the corresponding secret is present.
-
-## Final Validation Notes
-
-- **Terraform:** `fmt`, `init`, and `validate` commands all passed for the dev environment.
-- **Vitest:** All relevant unit and integration tests passed, including for config, providers, and the new observability module.
-- **TypeScript (`tsc`):**
-  - The `console` package build passed.
-  - The root `tsconfig.json` build remains blocked by a pre-existing typing mismatch in `src/shared/config.ts` related to `allowedOrigins`. This is a known issue for the next agent to be aware of.
+## Next Story Context
+- Next active story: `planning/backlog/active/2026.02.26-write-local-quickstart-guide.md`.
+- `docker-compose.local.yml` is ready and should be the canonical command in `GETTING_STARTED.md` (`podman compose -f docker-compose.local.yml up --build`).

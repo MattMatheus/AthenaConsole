@@ -1,0 +1,50 @@
+services:
+  api:
+    image: node:20-bookworm-slim
+    working_dir: /workspace
+    command: >-
+      sh -c "npm install &&
+      npm run build --workspace @athena/core &&
+      npm run dev --workspace @athena/api"
+    environment:
+      ATHENA_DEV_API_HOST: 0.0.0.0
+      ATHENA_DEV_API_PORT: 8787
+      ATHENA_LOCK_PROVIDER_DEFAULT: local
+      ATHENA_DISTRIBUTED_LOCK_PROVIDER: local
+      ATHENA_EXECUTION_PROVIDER_DEFAULT: docker
+      ATHENA_SANDBOX_BACKEND_PROVIDER: docker
+      ATHENA_STATE_DIR: .athena
+    volumes:
+      - .:/workspace
+      - athena-root-node-modules:/workspace/node_modules
+      - athena-api-node-modules:/workspace/apps/api/node_modules
+      - athena-core-node-modules:/workspace/packages/core/node_modules
+    ports:
+      - "8787:8787"
+
+  console:
+    image: node:20-bookworm-slim
+    working_dir: /workspace
+    command: >-
+      sh -c "npm install &&
+      npm run dev --workspace @athena/console -- --host 0.0.0.0 --port 5173"
+    environment:
+      ATHENA_DEV_UI_HOST: 0.0.0.0
+      ATHENA_DEV_UI_PORT: 5173
+      ATHENA_DEV_API_HOST: api
+      ATHENA_DEV_API_PORT: 8787
+      ATHENA_DEV_PROXY_TARGET: http://api:8787
+    volumes:
+      - .:/workspace
+      - athena-root-node-modules:/workspace/node_modules
+      - athena-console-node-modules:/workspace/apps/console/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  athena-root-node-modules:
+  athena-api-node-modules:
+  athena-core-node-modules:
+  athena-console-node-modules:

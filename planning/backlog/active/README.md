@@ -6,11 +6,7 @@ Every development cycle must consume the next story in this list and move it to 
 ## Active Sequence
 
 ### Milestone 3: Unified Local Experience
-1. **[2026.02.24-formalize-local-sandbox-default.md](2026.02.24-formalize-local-sandbox-default.md)**
-   - Make the local Podman/Docker sandbox the default, out-of-the-box execution environment.
-2. **[2026.02.25-create-unified-local-stack.md](2026.02.25-create-unified-local-stack.md)**
-   - Create a single `docker-compose.local.yml` to bring up the entire local dev stack.
-3. **[2026.02.26-write-local-quickstart-guide.md](2026.02.26-write-local-quickstart-guide.md)**
+1. **[2026.02.26-write-local-quickstart-guide.md](2026.02.26-write-local-quickstart-guide.md)**
    - Write a top-level `GETTING_STARTED.md` for a 3-minute setup.
 
 ### Milestone 4: Foundational Stability

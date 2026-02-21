@@ -133,7 +133,11 @@ function createDistributedLock(options: LocalControlPlaneOptions): IDistributedL
   if (options.distributedLock) {
     return options.distributedLock;
   }
-  const provider = options.distributedLockProvider ?? options.config.distributedLockProvider ?? "local";
+  const provider =
+    options.distributedLockProvider ??
+    options.config.distributedLockProvider ??
+    options.config.lockProviderDefault ??
+    "local";
   if (provider === "local") {
     return new LocalMemoryLock();
   }
@@ -253,10 +257,9 @@ function hasShutdown<T extends object>(service: T): service is T & { shutdown: (
 }
 
 function createSandboxExecutionBackend(options: LocalControlPlaneOptions): SandboxExecutionBackend {
-  const envProvider = process.env.ATHENA_SANDBOX_BACKEND_PROVIDER?.trim().toLowerCase();
   const configuredProvider =
     options.sandboxBackendProvider ??
-    (envProvider === "docker" || envProvider === "k8s" ? envProvider : "local-placeholder");
+    (options.config.sandbox?.enabled ? options.config.executionProviderDefault : "local-placeholder");
   if (configuredProvider === "docker") {
     return new DockerSandboxExecutionBackend(options.dockerSandboxBackendOptions);
   }

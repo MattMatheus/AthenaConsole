@@ -3,6 +3,7 @@
 ## Prerequisites
 
 - Node.js 20+
+- Docker or Podman with Compose support
 
 ## Install
 
@@ -17,6 +18,12 @@ npm run check:schemas
 npm run typecheck
 npm test
 npm run build
+```
+
+## Start The Local API + Console Stack (Primary Path)
+
+```bash
+podman compose -f docker-compose.local.yml up --build
 ```
 
 ## Run A Turn

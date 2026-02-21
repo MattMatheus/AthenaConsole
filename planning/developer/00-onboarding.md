@@ -28,6 +28,7 @@ The current focus is on hardening the control plane, implementing Kyverno policy
 - **API Schemas:** Always run `npm run generate:schemas` after contract changes.
 - **Persistence:** Use atomic, lock-guarded, and append-safe patterns for state.
 - **Boundaries:** Keep business logic in control-plane services; keep providers behind clean interfaces.
+- **Local Stack Maintenance:** Keep root `docker-compose.local.yml` aligned with `packages/core/infrastructure/docker-compose.yml` when service contracts, ports, or startup env vars change.
 - **Validation:** Every cycle must pass `check:schemas`, `typecheck`, `test`, and `build`.
 - **Mandatory Cycle Handoff:** Every cycle must update `planning/archive/handoff.md`, move completed stories from `planning/backlog/active/` to `planning/backlog/completed/`, and refresh `planning/prompts/active/next-agent-seed-prompt.md` for the next cycle.
 

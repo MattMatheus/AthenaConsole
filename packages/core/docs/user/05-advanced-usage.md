@@ -62,6 +62,7 @@ Athena supports two primary sandbox execution providers:
 Relevant config:
 
 - `ATHENA_SANDBOX_ENABLED`: Enable the sandbox routing logic (default: `false`).
+- `ATHENA_EXECUTION_PROVIDER_DEFAULT`: Selects the default sandbox backend (`docker` by default; also supports `k8s` and `local-placeholder`).
 - `ATHENA_RUNTIME_ISOLATION_DEFAULT_PROFILE`: The default isolation level (`standard` or `high-security`).
 - `ATHENA_RUNTIME_ISOLATION_STANDARD_REQUIRE_SANDBOX`: Set to `true` to require a sandbox for standard runs.
 - `ATHENA_RUNTIME_ISOLATION_HIGH_SECURITY_REQUIRE_SANDBOX`: Set to `true` to require a sandbox for high-security runs.
@@ -91,6 +92,7 @@ Athena enforces concurrency policy (`maxConcurrentRuns`) with lock-backed reserv
 
 Providers:
 
+- `ATHENA_LOCK_PROVIDER_DEFAULT=local` (default behavior)
 - `ATHENA_DISTRIBUTED_LOCK_PROVIDER=local`
 - `ATHENA_DISTRIBUTED_LOCK_PROVIDER=redis` + `ATHENA_REDIS_URL`
 - `ATHENA_DISTRIBUTED_LOCK_PROVIDER=k8s-lease`

@@ -10,6 +10,8 @@ describe("loadConfig", () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-config-"));
     try {
       const config = loadConfig(dir);
+      expect(config.executionProviderDefault).toBe("docker");
+      expect(config.lockProviderDefault).toBe("local");
       expect(config.defaultProvider).toBe("mock");
       expect(config.defaultModel).toBe("mock-model");
       expect(config.providerFallbackOrder).toEqual([]);
@@ -95,6 +97,8 @@ describe("loadConfig", () => {
           "ATHENA_RUN_HISTORY_RETENTION_SWEEP_MS=120000",
           "ATHENA_FLEET_METRICS_PROVIDER=k8s",
           "ATHENA_DISTRIBUTED_LOCK_PROVIDER=redis",
+          "ATHENA_EXECUTION_PROVIDER_DEFAULT=k8s",
+          "ATHENA_LOCK_PROVIDER_DEFAULT=k8s-lease",
           "ATHENA_REDIS_URL=redis://redis.internal:6379/1",
           "ATHENA_SANDBOX_ENABLED=true",
           "ATHENA_SANDBOX_REQUIRE_FOR_HIGH_SECURITY=true",
@@ -160,6 +164,8 @@ describe("loadConfig", () => {
       expect(config.runHistory?.retentionDays).toBe(45);
       expect(config.runHistory?.sweepIntervalMs).toBe(120000);
       expect(config.fleetMetricsProvider).toBe("k8s");
+      expect(config.executionProviderDefault).toBe("k8s");
+      expect(config.lockProviderDefault).toBe("k8s-lease");
       expect(config.distributedLockProvider).toBe("redis");
       expect(config.redisUrl).toBe("redis://redis.internal:6379/1");
       expect(config.sandbox?.enabled).toBe(true);
@@ -218,6 +224,23 @@ describe("loadConfig", () => {
       const config = loadConfig(dir);
       expect(config.sandbox?.requireForHighSecurity).toBe(true);
       expect(config.runtimeIsolation?.profiles["high-security"].requireSandbox).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("supports legacy provider default env keys when modern defaults are unset", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-config-"));
+    try {
+      writeFileSync(
+        join(dir, ".env"),
+        ["ATHENA_SANDBOX_BACKEND_PROVIDER=k8s", "ATHENA_DISTRIBUTED_LOCK_PROVIDER=redis"].join("\n"),
+        "utf8"
+      );
+      const config = loadConfig(dir);
+      expect(config.executionProviderDefault).toBe("k8s");
+      expect(config.lockProviderDefault).toBe("redis");
+      expect(config.distributedLockProvider).toBe("redis");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

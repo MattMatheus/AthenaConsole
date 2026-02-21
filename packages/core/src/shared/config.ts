@@ -13,6 +13,8 @@ const DAY_MS = 24 * 60 * 60 * 1_000;
 export interface AthenaConfig {
   workspaceRoot: string;
   stateDir: string;
+  executionProviderDefault?: "local-placeholder" | "docker" | "k8s";
+  lockProviderDefault?: "local" | "redis" | "k8s-lease";
   defaultProvider: string;
   defaultModel: string;
   providerFallbackOrder: string[];
@@ -115,6 +117,8 @@ export interface AthenaConfig {
 const DEFAULT_CONFIG: AthenaConfig = {
   workspaceRoot: process.cwd(),
   stateDir: ".athena",
+  executionProviderDefault: "docker",
+  lockProviderDefault: "local",
   defaultProvider: "mock",
   defaultModel: "mock-model",
   providerFallbackOrder: [],
@@ -284,6 +288,42 @@ function parseDistributedLockProvider(input: string | undefined): "local" | "red
     return normalized;
   }
   return undefined;
+}
+
+function parseExecutionProviderDefault(
+  input: string | undefined,
+  fieldName: string,
+  defaultValue: "local-placeholder" | "docker" | "k8s"
+): "local-placeholder" | "docker" | "k8s" {
+  if (!input) {
+    return defaultValue;
+  }
+  const normalized = input.trim().toLowerCase();
+  if (normalized === "local-placeholder" || normalized === "docker" || normalized === "k8s") {
+    return normalized;
+  }
+  throw new AthenaError(
+    "CONFIG_ERROR",
+    `${fieldName} must be one of: local-placeholder, docker, k8s. Received: ${input}.`
+  );
+}
+
+function parseLockProviderDefault(
+  input: string | undefined,
+  fieldName: string,
+  defaultValue: "local" | "redis" | "k8s-lease"
+): "local" | "redis" | "k8s-lease" {
+  if (!input) {
+    return defaultValue;
+  }
+  const normalized = input.trim().toLowerCase();
+  if (normalized === "local" || normalized === "redis" || normalized === "k8s-lease") {
+    return normalized;
+  }
+  throw new AthenaError(
+    "CONFIG_ERROR",
+    `${fieldName} must be one of: local, redis, k8s-lease. Received: ${input}.`
+  );
 }
 
 function normalizeRuntimeIsolationProfile(input: string): ConfigRuntimeIsolationProfile | undefined {
@@ -506,6 +546,22 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
   const distributedLockProvider = parseDistributedLockProvider(
     env.ATHENA_DISTRIBUTED_LOCK_PROVIDER ?? process.env.ATHENA_DISTRIBUTED_LOCK_PROVIDER
   );
+  const executionProviderDefault = parseExecutionProviderDefault(
+    env.ATHENA_EXECUTION_PROVIDER_DEFAULT ??
+      process.env.ATHENA_EXECUTION_PROVIDER_DEFAULT ??
+      env.ATHENA_SANDBOX_BACKEND_PROVIDER ??
+      process.env.ATHENA_SANDBOX_BACKEND_PROVIDER,
+    "ATHENA_EXECUTION_PROVIDER_DEFAULT",
+    DEFAULT_CONFIG.executionProviderDefault ?? "docker"
+  );
+  const lockProviderDefault = parseLockProviderDefault(
+    env.ATHENA_LOCK_PROVIDER_DEFAULT ??
+      process.env.ATHENA_LOCK_PROVIDER_DEFAULT ??
+      env.ATHENA_DISTRIBUTED_LOCK_PROVIDER ??
+      process.env.ATHENA_DISTRIBUTED_LOCK_PROVIDER,
+    "ATHENA_LOCK_PROVIDER_DEFAULT",
+    DEFAULT_CONFIG.lockProviderDefault ?? "local"
+  );
   const redisUrl = env.ATHENA_REDIS_URL ?? process.env.ATHENA_REDIS_URL;
   const defaultRuntimeIsolationProfile = parseRuntimeIsolationProfile(
     env.ATHENA_RUNTIME_ISOLATION_DEFAULT_PROFILE ?? process.env.ATHENA_RUNTIME_ISOLATION_DEFAULT_PROFILE,
@@ -558,6 +614,8 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
   return {
     workspaceRoot: env.ATHENA_WORKSPACE_ROOT ?? process.env.ATHENA_WORKSPACE_ROOT ?? cwd,
     stateDir: env.ATHENA_STATE_DIR ?? process.env.ATHENA_STATE_DIR ?? DEFAULT_CONFIG.stateDir,
+    executionProviderDefault,
+    lockProviderDefault,
     defaultProvider: env.ATHENA_DEFAULT_PROVIDER ?? process.env.ATHENA_DEFAULT_PROVIDER ?? DEFAULT_CONFIG.defaultProvider,
     defaultModel: env.ATHENA_DEFAULT_MODEL ?? process.env.ATHENA_DEFAULT_MODEL ?? DEFAULT_CONFIG.defaultModel,
     providerFallbackOrder: parseCsv(env.ATHENA_PROVIDER_FALLBACK_ORDER ?? process.env.ATHENA_PROVIDER_FALLBACK_ORDER),
