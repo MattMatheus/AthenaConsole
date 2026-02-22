@@ -558,6 +558,7 @@ export interface PersonaRuntimeRunner {
     provider?: string;
     model?: string;
     metadata: Record<string, string>;
+    timeoutMs?: number;
   }): Promise<PersonaRuntimeRunResult>;
 }
 
@@ -889,6 +890,7 @@ function buildImplementationLoopPrompt(options: {
 
 export async function executeImplementationLoop(options: PersonaModelExecutionInput & { config: AthenaConfig }): Promise<PersonaModelExecutionResult> {
   const maxTurns = 12;
+  const turnTimeoutMs = Math.max(60_000, options.config.runtimeRunTimeoutMs);
   const history: Array<{ tool: string; input: Record<string, unknown>; result: { ok: boolean; output?: unknown; error?: string } }> = [];
   let runtimeResult: PersonaRuntimeRunResult | undefined;
   let modelOutputRaw = "";
@@ -912,7 +914,8 @@ export async function executeImplementationLoop(options: PersonaModelExecutionIn
           persona: options.personaName,
           repoPath: options.repoPath,
           turn: String(turn)
-        }
+        },
+        timeoutMs: turnTimeoutMs
       });
       modelOutputRaw = runtimeResult.output;
     } catch (error) {
@@ -942,7 +945,8 @@ export async function executeImplementationLoop(options: PersonaModelExecutionIn
             persona: options.personaName,
             repoPath: options.repoPath,
             turn: String(turn)
-          }
+          },
+          timeoutMs: turnTimeoutMs
         });
         runtimeResult = repaired;
         modelOutputRaw = repaired.output;
@@ -1327,6 +1331,7 @@ export async function runPersonaOrchestrator(
   const runtimeWithEvidenceCapture: PersonaRuntimeRunner = {
     run: (runRequest) =>
       runtime.run(runRequest, {
+        ...(typeof runRequest.timeoutMs === "number" ? { timeoutMs: runRequest.timeoutMs } : {}),
         onAttachEvidence: async (attachment) => {
           await evidenceCollector.capture(attachment);
         }
