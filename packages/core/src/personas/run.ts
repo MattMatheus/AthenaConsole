@@ -854,49 +854,78 @@ export async function executeModelWithRepair(options: PersonaModelExecutionInput
   };
 }
 
+function summarizeImplementationHistoryEntry(entry: {
+  tool: string;
+  input: Record<string, unknown>;
+  result: { ok: boolean; output?: unknown; error?: string };
+}): string {
+  const compactInput = JSON.stringify(entry.input).slice(0, 400);
+  const compactResult = entry.result.ok
+    ? JSON.stringify(entry.result.output ?? "").slice(0, 800)
+    : String(entry.result.error ?? "unknown tool error").slice(0, 800);
+  return [`tool=${entry.tool}`, `input=${compactInput}`, `result=${compactResult}`].join("\n");
+}
+
 function buildImplementationLoopPrompt(options: {
   basePrompt: string;
   turn: number;
   maxTurns: number;
+  phase: "discovery" | "implementation" | "finalization";
+  allowToolSteps: boolean;
   history: Array<{ tool: string; input: Record<string, unknown>; result: { ok: boolean; output?: unknown; error?: string } }>;
 }): string {
+  const historyWindow = options.history.slice(-16);
   const historySection =
-    options.history.length === 0
+    historyWindow.length === 0
       ? "(none)"
-      : options.history
-          .map((entry, index) =>
-            [
-              `Step ${index + 1}:`,
-              `tool=${entry.tool}`,
-              `input=${JSON.stringify(entry.input)}`,
-              `result=${JSON.stringify(entry.result)}`
-            ].join("\n")
-          )
-          .join("\n\n");
+      : historyWindow.map((entry, index) => [`Step ${index + 1}:`, summarizeImplementationHistoryEntry(entry)].join("\n")).join("\n\n");
+
+  const phaseInstruction =
+    options.phase === "discovery"
+      ? "- Phase: discovery. Focus on reading story/contracts and inspecting relevant files."
+      : options.phase === "implementation"
+        ? "- Phase: implementation. Focus on edits, commands, and validation."
+        : "- Phase: finalization. Tool calls are disabled; return a final JSON report now.";
+
+  const actionInstruction = options.allowToolSteps
+    ? "- You may return either a tool step or final step."
+    : "- You MUST return action='final'. Do not return action='tool'.";
+
   return [
     options.basePrompt,
     "",
     "IMPLEMENTATION EXECUTION MODE:",
     `- Turn ${options.turn} of ${options.maxTurns}.`,
+    phaseInstruction,
+    actionInstruction,
     "- Return ONLY strict JSON with one of:",
     "  1) Tool step: {\"schemaVersion\":1,\"action\":\"tool\",\"tool\":\"read_file|list_dir|run_exec|memory_search|memory_get\",\"input\":{...}}",
     "  2) Final step: {\"schemaVersion\":1,\"action\":\"final\", ... PersonaModelOutputV1 fields ...}",
-    "- Prefer executing concrete implementation via tools before finalizing.",
+    "- Avoid repeating the same tool call with identical input unless new evidence changed.",
     "",
-    "Tool execution history:",
+    "Recent tool execution history (windowed):",
     historySection
   ].join("\n");
 }
 
 export async function executeImplementationLoop(options: PersonaModelExecutionInput & { config: AthenaConfig }): Promise<PersonaModelExecutionResult> {
-  const maxTurns = 12;
+  const maxTurns = 72;
+  const discoveryTurns = 10;
+  const finalOnlyTurns = 8;
   const turnTimeoutMs = Math.max(60_000, options.config.runtimeRunTimeoutMs);
   const history: Array<{ tool: string; input: Record<string, unknown>; result: { ok: boolean; output?: unknown; error?: string } }> = [];
+  const toolCallCounts = new Map<string, number>();
+  let lastToolSignature = "";
+  let consecutiveSameToolCalls = 0;
+  let toolCalls = 0;
   let runtimeResult: PersonaRuntimeRunResult | undefined;
   let modelOutputRaw = "";
   let parseRetryAttempted = false;
 
   for (let turn = 1; turn <= maxTurns; turn += 1) {
+    const phase: "discovery" | "implementation" | "finalization" =
+      turn <= discoveryTurns ? "discovery" : turn > maxTurns - finalOnlyTurns ? "finalization" : "implementation";
+    const allowToolSteps = phase !== "finalization";
     try {
       runtimeResult = await options.runtime.run({
         sessionId: options.sessionId,
@@ -904,6 +933,8 @@ export async function executeImplementationLoop(options: PersonaModelExecutionIn
           basePrompt: options.prompt,
           turn,
           maxTurns,
+          phase,
+          allowToolSteps,
           history
         }),
         ...(options.provider ? { provider: options.provider } : {}),
@@ -986,7 +1017,48 @@ export async function executeImplementationLoop(options: PersonaModelExecutionIn
       };
     }
 
+    if (!allowToolSteps) {
+      history.push({
+        tool: "loop-guard",
+        input: {},
+        result: { ok: false, error: "Tool calls disabled during finalization phase. Return action='final'." }
+      });
+      continue;
+    }
+
     const toolInput = parsedStep.step.input ?? {};
+    const toolSignature = `${parsedStep.step.tool}:${JSON.stringify(toolInput)}`;
+    const seenCount = (toolCallCounts.get(toolSignature) ?? 0) + 1;
+    toolCallCounts.set(toolSignature, seenCount);
+    consecutiveSameToolCalls = toolSignature === lastToolSignature ? consecutiveSameToolCalls + 1 : 1;
+    lastToolSignature = toolSignature;
+
+    if (consecutiveSameToolCalls >= 3 || seenCount >= 5) {
+      history.push({
+        tool: parsedStep.step.tool,
+        input: toolInput,
+        result: {
+          ok: false,
+          error:
+            "Loop watchdog blocked repeated identical tool calls. Choose a different tool/input or finalize with action='final'."
+        }
+      });
+      continue;
+    }
+
+    toolCalls += 1;
+    if (toolCalls > 180) {
+      const message = `Implementation loop exceeded tool-call budget (${toolCalls}).`;
+      return {
+        ...(runtimeResult ? { runtimeResult } : {}),
+        modelOutputRaw: message,
+        status: "failed",
+        topError: { message },
+        parseRetryAttempted,
+        parsed: { error: message }
+      };
+    }
+
     const toolResult = await executeImplementationTool({
       step: parsedStep.step,
       repoPath: options.repoPath,
