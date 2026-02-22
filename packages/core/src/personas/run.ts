@@ -12,6 +12,7 @@ import {
   assertRefExists,
   getDiff,
   listChangedFiles,
+  listWorktreeChangedFiles,
   resolveBaseRef
 } from "./git.js";
 import { inspectDependenciesBestEffort } from "./dependency-inspection.js";
@@ -347,6 +348,7 @@ export interface PersonaOutputNormalizationInput {
   dependencyInspection: DependencyInspection;
   reviewScope?: "diff" | "implementation";
   activeStoryPath?: string;
+  worktreeChangedFiles?: string[];
 }
 
 export interface PersonaOutputNormalizationResult {
@@ -651,6 +653,37 @@ export function normalizePersonaOutput(options: PersonaOutputNormalizationInput)
     ].join("\n");
   }
 
+  const missingWorktreeChanges =
+    options.reviewScope === "implementation" &&
+    typeof options.activeStoryPath === "string" &&
+    options.activeStoryPath.length > 0 &&
+    (options.worktreeChangedFiles?.length ?? 0) === 0;
+  if (missingWorktreeChanges) {
+    findings = [
+      ...findings,
+      {
+        priority: "P1",
+        confidence: 1,
+        title: "No implementation changes detected",
+        message: `Implementation mode requires concrete repository changes for active story ${options.activeStoryPath}, but the worktree remained unchanged after execution.`,
+        suggestion: `Execute ${options.activeStoryPath} and apply code/test/handoff file updates in this run.`,
+        file: options.activeStoryPath,
+        line: 1
+      }
+    ];
+    mergeGate = "fail";
+    if (reportNormalized === "no tasks available") {
+      reportMarkdown = [
+        "# Story Execution Status: BLOCKED",
+        "",
+        `Active story detected: \`${options.activeStoryPath}\`.`,
+        "No repository changes were applied during implementation mode.",
+        "",
+        "Next action: apply code + tests + handoff updates for the active story in this run."
+      ].join("\n");
+    }
+  }
+
   // Let the model override dependencyInspection status/notes, but keep computed signals for context.
   const mergedDependencyInspection: DependencyInspection = {
     ...dependencyInspection,
@@ -918,10 +951,13 @@ export async function runPersonaOrchestrator(
     ...(request.provider ? { provider: request.provider } : {}),
     ...(request.model ? { model: request.model } : {})
   });
+  const worktreeChangedFiles =
+    preflight.persona.review?.scope === "implementation" ? await listWorktreeChangedFiles(preflight.repoPath) : [];
   const normalization = dependencies.normalizePersonaOutput({
     execution,
     dependencyInspection: executionPreparation.dependencyInspection,
     reviewScope: preflight.persona.review?.scope,
+    ...(worktreeChangedFiles.length > 0 ? { worktreeChangedFiles } : {}),
     ...(executionPreparation.activeStoryPath ? { activeStoryPath: executionPreparation.activeStoryPath } : {})
   });
   const capturedEvidence = await evidenceCollector.flush();

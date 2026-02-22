@@ -89,6 +89,33 @@ describe("persona output normalization", () => {
 
     expect(normalized.mergeGate).toBe("fail");
     expect(normalized.findings.some((finding) => finding.title === "False empty queue result")).toBe(true);
-    expect(normalized.reportMarkdown).toContain("Actionable story detected by runtime");
+    expect(normalized.reportMarkdown).toContain("Active story detected");
+  });
+
+  it("fails merge gate when implementation scope produced no worktree changes", () => {
+    const execution: PersonaModelExecutionResult = {
+      modelOutputRaw: "{\"schemaVersion\":1}",
+      status: "ok",
+      parseRetryAttempted: false,
+      parsed: {
+        parsed: {
+          schemaVersion: 1,
+          mergeGate: "pass",
+          reportMarkdown: "implemented",
+          findings: []
+        }
+      }
+    };
+
+    const normalized = normalizePersonaOutput({
+      execution,
+      dependencyInspection: { status: "ok" },
+      reviewScope: "implementation",
+      activeStoryPath: "planning/backlog/active/05.01-create-fleet-api-service-for-ui.md",
+      worktreeChangedFiles: []
+    });
+
+    expect(normalized.mergeGate).toBe("fail");
+    expect(normalized.findings.some((finding) => finding.title === "No implementation changes detected")).toBe(true);
   });
 });

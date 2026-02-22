@@ -116,6 +116,17 @@ export async function listChangedFiles(repoPath: string, baseRef: string, headRe
   return files.slice(0, maxFiles);
 }
 
+export async function listWorktreeChangedFiles(repoPath: string, maxFiles = 500): Promise<string[]> {
+  const { stdout } = await git(repoPath, ["status", "--porcelain", "--", "."]);
+  const files = stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.slice(3).trim())
+    .filter(Boolean);
+  return files.slice(0, maxFiles);
+}
+
 export async function fileExistsAtRef(repoPath: string, ref: string, filePath: string): Promise<boolean> {
   try {
     await git(repoPath, ["cat-file", "-e", `${ref}:${filePath}`]);
