@@ -1,4 +1,4 @@
-import { apiClient } from "../../services";
+import { apiClient, fleetApiService } from "../../services";
 import type { FleetEvent, FleetSummary, ProviderCostSettings } from "./types";
 
 type RecordValue = Record<string, unknown>;
@@ -32,87 +32,7 @@ function toEventStatus(value: unknown): FleetEvent["status"] {
 }
 
 export async function fetchFleetSummary(): Promise<FleetSummary> {
-  const payload = await apiClient.get<unknown>("/fleet/summary");
-  const record = isRecord(payload) ? payload : {};
-
-  const costSummaryRecord = isRecord(record.costSummary) ? record.costSummary : undefined;
-  const tokenMixRecord = costSummaryRecord && isRecord(costSummaryRecord.tokenMix) ? costSummaryRecord.tokenMix : undefined;
-
-  return {
-    total: toNumber(record.total),
-    running: toNumber(record.running),
-    pending: toNumber(record.pending),
-    succeeded: toNumber(record.succeeded),
-    failed: toNumber(record.failed),
-    ...(typeof record.cpuUsage === "number" ? { cpuUsage: record.cpuUsage } : {}),
-    ...(typeof record.memoryUsage === "number" ? { memoryUsage: record.memoryUsage } : {}),
-    ...(isRecord(record.operationalSummary)
-      ? {
-          operationalSummary: {
-            totalActiveRuns: toNumber(record.operationalSummary.totalActiveRuns),
-            totalActiveSessions: toNumber(record.operationalSummary.totalActiveSessions),
-            aggregateResourceUsage: isRecord(record.operationalSummary.aggregateResourceUsage)
-              ? {
-                  cpuUsage: toNumber(record.operationalSummary.aggregateResourceUsage.cpuUsage),
-                  memoryUsage: toNumber(record.operationalSummary.aggregateResourceUsage.memoryUsage),
-                }
-              : {
-                  cpuUsage: 0,
-                  memoryUsage: 0,
-                },
-            recentFailureRejectionCount: toNumber(record.operationalSummary.recentFailureRejectionCount),
-          },
-        }
-      : {}),
-    ...(costSummaryRecord
-      ? {
-          costSummary: {
-            month:
-              typeof costSummaryRecord.month === "string"
-                ? costSummaryRecord.month
-                : new Date().toISOString().slice(0, 7),
-            windowStart:
-              typeof costSummaryRecord.windowStart === "string"
-                ? costSummaryRecord.windowStart
-                : new Date().toISOString(),
-            windowEnd:
-              typeof costSummaryRecord.windowEnd === "string"
-                ? costSummaryRecord.windowEnd
-                : new Date().toISOString(),
-            totalEstimatedSpendUsd: toNumber(costSummaryRecord.totalEstimatedSpendUsd),
-            personaBreakdown: Array.isArray(costSummaryRecord.personaBreakdown)
-              ? costSummaryRecord.personaBreakdown
-                  .filter(isRecord)
-                  .map((row) => ({
-                    personaName: typeof row.personaName === "string" ? row.personaName : "unattributed",
-                    estimatedSpendUsd: toNumber(row.estimatedSpendUsd),
-                    inputTokens: toNumber(row.inputTokens),
-                    outputTokens: toNumber(row.outputTokens),
-                    totalTokens: toNumber(row.totalTokens),
-                  }))
-              : [],
-            providerBreakdown: Array.isArray(costSummaryRecord.providerBreakdown)
-              ? costSummaryRecord.providerBreakdown
-                  .filter(isRecord)
-                  .map((row) => ({
-                    provider: typeof row.provider === "string" ? row.provider : "unknown",
-                    estimatedSpendUsd: toNumber(row.estimatedSpendUsd),
-                    inputTokens: toNumber(row.inputTokens),
-                    outputTokens: toNumber(row.outputTokens),
-                    totalTokens: toNumber(row.totalTokens),
-                  }))
-              : [],
-            tokenMix: {
-              inputTokens: toNumber(tokenMixRecord?.inputTokens),
-              outputTokens: toNumber(tokenMixRecord?.outputTokens),
-              totalTokens: toNumber(tokenMixRecord?.totalTokens),
-              inputRatio: toNumber(tokenMixRecord?.inputRatio),
-              outputRatio: toNumber(tokenMixRecord?.outputRatio),
-            },
-          },
-        }
-      : {}),
-  };
+  return fleetApiService.getFleetSummary();
 }
 
 export async function fetchRecentEvents(limit = 10): Promise<FleetEvent[]> {

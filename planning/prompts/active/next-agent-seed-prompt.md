@@ -6,9 +6,9 @@ Your task is to begin the next development cycle by executing the top story in t
 
 ## Primary Task
 
-- **Backlog Item:** `planning/backlog/active/05.01-create-fleet-api-service-for-ui.md`
+- **Backlog Item:** `planning/backlog/active/05.02-create-fleet-dashboard-page-component.md`
 
-Review the story and its acceptance criteria, then implement a typed Fleet API service for UI usage. Focus on `/fleet/summary` request handling, contract-aligned response typing, and clear error handling behavior for UI consumers.
+Review the story and its acceptance criteria, then implement the Fleet Dashboard page component and route integration.
 
 ## Agent Workflow (Mandatory)
 
