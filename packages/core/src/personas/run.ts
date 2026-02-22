@@ -659,6 +659,32 @@ export interface PersonaRunOrchestratorDependencies {
   lspService?: LspService;
 }
 
+function resolveRuntimeSelection(
+  request: PersonaRunRequest,
+  persona: PersonaDefinition,
+  config: AthenaConfig
+): { provider?: string; model?: string } {
+  const requestProvider = request.provider?.trim();
+  const requestModel = request.model?.trim();
+  if (requestProvider || requestModel) {
+    return {
+      ...(requestProvider ? { provider: requestProvider } : {}),
+      ...(requestModel ? { model: requestModel } : {})
+    };
+  }
+
+  // Athena Prime runs should default to the configured Foundry deployment when caller omitted runtime selection.
+  if (persona.id === "athena-prime") {
+    const foundryDeployment = config.foundry?.deployment?.trim();
+    return {
+      provider: "foundry",
+      model: foundryDeployment && foundryDeployment.length > 0 ? foundryDeployment : config.defaultModel
+    };
+  }
+
+  return {};
+}
+
 interface PersonaEvidenceCollector {
   capture(attachment: RuntimeEvidenceAttachment): Promise<void>;
   flush(): Promise<PersonaEvidenceAttachment[]>;
@@ -1399,6 +1425,7 @@ export async function runPersonaOrchestrator(
     referencedSnapshots: executionPreparation.referenced.snapshots,
     ...(executionPreparation.activeStoryPath ? { activeStoryPath: executionPreparation.activeStoryPath } : {})
   });
+  const runtimeSelection = resolveRuntimeSelection(request, preflight.persona, config);
   const runtime = dependencies.createRuntime({ config });
   const runtimeWithEvidenceCapture: PersonaRuntimeRunner = {
     run: (runRequest) =>
@@ -1418,8 +1445,8 @@ export async function runPersonaOrchestrator(
           personaName: request.name,
           repoPath: preflight.repoPath,
           config,
-          ...(request.provider ? { provider: request.provider } : {}),
-          ...(request.model ? { model: request.model } : {})
+          ...(runtimeSelection.provider ? { provider: runtimeSelection.provider } : {}),
+          ...(runtimeSelection.model ? { model: runtimeSelection.model } : {})
         })
       : await dependencies.executeModelWithRepair({
           runtime: runtimeWithEvidenceCapture,
@@ -1427,8 +1454,8 @@ export async function runPersonaOrchestrator(
           prompt,
           personaName: request.name,
           repoPath: preflight.repoPath,
-          ...(request.provider ? { provider: request.provider } : {}),
-          ...(request.model ? { model: request.model } : {})
+          ...(runtimeSelection.provider ? { provider: runtimeSelection.provider } : {}),
+          ...(runtimeSelection.model ? { model: runtimeSelection.model } : {})
         });
   const worktreeChangedFiles =
     preflight.persona.review?.scope === "implementation" ? await listWorktreeChangedFiles(preflight.repoPath) : [];
