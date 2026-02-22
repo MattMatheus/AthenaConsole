@@ -81,7 +81,7 @@ export function MissionControlPage() {
   
   // Specialist Form State
   const [selectedSpecialist, setSelectedSpecialist] = useState("");
-  const [repoPath, setRepoPath] = useState("/workspace/target-repo");
+  const [repoPath, setRepoPath] = useState("/workspace");
   const [headRef, setHeadRef] = useState("main");
   const [baseRef, setBaseRef] = useState("");
 
@@ -192,7 +192,7 @@ export function MissionControlPage() {
                 type="text"
                 value={repoPath}
                 onChange={(e) => setRepoPath(e.target.value)}
-                placeholder="/workspace/target-repo"
+                placeholder="/workspace"
                 required
               />
             </div>
