@@ -171,10 +171,22 @@ function buildReviewPrompt(options: {
     maintainability: true,
     testGaps: true
   };
+  const reviewScope = options.persona.review?.scope ?? "diff";
+  const isImplementationScope = reviewScope === "implementation";
+  const systemRole = isImplementationScope ? "Athena's implementation specialist." : "Athena's code review persona.";
+  const modeRule = isImplementationScope
+    ? "- Perform implementation directly using available tools; do not stay in review-only mode when actionable work exists."
+    : "- Suggestions only. Do not claim to have applied changes.";
+  const priorityRule = isImplementationScope
+    ? "- Use priority P1 for blocked or missing required delivery; P2 for partial acceptance coverage; P3 for minor follow-ups."
+    : "- Use priority P1 for critical correctness/security issues; P2 for important maintainability/test gaps; P3 for nits/nice-to-haves.";
+  const reportRule = isImplementationScope
+    ? "- reportMarkdown must describe implementation status, files changed (or still required), tests run, and handoff readiness."
+    : undefined;
 
   return [
     "SYSTEM:",
-    "You are Athena's code review persona.",
+    `You are ${systemRole}`,
     "Return ONLY strict JSON that conforms to this schema (no markdown outside JSON):",
     JSON.stringify(
       {
@@ -202,11 +214,12 @@ function buildReviewPrompt(options: {
     ),
     "",
     "Rules:",
-    "- Suggestions only. Do not claim to have applied changes.",
-    "- Use priority P1 for critical correctness/security issues; P2 for important maintainability/test gaps; P3 for nits/nice-to-haves.",
+    modeRule,
+    priorityRule,
     "- Confidence must be a float in [0,1].",
     "- mergeGate MUST be 'fail' when any P1 finding exists.",
     "- If dependency inspection cannot be performed, set dependencyInspection.status='skipped' and explain in notes.",
+    ...(reportRule ? [reportRule] : []),
     "",
     "Curated persona context manifest summary:",
     options.contextManifestSummary,

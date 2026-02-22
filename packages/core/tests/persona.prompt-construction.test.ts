@@ -80,4 +80,22 @@ describe("persona prompt construction", () => {
     expect(prompt).toContain("Changed files (bounded):\n(none)");
     expect(prompt).toContain("Referenced TS/JS file snapshots from newly introduced relative imports (bounded):\n(none)");
   });
+
+  it("builds implementation-focused prompt when scope=implementation", () => {
+    const prompt = constructPersonaReviewPrompt({
+      persona: buildPersona({ review: { scope: "implementation" } }),
+      contextPack: buildContextPack(),
+      repoPath: "/repo",
+      headRef: "feature",
+      baseRef: "main",
+      changedFiles: [],
+      diff: "diff",
+      dependencyInspection: { status: "ok" },
+      referencedSnapshots: []
+    });
+
+    expect(prompt).toContain("You are Athena's implementation specialist.");
+    expect(prompt).toContain("Perform implementation directly using available tools");
+    expect(prompt).not.toContain("Suggestions only. Do not claim to have applied changes.");
+  });
 });

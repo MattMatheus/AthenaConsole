@@ -30,7 +30,7 @@ export interface PersonaDefinition {
     baseRefAutodetect?: boolean;
   };
   review?: {
-    scope?: "diff";
+    scope?: "diff" | "implementation";
     inspectAddedDependencies?: boolean;
     includeGlobs?: string[];
     excludeGlobs?: string[];

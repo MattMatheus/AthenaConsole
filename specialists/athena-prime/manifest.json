@@ -25,7 +25,7 @@
     "baseRefAutodetect": true
   },
   "review": {
-    "scope": "diff",
+    "scope": "implementation",
     "inspectAddedDependencies": true,
     "rubric": {
       "correctness": true,
