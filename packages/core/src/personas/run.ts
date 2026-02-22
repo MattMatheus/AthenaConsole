@@ -148,12 +148,25 @@ function parseImplementationStep(raw: string): { step?: ImplementationStep; erro
       if (typeof parsed.tool !== "string" || !parsed.tool.trim()) {
         return { error: "Implementation tool step missing non-empty tool name." };
       }
+      const topLevelInput = Object.entries(parsed).reduce<Record<string, unknown>>((acc, [key, value]) => {
+        if (key === "schemaVersion" || key === "action" || key === "tool" || key === "input" || key === "rationale") {
+          return acc;
+        }
+        acc[key] = value;
+        return acc;
+      }, {});
+      const normalizedInput =
+        parsed.input && typeof parsed.input === "object"
+          ? (parsed.input as Record<string, unknown>)
+          : Object.keys(topLevelInput).length > 0
+            ? topLevelInput
+            : undefined;
       return {
         step: {
           schemaVersion: 1,
           action: "tool",
           tool: parsed.tool,
-          ...(parsed.input && typeof parsed.input === "object" ? { input: parsed.input as Record<string, unknown> } : {}),
+          ...(normalizedInput ? { input: normalizedInput } : {}),
           ...(typeof parsed.rationale === "string" ? { rationale: parsed.rationale } : {})
         }
       };
