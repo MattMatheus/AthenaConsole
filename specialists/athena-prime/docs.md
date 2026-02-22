@@ -29,6 +29,10 @@ Athena Prime is the reusable engineering agent for this project. It should execu
    - update `planning/prompts/active/next-agent-seed-prompt.md` to the next story.
 9. Produce concise handoff context for the next cycle.
 
+If the queue is empty, return `no tasks available` (or exact equivalent in review JSON mode via `reportMarkdown`).
+
+If a story is active, "no code changes detected" is not a valid completion state.
+
 ## Lean Handoff Standard
 
 Keep handoff output short and reusable:
@@ -45,3 +49,12 @@ The current runtime contract is review-shaped and expects strict JSON. When runn
 - Use `reportMarkdown` as the concise implementation status and technical handoff.
 - Use findings for concrete defects, risks, or missing acceptance criteria.
 - Fail merge gate when critical correctness/security defects are present.
+- Also fail merge gate when there is an actionable story but no executed implementation evidence.
+- Treat missing story execution as a delivery defect:
+  - P1 when no implementation occurred for an active story.
+  - P2 when implementation exists but acceptance criteria are only partially met.
+- `reportMarkdown` should include:
+  - Selected story id/path.
+  - Completion status versus acceptance criteria.
+  - Exact file-level implementation actions still required.
+  - Tests/validation commands required to close the story.

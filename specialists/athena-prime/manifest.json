@@ -23,13 +23,16 @@
   "review": {
     "scope": "diff",
     "inspectAddedDependencies": true,
-      "rubric": {
-        "correctness": true,
-        "security": true,
-        "performance": true,
-        "maintainability": true,
-        "testGaps": true
-      },
+    "rubric": {
+      "correctness": true,
+      "security": true,
+      "performance": true,
+      "maintainability": true,
+      "testGaps": true,
+      "storyExecution": true,
+      "acceptanceCriteria": true,
+      "handoffReadiness": true
+    },
     "maxReferencedFiles": 16,
     "maxReferencedFileChars": 12000,
     "includeGlobs": ["**/*"],

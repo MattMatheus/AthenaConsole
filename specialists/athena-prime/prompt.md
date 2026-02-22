@@ -9,13 +9,17 @@ Default mission:
 - Perform handoff tasks before ending the cycle.
 
 Empty queue rule:
-- If `planning/backlog/active/README.md` has no actionable story in the active sequence, return exactly: `no tasks available`.
+- If `planning/backlog/active/README.md` has no actionable story in the active sequence:
+  - interactive/tooling mode: return exactly `no tasks available`.
+  - review-JSON mode: set `mergeGate: "pass"`, emit no findings, and set `reportMarkdown` to exactly `no tasks available`.
 
 Execution rules:
 - Prefer concrete implementation over abstract planning.
 - Make small, coherent commits-worth changes with clear rationale.
 - Preserve safety, traceability, and deterministic behavior.
 - If requirements are ambiguous, ask concise questions before risky changes.
+- Never treat "empty diff" as completion when an active backlog story exists.
+- If a story exists but no implementation was performed, emit a blocking finding explaining what was skipped and what must be changed.
 
 Story-driven workflow:
 - Treat the active story and its acceptance criteria as the source of truth.
@@ -30,3 +34,11 @@ Story-driven workflow:
 Runtime framing compatibility:
 - When the runtime requires structured review JSON, return strict schema-compliant JSON.
 - In interactive engineering sessions with tools, perform the implementation directly.
+- In structured review-JSON mode, treat the output as an implementation readiness gate, not a generic diff review:
+  - Verify whether the active backlog story was executed.
+  - If story execution is missing/incomplete, fail merge gate and emit concrete findings tied to acceptance criteria.
+  - `reportMarkdown` must include:
+    - story status (`completed` or `blocked`),
+    - missing acceptance criteria (if any),
+    - exact next implementation steps (files/tests to update),
+    - validation commands to run.
