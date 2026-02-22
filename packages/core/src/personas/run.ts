@@ -143,6 +143,27 @@ interface ImplementationFinalStep extends PersonaModelOutputV1 {
 
 type ImplementationStep = ImplementationToolStep | ImplementationFinalStep;
 
+function normalizeImplementationAction(action: unknown, parsed: Record<string, unknown>): "tool" | "final" | undefined {
+  if (typeof action === "string") {
+    const normalized = action.trim().toLowerCase();
+    if (normalized === "tool" || normalized === "use_tool" || normalized === "call_tool" || normalized === "execute_tool") {
+      return "tool";
+    }
+    if (normalized === "final" || normalized === "complete" || normalized === "done" || normalized === "finish") {
+      return "final";
+    }
+  }
+
+  if (typeof parsed.tool === "string" && parsed.tool.trim().length > 0) {
+    return "tool";
+  }
+  if ("mergeGate" in parsed || "findings" in parsed || "reportMarkdown" in parsed) {
+    return "final";
+  }
+
+  return undefined;
+}
+
 function parseImplementationStep(raw: string): { step?: ImplementationStep; error?: string } {
   try {
     const parsed = JSON.parse(normalizeJsonCandidate(raw)) as Record<string, unknown>;
@@ -152,7 +173,7 @@ function parseImplementationStep(raw: string): { step?: ImplementationStep; erro
     if (parsed.schemaVersion !== 1) {
       return { error: "Implementation step schemaVersion missing or unsupported." };
     }
-    const action = parsed.action;
+    const action = normalizeImplementationAction(parsed.action, parsed);
     if (action === "tool") {
       if (typeof parsed.tool !== "string" || !parsed.tool.trim()) {
         return { error: "Implementation tool step missing non-empty tool name." };
@@ -192,7 +213,7 @@ function parseImplementationStep(raw: string): { step?: ImplementationStep; erro
         }
       };
     }
-    return { error: "Implementation step action must be 'tool' or 'final'." };
+    return { error: "Implementation step action must resolve to 'tool' or 'final'." };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
   }
