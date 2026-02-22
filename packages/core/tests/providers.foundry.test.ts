@@ -208,6 +208,99 @@ describe("foundry provider", () => {
     expect(result.output).toBe("fallback output");
   });
 
+  it("falls back to model inference chat completions when deployment chat route is missing", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: { message: "Resource not found" } }), {
+          status: 404,
+          headers: { "content-type": "application/json" }
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            model: "gpt-4o-mini",
+            choices: [{ message: { content: "model inference fallback output" } }],
+            usage: { prompt_tokens: 8, completion_tokens: 6, total_tokens: 14 }
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        )
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const provider = new FoundryProviderAdapter({
+      projectEndpoint: "https://athena-foundry.services.ai.azure.com",
+      deployment: "gpt-4o-mini",
+      apiKey: "foundry-key"
+    });
+
+    const result = await provider.generate({
+      sessionId: "session-1",
+      input: "test model inference fallback",
+      model: "gpt-4o-mini"
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect((fetchMock.mock.calls[0] as [string])[0]).toContain("/openai/deployments/gpt-4o-mini/chat/completions");
+    expect((fetchMock.mock.calls[1] as [string])[0]).toBe(
+      "https://athena-foundry.services.ai.azure.com/models/chat/completions?api-version=2024-05-01-preview"
+    );
+    expect(result.output).toBe("model inference fallback output");
+    expect(result.usage?.totalTokens).toBe(14);
+  });
+
+  it("falls back to model inference chat completions when responses routes are unavailable", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: { message: "Resource not found" } }), {
+          status: 404,
+          headers: { "content-type": "application/json" }
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: { message: "Resource not found" } }), {
+          status: 404,
+          headers: { "content-type": "application/json" }
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            model: "gpt-5.1-codex-mini",
+            choices: [{ message: { content: "chat fallback output" } }],
+            usage: { prompt_tokens: 12, completion_tokens: 9, total_tokens: 21 }
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        )
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const provider = new FoundryProviderAdapter({
+      projectEndpoint: "https://athena-foundry.services.ai.azure.com",
+      deployment: "gpt-5.1-codex-mini",
+      apiKey: "foundry-key"
+    });
+
+    const result = await provider.generate({
+      sessionId: "session-1",
+      input: "test responses fallback",
+      model: "gpt-5.1-codex-mini"
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect((fetchMock.mock.calls[0] as [string])[0]).toBe("https://athena-foundry.services.ai.azure.com/openai/v1/responses");
+    expect((fetchMock.mock.calls[1] as [string])[0]).toBe(
+      "https://athena-foundry.services.ai.azure.com/openai/responses?api-version=2024-05-01-preview"
+    );
+    expect((fetchMock.mock.calls[2] as [string])[0]).toBe(
+      "https://athena-foundry.services.ai.azure.com/models/chat/completions?api-version=2024-05-01-preview"
+    );
+    expect(result.output).toBe("chat fallback output");
+    expect(result.usage?.totalTokens).toBe(21);
+  });
+
   it("throws retryable provider error when auth is not configured", async () => {
     const provider = new FoundryProviderAdapter({
       projectEndpoint: "https://athena-foundry.services.ai.azure.com",
