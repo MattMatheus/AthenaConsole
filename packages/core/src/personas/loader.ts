@@ -101,7 +101,7 @@ export async function loadPersonaDefinition(workspaceRoot: string, name: string)
       throw new AthenaError("CONFIG_ERROR", `Persona context must be an object when provided: ${path}`);
     }
 
-    const validatePathList = (field: "promptFiles" | "skillFiles" | "docFiles"): void => {
+    const validatePathList = (field: "promptFiles" | "skillFiles" | "docFiles" | "workspaceDocFiles"): void => {
       const list = def.context?.[field];
       if (list === undefined) {
         return;
@@ -119,6 +119,7 @@ export async function loadPersonaDefinition(workspaceRoot: string, name: string)
     validatePathList("promptFiles");
     validatePathList("skillFiles");
     validatePathList("docFiles");
+    validatePathList("workspaceDocFiles");
 
     if (def.context.maxFileChars !== undefined) {
       if (!Number.isInteger(def.context.maxFileChars) || def.context.maxFileChars <= 0) {

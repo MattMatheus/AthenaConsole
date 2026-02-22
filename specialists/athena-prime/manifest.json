@@ -6,6 +6,10 @@
     "promptFiles": ["prompt.md"],
     "skillFiles": ["skills.md"],
     "docFiles": ["docs.md", "SOUL.md", "PRINCIPLES.md"],
+    "workspaceDocFiles": [
+      "planning/prompts/active/next-agent-seed-prompt.md",
+      "planning/backlog/active/README.md"
+    ],
     "maxFileChars": 20000,
     "maxTotalChars": 120000
   },

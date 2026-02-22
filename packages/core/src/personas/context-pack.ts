@@ -96,11 +96,18 @@ async function loadCuratedFiles(options: {
   const promptFiles = options.persona.context?.promptFiles ?? [];
   const skillFiles = options.persona.context?.skillFiles ?? [];
   const docFiles = options.persona.context?.docFiles ?? [];
+  const workspaceDocFiles = options.persona.context?.workspaceDocFiles ?? [];
 
-  const ordered: Array<{ kind: PersonaContextSectionKind; path: string }> = [
-    ...promptFiles.map((path) => ({ kind: "prompt" as const, path })),
-    ...skillFiles.map((path) => ({ kind: "skill" as const, path })),
-    ...docFiles.map((path) => ({ kind: "doc" as const, path }))
+  const ordered: Array<{ kind: PersonaContextSectionKind; path: string; baseDir: string; displayPath: string }> = [
+    ...promptFiles.map((path) => ({ kind: "prompt" as const, path, baseDir: personaRoot, displayPath: path })),
+    ...skillFiles.map((path) => ({ kind: "skill" as const, path, baseDir: personaRoot, displayPath: path })),
+    ...docFiles.map((path) => ({ kind: "doc" as const, path, baseDir: personaRoot, displayPath: path })),
+    ...workspaceDocFiles.map((path) => ({
+      kind: "doc" as const,
+      path,
+      baseDir: options.workspaceRoot,
+      displayPath: `workspace:${path}`
+    }))
   ];
 
   const sections: CuratedFileSection[] = [];
@@ -109,8 +116,8 @@ async function loadCuratedFiles(options: {
 
   for (const item of ordered) {
     validateContextPath(item.path);
-    const absPath = resolve(personaRoot, item.path);
-    assertPathWithin(personaRoot, absPath);
+    const absPath = resolve(item.baseDir, item.path);
+    assertPathWithin(item.baseDir, absPath);
 
     let raw: string;
     try {
@@ -118,14 +125,14 @@ async function loadCuratedFiles(options: {
     } catch (error) {
       throw new AthenaError(
         "CONFIG_ERROR",
-        `Persona context file missing or unreadable: ${item.path} (${absPath})`,
+        `Persona context file missing or unreadable: ${item.displayPath} (${absPath})`,
         false,
         error
       );
     }
 
-    const fileCapped = withFileTruncation(raw, options.maxFileChars, item.path);
-    const totalCapped = withTotalBudgetTruncation(fileCapped.text, options.maxTotalChars, loadedChars, item.path);
+    const fileCapped = withFileTruncation(raw, options.maxFileChars, item.displayPath);
+    const totalCapped = withTotalBudgetTruncation(fileCapped.text, options.maxTotalChars, loadedChars, item.displayPath);
     const text = totalCapped.text;
     loadedChars += text.length;
 
@@ -138,14 +145,14 @@ async function loadCuratedFiles(options: {
 
     manifestEntries.push({
       kind: item.kind,
-      path: item.path,
+      path: item.displayPath,
       chars: text.length,
       truncated: Boolean(truncationReason),
       ...(truncationReason ? { truncationReason } : {})
     });
     sections.push({
       kind: item.kind,
-      path: item.path,
+      path: item.displayPath,
       content: text
     });
   }

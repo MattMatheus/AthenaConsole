@@ -127,4 +127,36 @@ describe("persona context pack", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("loads workspace doc files into curated doc context", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-persona-context-workspace-doc-"));
+
+    try {
+      const root = join(dir, "specialists", "code-review");
+      mkdirSync(root, { recursive: true });
+      mkdirSync(join(dir, "planning", "prompts", "active"), { recursive: true });
+      writeFileSync(join(root, "prompt.md"), "Prompt", "utf8");
+      writeFileSync(join(dir, "planning", "prompts", "active", "next-agent-seed-prompt.md"), "Seed", "utf8");
+      writePersonaDefinition(dir, {
+        schemaVersion: 1,
+        id: "code-review",
+        context: {
+          promptFiles: ["prompt.md"],
+          workspaceDocFiles: ["planning/prompts/active/next-agent-seed-prompt.md"]
+        }
+      });
+
+      const persona = await loadPersonaDefinition(dir, "code-review");
+      const pack = await assemblePersonaContextPack({ workspaceRoot: dir, persona });
+
+      expect(pack.userContent).toContain("Doc File: workspace:planning/prompts/active/next-agent-seed-prompt.md");
+      expect(pack.userContent).toContain("Seed");
+      expect(pack.manifest.entries.map((entry) => `${entry.kind}:${entry.path}`)).toEqual([
+        "prompt:prompt.md",
+        "doc:workspace:planning/prompts/active/next-agent-seed-prompt.md"
+      ]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

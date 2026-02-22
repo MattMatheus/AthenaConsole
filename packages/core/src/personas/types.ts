@@ -4,6 +4,7 @@ export interface PersonaCuratedContextDefinition {
   promptFiles?: string[];
   skillFiles?: string[];
   docFiles?: string[];
+  workspaceDocFiles?: string[];
   maxFileChars?: number;
   maxTotalChars?: number;
 }
