@@ -912,7 +912,7 @@ export async function executeImplementationLoop(options: PersonaModelExecutionIn
   const maxTurns = 72;
   const discoveryTurns = 10;
   const finalOnlyTurns = 8;
-  const turnTimeoutMs = Math.max(60_000, options.config.runtimeRunTimeoutMs);
+  const turnTimeoutMs = Math.max(180_000, options.config.runtimeRunTimeoutMs);
   const history: Array<{ tool: string; input: Record<string, unknown>; result: { ok: boolean; output?: unknown; error?: string } }> = [];
   const toolCallCounts = new Map<string, number>();
   let lastToolSignature = "";
