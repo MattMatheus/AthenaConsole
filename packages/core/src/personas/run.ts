@@ -59,6 +59,15 @@ function clampConfidence(value: unknown): number {
   return Math.min(1, Math.max(0, num));
 }
 
+function normalizeJsonCandidate(raw: string): string {
+  const trimmed = raw.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  if (fenced && fenced[1]) {
+    return fenced[1].trim();
+  }
+  return trimmed;
+}
+
 export function validateModelOutputFindings(parsed: PersonaModelOutputV1): { findings?: PersonaModelOutputV1["findings"]; error?: string } {
   if (!Array.isArray(parsed.findings)) {
     return { error: "Model output missing findings array." };
@@ -96,7 +105,7 @@ export function validateModelOutputFindings(parsed: PersonaModelOutputV1): { fin
 
 function parsePersonaModelOutput(raw: string): { parsed?: PersonaModelOutputV1; error?: string } {
   try {
-    const parsed = JSON.parse(raw) as PersonaModelOutputV1;
+    const parsed = JSON.parse(normalizeJsonCandidate(raw)) as PersonaModelOutputV1;
     if (!parsed || typeof parsed !== "object") {
       return { error: "Model output was not a JSON object." };
     }
@@ -136,7 +145,7 @@ type ImplementationStep = ImplementationToolStep | ImplementationFinalStep;
 
 function parseImplementationStep(raw: string): { step?: ImplementationStep; error?: string } {
   try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const parsed = JSON.parse(normalizeJsonCandidate(raw)) as Record<string, unknown>;
     if (!parsed || typeof parsed !== "object") {
       return { error: "Implementation step was not a JSON object." };
     }
