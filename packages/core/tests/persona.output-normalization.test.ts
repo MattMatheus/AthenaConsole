@@ -64,4 +64,31 @@ describe("persona output normalization", () => {
     expect(normalized.parseRetryAttempted).toBe(true);
     expect(normalized.parseError).toBe("parse failed");
   });
+
+  it("fails merge gate when implementation scope reports no tasks with active story", () => {
+    const execution: PersonaModelExecutionResult = {
+      modelOutputRaw: "{\"schemaVersion\":1}",
+      status: "ok",
+      parseRetryAttempted: false,
+      parsed: {
+        parsed: {
+          schemaVersion: 1,
+          mergeGate: "pass",
+          reportMarkdown: "no tasks available",
+          findings: []
+        }
+      }
+    };
+
+    const normalized = normalizePersonaOutput({
+      execution,
+      dependencyInspection: { status: "ok" },
+      reviewScope: "implementation",
+      activeStoryPath: "planning/backlog/active/05.01-create-fleet-api-service-for-ui.md"
+    });
+
+    expect(normalized.mergeGate).toBe("fail");
+    expect(normalized.findings.some((finding) => finding.title === "False empty queue result")).toBe(true);
+    expect(normalized.reportMarkdown).toContain("Actionable story detected by runtime");
+  });
 });

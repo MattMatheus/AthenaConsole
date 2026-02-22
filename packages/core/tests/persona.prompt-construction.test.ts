@@ -98,4 +98,22 @@ describe("persona prompt construction", () => {
     expect(prompt).toContain("Perform implementation directly using available tools");
     expect(prompt).not.toContain("Suggestions only. Do not claim to have applied changes.");
   });
+
+  it("includes runtime backlog preflight when active story is detected", () => {
+    const prompt = constructPersonaReviewPrompt({
+      persona: buildPersona({ review: { scope: "implementation" } }),
+      contextPack: buildContextPack(),
+      repoPath: "/repo",
+      headRef: "feature",
+      baseRef: "main",
+      changedFiles: [],
+      diff: "diff",
+      dependencyInspection: { status: "ok" },
+      referencedSnapshots: [],
+      activeStoryPath: "planning/backlog/active/05.01-create-fleet-api-service-for-ui.md"
+    });
+
+    expect(prompt).toContain("Execution preflight:");
+    expect(prompt).toContain("Actionable backlog story detected: planning/backlog/active/05.01-create-fleet-api-service-for-ui.md");
+  });
 });

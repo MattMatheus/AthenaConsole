@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { LspService } from "../control-plane/interfaces.js";
 import type { AthenaConfig } from "../shared/config.js";
@@ -163,6 +164,7 @@ function buildReviewPrompt(options: {
   diff: string;
   dependencyInspection: unknown;
   referencedFileContext: string;
+  activeStoryPath?: string;
 }): string {
   const rubric = options.persona.review?.rubric ?? {
     correctness: true,
@@ -236,6 +238,14 @@ function buildReviewPrompt(options: {
     `Repo: ${options.repoPath}`,
     `Compare: ${options.baseRef}..${options.headRef}`,
     "",
+    "Execution preflight:",
+    ...(options.activeStoryPath
+      ? [
+          `- Actionable backlog story detected: ${options.activeStoryPath}`,
+          "- Treat queue as non-empty and execute delivery unless explicitly blocked."
+        ]
+      : ["- No actionable backlog story detected by runtime preflight."]),
+    "",
     ...(options.personaContextUser ? ["Curated user context (doc files, ordered):", options.personaContextUser, ""] : []),
     "Rubric toggles:",
     JSON.stringify(rubric, null, 2),
@@ -286,6 +296,7 @@ export interface PersonaReviewPromptInput {
   diff: string;
   dependencyInspection: unknown;
   referencedSnapshots: ReferencedFileSnapshot[];
+  activeStoryPath?: string;
 }
 
 export interface PersonaRuntimeRunResult {
@@ -334,6 +345,8 @@ export interface PersonaModelExecutionResult {
 export interface PersonaOutputNormalizationInput {
   execution: PersonaModelExecutionResult;
   dependencyInspection: DependencyInspection;
+  reviewScope?: "diff" | "implementation";
+  activeStoryPath?: string;
 }
 
 export interface PersonaOutputNormalizationResult {
@@ -362,6 +375,7 @@ export interface PersonaRunExecutionPreparation {
   diff: string;
   changedFiles: string[];
   dependencyInspection: DependencyInspection;
+  activeStoryPath?: string;
   referenced: {
     meta: PersonaRunResult["referencedFileMeta"];
     snapshots: ReferencedFileSnapshot[];
@@ -473,6 +487,34 @@ function buildReferencedFileContext(snapshots: ReferencedFileSnapshot[]): string
   );
 }
 
+async function detectActiveBacklogStoryPath(repoPath: string): Promise<string | undefined> {
+  const backlogReadme = resolve(repoPath, "planning", "backlog", "active", "README.md");
+  let raw: string;
+  try {
+    raw = await readFile(backlogReadme, "utf8");
+  } catch {
+    return undefined;
+  }
+
+  const lines = raw.split(/\r?\n/);
+  for (const line of lines) {
+    const match = line.match(/\[([^\]]+\.md)\]\(([^)]+\.md)\)/i);
+    if (!match) {
+      continue;
+    }
+    const linkedPath = match[2].trim();
+    if (!linkedPath || linkedPath.toLowerCase().endsWith("readme.md")) {
+      continue;
+    }
+    const relative = linkedPath.startsWith("planning/")
+      ? linkedPath
+      : `planning/backlog/active/${linkedPath.replace(/^\.\/+/, "")}`;
+    return relative;
+  }
+
+  return undefined;
+}
+
 export function constructPersonaReviewPrompt(options: PersonaReviewPromptInput): string {
   const manifestSummary = JSON.stringify(
     {
@@ -497,7 +539,8 @@ export function constructPersonaReviewPrompt(options: PersonaReviewPromptInput):
     changedFiles: options.changedFiles,
     diff: options.diff,
     dependencyInspection: options.dependencyInspection,
-    referencedFileContext: buildReferencedFileContext(options.referencedSnapshots)
+    referencedFileContext: buildReferencedFileContext(options.referencedSnapshots),
+    activeStoryPath: options.activeStoryPath
   });
 }
 
@@ -573,10 +616,40 @@ export async function executeModelWithRepair(options: PersonaModelExecutionInput
 
 export function normalizePersonaOutput(options: PersonaOutputNormalizationInput): PersonaOutputNormalizationResult {
   const { execution, dependencyInspection } = options;
-  const reportMarkdown = execution.parsed.parsed?.reportMarkdown ?? execution.modelOutputRaw;
-  const findings = execution.parsed.parsed?.findings ?? [];
-  const mergeGate: "pass" | "fail" =
+  let reportMarkdown = execution.parsed.parsed?.reportMarkdown ?? execution.modelOutputRaw;
+  let findings = execution.parsed.parsed?.findings ?? [];
+  let mergeGate: "pass" | "fail" =
     execution.parsed.parsed?.mergeGate ?? (findings.some((finding) => finding.priority === "P1") ? "fail" : "pass");
+
+  const reportNormalized = reportMarkdown.trim().toLowerCase();
+  const falseNoTask =
+    options.reviewScope === "implementation" &&
+    typeof options.activeStoryPath === "string" &&
+    options.activeStoryPath.length > 0 &&
+    reportNormalized === "no tasks available";
+  if (falseNoTask) {
+    findings = [
+      ...findings,
+      {
+        priority: "P1",
+        confidence: 1,
+        title: "False empty queue result",
+        message: `Runtime preflight detected an actionable backlog story (${options.activeStoryPath}), but the model returned 'no tasks available'.`,
+        suggestion: `Load and execute ${options.activeStoryPath} and complete required tests and handoff tasks.`,
+        file: options.activeStoryPath,
+        line: 1
+      }
+    ];
+    mergeGate = "fail";
+    reportMarkdown = [
+      "# Story Execution Status: BLOCKED",
+      "",
+      `Actionable story detected by runtime: \`${options.activeStoryPath}\`.`,
+      "Model output incorrectly reported `no tasks available`.",
+      "",
+      "Next action: execute the active story and report implementation + validation results."
+    ].join("\n");
+  }
 
   // Let the model override dependencyInspection status/notes, but keep computed signals for context.
   const mergedDependencyInspection: DependencyInspection = {
@@ -697,12 +770,15 @@ export async function preparePersonaRunExecution(
       ? { maxReferencedFileChars: persona.review.maxReferencedFileChars }
       : {})
   });
+  const activeStoryPath =
+    persona.review?.scope === "implementation" ? await detectActiveBacklogStoryPath(repoPath) : undefined;
 
   return {
     contextPack,
     diff,
     changedFiles,
     dependencyInspection,
+    ...(activeStoryPath ? { activeStoryPath } : {}),
     referenced
   };
 }
@@ -821,7 +897,8 @@ export async function runPersonaOrchestrator(
     changedFiles: executionPreparation.changedFiles,
     diff: executionPreparation.diff,
     dependencyInspection: executionPreparation.dependencyInspection,
-    referencedSnapshots: executionPreparation.referenced.snapshots
+    referencedSnapshots: executionPreparation.referenced.snapshots,
+    ...(executionPreparation.activeStoryPath ? { activeStoryPath: executionPreparation.activeStoryPath } : {})
   });
   const runtime = dependencies.createRuntime({ config });
   const runtimeWithEvidenceCapture: PersonaRuntimeRunner = {
@@ -843,7 +920,9 @@ export async function runPersonaOrchestrator(
   });
   const normalization = dependencies.normalizePersonaOutput({
     execution,
-    dependencyInspection: executionPreparation.dependencyInspection
+    dependencyInspection: executionPreparation.dependencyInspection,
+    reviewScope: preflight.persona.review?.scope,
+    ...(executionPreparation.activeStoryPath ? { activeStoryPath: executionPreparation.activeStoryPath } : {})
   });
   const capturedEvidence = await evidenceCollector.flush();
   const evidenceManifest = await dependencies.persistPersonaRunEvidenceBundle({
