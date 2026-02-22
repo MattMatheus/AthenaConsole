@@ -1,9 +1,13 @@
 import { randomUUID } from "node:crypto";
+import { execFile } from "node:child_process";
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { resolve, isAbsolute, relative } from "node:path";
+import { promisify } from "node:util";
 import type { LspService } from "../control-plane/interfaces.js";
 import type { AthenaConfig } from "../shared/config.js";
 import { createRuntime } from "../runtime/index.js";
+import { AthenaError } from "../runtime/errors.js";
+import { createMemoryManager } from "../memory/index.js";
 import { loadPersonaDefinition } from "./loader.js";
 import { assemblePersonaContextPack, type PersonaContextPack } from "./context-pack.js";
 import {
@@ -35,6 +39,8 @@ import type {
   ReferencedFileSnapshot
 } from "./types.js";
 import type { RuntimeEvidenceAttachment } from "../runtime/index.js";
+
+const execFileAsync = promisify(execFile);
 
 const PERSONA_RUN_SCHEMA_VERSION = 1;
 const MODEL_OUTPUT_REPAIR_MAX_CHARS = 40_000;
@@ -114,6 +120,62 @@ function parsePersonaModelOutput(raw: string): { parsed?: PersonaModelOutputV1; 
   }
 }
 
+interface ImplementationToolStep {
+  schemaVersion: 1;
+  action: "tool";
+  tool: string;
+  input?: Record<string, unknown>;
+  rationale?: string;
+}
+
+interface ImplementationFinalStep extends PersonaModelOutputV1 {
+  action: "final";
+}
+
+type ImplementationStep = ImplementationToolStep | ImplementationFinalStep;
+
+function parseImplementationStep(raw: string): { step?: ImplementationStep; error?: string } {
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object") {
+      return { error: "Implementation step was not a JSON object." };
+    }
+    if (parsed.schemaVersion !== 1) {
+      return { error: "Implementation step schemaVersion missing or unsupported." };
+    }
+    const action = parsed.action;
+    if (action === "tool") {
+      if (typeof parsed.tool !== "string" || !parsed.tool.trim()) {
+        return { error: "Implementation tool step missing non-empty tool name." };
+      }
+      return {
+        step: {
+          schemaVersion: 1,
+          action: "tool",
+          tool: parsed.tool,
+          ...(parsed.input && typeof parsed.input === "object" ? { input: parsed.input as Record<string, unknown> } : {}),
+          ...(typeof parsed.rationale === "string" ? { rationale: parsed.rationale } : {})
+        }
+      };
+    }
+    if (action === "final") {
+      const finalParsed = parsePersonaModelOutput(raw);
+      if (finalParsed.error || !finalParsed.parsed) {
+        return { error: finalParsed.error ?? "Invalid final output payload." };
+      }
+      return {
+        step: {
+          ...finalParsed.parsed,
+          action: "final"
+        }
+      };
+    }
+    return { error: "Implementation step action must be 'tool' or 'final'." };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 function buildRepairPrompt(rawOutput: string, parseError: string): string {
   return [
     "Your previous response was invalid JSON for the required schema.",
@@ -150,6 +212,159 @@ function buildRepairPrompt(rawOutput: string, parseError: string): string {
     rawOutput.slice(0, MODEL_OUTPUT_REPAIR_MAX_CHARS),
     ...(rawOutput.length > MODEL_OUTPUT_REPAIR_MAX_CHARS ? [`\n[truncated to ${MODEL_OUTPUT_REPAIR_MAX_CHARS} chars]\n`] : [])
   ].join("\n");
+}
+
+function buildImplementationStepRepairPrompt(rawOutput: string, parseError: string): string {
+  return [
+    "Your previous response was invalid for implementation-step schema.",
+    `Validation error: ${parseError}`,
+    "Return ONLY strict JSON with one of the following shapes:",
+    JSON.stringify(
+      {
+        schemaVersion: 1,
+        action: "tool",
+        tool: "read_file|list_dir|run_exec|memory_search|memory_get",
+        input: { example: "tool arguments object" },
+        rationale: "optional short reason"
+      },
+      null,
+      2
+    ),
+    JSON.stringify(
+      {
+        schemaVersion: 1,
+        action: "final",
+        mergeGate: "pass|fail",
+        reportMarkdown: "string",
+        findings: [
+          {
+            priority: "P1|P2|P3",
+            confidence: 0,
+            title: "string",
+            message: "string",
+            suggestion: "optional",
+            file: "optional",
+            line: 1
+          }
+        ],
+        dependencyInspection: { status: "ok|skipped", notes: [] }
+      },
+      null,
+      2
+    ),
+    "",
+    "Previous invalid response:",
+    rawOutput.slice(0, MODEL_OUTPUT_REPAIR_MAX_CHARS)
+  ].join("\n");
+}
+
+function isPathWithin(baseDir: string, candidate: string): boolean {
+  const rel = relative(baseDir, candidate);
+  return rel !== ".." && !rel.startsWith(`..${"/"}`) && !isAbsolute(rel);
+}
+
+function normalizeToolPath(repoPath: string, rawPath: unknown): string {
+  if (typeof rawPath !== "string" || !rawPath.trim()) {
+    throw new AthenaError("CONFIG_ERROR", "Tool path must be a non-empty string.");
+  }
+  const abs = resolve(repoPath, rawPath);
+  if (!isPathWithin(repoPath, abs)) {
+    throw new AthenaError("CONFIG_ERROR", `Tool path escapes repository root: ${rawPath}`);
+  }
+  return abs;
+}
+
+function parseInteger(value: unknown, fallback: number, min = 1, max = 1_000_000): number {
+  const raw = typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isFinite(raw)) {
+    return fallback;
+  }
+  return Math.max(min, Math.min(max, Math.floor(raw)));
+}
+
+async function executeImplementationTool(options: {
+  step: ImplementationToolStep;
+  repoPath: string;
+  config: AthenaConfig;
+}): Promise<{ ok: true; output: unknown } | { ok: false; error: string }> {
+  const input = options.step.input ?? {};
+  try {
+    if (options.step.tool === "read_file") {
+      const path = normalizeToolPath(options.repoPath, input.path);
+      const maxChars = parseInteger(input.maxChars, 20_000, 256, 200_000);
+      const content = await readFile(path, "utf8");
+      return {
+        ok: true,
+        output: {
+          path: relative(options.repoPath, path) || ".",
+          truncated: content.length > maxChars,
+          content: content.length > maxChars ? `${content.slice(0, maxChars)}\n\n[truncated to ${maxChars} chars]\n` : content
+        }
+      };
+    }
+    if (options.step.tool === "list_dir") {
+      const path = normalizeToolPath(options.repoPath, input.path ?? ".");
+      const maxEntries = parseInteger(input.maxEntries, 200, 1, 2_000);
+      const { readdir } = await import("node:fs/promises");
+      const entries = await readdir(path, { withFileTypes: true });
+      return {
+        ok: true,
+        output: entries.slice(0, maxEntries).map((entry) => ({
+          name: entry.name,
+          kind: entry.isDirectory() ? "dir" : entry.isFile() ? "file" : "other"
+        }))
+      };
+    }
+    if (options.step.tool === "run_exec") {
+      const command = typeof input.command === "string" ? input.command.trim() : "";
+      if (!command) {
+        throw new AthenaError("CONFIG_ERROR", "run_exec requires 'command'.");
+      }
+      const args = Array.isArray(input.args) ? input.args.map((value) => String(value)) : [];
+      const cwd = normalizeToolPath(options.repoPath, input.cwd ?? ".");
+      const timeoutMs = parseInteger(input.timeoutMs, 60_000, 1_000, 600_000);
+      const { stdout, stderr } = await execFileAsync(command, args, {
+        cwd,
+        timeout: timeoutMs,
+        maxBuffer: 4 * 1024 * 1024
+      });
+      return {
+        ok: true,
+        output: {
+          command,
+          args,
+          cwd: relative(options.repoPath, cwd) || ".",
+          stdout: String(stdout ?? ""),
+          stderr: String(stderr ?? "")
+        }
+      };
+    }
+    if (options.step.tool === "memory_search") {
+      const query = typeof input.query === "string" ? input.query.trim() : "";
+      if (!query) {
+        throw new AthenaError("CONFIG_ERROR", "memory_search requires non-empty 'query'.");
+      }
+      const manager = createMemoryManager(options.config);
+      const results = await manager.search(query, {
+        maxResults: parseInteger(input.maxResults, 6, 1, 50),
+        minScore: typeof input.minScore === "number" ? input.minScore : undefined
+      });
+      return { ok: true, output: results };
+    }
+    if (options.step.tool === "memory_get") {
+      const manager = createMemoryManager(options.config);
+      const path = typeof input.path === "string" ? input.path : "";
+      const result = await manager.get({
+        path,
+        from: parseInteger(input.from, 1, 1, 1_000_000),
+        lines: parseInteger(input.lines, 120, 1, 2_000)
+      });
+      return { ok: true, output: result };
+    }
+    return { ok: false, error: `Unsupported tool '${options.step.tool}'.` };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 function buildReviewPrompt(options: {
@@ -616,6 +831,159 @@ export async function executeModelWithRepair(options: PersonaModelExecutionInput
   };
 }
 
+function buildImplementationLoopPrompt(options: {
+  basePrompt: string;
+  turn: number;
+  maxTurns: number;
+  history: Array<{ tool: string; input: Record<string, unknown>; result: { ok: boolean; output?: unknown; error?: string } }>;
+}): string {
+  const historySection =
+    options.history.length === 0
+      ? "(none)"
+      : options.history
+          .map((entry, index) =>
+            [
+              `Step ${index + 1}:`,
+              `tool=${entry.tool}`,
+              `input=${JSON.stringify(entry.input)}`,
+              `result=${JSON.stringify(entry.result)}`
+            ].join("\n")
+          )
+          .join("\n\n");
+  return [
+    options.basePrompt,
+    "",
+    "IMPLEMENTATION EXECUTION MODE:",
+    `- Turn ${options.turn} of ${options.maxTurns}.`,
+    "- Return ONLY strict JSON with one of:",
+    "  1) Tool step: {\"schemaVersion\":1,\"action\":\"tool\",\"tool\":\"read_file|list_dir|run_exec|memory_search|memory_get\",\"input\":{...}}",
+    "  2) Final step: {\"schemaVersion\":1,\"action\":\"final\", ... PersonaModelOutputV1 fields ...}",
+    "- Prefer executing concrete implementation via tools before finalizing.",
+    "",
+    "Tool execution history:",
+    historySection
+  ].join("\n");
+}
+
+export async function executeImplementationLoop(options: PersonaModelExecutionInput & { config: AthenaConfig }): Promise<PersonaModelExecutionResult> {
+  const maxTurns = 12;
+  const history: Array<{ tool: string; input: Record<string, unknown>; result: { ok: boolean; output?: unknown; error?: string } }> = [];
+  let runtimeResult: PersonaRuntimeRunResult | undefined;
+  let modelOutputRaw = "";
+  let parseRetryAttempted = false;
+
+  for (let turn = 1; turn <= maxTurns; turn += 1) {
+    try {
+      runtimeResult = await options.runtime.run({
+        sessionId: options.sessionId,
+        input: buildImplementationLoopPrompt({
+          basePrompt: options.prompt,
+          turn,
+          maxTurns,
+          history
+        }),
+        ...(options.provider ? { provider: options.provider } : {}),
+        ...(options.model ? { model: options.model } : {}),
+        metadata: {
+          trigger: "persona:implementation-loop",
+          specialist: options.personaName,
+          persona: options.personaName,
+          repoPath: options.repoPath,
+          turn: String(turn)
+        }
+      });
+      modelOutputRaw = runtimeResult.output;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        ...(runtimeResult ? { runtimeResult } : {}),
+        modelOutputRaw: message,
+        status: "failed",
+        topError: { message },
+        parseRetryAttempted,
+        parsed: { error: message }
+      };
+    }
+
+    let parsedStep = parseImplementationStep(modelOutputRaw);
+    if (!parsedStep.step) {
+      parseRetryAttempted = true;
+      try {
+        const repaired = await options.runtime.run({
+          sessionId: options.sessionId,
+          input: buildImplementationStepRepairPrompt(modelOutputRaw, parsedStep.error ?? "Invalid implementation step output."),
+          ...(options.provider ? { provider: options.provider } : {}),
+          ...(options.model ? { model: options.model } : {}),
+          metadata: {
+            trigger: "persona:implementation-repair",
+            specialist: options.personaName,
+            persona: options.personaName,
+            repoPath: options.repoPath,
+            turn: String(turn)
+          }
+        });
+        runtimeResult = repaired;
+        modelOutputRaw = repaired.output;
+        parsedStep = parseImplementationStep(modelOutputRaw);
+      } catch (error) {
+        const message = `Implementation repair retry failed: ${error instanceof Error ? error.message : String(error)}`;
+        return {
+          ...(runtimeResult ? { runtimeResult } : {}),
+          modelOutputRaw: message,
+          status: "failed",
+          topError: { message },
+          parseRetryAttempted,
+          parsed: { error: message }
+        };
+      }
+    }
+
+    if (!parsedStep.step) {
+      const message = `Failed to produce valid implementation-step JSON: ${parsedStep.error ?? "Unknown parse failure."}`;
+      return {
+        ...(runtimeResult ? { runtimeResult } : {}),
+        modelOutputRaw: message,
+        status: "failed",
+        topError: { message },
+        parseRetryAttempted,
+        parsed: { error: message }
+      };
+    }
+
+    if (parsedStep.step.action === "final") {
+      return {
+        ...(runtimeResult ? { runtimeResult } : {}),
+        modelOutputRaw,
+        status: "ok",
+        parseRetryAttempted,
+        parsed: { parsed: parsedStep.step }
+      };
+    }
+
+    const toolInput = parsedStep.step.input ?? {};
+    const toolResult = await executeImplementationTool({
+      step: parsedStep.step,
+      repoPath: options.repoPath,
+      config: options.config
+    });
+    history.push({
+      tool: parsedStep.step.tool,
+      input: toolInput,
+      result: toolResult.ok ? { ok: true, output: toolResult.output } : { ok: false, error: toolResult.error }
+    });
+  }
+
+  const timeoutMessage = `Implementation loop reached max turns (${maxTurns}) without final output.`;
+  return {
+    ...(runtimeResult ? { runtimeResult } : {}),
+    modelOutputRaw: timeoutMessage,
+    status: "failed",
+    topError: { message: timeoutMessage },
+    parseRetryAttempted,
+    parsed: { error: timeoutMessage }
+  };
+}
+
 export function normalizePersonaOutput(options: PersonaOutputNormalizationInput): PersonaOutputNormalizationResult {
   const { execution, dependencyInspection } = options;
   let reportMarkdown = execution.parsed.parsed?.reportMarkdown ?? execution.modelOutputRaw;
@@ -942,15 +1310,27 @@ export async function runPersonaOrchestrator(
         }
       })
   };
-  const execution = await dependencies.executeModelWithRepair({
-    runtime: runtimeWithEvidenceCapture,
-    sessionId,
-    prompt,
-    personaName: request.name,
-    repoPath: preflight.repoPath,
-    ...(request.provider ? { provider: request.provider } : {}),
-    ...(request.model ? { model: request.model } : {})
-  });
+  const execution =
+    preflight.persona.review?.scope === "implementation"
+      ? await executeImplementationLoop({
+          runtime: runtimeWithEvidenceCapture,
+          sessionId,
+          prompt,
+          personaName: request.name,
+          repoPath: preflight.repoPath,
+          config,
+          ...(request.provider ? { provider: request.provider } : {}),
+          ...(request.model ? { model: request.model } : {})
+        })
+      : await dependencies.executeModelWithRepair({
+          runtime: runtimeWithEvidenceCapture,
+          sessionId,
+          prompt,
+          personaName: request.name,
+          repoPath: preflight.repoPath,
+          ...(request.provider ? { provider: request.provider } : {}),
+          ...(request.model ? { model: request.model } : {})
+        });
   const worktreeChangedFiles =
     preflight.persona.review?.scope === "implementation" ? await listWorktreeChangedFiles(preflight.repoPath) : [];
   const normalization = dependencies.normalizePersonaOutput({
