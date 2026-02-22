@@ -129,6 +129,85 @@ describe("foundry provider", () => {
     });
   });
 
+  it("uses responses API for gpt-5/codex models", async () => {
+    const fetchMock = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          model: "gpt-5.1-codex-mini",
+          output_text: "Implementation output",
+          usage: { input_tokens: 11, output_tokens: 7, total_tokens: 18 }
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const provider = new FoundryProviderAdapter({
+      projectEndpoint: "https://athena-foundry.services.ai.azure.com",
+      deployment: "gpt-5.1-codex-mini",
+      apiKey: "foundry-key"
+    });
+
+    const result = await provider.generate({
+      sessionId: "session-1",
+      input: "implement",
+      model: "gpt-5.1-codex-mini"
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://athena-foundry.services.ai.azure.com/openai/v1/responses");
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      model: "gpt-5.1-codex-mini",
+      input: "implement"
+    });
+    expect(result.output).toBe("Implementation output");
+    expect(result.usage?.totalTokens).toBe(18);
+  });
+
+  it("falls back to responses API when chat completions is unsupported", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            error: {
+              message:
+                "The chatCompletion operation does not work with the specified model"
+            }
+          }),
+          { status: 400, headers: { "content-type": "application/json" } }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            output_text: "fallback output",
+            usage: { input_tokens: 3, output_tokens: 2, total_tokens: 5 }
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        )
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const provider = new FoundryProviderAdapter({
+      projectEndpoint: "https://athena-foundry.services.ai.azure.com",
+      deployment: "custom-model",
+      apiKey: "foundry-key"
+    });
+
+    const result = await provider.generate({
+      sessionId: "session-1",
+      input: "test fallback",
+      model: "custom-model"
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect((fetchMock.mock.calls[0] as [string])[0]).toContain("/chat/completions");
+    expect((fetchMock.mock.calls[1] as [string])[0]).toBe("https://athena-foundry.services.ai.azure.com/openai/v1/responses");
+    expect(result.output).toBe("fallback output");
+  });
+
   it("throws retryable provider error when auth is not configured", async () => {
     const provider = new FoundryProviderAdapter({
       projectEndpoint: "https://athena-foundry.services.ai.azure.com",

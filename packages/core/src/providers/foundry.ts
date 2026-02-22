@@ -26,6 +26,23 @@ interface FoundryChatCompletionsResponse {
   };
 }
 
+interface FoundryResponsesApiResponse {
+  model?: string;
+  output_text?: string;
+  output?: Array<{
+    type?: string;
+    content?: Array<{
+      type?: string;
+      text?: string;
+    }>;
+  }>;
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+  };
+}
+
 export interface FoundryProviderOptions {
   projectEndpoint: string;
   deployment: string;
@@ -77,43 +94,164 @@ export class FoundryProviderAdapter implements ProviderAdapter {
     }
 
     try {
-      const response = await fetch(buildCompletionsUrl(endpoint, deployment, this.options.apiVersion), {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model: request.model ?? deployment,
-          messages: [{ role: "user", content: request.input }],
-          ...(typeof request.maxOutputTokens === "number" ? { max_tokens: request.maxOutputTokens } : {})
-        }),
-        ...(options?.signal ? { signal: options.signal } : {})
-      });
+      const model = request.model ?? deployment;
+      const shouldPreferResponses = prefersResponsesApi(model);
+      if (shouldPreferResponses) {
+        return this.generateWithResponsesApi({
+          endpoint,
+          deployment,
+          model,
+          request,
+          headers,
+          signal: options?.signal
+        });
+      }
 
+      try {
+        return await this.generateWithChatCompletions({
+          endpoint,
+          deployment,
+          model,
+          request,
+          headers,
+          signal: options?.signal
+        });
+      } catch (error) {
+        if (
+          error instanceof AthenaError &&
+          isChatCompletionsUnsupportedError(error.message)
+        ) {
+          return await this.generateWithResponsesApi({
+            endpoint,
+            deployment,
+            model,
+            request,
+            headers,
+            signal: options?.signal
+          });
+        }
+        throw error;
+      }
+    } catch (error) {
+      if (error instanceof AthenaError) {
+        throw error;
+      }
+      throw new AthenaError("PROVIDER_ERROR", "foundry provider request failed", true, error);
+    }
+  }
+
+  private async generateWithChatCompletions(options: {
+    endpoint: string;
+    deployment: string;
+    model: string;
+    request: RunRequest;
+    headers: Record<string, string>;
+    signal?: AbortSignal;
+  }): Promise<RunResult> {
+    const response = await fetch(buildCompletionsUrl(options.endpoint, options.deployment, this.options.apiVersion), {
+      method: "POST",
+      headers: options.headers,
+      body: JSON.stringify({
+        model: options.model,
+        messages: [{ role: "user", content: options.request.input }],
+        ...(typeof options.request.maxOutputTokens === "number" ? { max_tokens: options.request.maxOutputTokens } : {})
+      }),
+      ...(options.signal ? { signal: options.signal } : {})
+    });
+
+    if (!response.ok) {
+      const errorMessage = await parseErrorMessage(response);
+      const retryable = response.status === 429 || response.status >= 500;
+      throw new AthenaError(
+        "PROVIDER_ERROR",
+        `foundry provider error ${response.status}${errorMessage ? `: ${errorMessage}` : ""}`,
+        retryable
+      );
+    }
+
+    const parsed = (await response.json()) as FoundryChatCompletionsResponse;
+    const output = extractOutputText(parsed.choices?.[0]?.message?.content);
+    if (!output) {
+      throw new AthenaError("PROVIDER_ERROR", "foundry provider returned empty output", false);
+    }
+
+    const inputTokens = parsed.usage?.prompt_tokens;
+    const outputTokens = parsed.usage?.completion_tokens;
+    const totalTokens =
+      parsed.usage?.total_tokens ??
+      (typeof inputTokens === "number" && typeof outputTokens === "number" ? inputTokens + outputTokens : undefined);
+
+    return {
+      sessionId: options.request.sessionId,
+      output,
+      model: parsed.model ?? options.model,
+      provider: this.id,
+      ...(parsed.usage
+        ? {
+            usage: {
+              ...(typeof inputTokens === "number" ? { inputTokens } : {}),
+              ...(typeof outputTokens === "number" ? { outputTokens } : {}),
+              ...(typeof totalTokens === "number" ? { totalTokens } : {})
+            }
+          }
+        : {}),
+      createdAt: new Date().toISOString()
+    };
+  }
+
+  private async generateWithResponsesApi(options: {
+    endpoint: string;
+    deployment: string;
+    model: string;
+    request: RunRequest;
+    headers: Record<string, string>;
+    signal?: AbortSignal;
+  }): Promise<RunResult> {
+    const urls = [
+      buildResponsesUrlV1(options.endpoint),
+      buildResponsesUrlLegacy(options.endpoint, this.options.apiVersion)
+    ];
+    let lastError: AthenaError | undefined;
+    for (const url of urls) {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: options.headers,
+        body: JSON.stringify({
+          model: options.model,
+          input: options.request.input ?? "",
+          ...(typeof options.request.maxOutputTokens === "number" ? { max_output_tokens: options.request.maxOutputTokens } : {})
+        }),
+        ...(options.signal ? { signal: options.signal } : {})
+      });
       if (!response.ok) {
         const errorMessage = await parseErrorMessage(response);
         const retryable = response.status === 429 || response.status >= 500;
-        throw new AthenaError(
+        lastError = new AthenaError(
           "PROVIDER_ERROR",
           `foundry provider error ${response.status}${errorMessage ? `: ${errorMessage}` : ""}`,
           retryable
         );
+        if (response.status === 404 || response.status === 400) {
+          continue;
+        }
+        throw lastError;
       }
 
-      const parsed = (await response.json()) as FoundryChatCompletionsResponse;
-      const output = extractOutputText(parsed.choices?.[0]?.message?.content);
+      const parsed = (await response.json()) as FoundryResponsesApiResponse;
+      const output = extractResponsesOutputText(parsed);
       if (!output) {
-        throw new AthenaError("PROVIDER_ERROR", "foundry provider returned empty output", false);
+        throw new AthenaError("PROVIDER_ERROR", "foundry responses API returned empty output", false);
       }
-
-      const inputTokens = parsed.usage?.prompt_tokens;
-      const outputTokens = parsed.usage?.completion_tokens;
+      const inputTokens = parsed.usage?.input_tokens;
+      const outputTokens = parsed.usage?.output_tokens;
       const totalTokens =
         parsed.usage?.total_tokens ??
         (typeof inputTokens === "number" && typeof outputTokens === "number" ? inputTokens + outputTokens : undefined);
 
       return {
-        sessionId: request.sessionId,
+        sessionId: options.request.sessionId,
         output,
-        model: parsed.model ?? request.model ?? deployment,
+        model: parsed.model ?? options.model,
         provider: this.id,
         ...(parsed.usage
           ? {
@@ -126,12 +264,12 @@ export class FoundryProviderAdapter implements ProviderAdapter {
           : {}),
         createdAt: new Date().toISOString()
       };
-    } catch (error) {
-      if (error instanceof AthenaError) {
-        throw error;
-      }
-      throw new AthenaError("PROVIDER_ERROR", "foundry provider request failed", true, error);
     }
+
+    throw (
+      lastError ??
+      new AthenaError("PROVIDER_ERROR", "foundry responses API request failed", true)
+    );
   }
 }
 
@@ -141,6 +279,31 @@ function buildCompletionsUrl(projectEndpoint: string, deployment: string, apiVer
   base.pathname = `${base.pathname.replace(/\/+$/, "")}/openai/deployments/${encodeURIComponent(deployment)}/chat/completions`;
   base.searchParams.set("api-version", (apiVersion ?? DEFAULT_FOUNDRY_API_VERSION).trim() || DEFAULT_FOUNDRY_API_VERSION);
   return base.toString();
+}
+
+function buildResponsesUrlV1(projectEndpoint: string): string {
+  const normalizedEndpoint = projectEndpoint.endsWith("/") ? projectEndpoint : `${projectEndpoint}/`;
+  const base = new URL(normalizedEndpoint);
+  base.pathname = `${base.pathname.replace(/\/+$/, "")}/openai/v1/responses`;
+  base.search = "";
+  return base.toString();
+}
+
+function buildResponsesUrlLegacy(projectEndpoint: string, apiVersion?: string): string {
+  const normalizedEndpoint = projectEndpoint.endsWith("/") ? projectEndpoint : `${projectEndpoint}/`;
+  const base = new URL(normalizedEndpoint);
+  base.pathname = `${base.pathname.replace(/\/+$/, "")}/openai/responses`;
+  base.searchParams.set("api-version", (apiVersion ?? DEFAULT_FOUNDRY_API_VERSION).trim() || DEFAULT_FOUNDRY_API_VERSION);
+  return base.toString();
+}
+
+function prefersResponsesApi(model: string): boolean {
+  const normalized = model.trim().toLowerCase();
+  return normalized.includes("gpt-5") || normalized.includes("codex");
+}
+
+function isChatCompletionsUnsupportedError(message: string): boolean {
+  return /chatcompletion operation does not work/i.test(message);
 }
 
 function extractOutputText(
@@ -172,6 +335,20 @@ function extractOutputText(
   }
 
   return undefined;
+}
+
+function extractResponsesOutputText(response: FoundryResponsesApiResponse): string | undefined {
+  if (typeof response.output_text === "string" && response.output_text.trim()) {
+    return response.output_text;
+  }
+  const parts =
+    response.output?.flatMap((item) =>
+      (item.content ?? [])
+        .filter((chunk) => (chunk.type === "output_text" || chunk.type === "text") && typeof chunk.text === "string")
+        .map((chunk) => chunk.text ?? "")
+    ) ?? [];
+  const joined = parts.join("");
+  return joined.trim() ? joined : undefined;
 }
 
 async function parseErrorMessage(response: Response): Promise<string | undefined> {
