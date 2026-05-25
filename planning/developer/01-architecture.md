@@ -2,6 +2,10 @@
 
 # Project Architecture
 
+## Reset Note
+
+The current implementation is API-first, but the accepted product direction is now console-first Team Orchestrator. Treat this document as implementation architecture context until it is rewritten against `planning/architecture/0006-team-orchestrator-direction-and-agent-model.md`.
+
 Project Athena is API-first. The control plane is the canonical execution surface, and CLI/API paths converge on the same services.
 
 ## Control-Plane Composition

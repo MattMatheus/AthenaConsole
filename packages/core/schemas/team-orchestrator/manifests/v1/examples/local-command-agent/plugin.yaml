@@ -1,0 +1,33 @@
+schemaVersion: 1
+plugin:
+  id: team-orchestrator.examples.software
+  name: Software Task Agent
+  version: 0.1.0
+  description: Local-command software task agent packaged as a plugin.
+  agents:
+    - path: agents/software-task.agent.yaml
+      id: software.task.local
+      version: 0.1.0
+  docs:
+    readme: docs/README.md
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    manifestSchema: team-orchestrator.manifests.v1
+    runtimeBackends:
+      - local-process
+      - container
+      - api
+    platforms:
+      - any
+  permissions:
+    network: read
+    filesystem: scoped
+    shell: allow
+    containers: allow
+    credentials: deny
+  ui:
+    icon: square-terminal
+    color: "#2a9d8f"
+    tags:
+      - software
+      - tasks

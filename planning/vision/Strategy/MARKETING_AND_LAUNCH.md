@@ -1,29 +1,64 @@
 <!-- AUDIENCE: Internal/Technical -->
 
-# Team Orchestrator: Marketing & Launch Narrative
+# Team Orchestrator: Marketing And Launch Notes
 
-## 1. The Target Audience
-**The Technical Force Multiplier:** Engineering Managers, CTOs, and Tech Leads who need to scale throughput by partnering with a digital workforce.
+## Current Audience
 
-## 2. Key Value Propositions
-- **The Flight Manifest:** "Athena proposes the optimal manifest for your mission. You approve the specialists, verify their briefings, and initiate the relay."
-- **Contextual Wisdom:** "Athena ensures that knowledge moves perfectly between specialists. No context is lost in mission handoffs."
-- **Managed Autonomy:** "Human-grade intent meets machine-grade reliability through auditable specialist units."
-- **Industrial Precision:** "Deploy specialized designations—Reliability Specialists, Bug Scrubbers, Security Auditors—with absolute observability."
+Primary:
 
-## 3. Competitive Differentiation
-- **vs. Autonomous Agents:** Purely autonomous agents are untrustworthy. Team Orchestrator offers **Governed Autonomy** via the Flight Manifest.
-- **vs. Copilots:** Copilots are just fancy autocomplete. Athena is a **Strategic Partner** that coordinates complex work across a manifest of specialists.
+- solo developer building with agents
 
-## 4. Technical Interface Standards
-Athena is integrated into the core system identity.
+Secondary:
 
-- **CLI:** `athena run` (The direct uplink to the mission controller).
-- **State:** `.athena/` (Athena's persistent memory bank).
-- **Headers:** `X-Athena-Identity` (Security clearance for the mission relay).
+- product operator automating repeatable research, content, software, or media workflows
 
-## 5. Roadmap Milestones (Branded)
-- **Milestone 1:** Foundation (Mission Control Backend).
-- **Milestone 2:** The Mission Relay (A2A & Context Compounding).
-- **Milestone 3:** The Hangar (Sandboxing, Swarm Provisioning, & PDK).
-- **Milestone 4:** Command Bridge (The Dashboard & Athena Strategic HUD).
+Later:
+
+- shared/team instance
+
+Enterprise fleet governance is not the current launch wedge.
+
+## Plain-Language Promise
+
+Team Orchestrator gives you a local-first console for running formal agents as repeatable tasks.
+
+Instead of juggling prompts, scripts, and agent framework experiments, you install or define agents, assign them to tasks, run them, and inspect what happened.
+
+## Value Props
+
+- **Agent orchestration without mystery**: tasks, runs, logs, events, and artifacts are visible.
+- **Local-first control**: run on your machine by default, with containers and API backends available through the same model.
+- **Formal agents**: manifests define inputs, outputs, capabilities, permissions, runtime, and limits.
+- **Plugin ecosystem**: agents and workflow templates can be bundled by domain.
+- **Human-directed automation**: manual tasks first; proposals and scheduling later.
+- **Operator safety**: risky actions require approval; stuck agents stop at loop/tool-call limits.
+
+## Positioning Guardrails
+
+Use:
+
+- agent orchestrator
+- formal agents
+- task and mission runs
+- local-first console
+- plugin-backed workflows
+
+Avoid for now:
+
+- enterprise fleet governance
+- digital workforce management
+- Athena as the central product identity
+- autonomous swarm language
+- cloud-first deployment as the default promise
+
+## Launch Narrative
+
+The first launch story should be simple:
+
+1. Install Team Orchestrator locally.
+2. Open the console.
+3. Install or use a base agent.
+4. Create a task.
+5. Run it locally.
+6. Inspect outputs, artifacts, and events.
+7. Save the pattern as a reusable workflow or schedule.

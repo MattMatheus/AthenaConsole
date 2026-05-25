@@ -2,6 +2,8 @@
 
 # Active Research
 
-In-flight research items.
+No public/marketing research item is active during the product-direction reset.
 
-- `projectathena-docs-ingestion-strategy.md`
+Candidate items must be reviewed against:
+
+- `planning/architecture/0006-team-orchestrator-direction-and-agent-model.md`

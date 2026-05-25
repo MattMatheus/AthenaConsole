@@ -1,0 +1,217 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://team-orchestrator.local/schemas/manifests/v1/plugin.schema.json",
+  "title": "Team Orchestrator Plugin Manifest",
+  "description": "Schema for plugin.yaml files authored by Team Orchestrator plugin packages.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "plugin"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "plugin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "version"],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/namespacedId"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "$ref": "#/definitions/semver"
+        },
+        "description": {
+          "type": "string"
+        },
+        "authors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "email": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "agents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/resourceReference"
+          },
+          "default": []
+        },
+        "workflowTemplates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/resourceReference"
+          },
+          "default": []
+        },
+        "schemas": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/resourceReference"
+          },
+          "default": []
+        },
+        "docs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "readme": {
+              "$ref": "#/definitions/relativePath"
+            },
+            "changelog": {
+              "$ref": "#/definitions/relativePath"
+            },
+            "homepage": {
+              "type": "string"
+            },
+            "support": {
+              "type": "string"
+            }
+          }
+        },
+        "compatibility": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "teamOrchestrator": {
+              "type": "string",
+              "minLength": 1
+            },
+            "manifestSchema": {
+              "const": "team-orchestrator.manifests.v1"
+            },
+            "runtimeBackends": {
+              "type": "array",
+              "items": {
+                "enum": ["local-process", "container", "api", "any"]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "platforms": {
+              "type": "array",
+              "items": {
+                "enum": ["darwin", "linux", "win32", "any"]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          }
+        },
+        "permissions": {
+          "$ref": "#/definitions/permissions"
+        },
+        "ui": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "icon": {
+              "type": "string"
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "category": {
+              "type": "string"
+            },
+            "navigationLabel": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "namespacedId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:[-+][0-9A-Za-z.-]+)?$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "pattern": "^(?:/|[A-Za-z]:|.*\\.\\./)"
+      }
+    },
+    "resourceReference": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/relativePath"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path"],
+          "properties": {
+            "path": {
+              "$ref": "#/definitions/relativePath"
+            },
+            "id": {
+              "$ref": "#/definitions/namespacedId"
+            },
+            "version": {
+              "$ref": "#/definitions/semver"
+            },
+            "required": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        }
+      ]
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "network": {
+          "enum": ["deny", "read", "write", "allow"]
+        },
+        "filesystem": {
+          "enum": ["none", "read", "scoped", "write"]
+        },
+        "shell": {
+          "enum": ["deny", "allow"]
+        },
+        "containers": {
+          "enum": ["deny", "allow"]
+        },
+        "credentials": {
+          "enum": ["deny", "scoped"]
+        }
+      }
+    }
+  }
+}

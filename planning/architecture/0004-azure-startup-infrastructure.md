@@ -3,7 +3,9 @@
 # ADR 0004: Azure Startup Infrastructure Design
 
 ## Status
-Proposed (Architect Review)
+Deferred by 2026 product-direction reset.
+
+This ADR is retained as historical cloud infrastructure context. The current product direction is local-first execution with room for future hosted/API backends; Azure deployment is not the active product center.
 
 ## Context
 Project Athena is transitioning from a local-only development phase to a cloud-hosted environment to leverage Azure Startup Credits. The design must minimize "burn rate" while providing a representative environment for platform engineering (building the platform on the platform).

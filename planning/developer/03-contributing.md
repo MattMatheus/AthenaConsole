@@ -2,7 +2,7 @@
 
 # Contributing Guide
 
-We welcome contributions to Project Athena! This guide outlines the process for contributing new features, bug fixes, and improvements.
+We welcome contributions to Team Orchestrator. This guide outlines the process for contributing new features, bug fixes, and improvements.
 
 ## General Principles
 
@@ -13,7 +13,7 @@ We welcome contributions to Project Athena! This guide outlines the process for 
 
 ## Contribution Workflow
 
-1.  **Fork the Repository:** Start by forking the Project Athena repository on GitHub.
+1.  **Fork the Repository:** Start by forking the repository on GitHub.
 2.  **Create a New Branch:** Create a new branch from `main` for your feature or bug fix. Use a descriptive name (e.g., `feature/add-new-provider`, `bugfix/fix-memory-leak`).
     ```bash
     git checkout -b feature/your-feature-name
@@ -29,7 +29,7 @@ We welcome contributions to Project Athena! This guide outlines the process for 
     ```bash
     git push origin feature/your-feature-name
     ```
-6.  **Create a Pull Request (PR):** Open a pull request against the `main` branch of the upstream Project Athena repository.
+6.  **Create a Pull Request (PR):** Open a pull request against the `main` branch of the upstream repository.
     *   Provide a clear title and description for your PR, explaining the changes and their motivation.
     *   Ensure all CI checks (tests, schema checks, build) pass.
     *   Be responsive to feedback during the review process.
@@ -49,7 +49,7 @@ When adding new API endpoints:
 
 ## Testing Philosophy
 
-Project Athena emphasizes robust testing to ensure reliability and maintainability.
+Team Orchestrator emphasizes robust testing to ensure reliability and maintainability.
 
 *   **Unit Tests:** For individual functions and small components.
 *   **Integration Tests:** For modules interacting with each other, especially API endpoints and core runtime flows.

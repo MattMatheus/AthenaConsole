@@ -5,9 +5,7 @@ Source of truth for work items lives in `planning/backlog/`:
 - Completed stories: `planning/backlog/completed/`
 - Roadmap: `planning/backlog/roadmap/roadmap.md`
 
-Current focus (Stage 9, Fleet Management & Governance):
-- Milestone 4 execution (Unified Experience).
-- Next release: `2026.09` (A2A Observability)
-- Active stories:
-    - **A2A Observability:**
-        - `2026.09.04-add-observability-alert-audit-and-export.md`
+Current focus:
+- Team Orchestrator foundation reset implementation.
+- Active sequence starts at `planning/backlog/active/2026.10.01-implement-sqlite-app-state-foundation.md`.
+- Accepted architecture baseline starts at `planning/architecture/0006-team-orchestrator-direction-and-agent-model.md`.

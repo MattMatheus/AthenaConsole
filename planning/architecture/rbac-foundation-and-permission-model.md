@@ -1,15 +1,19 @@
 <!-- AUDIENCE: Internal/Technical -->
 
-# RBAC Foundation and Permission Model (Implemented Stage 8 State)
+# RBAC Foundation and Permission Model
+
+## Reset Note
+
+This document is retained as implementation context. Under the 2026 product-direction reset, access control should be reframed as local/operator safety, risky-action approval, and future shared-instance permissions rather than enterprise fleet governance.
 
 ## Status
 
-- Stage: 8 (operational maturity and controls)
+- Stage: legacy implementation context
 - Scope: API identity extraction and service-layer authorization enforcement
 
 ## Implemented Identity Model
 
-Athena currently uses a trusted-header identity mode.
+The current implementation uses a trusted-header identity mode.
 
 Request identity context shape (`src/control-plane/auth.ts`):
 
@@ -58,20 +62,20 @@ Read paths and non-listed write paths are currently pass-through in this phase.
 
 On deny:
 
-- Athena throws `AUTHZ_DENIED`
+- the implementation throws `AUTHZ_DENIED`
 - API returns standard error envelope with request `traceId`
 - Best-effort audit event `authz.denied` is emitted with subject, role, operation, and required roles
 
 On missing request auth context when auth is enabled:
 
-- Athena throws `AUTH_IDENTITY_MISSING`
+- the implementation throws `AUTH_IDENTITY_MISSING`
 
 ## Design Intent (Carried Forward)
 
 The implemented model preserves future expansion space for:
 
 - finer-grained resource/action permissions
-- scope-constrained decisions (`sessionId`, `runId`, persona)
+- scope-constrained decisions (`taskId`, `missionId`, `runId`, `agentId`)
 - additional identity providers beyond trusted headers
 
 The current layering already supports these extensions without moving authorization into API routes.

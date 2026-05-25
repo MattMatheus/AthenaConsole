@@ -3,7 +3,9 @@
 # ADR 0005: Foundry-First Model Provider Integration
 
 ## Status
-Proposed
+Deferred by 2026 product-direction reset.
+
+This ADR is retained as historical provider-integration context. Model provider routing remains useful implementation material, but Foundry-first product positioning is not part of the current reset baseline.
 
 ## Context
 Athena currently routes model calls through a provider registry with `openai` as the primary hosted-model path.

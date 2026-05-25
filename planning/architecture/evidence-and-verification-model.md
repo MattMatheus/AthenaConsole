@@ -1,6 +1,10 @@
 <!-- AUDIENCE: Internal/Technical -->
 
-# Evidence and Verification Model (Stage 8)
+# Evidence and Verification Model
+
+## Reset Note
+
+This model remains relevant, but future planning should reframe evidence as task/run artifacts, events, output validation, and inspectability for formal agents.
 
 ## Purpose
 

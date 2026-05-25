@@ -15,7 +15,8 @@ Build and maintain a production-ready website for:
 
 - Astro foundation is implemented.
 - Blog and docs collection workflows are enabled.
-- Team Orchestrator product stage is Stage 8 (in progress).
+- Team Orchestrator is in a 2026 product-direction reset.
+- Public positioning should follow `planning/architecture/0006-team-orchestrator-direction-and-agent-model.md`.
 
 Primary references for cycle execution:
 1. `planning/backlog/active/README.md`

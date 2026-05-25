@@ -1,0 +1,53 @@
+schemaVersion: 1
+agent:
+  id: podcast.show-notes.local
+  name: Show Notes Writer
+  version: 0.1.0
+  description: Converts a transcript summary into publishable show notes.
+  capabilities:
+    - content.draft
+    - text.rewrite
+  inputs:
+    summaryMarkdown:
+      type: markdown
+      required: true
+    audience:
+      type: enum
+      enum:
+        - technical
+        - general
+      default: general
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: showNotes
+        kind: primary
+        format: markdown
+      - key: socialPosts
+        kind: supporting
+        format: json
+        optional: true
+  implementation:
+    type: local-command
+    command: npm
+    args:
+      - run
+      - agent:show-notes
+  runtime:
+    preferredBackend: local-process
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    containers: deny
+    credentials: deny
+  limits:
+    maxRuntimeSeconds: 600
+    maxToolCalls: 30
+    maxRepeatedActions: 3
+    maxRetries: 1
+    maxFollowUpTasks: 4
+  observability:
+    mode: black-box
+  compatibility:
+    teamOrchestrator: ">=0.1.0"

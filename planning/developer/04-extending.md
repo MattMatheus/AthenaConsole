@@ -1,8 +1,8 @@
 <!-- AUDIENCE: Internal/Technical -->
 
-# Extending Project Athena
+# Extending Team Orchestrator
 
-This guide covers extension points that preserve control-plane contracts and Stage 8 operational controls.
+This guide covers current implementation extension points. Future extension work should be reframed around formal agents, plugins, lifecycle contracts, and pluggable execution backends.
 
 ## 1. Add a New `ExecutionBackend`
 

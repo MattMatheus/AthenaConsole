@@ -1,29 +1,52 @@
 <!-- AUDIENCE: Internal/Technical -->
 
-# Team Orchestrator: Performance & Fidelity Model
+# Team Orchestrator: Run Quality Model
 
-## 1. The Calibration Framework
-Team Orchestrator measures both **Machine Efficiency** and **Human Alignment** to provide a holistic "Trust Score."
+## Purpose
 
-## 2. Layer 1: Operational Efficiency (Machine Metrics)
-- **Resource Intensity:** Token/Cost ratio (Cost-efficiency).
-- **Mission Velocity:** Average Time-to-Output.
-- **System Stability:** Runtime success vs. provider timeouts.
+Run quality should measure whether an agent did useful work safely, inspectably, and within reasonable resource bounds.
 
-## 3. Layer 2: Alignment Fidelity (Human Metrics)
-- **First-Pass Acceptance:** How often the user clicks "Approve" on the first turn.
-- **Re-steering Delta:** The number of follow-up "correction" turns required by the user.
-- **Mission Rejection Rate:** Frequency of scrapped tasks.
+This replaces the older fidelity/pilot calibration framing with practical operator metrics.
 
-## 4. The Academy: Pilot Training & Calibration
-The Academy is the calibration center where pilots are "trained" based on Flight Director feedback and performance telemetry.
+## Runtime Metrics
 
-- **Narrative:** Pilots start at a "Baseline Service Record." As they successfully complete missions, their "Fidelity Rating" increases.
-- **Optimization Advice:** "You've re-steered Sarah on 'Sprint Documentation' 5 times. Send her to The Academy to update her Skill-Set for automated compliance."
-- **Skill-Set Provisioning:** New abilities are provisioned as "Module Upgrades" to a pilot's dossier.
+- run duration
+- status: completed, failed, cancelled, stopped by limit
+- retry count
+- cancellation latency
+- backend type: local process, container, API, module, LangGraph, DAG
+- resource hints where available
 
-## 5. First Impression: The Mission Audit
-When auditing a pilot's work, the Flight Director (User) feels like they are:
-1. **Inspecting Logic:** (Machine Telemetry/Proof of Work).
-2. **Reviewing Deliverables:** (Professional Output).
-3. **Calibrating the System:** (Adjusting the Fidelity Rating to train the pilot).
+## Agent Behavior Metrics
+
+- tool-call count
+- loop-limit stops
+- repeated-action detection
+- validation failures
+- risky action requests
+- approval requests and outcomes
+- follow-up tasks proposed
+
+## Output Quality Signals
+
+- artifact count and type
+- required output presence
+- optional schema validation result
+- operator accepted/rejected/retried
+- follow-up task conversion rate
+
+## Inspectability Signals
+
+- event coverage
+- log availability
+- artifact availability
+- internal step visibility for inspectable agents
+- black-box wrapper status for agents without internal hooks
+
+## Cost Signals
+
+- token usage where available
+- API/backend cost estimate where available
+- local/container runtime duration
+
+Cost visibility matters, but enterprise cost governance is not the product center for the reset.

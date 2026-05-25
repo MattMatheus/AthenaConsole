@@ -1,0 +1,59 @@
+schemaVersion: 1
+agent:
+  id: news.digest.local
+  name: News Digest
+  version: 0.1.0
+  description: Aggregates recent news and writes a concise digest.
+  capabilities:
+    - news.aggregate
+    - text.summarize
+  inputs:
+    topic:
+      type: string
+      required: true
+      label: Topic
+      ui:
+        widget: text
+        order: 0
+    lookbackHours:
+      type: integer
+      default: 24
+      ui:
+        widget: number
+        order: 1
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: digest
+        label: Digest
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: npm
+    args:
+      - run
+      - agent:news-digest
+  runtime:
+    preferredBackend: local-process
+    backendPreferences:
+      - local-process
+      - api
+  permissions:
+    network: read
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+    approvalRequiredFor:
+      - network-write
+      - credential-access
+  limits:
+    maxRuntimeSeconds: 600
+    maxToolCalls: 40
+    maxRepeatedActions: 3
+    maxRetries: 1
+    maxFollowUpTasks: 3
+  observability:
+    mode: black-box
+  compatibility:
+    teamOrchestrator: ">=0.1.0"

@@ -1,55 +1,46 @@
 <!-- AUDIENCE: Internal/Technical -->
 
-# Team Orchestrator: Brand Identity & Strategy
+# Team Orchestrator: Product Identity
 
-## 1. Core Essence
-**Team Orchestrator** is the "Kubernetes of AI Agents"—the essential orchestration layer that transforms experimental scripts into a production-grade, autonomous digital workforce.
+## Core Essence
 
-- **The Product:** A secure, auditable mission control plane for managing units of Tactical AI Pilots.
-- **The Philosophy:** Industrial-grade delegation through high-fidelity human-AI collaboration.
-- **Primary Domain:** `teamorchestrator.com`
+Team Orchestrator is a web-first agent orchestrator for people who want to turn repeatable work into inspectable, runnable agent tasks.
 
-## 2. Brand Positioning: TaaS (Team as a Service)
-We position the platform as the bridge between SaaS and MaaS. We are not selling a tool; we are selling the ability to **"Commission"** and **"Deploy"** a digital team.
+The first user is a solo developer. The next user is a product operator. Shared/team usage may come later, but the product should stay grounded in one person using a local-first console to run useful agents with confidence.
 
-- **Narrative:** "Stop prompting. Start delegating."
-- **Taglines:**
-    - *Mission Control for your digital workforce.*
-    - *Precision orchestration for your tactical pilots.*
-    - *Strategy powered by Athena. Results delivered by Team Orchestrator.*
+## Product Promise
 
-## 3. The Command Structure
-We leverage a tiered intelligence model to ensure high-fidelity collaboration.
+Team Orchestrator helps an operator:
 
-### The Flight Director (Human User)
-The source of command. The Flight Director interprets high-level business goals, sets the mission trajectory, and holds the "Override Key" for all autonomous actions.
+- define tasks
+- choose compatible formal agents
+- run tasks or missions locally
+- inspect logs, events, artifacts, and outputs
+- compose repeatable workflows over time
+- keep risky actions bounded by approvals and loop limits
 
-### The Lead Orchestrator: Athena
-**Athena** is the heart of the platform. Named for the goddess of wisdom and strategy, she serves as the primary **Strategic Partner** to the Flight Director. 
-- **Role:** Coordinates the swarm of Tactical Pilots.
-- **Function:** Manages context compounding, proposes flight plans, and handles mission relays.
-- **Wisdom:** She ensures that no knowledge is lost between pilots and that all missions adhere to the FD's global policies.
+## Positioning
 
-### The Mission Specialists (The Swarm)
-Specialized agents with high-fidelity technical designations. Instead of generalists, the Flight Director deploys **Specialist Designations** tailored to the mission's technical requirements.
+The product is an agent orchestrator, not an enterprise fleet governance plane.
 
-- **Reliability Specialist:** Focuses on uptime, error handling, and performance benchmarks.
-- **Bug Scrubber:** Specialized in deep-trace analysis, regression identification, and surgical patching.
-- **Strategic Architect:** Interprets high-level goals into technical roadmaps and dependency graphs.
-- **Security Auditor:** Conducts automated penetration testing and policy compliance verification.
+It is closer to a local-first workflow console for formal agents than to a generic prompt runner. Existing systems such as Airflow, Flyte, Kestra, and LangGraph are useful reference points, but Team Orchestrator's core product model is agent-native: tasks, agents, plugins, runs, artifacts, events, and operator control.
 
-## 4. Mission Assembly: The Flight Manifest
-Before any execution begins, Athena proposes a **Flight Manifest**— a curated selection of Specialists and their specific mission parameters.
+## Naming
 
-- **The Manifest:** A deterministic list of "who" (Specialists) is doing "what" (Tasks) and "where" (Sandboxes).
-- **The Briefing:** Athena briefs each specialist in the manifest with the compounded context required for their specific leg of the mission.
+- Product name: Team Orchestrator
+- Domain: `teamorchestrator.com`
+- Athena: legacy/internal name that may remain as a default planning agent or orchestrator role, but should not be the dominant product abstraction.
 
-## 5. Mission Infrastructure
-- **The Hangar:** The registry of all available Specialist Designations. This is where the Flight Director "Commissions" new capabilities for their unit.
-- **The Academy:** The calibration center where Specialists are "Trained" (refined prompts/skills/tools) based on previous mission telemetry.
+Naming cleanup can happen later. New planning should prefer Team Orchestrator unless referring to current code, packages, commands, or legacy artifacts.
 
-## 5. Visual Identity: The Glass Cockpit
-The brand aesthetic is "Mission Control Center"—designed for technical engineers who value observability, precision, and control.
+## Voice
 
-- **The Vibe:** High-fidelity data, aerospace-inspired telemetry, and "Glass Cockpit" density.
-- **Color Palette:** Deep "Trust" Blues, Slate Greys, with warm "Human" accents (Coral/Teal) for Agent Personas.
+Use practical operator language:
+
+- tasks, missions, runs
+- agents and plugins
+- local process, container, API, module, DAG
+- events, artifacts, logs, evidence
+- approvals, limits, schedules
+
+Avoid making the product depend on lore-heavy terms such as pilots, hangars, flight directors, swarms, or enterprise fleet governance.

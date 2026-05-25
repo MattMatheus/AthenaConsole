@@ -1,0 +1,40 @@
+schemaVersion: 1
+plugin:
+  id: team-orchestrator.examples.podcast
+  name: Podcast Operations
+  version: 0.1.0
+  description: Multi-agent plugin for podcast transcript and show-note workflows.
+  authors:
+    - name: Team Orchestrator
+  agents:
+    - path: agents/transcript-summary.agent.yaml
+      id: podcast.transcript-summary.local
+      version: 0.1.0
+    - path: agents/show-notes.agent.yaml
+      id: podcast.show-notes.local
+      version: 0.1.0
+  schemas:
+    - path: schemas/transcript-input.schema.json
+  docs:
+    readme: docs/README.md
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    manifestSchema: team-orchestrator.manifests.v1
+    runtimeBackends:
+      - local-process
+      - container
+    platforms:
+      - darwin
+      - linux
+  permissions:
+    network: read
+    filesystem: scoped
+    shell: allow
+    containers: allow
+    credentials: deny
+  ui:
+    icon: audio-lines
+    color: "#4361ee"
+    tags:
+      - podcast
+      - media

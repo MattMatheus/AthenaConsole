@@ -2,27 +2,34 @@
 
 # Agent Onboarding & Project State
 
-Welcome to Project Athena. This document is the primary entry point for agents to understand the project's mission, current state, and engineering standards.
+Welcome to Team Orchestrator. This document is the primary entry point for agents to understand the project's mission, current state, and engineering standards.
 
 ## 1. Mission & Scope
 
-Project Athena is a standalone, CLI-first agent runtime that re-implements core orchestration logic (runtime, work, memory, context, providers, schedule).
+Team Orchestrator is a web-first, local-first agent orchestrator for solo developers and product operators.
 
-**Core Focus:** Reliable, durable, and observable agent workflows.
-**Explicitly Out of Scope:** UI components, chat/messaging adapters (Slack, etc.), and third-party channel integrations.
+**Core Focus:** Formal manifest-backed agents, tasks, missions, inspectable runs, plugins, pluggable execution backends, artifacts, events, and operator safety.
+**Deferred:** Enterprise fleet governance, cloud-first deployment, and natural-language task planning as the primary workflow.
 
 ## 2. Current Status & Roadmap
 
-The project is currently in **Stage 8: Operational Maturity & Controls**.
+The project is in a **2026 product-direction reset**.
 
-### Completed Milestones:
-- **Stages 0-7:** Foundation, CLI runtime, Provider abstraction, Work management, Memory system, Context management, Scheduling, and Reliability hardening.
-- **Stage 8 (In Progress):** Control-plane unification, API-first architecture, telemetry/event retention, and fleet metrics.
+### Accepted Baseline
 
-### Active Track:
-The current focus is on hardening the control plane, implementing Kyverno policy integration, and ensuring API/CLI parity.
+- Product name and direction: Team Orchestrator.
+- Primary surface: web console.
+- Primary user: solo developer first, then product operator, then shared/team use.
+- Agent model: formal agents with manifests and lifecycle contracts.
+- Work model: tasks are primary; missions collect tasks; runs execute tasks or missions.
+- Runtime model: local process default, containers first-class, API/cloud backends later.
+- State model: move toward database-backed app state, likely SQLite first.
 
-*For a detailed breakdown of completed stages and upcoming tasks, see the [Implementation Plan](../archive/implementation-plan.md) (Archived) and the [Active Backlog](../backlog/active/README.md).*
+Canonical decision record:
+
+- `planning/architecture/0006-team-orchestrator-direction-and-agent-model.md`
+
+The active implementation backlog is intentionally empty until the roadmap is rebuilt.
 
 ## 3. Engineering Conventions
 
@@ -35,7 +42,7 @@ The current focus is on hardening the control plane, implementing Kyverno policy
   - `podman compose -f docker-compose.local.yml up --build`
   - `podman compose -f docker-compose.local.yml down --remove-orphans`
 - **Validation:** Every cycle must pass `check:schemas`, `typecheck`, `test`, and `build`.
-- **Mandatory Cycle Handoff:** Every cycle must update `planning/vision/handoff.md`, move completed stories from `planning/backlog/active/` to `planning/backlog/completed/`, update `planning/backlog/active/README.md`, and refresh `planning/prompts/active/next-agent-seed-prompt.md` for the next cycle.
+- **Mandatory Cycle Handoff:** Every implementation cycle must update `planning/vision/handoff.md`, move completed stories from `planning/backlog/active/` to `planning/backlog/completed/`, update `planning/backlog/active/README.md`, and refresh `planning/prompts/active/next-agent-seed-prompt.md` for the next cycle.
 
 ## 4. Progressive Disclosure (Context Management)
 
@@ -48,6 +55,7 @@ To keep your context window efficient, follow these pointers to more detailed in
   - `planning/prompts/active/next-agent-seed-prompt.md` (current directive)
   - `planning/vision/handoff.md` (latest cycle output)
 - **Need Architecture Details?** See `planning/developer/01-architecture.md`.
+- **Need Current Product Direction?** See `planning/architecture/0006-team-orchestrator-direction-and-agent-model.md`.
 - **Need CLI Command Reference?** See `planning/developer/06-cli-reference.md`.
 - **Need specific Persona docs?** See `docs/personas/`.
 - **Looking for the Roadmap?** See `planning/backlog/roadmap/roadmap.md`.

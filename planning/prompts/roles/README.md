@@ -2,6 +2,10 @@
 
 # Personas
 
+## Reset Note
+
+These role/persona prompt documents are legacy implementation context. Future agent definitions should move toward formal manifest-backed agents and plugins as described in `planning/architecture/0006-team-orchestrator-direction-and-agent-model.md`.
+
 Personas are repo-local agent definitions that describe what an Athena run should do and how it should behave.
 
 They are intentionally separate from the core runtime so:

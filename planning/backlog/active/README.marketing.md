@@ -1,23 +1,13 @@
 <!-- AUDIENCE: Public/Marketing -->
 
-# Active Backlog Sprint Plan (2026-02-19)
+# Active Backlog Sprint Plan
 
-This sprint now shifts from docs productization to discoverability and growth instrumentation.
+No public/marketing sprint is active during the 2026 product-direction reset.
 
-## Sprint Sequence
+## Current Direction
 
-### Phase 1: Publishing & Growth Infrastructure
-1. **Story 03.05: Define Content Backup and Rollback Process**
+Team Orchestrator is being reframed as a web-first, local-first agent orchestrator.
 
-## Strategic Risks
+Marketing and public-facing planning should wait until the product roadmap is rebuilt from:
 
-- Rollback procedures can become stale if they are not exercised against current build/deploy workflows.
-- Recovery guidance must avoid destructive git usage patterns that could affect unrelated in-flight work.
-
-## Iteration Exit Checklist
-
-1. Docs + code updates completed for in-scope stories.
-2. Build passes: `npm run build`.
-3. Handoff updated: `planning/archive/handoff.md`.
-4. Story movement performed: active -> completed.
-5. Next cycle prompt refreshed.
+- `planning/architecture/0006-team-orchestrator-direction-and-agent-model.md`

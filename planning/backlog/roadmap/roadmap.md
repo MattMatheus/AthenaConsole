@@ -2,49 +2,107 @@
 
 # Team Orchestrator Roadmap
 
-This roadmap outlines the key milestones for Team Orchestrator as it evolves from a local agent runner into a production-grade, distributed orchestration platform.
+The roadmap is being rebuilt during the 2026 product-direction reset.
 
-## Milestone 1: Core Foundation & API Maturity (COMPLETE)
-*Focus: Stabilizing the control plane, ensuring reliability, and preparing for distributed operations.*
+## Current Baseline
 
-- [x] **Distributed Concurrency:** Implement a pluggable locking interface with support for Redis or Kubernetes Leases.
-- [x] **Run Correlation & Audit:** Finalize `runId` migration and event-driven tracking for run rejections and lifecycle changes.
-- [x] **Architectural Refactoring:** Transition from a monolithic runner to a structured Orchestrator with deterministic route precedence.
-- [x] **API Standards:** Enforce server-authored timestamps and cursor-based pagination for history and observability.
-- [x] **Identity Foundation:** Design and implement the RBAC model (Roles, Actions, Scopes) with fail-closed rollout controls.
+Team Orchestrator is a web-first, local-first agent orchestrator for solo developers and product operators.
 
-## Milestone 2: Structured Workflow Orchestration (COMPLETE)
-*Focus: Moving from raw agent runs to reusable, auditable, and deterministic workflows.*
+Accepted baseline:
 
-- [x] **Directive Resource:** Decouple structured user intent from agent execution configuration.
-- [x] **Harness Profiles:** Explicit base-agent envelopes defining tools, budgets, safety switches, and verification policies.
-- [x] **Run Templates:** Parameterized job templates for repeatable execution.
-- [x] **Workflow DAGs:** Orchestrate multi-step agent tasks with dependency management and crash-safe resumption.
-- [x] **Verification & Evidence:** Establish a first-class evidence model to verify and trust agent outputs.
+- `planning/architecture/0006-team-orchestrator-direction-and-agent-model.md`
 
-## Milestone 3: Safe Execution & Developer Experience (COMPLETE)
-*Focus: Hardening the execution environment and streamlining agent development.*
+Accepted architecture set:
 
-- [x] **Containerized Backends:** Implement Docker and Kubernetes execution providers for "least privilege" command execution.
-- [x] **Safety Enforcement:** Real-time policy enforcement for resource limits (CPU/Memory), network gating, and filesystem scoping.
-- [x] **Persona Development Kit (PDK):** Launch `@projectathena/pdk` with scaffolding, typed definitions, and a `MockRuntime` for local testing.
-- [x] **Symbolic Navigation:** Integrate LSP-first tools to improve agent reasoning over large-scale codebases.
+- `planning/architecture/0007-agent-manifest-and-lifecycle-contract.md`
+- `planning/architecture/0008-plugin-package-format.md`
+- `planning/architecture/0009-task-mission-run-domain-model.md`
+- `planning/architecture/0010-sqlite-app-state-architecture.md`
+- `planning/architecture/0011-runtime-backend-interface.md`
+- `planning/architecture/0012-event-artifact-observability-model.md`
+- `planning/architecture/0013-safety-approval-and-loop-limit-model.md`
+- `planning/architecture/0014-scheduling-model.md`
 
-## Milestone 4: Fleet Management & Governance (IN PROGRESS)
-*Focus: Operator observability and multi-user governance.*
+## Product Milestones
 
-- **Admin Dashboard:** Centralized web UI for fleet health, resource utilization, and cost monitoring.
-- **Session Explorer:** Deep-dive inspection of real-time transcripts, work queues, and artifacts.
-- **Policy Editor:** Visual management of concurrency, retries, and timeout policies.
-- **A2A Observability:** Message throughput visualization and Dead-Letter Queue (DLQ) management.
-- **RBAC Enforcement:** Full implementation of role-based access control across all API resources.
+### Milestone 1: Foundation Reset
 
-## Milestone 5: Cloud-Native & Azure Deployment (UPCOMING)
-*Focus: Scaling the platform to Azure using startup credits and production-grade infrastructure.*
+Goal: Establish the durable product substrate before rebuilding user-facing flows.
 
-- [ ] **Infrastructure-as-Code (Terraform):** Provision AKS, ACR, Redis, and Static Web Apps in `East US`.
-- [ ] **Custom Domain & SSL:** Deploy the web console to `athena.teamorchestrator.com` with managed certificates.
-- [ ] **Continuous Delivery (GitHub Actions):** Build and deploy containerized API and Runner images to ACR/AKS.
-- [ ] **Managed Identity (Workload Identity):** Replace static API keys with Azure Managed Identity for service-to-service auth (KeyVault, OpenAI).
-- [ ] **Cloud Observability:** Integrate Azure Application Insights for cross-plane distributed tracing.
-- [ ] **Cost Governance:** Implement automated budget alerts and burstable node scaling to optimize credit usage.
+- Refinement epic: `planning/backlog/refinement/2026.10.00-epic-team-orchestrator-foundation-reset.md`
+- ADRs 0007 through 0014 accepted.
+- Choose SQLite library and migration approach.
+- Define first manifest schemas for plugins, agents, tasks, runs, and artifacts.
+- Create a migration plan from current persona/session/fleet concepts to task/agent/run concepts.
+
+### Milestone 2: Local Agent Catalog
+
+Goal: Make formal agents visible and runnable from local plugin manifests.
+
+- Refinement epic: `planning/backlog/refinement/2026.11.00-epic-local-agent-catalog.md`
+- Load local plugins from configured folders.
+- Validate plugin and agent manifests.
+- Index plugin and agent metadata into SQLite.
+- Show base agents and installed plugin agents in the console.
+- Render agent detail pages with inputs, capabilities, runtimes, permissions, and limits.
+
+### Milestone 3: Task Workbench
+
+Goal: Let a solo operator create and run useful manual tasks.
+
+- Refinement epic: `planning/backlog/refinement/2026.12.00-epic-task-workbench.md`
+- Create tasks manually in the console.
+- Assign compatible agents.
+- Validate task inputs against the agent manifest.
+- Start local-process task runs.
+- Inspect run status, logs, events, artifacts, and final outputs.
+- Capture follow-up tasks as proposed work.
+
+### Milestone 4: Runtime Backends and Safety
+
+Goal: Make execution pluggable and bounded.
+
+- Refinement epic: `planning/backlog/refinement/2026.13.00-epic-runtime-safety-backends.md`
+- Add container-command backend.
+- Add HTTP/API backend.
+- Add JS/TS and Python module adapters if still warranted after local-command experience.
+- Add LangGraph wrapper prototype.
+- Enforce runtime duration, tool-call, retry, and repeated-action limits.
+- Add risky-action approval records.
+
+### Milestone 5: Missions and Workflow Templates
+
+Goal: Compose tasks into repeatable work.
+
+- Refinement epic: `planning/backlog/refinement/2026.14.00-epic-missions-workflow-templates.md`
+- Create missions with ordered tasks.
+- Store dependency edges for future DAG execution.
+- Add workflow templates supplied by plugins.
+- Run sequential mission plans.
+- Persist mission run history and task run lineage.
+
+### Milestone 6: Scheduling
+
+Goal: Make repeatable workflows run later or recurringly.
+
+- Refinement epic: `planning/backlog/refinement/2026.15.00-epic-scheduling.md`
+- Add schedule creation for tasks, missions, and workflow templates.
+- Add one-shot and recurring local schedules.
+- Show schedule history, next run, last run, pause/resume/delete.
+- Define missed-run behavior.
+
+## Deferred
+
+- Enterprise fleet governance.
+- Cloud-first deployment.
+- Remote plugin registry.
+- Natural-language task planning as the primary workflow.
+- Autonomous multi-agent proposal systems.
+
+## Archived Snapshot
+
+The superseded roadmap was archived to:
+
+- `planning/archive/2026-product-direction-reset/roadmap-snapshot/backlog-roadmap.md`
+
+Do not treat the archived fleet-governance/Azure-centered roadmap as active execution priority without rewriting it against the reset baseline.

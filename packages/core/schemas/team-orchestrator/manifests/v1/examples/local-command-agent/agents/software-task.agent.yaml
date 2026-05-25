@@ -1,0 +1,73 @@
+schemaVersion: 1
+agent:
+  id: software.task.local
+  name: Software Task
+  version: 0.1.0
+  description: Runs a local software task against a workspace checkout.
+  capabilities:
+    - code.modify
+    - tests.run
+    - artifacts.produce
+  inputs:
+    repositoryPath:
+      type: file
+      required: true
+    taskBrief:
+      type: markdown
+      required: true
+    testCommand:
+      type: string
+      required: false
+      default: npm test
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: summary
+        kind: primary
+        format: markdown
+      - key: patch
+        kind: diff
+        format: patch
+        optional: true
+      - key: testLog
+        kind: log
+        format: text
+        optional: true
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - agents/software-task/run.js
+  runtime:
+    preferredBackend: local-process
+    backendPreferences:
+      - local-process
+      - container
+      - api
+    workingDirectory: .
+  permissions:
+    network: read
+    filesystem: scoped
+    shell: allow
+    containers: allow
+    credentials: deny
+    approvalRequiredFor:
+      - destructive-filesystem
+      - network-write
+      - credential-access
+      - schedule-create
+  limits:
+    maxRuntimeSeconds: 900
+    maxToolCalls: 80
+    maxRepeatedActions: 3
+    maxRetries: 2
+    maxFollowUpTasks: 5
+    maxArtifacts: 8
+  observability:
+    mode: inspectable
+    eventHints:
+      - command.start
+      - command.exit
+      - artifact.write
+  compatibility:
+    teamOrchestrator: ">=0.1.0"

@@ -2,7 +2,7 @@
 
 # Azure Application Insights Observability
 
-This document defines the Milestone 5 baseline for control-plane telemetry in Azure.
+This document is retained as Azure observability implementation context. Cloud observability is deferred during the 2026 product-direction reset.
 
 ## Runtime Configuration
 

@@ -4,7 +4,7 @@
 
 ## Purpose
 
-This document defines mandatory engineering and quality standards for ProjectAthena development. It is the source of truth for:
+This document defines mandatory engineering and quality standards for Team Orchestrator development. It is the source of truth for:
 
 - development workflow expectations
 - test design and coverage requirements

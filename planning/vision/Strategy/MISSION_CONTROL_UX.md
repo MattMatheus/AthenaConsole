@@ -1,30 +1,50 @@
 <!-- AUDIENCE: Internal/Technical -->
 
-# Team Orchestrator: Mission Control UX & Design Philosophy
+# Team Orchestrator: Console UX Direction
 
-## 1. The "Glass Cockpit" Dashboard
-The Milestone 4 UI is designed as a **Heads-Up Display (HUD)** for the Flight Director (The User).
+## Primary Surface
 
-- **Athena Uplink:** A prominent interface area for direct communication with Athena. This is where recommendations are presented and approved.
-- **Swarm Monitor:** A visual map of the current unit, showing which agents are active, which are pending, and the flow of context between them.
-- **Data Density:** High-fidelity telemetry displayed side-by-side with human-readable reasoning.
+The web console is the product's primary surface. CLI and API paths remain useful, but the console should define the main user experience.
 
-## 2. Operational Modes
+The first console experience should make it easy to:
 
-- **Mode: "Silent Run" (Managed Autonomy)**
-    *   *Usage:* Coding agents, Security auditors.
-    *   *Experience:* Athena manages the specialist. HUD shows "Mission in Progress." Athena notifies the FD only upon completion or if a manual decision is required.
-- **Mode: "Active Bridge" (Collaborative)**
-    *   *Usage:* Planning sessions with Sarah, Strategy sessions with Athena.
-    *   *Experience:* User enters a dedicated session environment. Real-time collaboration on a shared drafting table with the AI specialist.
+- create a manual task
+- select a compatible agent
+- configure runtime inputs
+- run locally
+- inspect status, logs, events, artifacts, and outputs
+- accept, retry, cancel, or create follow-up tasks
 
-## 3. The Recommendation HUD
-When Athena suggests a specialist or a mission path, it is presented as a **"Flight Plan Proposal."**
-- **Insight:** "Based on the repo diff, I recommend Alex (SDET) runs a regression test on the Auth module."
-- **Controls:** [Approve] [Modify] [Reject].
+## Core Views
 
-## 4. Mission Briefing
-Upon mission completion, Athena compiles a structured **"Mission Briefing"**:
-- **Persona Output:** The deliverables (e.g., Leo's Pull Request).
-- **Athena's Summary:** A high-level strategic overview of what was achieved and what the next mission should be.
-- **Evidence Bundle:** The machine-grade proof (Logs, Sandbox status, Token usage).
+### Tasks
+
+The default workbench for the solo operator. It should show task status, assigned agent, inputs, outputs, run history, follow-up suggestions, and artifacts.
+
+### Missions
+
+A mission groups related tasks around a shared goal. The first version can be sequential-first while preserving dependency fields for later DAG execution.
+
+### Agents
+
+The local catalog of base agents and installed plugin agents. Agent detail pages should show manifest metadata, capabilities, required inputs, supported runtimes, permissions, and test/demo actions.
+
+### Plugins
+
+Installed local plugin bundles. A plugin may provide agents, workflow templates, schemas, fixtures, docs, and optional UI metadata.
+
+### Runs
+
+Inspectable execution history. A run should expose timeline events, logs, tool calls where available, artifacts, outputs, cancellation status, loop-limit stops, and error details.
+
+### Schedules
+
+Near-term surface for recurring or delayed execution of tasks, missions, or workflow templates.
+
+## UX Principles
+
+- Manual-first: the operator chooses tasks and agents before proposal-based automation becomes primary.
+- Inspectable: black-box agents still expose outer status, logs, artifacts, and outputs; inspectable agents expose internal steps/tool calls when hooks exist.
+- Local-first: the default runtime should feel immediate and understandable on the user's machine.
+- Safety-visible: approvals, permissions, runtime boundaries, loop limits, and cancellation should be visible from the run surface.
+- Dense but calm: prioritize operational clarity over marketing composition.

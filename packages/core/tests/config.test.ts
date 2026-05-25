@@ -41,6 +41,8 @@ describe("loadConfig", () => {
       expect(config.history?.maxEntries).toBe(200);
       expect(config.memory?.enabled).toBe(false);
       expect(config.memory?.includeTranscripts).toBe(false);
+      expect(config.plugins?.searchPaths).toEqual([".athena/plugins"]);
+      expect(config.plugins?.systemPluginPaths).toEqual([]);
       expect(config.context?.strategy).toBe("raw");
       expect(config.context?.maxChars).toBe(32000);
       expect(config.context?.maxOverflowRetries).toBe(2);
@@ -148,6 +150,8 @@ describe("loadConfig", () => {
           "ATHENA_MEMORY_INCLUDE_TRANSCRIPTS=true",
           "ATHENA_MEMORY_SQLITE_PATH=.athena/memory/main.sqlite",
           "ATHENA_MEMORY_MAX_RESULTS=8",
+          "ATHENA_PLUGIN_PATHS=plugins/news,/opt/team-orchestrator/plugins",
+          "ATHENA_SYSTEM_PLUGIN_PATHS=packages/core/system-plugins",
           "ATHENA_CONTEXT_STRATEGY=summary",
           "ATHENA_CONTEXT_MAX_CHARS=18000",
           "ATHENA_CONTEXT_RESERVE_CHARS=1200",
@@ -233,6 +237,8 @@ describe("loadConfig", () => {
       expect(config.memory?.includeTranscripts).toBe(true);
       expect(config.memory?.sqlitePath).toBe(".athena/memory/main.sqlite");
       expect(config.memory?.maxResults).toBe(8);
+      expect(config.plugins?.searchPaths).toEqual(["plugins/news", "/opt/team-orchestrator/plugins"]);
+      expect(config.plugins?.systemPluginPaths).toEqual(["packages/core/system-plugins"]);
       expect(config.context?.strategy).toBe("summary");
       expect(config.context?.maxChars).toBe(18000);
       expect(config.context?.reserveChars).toBe(1200);

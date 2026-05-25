@@ -98,6 +98,10 @@ export interface AthenaConfig {
     maxSnippetChars: number;
     maxInjectedChars: number;
   };
+  plugins?: {
+    searchPaths: string[];
+    systemPluginPaths: string[];
+  };
   context?: {
     strategy: ContextStrategy;
     maxChars: number;
@@ -201,6 +205,10 @@ const DEFAULT_CONFIG: AthenaConfig = {
     maxResults: 6,
     maxSnippetChars: 700,
     maxInjectedChars: 2_500
+  },
+  plugins: {
+    searchPaths: [".athena/plugins"],
+    systemPluginPaths: []
   },
   context: {
     strategy: "raw",
@@ -867,6 +875,16 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
         env.ATHENA_MEMORY_MAX_INJECTED_CHARS ?? process.env.ATHENA_MEMORY_MAX_INJECTED_CHARS,
         DEFAULT_CONFIG.memory!.maxInjectedChars
       )
+    },
+    plugins: {
+      searchPaths:
+        env.ATHENA_PLUGIN_PATHS || process.env.ATHENA_PLUGIN_PATHS
+          ? parseCsv(env.ATHENA_PLUGIN_PATHS ?? process.env.ATHENA_PLUGIN_PATHS)
+          : DEFAULT_CONFIG.plugins!.searchPaths,
+      systemPluginPaths:
+        env.ATHENA_SYSTEM_PLUGIN_PATHS || process.env.ATHENA_SYSTEM_PLUGIN_PATHS
+          ? parseCsv(env.ATHENA_SYSTEM_PLUGIN_PATHS ?? process.env.ATHENA_SYSTEM_PLUGIN_PATHS)
+          : DEFAULT_CONFIG.plugins!.systemPluginPaths
     },
     context: {
       strategy: parseContextStrategy(

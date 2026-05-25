@@ -1,8 +1,12 @@
 <!-- AUDIENCE: Internal/Technical -->
 
-# GitHub Actions CI/CD (Milestone 5)
+# GitHub Actions CI/CD
 
-This document defines the repository-level CI/CD baseline for Azure deployment of ProjectAthena control-plane and console components.
+## Reset Note
+
+This document is retained as deployment implementation context. Cloud deployment is deferred during the 2026 product-direction reset.
+
+This document defines the repository-level CI/CD baseline for Azure deployment of the current control-plane and console components.
 
 ## Workflows
 

@@ -5,7 +5,7 @@ Source of truth for work items lives in `planning/backlog/`:
 - Completed stories: `planning/backlog/completed/`
 - Roadmap: `planning/backlog/roadmap/roadmap.md`
 
-Current focus (Website Foundation Cycle):
-- Story `03.05`: define content backup and rollback process.
-- [ ] Finalize Mission Run API documentation.
-- [ ] Perform end-to-end sync validation with production manifest.
+Current focus:
+- Product-direction reset.
+- Public website work should wait for the rebuilt product roadmap and messaging baseline.
+- Use `planning/architecture/0006-team-orchestrator-direction-and-agent-model.md` as the source for future positioning.

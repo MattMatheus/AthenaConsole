@@ -2,18 +2,38 @@
 
 # Active Backlog
 
-The stories in this directory are the immediate priority for implementation.
-Every development cycle must consume the next story in this list and move it to `planning/backlog/completed/` upon successful handoff.
+The active queue is currently empty after completing the Team Orchestrator foundation reset implementation.
 
-## Active Sequence
+Every story in this queue is derived from the accepted reset ADRs:
 
-### Fleet Dashboard Track
-1. **[05.02-create-fleet-dashboard-page-component.md](05.02-create-fleet-dashboard-page-component.md)**
-   - Create the main Fleet Dashboard page component and integrate it into the UI router.
-2. **[05.03-create-fleet-status-summary-component.md](05.03-create-fleet-status-summary-component.md)**
-   - Create a high-level summary component showing total agents and status breakdown.
-3. **[05.04-create-resource-usage-component.md](05.04-create-resource-usage-component.md)**
-   - Create a component to visualize aggregate CPU and Memory consumption.
+- `planning/architecture/0006-team-orchestrator-direction-and-agent-model.md`
+- `planning/architecture/0007-agent-manifest-and-lifecycle-contract.md`
+- `planning/architecture/0008-plugin-package-format.md`
+- `planning/architecture/0009-task-mission-run-domain-model.md`
+- `planning/architecture/0010-sqlite-app-state-architecture.md`
+- `planning/architecture/0011-runtime-backend-interface.md`
+- `planning/architecture/0012-event-artifact-observability-model.md`
+- `planning/architecture/0013-safety-approval-and-loop-limit-model.md`
+- `planning/architecture/0014-scheduling-model.md`
 
----
-*For the long-term plan, see `planning/backlog/roadmap/roadmap.md`.*
+## Completed Foundation Reset
+
+Completed stories were moved to:
+
+- `planning/backlog/completed/2026-product-direction-reset/`
+
+## Current Stopping Point
+
+The foundation reset implementation sequence is complete. The next planning step should decide whether to:
+
+- add API routes over the new repositories,
+- start the task workbench console milestone,
+- or add runtime backend integration against the new run model.
+
+## Archived Previous Queue
+
+The stale fleet-dashboard queue was archived to:
+
+- `planning/archive/2026-product-direction-reset/active-backlog-snapshot/`
+
+Do not promote legacy fleet governance or Athena-centered persona work back into active execution without reframing it against the reset baseline.

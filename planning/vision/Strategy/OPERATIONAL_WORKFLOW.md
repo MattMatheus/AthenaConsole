@@ -1,31 +1,61 @@
 <!-- AUDIENCE: Internal/Technical -->
 
-# Team Orchestrator: Operational Workflow & Swarm Coordination
+# Team Orchestrator: Operational Workflow
 
-## 1. The Collaborative Loop
-The Flight Director (FD) and Athena work in a continuous feedback loop to manage the mission lifecycle.
+## Manual Task Flow
 
-### Phase 1: Objective Interpretation
-- **FD:** Inputs a high-level goal (e.g., "We need to refactor the authentication module").
-- **Athena:** Analyzes the request against the existing context. She suggests a mission path and recommends specialists from the unit (e.g., "Recommended: Sarah for requirements update, followed by Leo for implementation").
+1. Operator creates a task in the console.
+2. Operator selects a compatible agent.
+3. Console validates task inputs against the agent manifest.
+4. Operator chooses or accepts the runtime backend.
+5. Team Orchestrator starts a run.
+6. Run emits structured events, logs, artifacts, and outputs.
+7. Operator reviews the result and decides whether to accept, retry, cancel, or create follow-up tasks.
 
-### Phase 2: Unit Deployment
-- **FD:** Approves or modifies the recommendation (e.g., "Skip Sarah, I'll provide the requirements. Send the brief to Leo").
-- **Athena:** Provisions the sandbox, distill the context, and initiates the mission for the selected specialist.
+## Mission Flow
 
-## 2. The Mission Relay (A2A Coordination)
-Athena acts as the "Briefing Officer" for the entire unit, ensuring perfect knowledge transfer between specialists.
+A mission is a collection of related tasks with shared goal and context.
 
-- **Context Compounding:** When a specialist (like Sarah) completes a task, Athena ingests the output, distill its essence, and prepares the "Seed Context" for the next agent in the chain.
-- **Swarm Integrity:** Athena monitors the status of all active agents in the swarm, preventing resource contention and ensuring policy compliance.
+The first mission experience should be ordered and human-directed:
 
-## 3. The Specialist Registry (The Hangar)
-A hybrid "App Store" and "Recruitment Center" where engineers onboard new agents to their units.
+1. Create mission.
+2. Add tasks.
+3. Assign agents.
+4. Run tasks one at a time or as an ordered sequence.
+5. Inspect each task run.
+6. Promote agent-created follow-ups into proposed tasks.
 
-- **The Specialist Dossier:** Detailed profile for each agent (Technical specs + Persona specs).
-- **Unit Assignment:** "Athena, onboard Maya (Data Scientist) to the 'Core-Infra' unit."
+The data model should allow dependencies so later versions can run DAG-style missions without redefining tasks and runs.
 
-## 4. Managed Autonomy & Interventions
-- **Athena's Autonomy:** She can manage multi-step DAGs independently once the FD sets the trajectory.
-- **Human Intervention:** The FD can "Break the Loop" at any point. They can talk to Athena to change a specialist's direction, update a policy mid-mission, or veto an agent's output.
-- **Lore-Friendly Controls:** `athena run` is the command to initiate the collaborative uplink.
+## Follow-Up Tasks
+
+Agents may create follow-up tasks. Follow-ups should include:
+
+- source run
+- source agent
+- reason
+- suggested task title
+- suggested inputs
+- recommended compatible agent or capability
+
+Follow-ups should enter as proposed or pending work. They should not silently trigger unbounded autonomous loops.
+
+## Runtime Backends
+
+Execution is pluggable:
+
+- local process by default
+- container command as first-class backend
+- HTTP/API agent backend
+- JS/TS module
+- Python module
+- LangGraph wrapper
+- native Team Orchestrator DAG
+
+Hosted/cloud execution can be added later through the same backend model.
+
+## Safety Controls
+
+Approvals are required for risky actions.
+
+Runs must enforce loop and tool-call limits so stuck agents stop with inspectable evidence instead of burning tokens indefinitely.

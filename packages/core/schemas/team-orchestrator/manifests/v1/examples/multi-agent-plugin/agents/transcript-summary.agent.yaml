@@ -1,0 +1,61 @@
+schemaVersion: 1
+agent:
+  id: podcast.transcript-summary.local
+  name: Transcript Summary
+  version: 0.1.0
+  description: Summarizes podcast transcripts into themes and key moments.
+  capabilities:
+    - audio.transcribe
+    - text.summarize
+  inputs:
+    transcriptPath:
+      type: file
+      required: true
+      label: Transcript
+    episodeTitle:
+      type: string
+      required: true
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: summary
+        kind: primary
+        format: markdown
+      - key: moments
+        kind: supporting
+        format: json
+        optional: true
+  implementation:
+    type: container-command
+    image: team-orchestrator/podcast-transcript:0.1.0
+    entrypoint:
+      - node
+      - dist/transcript-summary.js
+  runtime:
+    preferredBackend: container
+    backendPreferences:
+      - container
+      - local-process
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: deny
+    containers: allow
+    credentials: deny
+    approvalRequiredFor:
+      - container-control
+  limits:
+    maxRuntimeSeconds: 900
+    maxToolCalls: 20
+    maxRepeatedActions: 3
+    maxRetries: 1
+    maxFollowUpTasks: 2
+  observability:
+    mode: inspectable
+    eventHints:
+      - transcript.chunk
+      - summary.section
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    frameworks:
+      - native

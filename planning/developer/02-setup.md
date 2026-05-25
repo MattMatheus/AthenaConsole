@@ -2,7 +2,7 @@
 
 # Development Setup
 
-This guide will walk you through setting up your development environment for Project Athena.
+This guide walks through the current development environment. Some commands still use legacy Athena package names while product planning is being reset around Team Orchestrator.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ Ensure you have the following software installed:
 ## Getting Started
 
 1.  **Clone the Repository:**
-    First, clone the Project Athena repository to your local machine:
+    First, clone the repository to your local machine:
 
     ```bash
     git clone <repository-url>
@@ -44,7 +44,7 @@ Ensure you have the following software installed:
 
 ## Running Tests
 
-Project Athena uses `vitest` for its testing framework.
+The project uses `vitest` for its testing framework.
 
 *   **Run all tests once:**
 
@@ -64,7 +64,7 @@ The project uses TypeScript for type safety and implicitly follows standard Type
 
 ## Generating API Schemas
 
-Project Athena generates API component schemas from its TypeScript definitions. These schemas are crucial for API contract validation and for generating client libraries.
+The current implementation generates API component schemas from its TypeScript definitions. These schemas are crucial for API contract validation and for generating client libraries.
 
 *   **Generate Schemas:**
 

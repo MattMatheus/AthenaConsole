@@ -1,0 +1,439 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://team-orchestrator.local/schemas/manifests/v1/agent.schema.json",
+  "title": "Team Orchestrator Agent Manifest",
+  "description": "Schema for *.agent.yaml files authored by Team Orchestrator plugin packages.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "agent"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "version",
+        "capabilities",
+        "inputs",
+        "outputs",
+        "implementation",
+        "permissions",
+        "limits",
+        "observability"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/namespacedId"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "$ref": "#/definitions/semver"
+        },
+        "description": {
+          "type": "string"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/namespacedId"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/inputField"
+          },
+          "minProperties": 1
+        },
+        "outputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": {
+            "mode": {
+              "enum": ["flexible", "schema"]
+            },
+            "schema": {
+              "$ref": "#/definitions/relativePath"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/artifactHint"
+              },
+              "default": []
+            }
+          }
+        },
+        "implementation": {
+          "$ref": "#/definitions/implementation"
+        },
+        "runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "preferredBackend": {
+              "enum": ["local-process", "container", "api", "any"]
+            },
+            "backendPreferences": {
+              "type": "array",
+              "items": {
+                "enum": ["local-process", "container", "api"]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "workingDirectory": {
+              "$ref": "#/definitions/relativePath"
+            },
+            "environment": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "permissions": {
+          "$ref": "#/definitions/permissions"
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["maxRuntimeSeconds", "maxToolCalls"],
+          "properties": {
+            "maxRuntimeSeconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxToolCalls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxRepeatedActions": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxRetries": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxFollowUpTasks": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxOutputBytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxArtifacts": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "observability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": {
+            "mode": {
+              "enum": ["black-box", "inspectable"]
+            },
+            "eventHints": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            }
+          }
+        },
+        "compatibility": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "teamOrchestrator": {
+              "type": "string",
+              "minLength": 1
+            },
+            "pluginApi": {
+              "type": "string",
+              "minLength": 1
+            },
+            "frameworks": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            }
+          }
+        },
+        "ui": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "icon": {
+              "type": "string"
+            },
+            "color": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "inputOrder": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "namespacedId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:[-+][0-9A-Za-z.-]+)?$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "pattern": "^(?:/|[A-Za-z]:|.*\\.\\./)"
+      }
+    },
+    "inputField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": ["string", "markdown", "number", "integer", "boolean", "object", "array", "json", "file", "url", "enum"]
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "description": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "default": true,
+        "schema": {
+          "$ref": "#/definitions/relativePath"
+        },
+        "enum": {
+          "type": "array",
+          "items": {
+            "type": ["string", "number", "boolean"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "ui": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "widget": {
+              "enum": ["text", "textarea", "markdown", "number", "checkbox", "select", "file", "json"]
+            },
+            "placeholder": {
+              "type": "string"
+            },
+            "order": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "artifactHint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "format"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9._-]*$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": ["primary", "supporting", "log", "trace", "diff"]
+        },
+        "format": {
+          "enum": ["markdown", "json", "text", "html", "csv", "audio", "video", "image", "binary", "directory", "patch"]
+        },
+        "optional": {
+          "type": "boolean",
+          "default": false
+        },
+        "schema": {
+          "$ref": "#/definitions/relativePath"
+        }
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": ["local-command", "container-command", "http", "js-module", "python-module", "langgraph", "native-dag"]
+        },
+        "command": {
+          "type": "string"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cwd": {
+          "$ref": "#/definitions/relativePath"
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "image": {
+          "type": "string"
+        },
+        "entrypoint": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "url": {
+          "type": "string"
+        },
+        "module": {
+          "$ref": "#/definitions/relativePath"
+        },
+        "export": {
+          "type": "string"
+        },
+        "graph": {
+          "$ref": "#/definitions/relativePath"
+        },
+        "dag": {
+          "$ref": "#/definitions/relativePath"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "local-command"
+              }
+            }
+          },
+          "then": {
+            "required": ["command"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "container-command"
+              }
+            }
+          },
+          "then": {
+            "required": ["image"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "http"
+              }
+            }
+          },
+          "then": {
+            "required": ["url"]
+          }
+        }
+      ]
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["network", "filesystem"],
+      "properties": {
+        "network": {
+          "enum": ["deny", "read", "write", "allow"]
+        },
+        "filesystem": {
+          "enum": ["none", "read", "scoped", "write"]
+        },
+        "shell": {
+          "enum": ["deny", "allow"]
+        },
+        "containers": {
+          "enum": ["deny", "allow"]
+        },
+        "credentials": {
+          "enum": ["deny", "scoped"]
+        },
+        "approvalRequiredFor": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "read-only",
+              "local-write",
+              "destructive-filesystem",
+              "network-read",
+              "network-write",
+              "credential-access",
+              "shell-command",
+              "container-control",
+              "schedule-create",
+              "schedule-update",
+              "plugin-install"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

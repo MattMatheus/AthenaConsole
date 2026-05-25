@@ -1,54 +1,140 @@
 <!-- AUDIENCE: Internal/Technical -->
 
-# Team Orchestrator: Standardized Flight Manifests
+# Team Orchestrator: Manifest Samples
 
-These templates demonstrate how Athena interprets high-level objectives into specific specialist units and mission relays.
+These examples illustrate the new manifest-first model. The canonical v1 schemas and runnable examples live in:
 
-## 1. Scenario: The "Hotfix" Manifest
-**Objective:** "Fix the critical memory leak in the Auth service."
+- `packages/core/schemas/team-orchestrator/manifests/v1/`
 
-### The Manifest
-- **1x Bug Scrubber:** Analyzes heap dumps, identifies the leak source, and proposes a surgical fix.
-- **1x Reliability Specialist:** Validates the fix against performance benchmarks and ensures no regression in system stability.
-- **1x Security Auditor:** Verifies that the patch does not introduce new vulnerabilities in the Auth flow.
+## Single-Agent Plugin
 
-### The Relay Path
-1. **Interpretation:** Athena identifies the leak and identifies the Auth service dependencies.
-2. **Execution:** Bug Scrubber operates in a dedicated sandbox with access to logs and heap dumps.
-3. **Verification:** Output is relayed to the Reliability Specialist for stress testing.
-4. **Final Audit:** Security Auditor signs off on the patch integrity.
-5. **Briefing:** The Flight Director receives the "Evidence Bundle" (Logs + Benchmark delta + Security sign-off).
+```yaml
+schemaVersion: 1
+plugin:
+  id: team-orchestrator.examples.news
+  name: News Workflow Examples
+  version: 0.1.0
+  agents:
+    - path: agents/news-digest.agent.yaml
+      id: news.digest.local
+      version: 0.1.0
+```
 
----
+```yaml
+schemaVersion: 1
+agent:
+  id: news.digest.local
+  name: News Digest
+  version: 0.1.0
+  capabilities:
+    - news.aggregate
+    - text.summarize
+  inputs:
+    topic:
+      type: string
+      required: true
+    lookbackHours:
+      type: number
+      default: 24
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: digest
+        format: markdown
+  implementation:
+    type: local-command
+    command: npm
+    args: ["run", "agent:news-digest"]
+  runtime:
+    preferredBackend: local-process
+  permissions:
+    network: read
+    filesystem: scoped
+    shell: allow
+  limits:
+    maxToolCalls: 40
+    maxRuntimeSeconds: 600
+  observability:
+    mode: black-box
+```
 
-## 2. Scenario: The "Feature Launch" Manifest
-**Objective:** "Implement and deploy the new 'Usage Billing' module."
+## Software Task Agent
 
-### The Manifest
-- **1x Strategic Architect:** Interprets requirements, defines the database schema, and creates the implementation roadmap.
-- **2x Systems Engineers:** Execute the code implementation across the API and worker layers.
-- **1x Verification Officer (Alex):** Conducts end-to-end integration testing and ensures billing accuracy.
+```yaml
+schemaVersion: 1
+agent:
+  id: software.task.local
+  name: Software Task
+  version: 0.1.0
+  capabilities:
+    - code.modify
+    - tests.run
+  inputs:
+    repositoryPath:
+      type: string
+      required: true
+    taskBrief:
+      type: markdown
+      required: true
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: summary
+        format: markdown
+      - key: patch
+        format: patch
+        optional: true
+  implementation:
+    type: local-command
+    command: node
+    args: ["agents/software-task/run.js"]
+  runtime:
+    preferredBackend: local-process
+  permissions:
+    network: read
+    filesystem: scoped
+    shell: allow
+    approvalRequiredFor:
+      - destructive-filesystem
+      - network-write
+  limits:
+    maxRuntimeSeconds: 900
+    maxToolCalls: 80
+    maxRepeatedActions: 3
+    maxRetries: 2
+    maxFollowUpTasks: 5
+  observability:
+    mode: inspectable
+```
 
-### The Relay Path
-1. **Interpretation:** Athena maps the billing logic to existing infrastructure.
-2. **Execution:** Strategic Architect creates the blueprint; Systems Engineers build the components in parallel pods.
-3. **Relay:** Athena compounding the "Seed Context" as each component is completed.
-4. **Verification:** Integration suite is run by the Verification Officer.
-5. **Briefing:** Flight Director receives the "Mission Summary" with PR links and test coverage reports.
+## Mission Template
 
----
+```yaml
+workflowTemplate:
+  id: podcast.weekly-briefing
+  name: Weekly Podcast Briefing
+  version: 0.1.0
+  tasks:
+    - id: ingest
+      title: Ingest source episodes
+      capability: media.ingest
+    - id: transcribe
+      title: Transcribe episode audio
+      capability: audio.transcribe
+      dependsOn: ["ingest"]
+    - id: summarize
+      title: Summarize transcript
+      capability: text.summarize
+      dependsOn: ["transcribe"]
+    - id: showNotes
+      title: Draft show notes
+      capability: content.draft
+      dependsOn: ["summarize"]
+```
 
-## 3. Scenario: The "Security Hardening" Manifest
-**Objective:** "Harden the public API against OWASP Top 10 vulnerabilities."
+## Notes
 
-### The Manifest
-- **2x Security Auditors:** Conduct automated penetration testing and manual-style policy audits.
-- **1x Reliability Specialist:** Monitors for any performance overhead introduced by new security middleware.
-- **1x Bug Scrubber:** Patches identified vulnerabilities in real-time as they are discovered.
-
-### The Relay Path
-1. **Interpretation:** Athena scans the API surface area and identifies high-risk endpoints.
-2. **Execution:** Security Auditors initiate a "Red Team" mission in a mirrored production environment.
-3. **Action:** Vulnerabilities are relayed to the Bug Scrubber for immediate remediation.
-4. **Monitoring:** Reliability Specialist ensures that latency remains within policy limits.
-5. **Briefing:** Flight Director receives a "Compliance Certificate" and a detailed audit log of all patches.
+- A plugin can contain one agent or many agents.
+- A task is normally assigned to a compatible agent.
+- A mission can begin as an ordered list while preserving dependency metadata for future DAG execution.
+- Outputs remain flexible at first, with optional schemas added where they improve reliability.
