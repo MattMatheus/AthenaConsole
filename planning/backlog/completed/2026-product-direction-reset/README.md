@@ -11,4 +11,4 @@ Completed stories:
 - `2026.10.03-build-local-plugin-loader-and-indexer.md`
 - `2026.10.04-create-task-mission-run-repositories.md`
 
-QA passed for the foundation scope. The broader core unit suite was attempted and still has unrelated pre-existing failures in provider-dependent runtime/CLI tests, harness model validation fixtures, and older runtime context expectations.
+QA passed for the foundation scope. The broader `@athena/core` unit suite now passes after aligning default runtime/provider configuration with the local-first Team Orchestrator direction.

@@ -140,18 +140,18 @@ export interface AthenaConfig {
 const DEFAULT_CONFIG: AthenaConfig = {
   workspaceRoot: process.cwd(),
   stateDir: ".athena",
-  executionProviderDefault: "docker",
+  executionProviderDefault: "local-placeholder",
   lockProviderDefault: "local",
-  defaultProvider: "foundry",
-  defaultModel: "gpt-4o-mini",
-  providerFallbackOrder: ["openai"],
+  defaultProvider: "mock",
+  defaultModel: "mock-model",
+  providerFallbackOrder: [],
   localProviderCommand: "/bin/echo",
   localProviderArgs: [],
   openaiBaseUrl: DEFAULT_OPENAI_BASE_URL,
   foundry: {
-    enabled: true,
+    enabled: false,
     apiVersion: "2024-05-01-preview",
-    useEntraId: true,
+    useEntraId: false,
     audience: "https://cognitiveservices.azure.com/.default"
   },
   azure: {

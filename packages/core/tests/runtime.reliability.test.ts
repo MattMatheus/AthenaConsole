@@ -44,6 +44,10 @@ function config(workspaceRoot: string) {
     httpProviderTimeoutMs: 20000,
     runtimeRunTimeoutMs: 30000,
     scheduleRunTimeoutMs: 45000,
+    runHistory: {
+      retentionDays: 3650,
+      sweepIntervalMs: 60 * 60 * 1000
+    },
     context: {
       strategy: "raw" as const,
       maxChars: 1800,

@@ -432,6 +432,7 @@ describe("sandbox backend scaffold", () => {
       const dockerServices = createLocalControlPlaneServices({
         config: {
           ...config,
+          executionProviderDefault: "docker",
           sandbox: {
             enabled: true,
             requireForHighSecurity: false
@@ -454,6 +455,7 @@ describe("sandbox backend scaffold", () => {
       const k8sServices = createLocalControlPlaneServices({
         config: {
           ...config,
+          executionProviderDefault: "docker",
           sandbox: {
             enabled: true,
             requireForHighSecurity: false
@@ -505,6 +507,7 @@ describe("sandbox backend scaffold", () => {
       const services = createLocalControlPlaneServices({
         config: {
           ...config,
+          executionProviderDefault: "docker",
           sandbox: {
             enabled: true,
             requireForHighSecurity: false

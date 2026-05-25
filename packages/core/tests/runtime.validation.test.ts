@@ -19,7 +19,11 @@ function testConfig(workspaceRoot: string) {
     httpProviderApiKey: undefined,
     httpProviderTimeoutMs: 20000,
     runtimeRunTimeoutMs: 30000,
-    scheduleRunTimeoutMs: 45000
+    scheduleRunTimeoutMs: 45000,
+    runHistory: {
+      retentionDays: 3650,
+      sweepIntervalMs: 60 * 60 * 1000
+    }
   };
 }
 

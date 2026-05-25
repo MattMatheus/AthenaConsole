@@ -85,9 +85,8 @@
 - Pass: `npx vitest run tests/control-plane.plugin-loader.test.ts tests/control-plane.app-state.test.ts tests/control-plane.manifests.test.ts tests/config.test.ts`
 - Pass: `npx vitest run tests/control-plane.domain-repositories.test.ts tests/control-plane.app-state.test.ts tests/control-plane.plugin-loader.test.ts tests/control-plane.manifests.test.ts tests/config.test.ts`
 - Pass: `npm --workspace @athena/core run validate:manifests`
-- Attempted: `npm --workspace @athena/core run test:unit`
-  - Result: failed with pre-existing/unrelated failures in provider configuration/API-key dependent tests, harness profile model validation fixtures, and older runtime context/reliability expectations.
-- Full repo tests were not rerun; previous baseline had unrelated existing core failures.
+- Pass: `npm --workspace @athena/core run test:unit`
+- Full repo tests outside `@athena/core` were not rerun.
 
 ## Next Work
 

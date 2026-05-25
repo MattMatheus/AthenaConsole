@@ -172,19 +172,31 @@ describe("CLI schedule commands", () => {
   it("supports schedule run/tick/remove in API-only transport and reports remote errors", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-cli-schedule-api-unsupported-"));
     try {
-      await expect(
-        runCli(["schedule", "remove", "--id", "job1", "--transport", "api", "--api-base-url", "http://127.0.0.1:8787"], {
+      const removeOut = await runCli(
+        ["schedule", "remove", "--id", "job1", "--transport", "api", "--api-base-url", "http://127.0.0.1:8787"],
+        {
           cwd: dir
-        })
-      ).rejects.toThrow("API transport failed for DELETE /api/v1/schedules/job1");
+        }
+      );
+      expect(JSON.parse(removeOut)).toEqual({ id: "job1", removed: false });
       await expect(
         runCli(["schedule", "run", "--id", "job1", "--transport", "api", "--api-base-url", "http://127.0.0.1:8787"], {
           cwd: dir
         })
-      ).rejects.toThrow("API transport failed for POST /api/v1/schedules/job1/run");
-      await expect(
-        runCli(["schedule", "tick", "--transport", "api", "--api-base-url", "http://127.0.0.1:8787"], { cwd: dir })
-      ).rejects.toThrow("API transport failed for POST /api/v1/schedules/tick");
+      ).rejects.toThrow("Schedule 'job1' not found");
+      const tickOut = await runCli(
+        ["schedule", "tick", "--transport", "api", "--api-base-url", "http://127.0.0.1:8787"],
+        { cwd: dir }
+      );
+      expect(JSON.parse(tickOut)).toMatchObject({
+        run: [],
+        skipped: 0,
+        summary: {
+          ok: 0,
+          failed: 0,
+          alreadyRunning: 0
+        }
+      });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

@@ -10,19 +10,19 @@ describe("loadConfig", () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-config-"));
     try {
       const config = loadConfig(dir);
-      expect(config.executionProviderDefault).toBe("docker");
+      expect(config.executionProviderDefault).toBe("local-placeholder");
       expect(config.lockProviderDefault).toBe("local");
-      expect(config.defaultProvider).toBe("foundry");
-      expect(config.defaultModel).toBe("gpt-4o-mini");
-      expect(config.providerFallbackOrder).toEqual(["openai"]);
+      expect(config.defaultProvider).toBe("mock");
+      expect(config.defaultModel).toBe("mock-model");
+      expect(config.providerFallbackOrder).toEqual([]);
       expect(config.localProviderCommand).toBe("/bin/echo");
       expect(config.openaiApiKey).toBeUndefined();
       expect(config.openaiBaseUrl).toBe("https://api.openai.com/v1");
-      expect(config.foundry?.enabled).toBe(true);
+      expect(config.foundry?.enabled).toBe(false);
       expect(config.foundry?.projectEndpoint).toBeUndefined();
       expect(config.foundry?.deployment).toBeUndefined();
       expect(config.foundry?.apiVersion).toBe("2024-05-01-preview");
-      expect(config.foundry?.useEntraId).toBe(true);
+      expect(config.foundry?.useEntraId).toBe(false);
       expect(config.foundry?.audience).toBe("https://cognitiveservices.azure.com/.default");
       expect(config.foundry?.managedIdentityClientId).toBeUndefined();
       expect(config.foundry?.apiKey).toBeUndefined();
