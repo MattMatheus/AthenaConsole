@@ -14,6 +14,8 @@ export type TaskStatus =
 export type MissionStatus = "draft" | "ready" | "running" | "blocked" | "completed" | "failed" | "cancelled" | "archived";
 
 export type RunTargetType = "task" | "mission";
+export type AppStateScheduleTargetType = "task" | "mission" | "workflow-template";
+export type AppStateScheduleStatus = "active" | "paused" | "disabled" | "error";
 export type RunStatus =
   | "queued"
   | "validating"
@@ -70,6 +72,22 @@ interface RunRow {
   output_json: string | null;
   failure_json: string | null;
   safety_stop_json: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ScheduleRow {
+  id: string;
+  name: string;
+  target_type: AppStateScheduleTargetType;
+  target_id: string;
+  input_bindings_json: string;
+  rrule: string | null;
+  timezone: string;
+  status: AppStateScheduleStatus;
+  last_run_id: string | null;
+  next_run_at: string | null;
+  failure_policy_json: string;
   created_at: string;
   updated_at: string;
 }
@@ -421,6 +439,193 @@ export class MissionRepository {
 
   archive(id: string, now: Date = new Date()): MissionRecord {
     return this.update(id, { status: "archived", now });
+  }
+}
+
+export interface ScheduleRecord {
+  id: string;
+  name: string;
+  targetType: AppStateScheduleTargetType;
+  targetId: string;
+  inputBindings: unknown;
+  rrule?: string;
+  timezone: string;
+  status: AppStateScheduleStatus;
+  lastRunId?: string;
+  nextRunAt?: string;
+  failurePolicy: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateScheduleInput {
+  id: string;
+  name: string;
+  targetType: AppStateScheduleTargetType;
+  targetId: string;
+  inputBindings?: unknown;
+  rrule?: string;
+  timezone: string;
+  status?: AppStateScheduleStatus;
+  lastRunId?: string;
+  nextRunAt?: string;
+  failurePolicy?: unknown;
+  now?: Date;
+}
+
+export interface UpdateScheduleInput {
+  name?: string;
+  targetType?: AppStateScheduleTargetType;
+  targetId?: string;
+  inputBindings?: unknown;
+  rrule?: string | null;
+  timezone?: string;
+  status?: AppStateScheduleStatus;
+  lastRunId?: string | null;
+  nextRunAt?: string | null;
+  failurePolicy?: unknown;
+  now?: Date;
+}
+
+export class ScheduleRepository {
+  private readonly getStatement: Database.Statement;
+  private readonly listStatement: Database.Statement;
+  private readonly insertStatement: Database.Statement;
+  private readonly updateStatement: Database.Statement;
+  private readonly deleteStatement: Database.Statement;
+
+  constructor(private readonly db: Database.Database) {
+    this.getStatement = db.prepare(scheduleSelectSql("where id = ?"));
+    this.listStatement = db.prepare(scheduleSelectSql("order by updated_at desc, created_at desc"));
+    this.insertStatement = db.prepare(`
+      insert into schedules (
+        id,
+        name,
+        target_type,
+        target_id,
+        input_bindings_json,
+        rrule,
+        timezone,
+        status,
+        last_run_id,
+        next_run_at,
+        failure_policy_json,
+        created_at,
+        updated_at
+      )
+      values (
+        @id,
+        @name,
+        @targetType,
+        @targetId,
+        @inputBindingsJson,
+        @rrule,
+        @timezone,
+        @status,
+        @lastRunId,
+        @nextRunAt,
+        @failurePolicyJson,
+        @createdAt,
+        @updatedAt
+      )
+    `);
+    this.updateStatement = db.prepare(`
+      update schedules set
+        name = @name,
+        target_type = @targetType,
+        target_id = @targetId,
+        input_bindings_json = @inputBindingsJson,
+        rrule = @rrule,
+        timezone = @timezone,
+        status = @status,
+        last_run_id = @lastRunId,
+        next_run_at = @nextRunAt,
+        failure_policy_json = @failurePolicyJson,
+        updated_at = @updatedAt
+      where id = @id
+    `);
+    this.deleteStatement = db.prepare("delete from schedules where id = ?");
+  }
+
+  create(input: CreateScheduleInput): ScheduleRecord {
+    const now = (input.now ?? new Date()).toISOString();
+    this.insertStatement.run({
+      id: input.id,
+      name: input.name,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      inputBindingsJson: JSON.stringify(input.inputBindings ?? {}),
+      rrule: input.rrule ?? null,
+      timezone: input.timezone,
+      status: input.status ?? "active",
+      lastRunId: input.lastRunId ?? null,
+      nextRunAt: input.nextRunAt ?? null,
+      failurePolicyJson: JSON.stringify(input.failurePolicy ?? {}),
+      createdAt: now,
+      updatedAt: now
+    });
+    return this.require(input.id);
+  }
+
+  get(id: string): ScheduleRecord | undefined {
+    const row = this.getStatement.get(id) as ScheduleRow | undefined;
+    return row ? mapScheduleRow(row) : undefined;
+  }
+
+  require(id: string): ScheduleRecord {
+    const schedule = this.get(id);
+    if (!schedule) {
+      throw new Error(`Schedule not found: ${id}`);
+    }
+    return schedule;
+  }
+
+  list(): ScheduleRecord[] {
+    return this.listStatement.all().map((row) => mapScheduleRow(row as ScheduleRow));
+  }
+
+  upsert(input: CreateScheduleInput): ScheduleRecord {
+    const existing = this.get(input.id);
+    if (!existing) {
+      return this.create(input);
+    }
+    return this.update(input.id, {
+      name: input.name,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      inputBindings: input.inputBindings,
+      rrule: input.rrule ?? null,
+      timezone: input.timezone,
+      status: input.status,
+      lastRunId: input.lastRunId,
+      nextRunAt: input.nextRunAt ?? null,
+      failurePolicy: input.failurePolicy,
+      now: input.now
+    });
+  }
+
+  update(id: string, input: UpdateScheduleInput): ScheduleRecord {
+    const existing = this.require(id);
+    const updatedAt = (input.now ?? new Date()).toISOString();
+    this.updateStatement.run({
+      id,
+      name: input.name ?? existing.name,
+      targetType: input.targetType ?? existing.targetType,
+      targetId: input.targetId ?? existing.targetId,
+      inputBindingsJson: JSON.stringify(input.inputBindings ?? existing.inputBindings),
+      rrule: input.rrule === undefined ? existing.rrule ?? null : input.rrule,
+      timezone: input.timezone ?? existing.timezone,
+      status: input.status ?? existing.status,
+      lastRunId: input.lastRunId === undefined ? existing.lastRunId ?? null : input.lastRunId,
+      nextRunAt: input.nextRunAt === undefined ? existing.nextRunAt ?? null : input.nextRunAt,
+      failurePolicyJson: JSON.stringify(input.failurePolicy ?? existing.failurePolicy),
+      updatedAt
+    });
+    return this.require(id);
+  }
+
+  delete(id: string): boolean {
+    return this.deleteStatement.run(id).changes > 0;
   }
 }
 
@@ -825,6 +1030,10 @@ function missionSelectSql(suffix: string): string {
   return `select id, title, goal, context_json, status, task_order_json, created_at, updated_at, archived_at from missions ${suffix}`;
 }
 
+function scheduleSelectSql(suffix: string): string {
+  return `select id, name, target_type, target_id, input_bindings_json, rrule, timezone, status, last_run_id, next_run_at, failure_policy_json, created_at, updated_at from schedules ${suffix}`;
+}
+
 function runSelectSql(suffix: string): string {
   return `select id, target_type, target_id, status, backend, agent_id, agent_version, started_at, ended_at, output_json, failure_json, safety_stop_json, created_at, updated_at from runs ${suffix}`;
 }
@@ -861,6 +1070,24 @@ function mapMissionRow(row: MissionRow): MissionRecord {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     ...(row.archived_at ? { archivedAt: row.archived_at } : {})
+  };
+}
+
+function mapScheduleRow(row: ScheduleRow): ScheduleRecord {
+  return {
+    id: row.id,
+    name: row.name,
+    targetType: row.target_type,
+    targetId: row.target_id,
+    inputBindings: JSON.parse(row.input_bindings_json) as unknown,
+    ...(row.rrule ? { rrule: row.rrule } : {}),
+    timezone: row.timezone,
+    status: row.status,
+    ...(row.last_run_id ? { lastRunId: row.last_run_id } : {}),
+    ...(row.next_run_at ? { nextRunAt: row.next_run_at } : {}),
+    failurePolicy: JSON.parse(row.failure_policy_json) as unknown,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
   };
 }
 

@@ -24,6 +24,7 @@ import type {
   RunTemplateListResult,
   RunResult,
   ScheduleRunLog,
+  ScheduleStatus,
   ScheduledTask,
   SessionArtifactContent,
   SessionArtifactFormat,
@@ -64,6 +65,8 @@ import type {
   SessionService,
   WorkService
 } from "../interfaces.js";
+import type { AppStateDatabase, ScheduleRecord } from "../app-state/index.js";
+import { openAppStateDatabase } from "../app-state/index.js";
 import type { StateStore } from "../state-store.js";
 import { clampLimit, decodeOffsetCursor, encodeOffsetCursor } from "./pagination.js";
 
@@ -978,20 +981,65 @@ export class LocalScheduleService implements ScheduleService {
   constructor(
     private readonly config: AthenaConfig,
     private readonly backend: ExecutionBackend,
-    private readonly policyService: PolicyService
+    private readonly policyService: PolicyService,
+    private readonly options: { appState?: AppStateDatabase } = {}
   ) {
     this.manager = new ScheduleManager(config);
   }
 
-  list(): Promise<ScheduledTask[]> {
-    return this.manager.listTasks();
+  async list(): Promise<ScheduledTask[]> {
+    return [...(await this.listAppStateSchedules()), ...(await this.manager.listTasks())];
   }
 
-  upsert(request: UpsertScheduleRequest): Promise<ScheduledTask> {
+  async get(id: string): Promise<ScheduledTask | undefined> {
+    const appStateSchedule = this.withAppState((appState) => appState.schedules.get(id));
+    if (appStateSchedule) {
+      return mapScheduleRecord(appStateSchedule);
+    }
+    return (await this.manager.listTasks()).find((schedule) => schedule.id === id);
+  }
+
+  async upsert(request: UpsertScheduleRequest): Promise<ScheduledTask> {
+    if (request.targetType) {
+      return this.withAppState((appState) => {
+        if (request.targetType !== "task") {
+          throw new AthenaError("CONFIG_ERROR", "Only task schedules are supported in this slice.");
+        }
+        const targetId = request.targetId;
+        const task = targetId ? appState.tasks.get(targetId) : undefined;
+        if (!targetId || !task) {
+          throw new AthenaError("PROVIDER_NOT_FOUND", `Scheduled task target not found: ${request.targetId ?? ""}`);
+        }
+        if (task.status !== "ready") {
+          throw new AthenaError("CONFIG_ERROR", `Scheduled task target must be ready: ${task.id}`);
+        }
+        const timezone = request.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC";
+        const nextRunAt = request.runAt ?? nextRunFromRRule(request.rrule);
+        const status = request.status ?? statusFromEnabled(request.enabled);
+        return mapScheduleRecord(
+          appState.schedules.upsert({
+            id: request.id,
+            name: request.name ?? request.id,
+            targetType: request.targetType,
+            targetId,
+            inputBindings: request.inputBindings ?? {},
+            ...(request.rrule ? { rrule: request.rrule } : {}),
+            timezone,
+            status,
+            nextRunAt,
+            failurePolicy: request.failurePolicy ?? { overlap: "skip-if-running" }
+          })
+        );
+      });
+    }
     return this.manager.upsertTask(request);
   }
 
-  remove(id: string): Promise<boolean> {
+  async remove(id: string): Promise<boolean> {
+    const removedAppStateSchedule = this.withAppState((appState) => appState.schedules.delete(id));
+    if (removedAppStateSchedule) {
+      return true;
+    }
     return this.manager.removeTask(id);
   }
 
@@ -1039,6 +1087,62 @@ export class LocalScheduleService implements ScheduleService {
     const policy = await this.policyService.get();
     return policy?.defaultScheduleTimeoutMs ?? this.config.scheduleRunTimeoutMs;
   }
+
+  private async listAppStateSchedules(): Promise<ScheduledTask[]> {
+    return this.withAppState((appState) => appState.schedules.list().map(mapScheduleRecord));
+  }
+
+  private withAppState<T>(access: (appState: AppStateDatabase) => T): T {
+    if (this.options.appState) {
+      return access(this.options.appState);
+    }
+    const appState = openAppStateDatabase(this.config);
+    try {
+      return access(appState);
+    } finally {
+      appState.close();
+    }
+  }
+}
+
+function mapScheduleRecord(record: ScheduleRecord): ScheduledTask {
+  return {
+    schemaVersion: 1,
+    id: record.id,
+    name: record.name,
+    targetType: record.targetType,
+    targetId: record.targetId,
+    inputBindings: record.inputBindings,
+    ...(record.rrule ? { rrule: record.rrule } : {}),
+    timezone: record.timezone,
+    status: record.status,
+    failurePolicy: record.failurePolicy,
+    ...(record.lastRunId ? { lastRunId: record.lastRunId } : {}),
+    sessionId: record.targetId,
+    input: "",
+    everyMinutes: 1,
+    enabled: record.status === "active",
+    running: false,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    ...(record.lastRunId ? { lastRunAt: record.updatedAt } : {}),
+    nextRunAt: record.nextRunAt ?? record.createdAt
+  };
+}
+
+function statusFromEnabled(enabled: boolean | undefined): ScheduleStatus {
+  return enabled === false ? "paused" : "active";
+}
+
+function nextRunFromRRule(rrule: string | undefined): string | undefined {
+  if (!rrule) {
+    return undefined;
+  }
+  const countMatch = /COUNT=0(?:;|$)/i.exec(rrule);
+  if (countMatch) {
+    throw new AthenaError("CONFIG_ERROR", "schedules.create.rrule must allow at least one run.");
+  }
+  return new Date().toISOString();
 }
 
 export class LocalMemoryService implements MemoryService {

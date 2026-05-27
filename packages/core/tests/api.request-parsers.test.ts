@@ -24,6 +24,7 @@ import {
   parseRejectionsQuery,
   parseRunControlQuery,
   parseScheduleTickRequest,
+  parseScheduleUpsertRequest,
   parseTailQuery
 } from "../src/api/request-parsers.js";
 
@@ -359,6 +360,35 @@ describe("api request parsers", () => {
         }
       } as unknown as Record<string, unknown>)
     ).toThrow("workflows.create.definition.dependencies");
+  });
+
+  it("parses task-target schedule requests", () => {
+    expect(
+      parseScheduleUpsertRequest(
+        {
+          name: " Daily task ",
+          targetType: "task",
+          targetId: " task-1 ",
+          inputBindings: { priority: "normal" },
+          rrule: " FREQ=DAILY;INTERVAL=1 ",
+          timezone: " UTC ",
+          status: "paused"
+        },
+        "schedules.create"
+      )
+    ).toEqual({
+      name: "Daily task",
+      targetType: "task",
+      targetId: "task-1",
+      inputBindings: { priority: "normal" },
+      rrule: "FREQ=DAILY;INTERVAL=1",
+      timezone: "UTC",
+      status: "paused"
+    });
+
+    expect(() => parseScheduleUpsertRequest({ targetType: "task", targetId: "task-1" }, "schedules.create")).toThrow(
+      "requires runAt or rrule"
+    );
   });
 
   it("parses memory search query and validates bounds", () => {

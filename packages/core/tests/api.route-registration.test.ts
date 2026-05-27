@@ -32,6 +32,7 @@ describe("api route registration", () => {
     expect(MEMORY_ROUTES.every((route) => route.meta.family === "memory")).toBe(true);
     expect(WORK_ROUTES.every((route) => route.meta.family === "work")).toBe(true);
     expect(SCHEDULE_ROUTES.every((route) => route.meta.family === "schedules")).toBe(true);
+    expect(SCHEDULE_ROUTES.some((route) => route.path === "/api/v1/schedules/:id")).toBe(true);
     expect(POLICY_ROUTES.every((route) => route.meta.family === "fleet-events-policy")).toBe(true);
     expect(SPECIALIST_ROUTES.every((route) => route.meta.family === "specialists")).toBe(true);
     expect(AGENT_CATALOG_ROUTES.every((route) => route.meta.family === "agent-catalog")).toBe(true);

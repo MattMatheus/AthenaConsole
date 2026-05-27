@@ -129,6 +129,7 @@ export const API_V1_ROUTES: ApiRouteDefinition[] = [
   { method: "POST", path: `${API_V1_PREFIX}/schedules/tick`, operationId: "tickSchedules" },
   { method: "POST", path: `${API_V1_PREFIX}/schedules/:id/enable`, operationId: "enableSchedule" },
   { method: "POST", path: `${API_V1_PREFIX}/schedules/:id/disable`, operationId: "disableSchedule" },
+  { method: "GET", path: `${API_V1_PREFIX}/schedules/:id`, operationId: "getSchedule" },
   { method: "GET", path: `${API_V1_PREFIX}/schedules/:id/logs`, operationId: "getScheduleLogs", queryMode: "tail" },
   { method: "GET", path: `${API_V1_PREFIX}/fleet/summary`, operationId: "getFleetSummary" },
   { method: "GET", path: `${API_V1_PREFIX}/fleet/cost/settings`, operationId: "getProviderCostSettings" },

@@ -34,12 +34,13 @@ Completed stories were moved to:
 - `planning/backlog/completed/2026.14.01-add-mission-apis.md`
 - `planning/backlog/completed/2026.14.02-add-workflow-template-indexing.md`
 - `planning/backlog/completed/2026.14.03-run-sequential-mission-plans.md`
+- `planning/backlog/completed/2026.15.01-add-task-schedule-model-and-api.md`
 
 ## Active Queue
 
-1. `planning/backlog/active/2026.15.01-add-task-schedule-model-and-api.md`
+1. `planning/backlog/active/2026.15.02-add-local-scheduler-service.md`
 
-The next slice adds the task schedule model/service/API so one-shot and recurring task schedules can be configured before a live scheduler service is added.
+The next slice executes due SQLite task schedules through the existing task workbench path while the local app/API service is running.
 
 ## Archived Previous Queue
 

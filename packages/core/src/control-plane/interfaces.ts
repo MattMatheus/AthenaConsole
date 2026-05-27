@@ -210,6 +210,7 @@ export interface SpecialistService {
 
 export interface ScheduleService {
   list(): Promise<ScheduledTask[]>;
+  get(id: string): Promise<ScheduledTask | undefined>;
   upsert(request: UpsertScheduleRequest): Promise<ScheduledTask>;
   remove(id: string): Promise<boolean>;
   run(id: string, options?: { provider?: string; model?: string }): Promise<{

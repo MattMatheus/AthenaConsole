@@ -21,6 +21,7 @@ export const SCHEDULE_ROUTES = defineApiRoutes("schedules", [
   { method: "POST", path: "/api/v1/schedules/:id/run", handler: handleRunScheduleRoute },
   { method: "POST", path: "/api/v1/schedules/:id/enable", handler: handleEnableScheduleRoute },
   { method: "POST", path: "/api/v1/schedules/:id/disable", handler: handleDisableScheduleRoute },
+  { method: "GET", path: "/api/v1/schedules/:id", handler: handleGetScheduleRoute },
   { method: "GET", path: "/api/v1/schedules/:id/logs", handler: handleGetScheduleLogsRoute },
   { method: "PUT", path: "/api/v1/schedules/:id", handler: handleUpdateScheduleRoute },
   { method: "DELETE", path: "/api/v1/schedules/:id", handler: handleDeleteScheduleRoute }
@@ -101,6 +102,16 @@ async function handleDeleteScheduleRoute(
     }
   });
   writeSuccess(context.res, "deleteSchedule", 200, { id, removed });
+}
+
+async function handleGetScheduleRoute(context: ApiRouteContext, params: RouteParams): Promise<void> {
+  const id = decodeRouteParam(params, "id");
+  const schedule = await context.services.scheduleService.get(id);
+  if (!schedule) {
+    writeSuccess(context.res, "getSchedule", 200, null);
+    return;
+  }
+  writeSuccess(context.res, "getSchedule", 200, schedule);
 }
 
 async function handleRunScheduleRoute(context: ApiRouteContext, params: RouteParams): Promise<void> {
@@ -246,9 +257,24 @@ async function setScheduleEnabled(services: ControlPlaneServices, id: string, en
   }
   const updated = await services.scheduleService.upsert({
     id: current.id,
-    sessionId: current.sessionId,
-    input: current.input,
-    everyMinutes: current.everyMinutes,
+    ...(current.targetType
+      ? {
+          name: current.name,
+          targetType: current.targetType,
+          targetId: current.targetId,
+          inputBindings: current.inputBindings,
+          ...(current.rrule ? { rrule: current.rrule } : { runAt: current.nextRunAt }),
+          ...(current.timezone ? { timezone: current.timezone } : {}),
+          status: enabled ? "active" : "paused",
+          failurePolicy: current.failurePolicy
+        }
+      : {
+          sessionId: current.sessionId,
+          input: current.input,
+          everyMinutes: current.everyMinutes,
+          enabled,
+          startNow: false
+        }),
     enabled,
     startNow: false
   });

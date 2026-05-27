@@ -306,11 +306,15 @@ export class AuthorizedScheduleService implements ScheduleService {
     return this.delegate.list();
   }
 
+  get(id: string) {
+    return this.delegate.get(id);
+  }
+
   async upsert(request: Parameters<ScheduleService["upsert"]>[0]) {
     await this.authorizer.assertAllowed({
       operation: "schedules.upsert",
       requiredRoles: ["Operator", "Admin"],
-      sessionId: request.sessionId
+      ...(request.sessionId ? { sessionId: request.sessionId } : {})
     });
     return this.delegate.upsert(request);
   }

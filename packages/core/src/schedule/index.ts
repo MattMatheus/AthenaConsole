@@ -5,7 +5,7 @@ import { dirname, resolve } from "node:path";
 import { acquireSessionLock } from "../runtime/session-lock.js";
 import { AthenaError } from "../runtime/errors.js";
 import type { AthenaConfig } from "../shared/config.js";
-import type { AthenaErrorCode, ScheduleRunLog, ScheduledTask, ScheduledTasksStateFile } from "../shared/contracts.js";
+import type { AthenaErrorCode, ScheduleRunLog, ScheduleStatus, ScheduleTargetType, ScheduledTask, ScheduledTasksStateFile } from "../shared/contracts.js";
 import { assertValidSessionId } from "../runtime/session-store.js";
 
 const SCHEDULE_ID_PATTERN = /^[A-Za-z0-9._-]+$/;
@@ -14,11 +14,20 @@ const SCHEDULE_TASKS_FILE_SCHEMA_VERSION = 2;
 
 export interface UpsertScheduleRequest {
   id: string;
-  sessionId: string;
-  input: string;
-  everyMinutes: number;
+  sessionId?: string;
+  input?: string;
+  everyMinutes?: number;
   enabled?: boolean;
   startNow?: boolean;
+  name?: string;
+  targetType?: ScheduleTargetType;
+  targetId?: string;
+  inputBindings?: unknown;
+  runAt?: string;
+  rrule?: string;
+  timezone?: string;
+  status?: ScheduleStatus;
+  failurePolicy?: unknown;
 }
 
 export interface RunScheduleResult {
@@ -68,16 +77,21 @@ export class ScheduleManager {
 
   async upsertTask(request: UpsertScheduleRequest): Promise<ScheduledTask> {
     assertValidScheduleId(request.id);
-    assertValidSessionId(request.sessionId);
-    if (!request.input.trim()) {
+    const sessionId = request.sessionId;
+    const input = request.input;
+    if (!sessionId) {
+      throw new Error("Schedule sessionId is required");
+    }
+    if (!input?.trim()) {
       throw new Error("Schedule input is required");
     }
-    if (!Number.isFinite(request.everyMinutes) || request.everyMinutes <= 0) {
+    if (!Number.isFinite(request.everyMinutes) || (request.everyMinutes ?? 0) <= 0) {
       throw new Error("everyMinutes must be a positive integer");
     }
+    assertValidSessionId(sessionId);
 
     const now = new Date().toISOString();
-    const everyMinutes = Math.max(1, Math.floor(request.everyMinutes));
+    const everyMinutes = Math.max(1, Math.floor(request.everyMinutes ?? 1));
 
     return this.withGlobalLock(async () => {
       const tasks = await this.loadTasks();
@@ -88,8 +102,8 @@ export class ScheduleManager {
       const next: ScheduledTask = existing
         ? {
             ...existing,
-            sessionId: request.sessionId,
-            input: request.input,
+            sessionId,
+            input,
             everyMinutes,
             enabled,
             nextRunAt,
@@ -98,8 +112,8 @@ export class ScheduleManager {
         : {
             schemaVersion: SCHEDULE_TASK_SCHEMA_VERSION,
             id: request.id,
-            sessionId: request.sessionId,
-            input: request.input,
+            sessionId,
+            input,
             everyMinutes,
             enabled,
             running: false,

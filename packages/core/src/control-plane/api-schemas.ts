@@ -945,6 +945,21 @@ const API_COMPONENT_SCHEMA_STRICTNESS_HINTS: Record<string, ApiSchema> = {
     properties: {
       schemaVersion: { type: "integer", minimum: 1 },
       id: { type: "string", minLength: 1 },
+      name: { type: "string", minLength: 1 },
+      targetType: { type: "string", enum: ["task", "mission", "workflow-template"] },
+      targetId: { type: "string", minLength: 1 },
+      inputBindings: {
+        type: "object",
+        additionalProperties: true
+      },
+      rrule: { type: "string", minLength: 1 },
+      timezone: { type: "string", minLength: 1 },
+      status: { type: "string", enum: ["active", "paused", "disabled", "error"] },
+      failurePolicy: {
+        type: "object",
+        additionalProperties: true
+      },
+      lastRunId: { type: "string", minLength: 1 },
       sessionId: { type: "string", minLength: 1 },
       everyMinutes: { type: "integer", minimum: 1 },
       createdAt: { type: "string", format: "date-time" },
@@ -2242,9 +2257,18 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
         input: STRING_SCHEMA,
         everyMinutes: { type: "integer", minimum: 1 },
         enabled: { type: "boolean" },
-        startNow: { type: "boolean" }
+        startNow: { type: "boolean" },
+        name: STRING_SCHEMA,
+        targetType: { type: "string", enum: ["task", "mission", "workflow-template"] },
+        targetId: STRING_SCHEMA,
+        inputBindings: JSON_VALUE_SCHEMA,
+        runAt: { type: "string", format: "date-time" },
+        rrule: { type: "string", minLength: 1 },
+        timezone: STRING_SCHEMA,
+        status: { type: "string", enum: ["active", "paused", "disabled", "error"] },
+        failurePolicy: JSON_VALUE_SCHEMA
       },
-      required: ["id", "sessionId", "input", "everyMinutes"]
+      required: ["id"]
     },
     responseSchema: { $ref: "#/components/schemas/ScheduledTask" }
   },
@@ -2268,9 +2292,17 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
         input: STRING_SCHEMA,
         everyMinutes: { type: "integer", minimum: 1 },
         enabled: { type: "boolean" },
-        startNow: { type: "boolean" }
-      },
-      required: ["sessionId", "input", "everyMinutes"]
+        startNow: { type: "boolean" },
+        name: STRING_SCHEMA,
+        targetType: { type: "string", enum: ["task", "mission", "workflow-template"] },
+        targetId: STRING_SCHEMA,
+        inputBindings: JSON_VALUE_SCHEMA,
+        runAt: { type: "string", format: "date-time" },
+        rrule: { type: "string", minLength: 1 },
+        timezone: STRING_SCHEMA,
+        status: { type: "string", enum: ["active", "paused", "disabled", "error"] },
+        failurePolicy: JSON_VALUE_SCHEMA
+      }
     },
     responseSchema: { $ref: "#/components/schemas/ScheduledTask" }
   },
@@ -2294,6 +2326,22 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
         removed: { type: "boolean" }
       },
       required: ["id", "removed"]
+    }
+  },
+  getSchedule: {
+    operationId: "getSchedule",
+    method: "GET",
+    path: "/api/v1/schedules/:id",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        id: STRING_SCHEMA
+      },
+      required: ["id"]
+    },
+    responseSchema: {
+      anyOf: [{ $ref: "#/components/schemas/ScheduledTask" }, { type: "null" }]
     }
   },
   runSchedule: {

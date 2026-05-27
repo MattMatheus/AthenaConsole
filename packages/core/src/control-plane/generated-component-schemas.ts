@@ -2597,6 +2597,46 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
       "id": {
         "type": "string"
       },
+      "name": {
+        "type": "string"
+      },
+      "targetType": {
+        "type": "string",
+        "enum": [
+          "task",
+          "mission",
+          "workflow-template"
+        ]
+      },
+      "targetId": {
+        "type": "string"
+      },
+      "inputBindings": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "rrule": {
+        "type": "string"
+      },
+      "timezone": {
+        "type": "string"
+      },
+      "status": {
+        "type": "string",
+        "enum": [
+          "error",
+          "active",
+          "paused",
+          "disabled"
+        ]
+      },
+      "failurePolicy": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "lastRunId": {
+        "type": "string"
+      },
       "sessionId": {
         "type": "string"
       },
@@ -3362,10 +3402,10 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
       "kind": {
         "type": "string",
         "enum": [
+          "task",
           "trace",
           "run",
           "session",
-          "task",
           "agent"
         ]
       },
@@ -3461,10 +3501,10 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
             "kind": {
               "type": "string",
               "enum": [
+                "task",
                 "trace",
                 "run",
                 "session",
-                "task",
                 "agent"
               ]
             },

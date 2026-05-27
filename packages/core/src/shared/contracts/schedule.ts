@@ -1,8 +1,20 @@
 import type { AthenaErrorCode } from "./base.js";
 
+export type ScheduleTargetType = "task" | "mission" | "workflow-template";
+export type ScheduleStatus = "active" | "paused" | "disabled" | "error";
+
 export interface ScheduledTask {
   schemaVersion?: number;
   id: string;
+  name?: string;
+  targetType?: ScheduleTargetType;
+  targetId?: string;
+  inputBindings?: unknown;
+  rrule?: string;
+  timezone?: string;
+  status?: ScheduleStatus;
+  failurePolicy?: unknown;
+  lastRunId?: string;
   sessionId: string;
   input: string;
   everyMinutes: number;

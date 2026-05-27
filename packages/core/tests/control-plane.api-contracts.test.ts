@@ -9,7 +9,7 @@ import {
 
 describe("control-plane api contracts", () => {
   it("declares the full initial v1 route surface", () => {
-    expect(API_V1_ROUTES.length).toBe(84);
+    expect(API_V1_ROUTES.length).toBe(85);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/capabilities")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/health")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/agent-catalog/plugins")).toBe(
@@ -67,6 +67,7 @@ describe("control-plane api contracts", () => {
     expect(API_V1_ROUTES.some((route) => route.method === "DELETE" && route.path === "/api/v1/schedules/:id")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/schedules/:id/run")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/schedules/tick")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/schedules/:id")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.path === "/api/v1/events" && route.method === "GET")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.path === "/api/v1/events/stream" && route.stream === "sse")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.path === "/api/v1/rejections" && route.method === "GET")).toBe(true);
