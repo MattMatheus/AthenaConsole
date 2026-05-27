@@ -33,6 +33,12 @@
           "minLength": 1
         },
         "context": true,
+        "inputs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/workflowInput"
+          }
+        },
         "tasks": {
           "type": "array",
           "items": {
@@ -72,6 +78,23 @@
     "semver": {
       "type": "string",
       "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:[-+][0-9A-Za-z.-]+)?$"
+    },
+    "workflowInput": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "markdown", "integer", "number", "boolean", "file", "json", "object", "array"]
+        },
+        "label": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "default": true
+      }
     },
     "taskTemplate": {
       "type": "object",

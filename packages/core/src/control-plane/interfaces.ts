@@ -66,6 +66,8 @@ import type {
   WorkflowListResult,
   WorkflowTemplateCatalogListQuery,
   WorkflowTemplateCatalogListResult,
+  WorkflowTemplateInstantiateRequest,
+  WorkflowTemplateInstantiationResult,
   PolicyConcurrencyRejectionQuery,
   PolicyConcurrencyRejectionQueryResult,
   PolicyOriginDetails,
@@ -149,6 +151,7 @@ export interface WorkflowService {
 
 export interface WorkflowTemplateCatalogService {
   list(query?: WorkflowTemplateCatalogListQuery): Promise<WorkflowTemplateCatalogListResult>;
+  instantiate(id: string, request?: WorkflowTemplateInstantiateRequest): Promise<WorkflowTemplateInstantiationResult>;
 }
 
 export interface WorkService {

@@ -37,12 +37,13 @@ Completed stories were moved to:
 - `planning/backlog/completed/2026.15.01-add-task-schedule-model-and-api.md`
 - `planning/backlog/completed/2026.15.02-add-local-scheduler-service.md`
 - `planning/backlog/completed/2026.15.03-build-schedule-ui.md`
+- `planning/backlog/completed/2026.16.01-instantiate-workflow-templates.md`
 
 ## Active Queue
 
-1. `planning/backlog/active/2026.16.01-instantiate-workflow-templates.md`
+1. `planning/backlog/active/2026.16.02-build-workflow-template-instantiation-ui.md`
 
-The next slice makes indexed workflow templates executable by instantiating them into missions and ordered tasks.
+The next slice makes indexed workflow templates executable from the console by calling the instantiation API and surfacing the created mission/tasks.
 
 ## Archived Previous Queue
 

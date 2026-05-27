@@ -318,6 +318,50 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
     },
     required: ["templates", "total", "filters"]
   },
+  WorkflowTemplateInstantiateRequest: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      version: { type: "string" },
+      pluginId: { type: "string" },
+      pluginVersion: { type: "string" },
+      missionId: { type: "string" },
+      taskIdPrefix: { type: "string" },
+      inputs: {
+        type: "object",
+        additionalProperties: true
+      },
+      createdBy: { type: "string" }
+    }
+  },
+  WorkflowTemplateInstantiationResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      template: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          id: { type: "string", minLength: 1 },
+          version: { type: "string", minLength: 1 },
+          pluginId: { type: "string", minLength: 1 },
+          pluginVersion: { type: "string", minLength: 1 },
+          name: { type: "string", minLength: 1 }
+        },
+        required: ["id", "version", "pluginId", "pluginVersion", "name"]
+      },
+      mission: { $ref: "#/components/schemas/MissionWorkbenchMission" },
+      tasks: {
+        type: "array",
+        items: { $ref: "#/components/schemas/TaskWorkbenchTask" }
+      },
+      inputValues: {
+        type: "object",
+        additionalProperties: true
+      }
+    },
+    required: ["template", "mission", "tasks", "inputValues"]
+  },
   TaskWorkbenchTask: {
     type: "object",
     additionalProperties: false,
@@ -1306,6 +1350,21 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       }
     },
     responseSchema: { $ref: "#/components/schemas/WorkflowTemplateCatalogListResult" }
+  },
+  instantiateWorkflowTemplate: {
+    operationId: "instantiateWorkflowTemplate",
+    method: "POST",
+    path: "/api/v1/workflow-templates/:id/instantiate",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        id: { type: "string", minLength: 1 }
+      },
+      required: ["id"]
+    },
+    requestBodySchema: { $ref: "#/components/schemas/WorkflowTemplateInstantiateRequest" },
+    responseSchema: { $ref: "#/components/schemas/WorkflowTemplateInstantiationResult" }
   },
   listMissions: {
     operationId: "listMissions",

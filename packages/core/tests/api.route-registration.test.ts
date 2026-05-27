@@ -37,6 +37,7 @@ describe("api route registration", () => {
     expect(SPECIALIST_ROUTES.every((route) => route.meta.family === "specialists")).toBe(true);
     expect(AGENT_CATALOG_ROUTES.every((route) => route.meta.family === "agent-catalog")).toBe(true);
     expect(WORKFLOW_TEMPLATE_CATALOG_ROUTES.every((route) => route.meta.family === "workflow-templates")).toBe(true);
+    expect(WORKFLOW_TEMPLATE_CATALOG_ROUTES.some((route) => route.path === "/api/v1/workflow-templates/:id/instantiate")).toBe(true);
     expect(MISSION_ROUTES.every((route) => route.meta.family === "missions")).toBe(true);
     expect(MISSION_ROUTES.some((route) => route.path === "/api/v1/missions/:id/run")).toBe(true);
     expect(MISSION_ROUTES.some((route) => route.path === "/api/v1/mission-runs/:runId")).toBe(true);
@@ -75,6 +76,7 @@ describe("api route registration", () => {
     expect(table.length).toBeGreaterThan(0);
     expect(table.some((route) => route.path === "/api/v1/runs" && route.meta.family === "runs")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/workflow-templates" && route.meta.family === "workflow-templates")).toBe(true);
+    expect(table.some((route) => route.path === "/api/v1/workflow-templates/:id/instantiate" && route.meta.family === "workflow-templates")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/missions" && route.meta.family === "missions")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/missions/:id/run" && route.meta.family === "missions")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/tasks" && route.meta.family === "tasks")).toBe(true);

@@ -1,13 +1,20 @@
+import { randomUUID } from "node:crypto";
+import { AthenaError } from "../../runtime/errors.js";
 import type { AthenaConfig } from "../../shared/config.js";
 import type {
+  MissionWorkbenchMission,
+  TaskWorkbenchTask,
   WorkflowTemplateCatalogListQuery,
   WorkflowTemplateCatalogListResult,
   WorkflowTemplateCatalogTemplateSummary,
-  WorkflowTemplateCatalogValidationIssue
+  WorkflowTemplateCatalogValidationIssue,
+  WorkflowTemplateInstantiateRequest,
+  WorkflowTemplateInstantiationResult
 } from "../../shared/contracts.js";
 import type { AppStateDatabase, PluginIndexRecord, WorkflowTemplateIndexRecord } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
 import type { WorkflowTemplateCatalogService } from "../interfaces.js";
+import { LocalTaskWorkbenchService } from "./task-workbench.js";
 
 interface PluginManifestDocument {
   plugin?: {
@@ -17,11 +24,32 @@ interface PluginManifestDocument {
 
 interface WorkflowTemplateManifestDocument {
   workflow?: {
+    id?: string;
+    name?: string;
+    version?: string;
+    description?: string;
     goal?: string;
     context?: unknown;
-    tasks?: unknown[];
+    inputs?: Record<string, WorkflowInputDefinition>;
+    tasks?: WorkflowTaskTemplate[];
     ui?: Record<string, unknown>;
   };
+}
+
+interface WorkflowInputDefinition {
+  required?: boolean;
+  default?: unknown;
+}
+
+interface WorkflowTaskTemplate {
+  id?: string;
+  title?: string;
+  description?: string;
+  capabilityRequirements?: unknown;
+  assignedAgentId?: string;
+  assignedAgentVersion?: string;
+  inputs?: unknown;
+  dependsOn?: unknown;
 }
 
 export interface LocalWorkflowTemplateCatalogServiceOptions {
@@ -52,6 +80,102 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
     });
   }
 
+  async instantiate(
+    id: string,
+    request: WorkflowTemplateInstantiateRequest = {}
+  ): Promise<WorkflowTemplateInstantiationResult> {
+    return this.withAppStateAsync(async (appState) => {
+      const template = resolveTemplate(appState, id, request);
+      const plugin = appState.plugins.get(template.pluginId, template.pluginVersion);
+      if (!plugin || !plugin.enabled || plugin.status !== "loaded" || template.status !== "loaded") {
+        throw new AthenaError("CONFIG_ERROR", `Workflow template is not available: ${id}`);
+      }
+      const manifest = normalizeWorkflowManifest(template.manifest);
+      const workflow = manifest.workflow;
+      if (!workflow) {
+        throw new AthenaError("CONFIG_ERROR", `Workflow template manifest is missing workflow: ${id}`);
+      }
+      const inputValues = resolveWorkflowInputs(workflow.inputs ?? {}, request.inputs ?? {});
+      const missionId = request.missionId ?? `mission-${randomUUID()}`;
+      const taskIdPrefix = request.taskIdPrefix ?? missionId;
+      const taskTemplates = normalizeTaskTemplates(workflow.tasks);
+      const taskIdByTemplateId = new Map(taskTemplates.map((task) => [task.id, `${taskIdPrefix}-${task.id}`]));
+      const taskOrder = taskTemplates.map((task) => requireMappedTaskId(taskIdByTemplateId, task.id));
+      const allTasksReady = taskTemplates.every((task) => Boolean(task.assignedAgentId));
+
+      const mission = appState.missions.create({
+        id: missionId,
+        title: workflow.name ?? template.name,
+        goal: renderTemplateText(workflow.goal ?? "", inputValues, "workflow.goal"),
+        context: {
+          template: {
+            id: template.id,
+            version: template.version,
+            pluginId: template.pluginId,
+            pluginVersion: template.pluginVersion
+          },
+          inputs: inputValues,
+          value: renderTemplateValue(workflow.context ?? {}, inputValues, "workflow.context")
+        },
+        status: allTasksReady ? "ready" : "draft",
+        taskOrder
+      });
+
+      const taskWorkbench = new LocalTaskWorkbenchService(this.config, { appState });
+      const tasks: TaskWorkbenchTask[] = [];
+      for (const taskTemplate of taskTemplates) {
+        const task = await taskWorkbench.create({
+          id: requireMappedTaskId(taskIdByTemplateId, taskTemplate.id),
+          title: renderTemplateText(taskTemplate.title, inputValues, `workflow.tasks.${taskTemplate.id}.title`),
+          ...(taskTemplate.description !== undefined
+            ? {
+                description: renderTemplateText(
+                  taskTemplate.description,
+                  inputValues,
+                  `workflow.tasks.${taskTemplate.id}.description`
+                )
+              }
+            : {}),
+          status: taskTemplate.assignedAgentId ? "ready" : "draft",
+          capabilityRequirements: normalizeStringArray(
+            taskTemplate.capabilityRequirements,
+            `workflow.tasks.${taskTemplate.id}.capabilityRequirements`
+          ),
+          ...(taskTemplate.assignedAgentId ? { assignedAgentId: taskTemplate.assignedAgentId } : {}),
+          ...(taskTemplate.assignedAgentVersion ? { assignedAgentVersion: taskTemplate.assignedAgentVersion } : {}),
+          inputs: renderTemplateValue(taskTemplate.inputs ?? {}, inputValues, `workflow.tasks.${taskTemplate.id}.inputs`),
+          dependsOn: normalizeStringArray(taskTemplate.dependsOn, `workflow.tasks.${taskTemplate.id}.dependsOn`).map((dependencyId) =>
+            requireMappedTaskId(taskIdByTemplateId, dependencyId)
+          ),
+          missionId: mission.id,
+          provenance: {
+            source: "workflow-template",
+            workflowTemplateId: template.id,
+            workflowTemplateVersion: template.version,
+            pluginId: template.pluginId,
+            pluginVersion: template.pluginVersion,
+            templateTaskId: taskTemplate.id
+          },
+          ...(request.createdBy ? { createdBy: request.createdBy } : {})
+        });
+        tasks.push(task);
+      }
+
+      return {
+        template: {
+          id: template.id,
+          version: template.version,
+          pluginId: template.pluginId,
+          pluginVersion: template.pluginVersion,
+          name: template.name
+        },
+        mission: mapMissionRecord(mission),
+        tasks,
+        inputValues
+      };
+    });
+  }
+
   private withAppState<T>(read: (appState: AppStateDatabase) => T): T {
     if (this.options.appState) {
       return read(this.options.appState);
@@ -63,6 +187,190 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
       appState.close();
     }
   }
+
+  private async withAppStateAsync<T>(read: (appState: AppStateDatabase) => Promise<T>): Promise<T> {
+    if (this.options.appState) {
+      return read(this.options.appState);
+    }
+    const appState = openAppStateDatabase(this.config);
+    try {
+      return await read(appState);
+    } finally {
+      appState.close();
+    }
+  }
+}
+
+interface NormalizedTaskTemplate {
+  id: string;
+  title: string;
+  description?: string;
+  capabilityRequirements?: unknown;
+  assignedAgentId?: string;
+  assignedAgentVersion?: string;
+  inputs?: unknown;
+  dependsOn?: unknown;
+}
+
+function resolveTemplate(
+  appState: AppStateDatabase,
+  id: string,
+  request: WorkflowTemplateInstantiateRequest
+): WorkflowTemplateIndexRecord {
+  const matches = appState.workflowTemplates.list().filter((template) => {
+    return (
+      template.id === id &&
+      (!request.version || template.version === request.version) &&
+      (!request.pluginId || template.pluginId === request.pluginId) &&
+      (!request.pluginVersion || template.pluginVersion === request.pluginVersion)
+    );
+  });
+  if (matches.length === 0) {
+    throw new AthenaError("PROVIDER_NOT_FOUND", `Workflow template not found: ${id}`);
+  }
+  if (matches.length > 1) {
+    throw new AthenaError(
+      "CONFIG_ERROR",
+      `Workflow template '${id}' is ambiguous; provide version, pluginId, or pluginVersion.`
+    );
+  }
+  return matches[0]!;
+}
+
+function normalizeTaskTemplates(tasks: WorkflowTaskTemplate[] | undefined): NormalizedTaskTemplate[] {
+  if (!Array.isArray(tasks) || tasks.length === 0) {
+    throw new AthenaError("CONFIG_ERROR", "Workflow template must include at least one task.");
+  }
+  const normalized = tasks.map((task, index) => {
+    if (!isRecord(task) || typeof task.id !== "string" || typeof task.title !== "string") {
+      throw new AthenaError("CONFIG_ERROR", `Workflow task template at index ${index} is invalid.`);
+    }
+    return {
+      id: task.id,
+      title: task.title,
+      ...(typeof task.description === "string" ? { description: task.description } : {}),
+      ...(task.capabilityRequirements !== undefined ? { capabilityRequirements: task.capabilityRequirements } : {}),
+      ...(typeof task.assignedAgentId === "string" ? { assignedAgentId: task.assignedAgentId } : {}),
+      ...(typeof task.assignedAgentVersion === "string" ? { assignedAgentVersion: task.assignedAgentVersion } : {}),
+      ...(task.inputs !== undefined ? { inputs: task.inputs } : {}),
+      ...(task.dependsOn !== undefined ? { dependsOn: task.dependsOn } : {})
+    };
+  });
+  const duplicates = findDuplicates(normalized.map((task) => task.id));
+  if (duplicates.length > 0) {
+    throw new AthenaError("CONFIG_ERROR", `Workflow task ids must be unique: ${duplicates.join(", ")}`);
+  }
+  return normalized;
+}
+
+function resolveWorkflowInputs(
+  definitions: Record<string, WorkflowInputDefinition>,
+  supplied: Record<string, unknown>
+): Record<string, unknown> {
+  const resolved: Record<string, unknown> = {};
+  for (const [key, definition] of Object.entries(definitions)) {
+    if (Object.prototype.hasOwnProperty.call(supplied, key)) {
+      resolved[key] = supplied[key];
+    } else if (Object.prototype.hasOwnProperty.call(definition, "default")) {
+      resolved[key] = definition.default;
+    } else if (definition.required) {
+      throw new AthenaError("CONFIG_ERROR", `workflowTemplates.instantiate.inputs.${key} is required.`);
+    }
+  }
+  for (const [key, value] of Object.entries(supplied)) {
+    if (!Object.prototype.hasOwnProperty.call(resolved, key)) {
+      resolved[key] = value;
+    }
+  }
+  return resolved;
+}
+
+function renderTemplateValue<T>(value: T, inputs: Record<string, unknown>, path: string): T {
+  if (typeof value === "string") {
+    return renderTemplateString(value, inputs, path) as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item, index) => renderTemplateValue(item, inputs, `${path}.${index}`)) as T;
+  }
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, renderTemplateValue(entry, inputs, `${path}.${key}`)])
+    ) as T;
+  }
+  return value;
+}
+
+function renderTemplateText(value: string, inputs: Record<string, unknown>, path: string): string {
+  return String(renderTemplateString(value, inputs, path));
+}
+
+function renderTemplateString(value: string, inputs: Record<string, unknown>, path: string): unknown {
+  const exact = /^\{\{\s*([A-Za-z0-9_.-]+)\s*\}\}$/.exec(value);
+  if (exact) {
+    return resolveInputValue(inputs, exact[1]!, path);
+  }
+  return value.replace(/\{\{\s*([A-Za-z0-9_.-]+)\s*\}\}/g, (_match, key: string) => String(resolveInputValue(inputs, key, path)));
+}
+
+function resolveInputValue(inputs: Record<string, unknown>, key: string, path: string): unknown {
+  if (!Object.prototype.hasOwnProperty.call(inputs, key)) {
+    throw new AthenaError("CONFIG_ERROR", `${path} references missing workflow input '${key}'.`);
+  }
+  return inputs[key];
+}
+
+function normalizeStringArray(value: unknown, path: string): string[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    throw new AthenaError("CONFIG_ERROR", `${path} must be an array of strings.`);
+  }
+  return Array.from(new Set(value));
+}
+
+function requireMappedTaskId(taskIdByTemplateId: Map<string, string>, templateTaskId: string): string {
+  const taskId = taskIdByTemplateId.get(templateTaskId);
+  if (!taskId) {
+    throw new AthenaError("CONFIG_ERROR", `Workflow task dependency not found: ${templateTaskId}`);
+  }
+  return taskId;
+}
+
+function findDuplicates(values: string[]): string[] {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  for (const value of values) {
+    if (seen.has(value)) {
+      duplicates.add(value);
+    }
+    seen.add(value);
+  }
+  return [...duplicates].sort();
+}
+
+function mapMissionRecord(record: {
+  id: string;
+  title: string;
+  goal: string;
+  context: unknown;
+  status: string;
+  taskOrder: string[];
+  createdAt: string;
+  updatedAt: string;
+  archivedAt?: string;
+}): MissionWorkbenchMission {
+  return {
+    id: record.id,
+    title: record.title,
+    goal: record.goal,
+    context: record.context,
+    status: record.status as MissionWorkbenchMission["status"],
+    taskOrder: record.taskOrder,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    ...(record.archivedAt ? { archivedAt: record.archivedAt } : {})
+  };
 }
 
 function mapTemplateSummary(

@@ -105,6 +105,7 @@ export const API_V1_ROUTES: ApiRouteDefinition[] = [
   { method: "POST", path: `${API_V1_PREFIX}/run-templates`, operationId: "createRunTemplate" },
   { method: "POST", path: `${API_V1_PREFIX}/templates/:id/run`, operationId: "runTemplate" },
   { method: "GET", path: `${API_V1_PREFIX}/workflow-templates`, operationId: "listWorkflowTemplates" },
+  { method: "POST", path: `${API_V1_PREFIX}/workflow-templates/:id/instantiate`, operationId: "instantiateWorkflowTemplate" },
   { method: "GET", path: `${API_V1_PREFIX}/workflows`, operationId: "listWorkflows", queryMode: "cursor-page" },
   { method: "POST", path: `${API_V1_PREFIX}/workflows`, operationId: "createWorkflow" },
   { method: "GET", path: `${API_V1_PREFIX}/workflows/run/:id`, operationId: "getWorkflowRun" },

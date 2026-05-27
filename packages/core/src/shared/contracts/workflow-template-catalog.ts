@@ -45,3 +45,26 @@ export interface WorkflowTemplateCatalogListResult {
   total: number;
   filters: WorkflowTemplateCatalogListQuery;
 }
+
+export interface WorkflowTemplateInstantiateRequest {
+  version?: string;
+  pluginId?: string;
+  pluginVersion?: string;
+  missionId?: string;
+  taskIdPrefix?: string;
+  inputs?: Record<string, unknown>;
+  createdBy?: string;
+}
+
+export interface WorkflowTemplateInstantiationResult {
+  template: {
+    id: string;
+    version: string;
+    pluginId: string;
+    pluginVersion: string;
+    name: string;
+  };
+  mission: import("./mission-workbench.js").MissionWorkbenchMission;
+  tasks: import("./task-workbench.js").TaskWorkbenchTask[];
+  inputValues: Record<string, unknown>;
+}

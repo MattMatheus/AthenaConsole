@@ -41,3 +41,4 @@ export {
 export { parseWorkDrainRequest, parseWorkEnqueueRequest } from "./work.js";
 export { parseCreateWorkflowRequest } from "./workflow.js";
 export { parseWorkflowTemplateCatalogListQuery } from "./workflow-template-catalog.js";
+export { parseWorkflowTemplateInstantiateRequest } from "./workflow-template-instantiation.js";
