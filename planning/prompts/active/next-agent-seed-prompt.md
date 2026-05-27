@@ -2,27 +2,22 @@
 
 # Next Agent Directive
 
-Your task is to choose the next execution slice after the completed Team Orchestrator foundation reset.
+Your task is to execute the next Team Orchestrator story.
 
 ## Primary Task
 
-- **Completed Foundation Backlog:** `planning/backlog/completed/2026-product-direction-reset/`
+- **Backlog Item:** `planning/backlog/active/2026.11.01-add-agent-catalog-api.md`
 
-Review the stories and their source ADRs:
+Read the active story, then review its source decisions:
 
 - `planning/architecture/0007-agent-manifest-and-lifecycle-contract.md`
 - `planning/architecture/0008-plugin-package-format.md`
 - `planning/architecture/0010-sqlite-app-state-architecture.md`
-- `planning/architecture/0009-task-mission-run-domain-model.md`
-- `planning/architecture/0012-event-artifact-observability-model.md`
+- `planning/backlog/refinement/2026.11.00-epic-local-agent-catalog.md`
 
-## Recommended Next Decision
+## Current Context
 
-The foundation track now has SQLite app state, manifest schemas, local plugin indexing, and task/mission/run repositories. Decide whether to:
-
-- add API routes over the new repositories,
-- start the task workbench console milestone,
-- or add runtime backend integration against the new run model.
+The foundation track now has SQLite app state, manifest schemas, local plugin indexing, and task/mission/run repositories. The next slice is the local agent catalog API/service surface so the console can browse indexed plugins and agents.
 
 ## Agent Workflow (Mandatory)
 

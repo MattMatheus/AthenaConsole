@@ -2,7 +2,7 @@
 
 # Active Backlog
 
-The active queue is currently empty after completing the Team Orchestrator foundation reset implementation.
+The active queue has resumed after completing the Team Orchestrator foundation reset implementation.
 
 Every story in this queue is derived from the accepted reset ADRs:
 
@@ -22,13 +22,11 @@ Completed stories were moved to:
 
 - `planning/backlog/completed/2026-product-direction-reset/`
 
-## Current Stopping Point
+## Active Queue
 
-The foundation reset implementation sequence is complete. The next planning step should decide whether to:
+1. `planning/backlog/active/2026.11.01-add-agent-catalog-api.md`
 
-- add API routes over the new repositories,
-- start the task workbench console milestone,
-- or add runtime backend integration against the new run model.
+This starts the local agent catalog milestone by exposing indexed plugins and agents to the console through core API/service surfaces.
 
 ## Archived Previous Queue
 

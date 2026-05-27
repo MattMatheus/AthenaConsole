@@ -1,6 +1,14 @@
-# Team Orchestrator Agent Guide
+# Team Orchestrator Core Agent Guide
 
-Team Orchestrator is currently transitioning from Milestone 4 to Milestone 5 (Azure/Cloud-Native).
-Current implementation stage: Stage 8 (in progress).
+Team Orchestrator is no longer centered on the legacy Azure/cloud fleet roadmap. Core work should follow the reset direction documented in the repository root `AGENTS.md` and the accepted ADRs under `planning/architecture/`.
 
-Agents should prioritize control-plane/API contract integrity, backward-compatible schema evolution, and lock-guarded state changes.
+For `packages/core`, prioritize:
+
+- local-first defaults,
+- manifest-backed plugins and agents,
+- SQLite app-state repositories,
+- task/mission/run/event/artifact domain contracts,
+- pluggable runtime backends,
+- API surfaces needed by the web console.
+
+Backward compatibility with the legacy fleet/persona direction is not required unless the active story explicitly asks for it.
