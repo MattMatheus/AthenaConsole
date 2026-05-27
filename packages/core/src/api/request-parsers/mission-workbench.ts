@@ -3,6 +3,7 @@ import {
   MISSION_WORKBENCH_STATUSES,
   type MissionWorkbenchMissionCreateRequest,
   type MissionWorkbenchMissionListQuery,
+  type MissionWorkbenchMissionRunRequest,
   type MissionWorkbenchMissionStatus,
   type MissionWorkbenchMissionTaskAttachRequest,
   type MissionWorkbenchMissionTaskCreateRequest,
@@ -89,6 +90,13 @@ export function parseMissionWorkbenchCreateTaskRequest(body: Record<string, unkn
     ...(body.provenance !== undefined ? { provenance: body.provenance } : {}),
     ...(createdBy ? { createdBy } : {}),
     ...(position !== undefined ? { position } : {})
+  };
+}
+
+export function parseMissionWorkbenchRunRequest(body: Record<string, unknown>): MissionWorkbenchMissionRunRequest {
+  const runId = optionalString(body, "runId", "missions.run");
+  return {
+    ...(runId ? { runId } : {})
   };
 }
 

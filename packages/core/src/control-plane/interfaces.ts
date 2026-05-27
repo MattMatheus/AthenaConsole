@@ -28,6 +28,8 @@ import type {
   MissionWorkbenchMissionCreateRequest,
   MissionWorkbenchMissionListQuery,
   MissionWorkbenchMissionListResult,
+  MissionWorkbenchMissionRunDetail,
+  MissionWorkbenchMissionRunRequest,
   MissionWorkbenchMissionTaskAttachRequest,
   MissionWorkbenchMissionTaskCreateRequest,
   MissionWorkbenchMissionTaskListResult,
@@ -285,6 +287,8 @@ export interface MissionWorkbenchService {
   listTasks(id: string): Promise<MissionWorkbenchMissionTaskListResult>;
   attachTask(id: string, request: MissionWorkbenchMissionTaskAttachRequest): Promise<MissionWorkbenchMissionTaskListResult>;
   createTask(id: string, request: MissionWorkbenchMissionTaskCreateRequest): Promise<MissionWorkbenchMissionTaskListResult>;
+  runMission(id: string, request?: MissionWorkbenchMissionRunRequest): Promise<MissionWorkbenchMissionRunDetail>;
+  getMissionRun(runId: string): Promise<MissionWorkbenchMissionRunDetail>;
 }
 
 export interface A2aDlqService {

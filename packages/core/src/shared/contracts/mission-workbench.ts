@@ -1,6 +1,9 @@
 import type {
   TaskWorkbenchTask,
-  TaskWorkbenchTaskCreateRequest
+  TaskWorkbenchTaskCreateRequest,
+  TaskWorkbenchTaskRun,
+  TaskWorkbenchRunEvent,
+  TaskWorkbenchRunStatus
 } from "./task-workbench.js";
 
 export type MissionWorkbenchMissionStatus = "draft" | "ready" | "running" | "blocked" | "completed" | "failed" | "cancelled" | "archived";
@@ -70,3 +73,35 @@ export interface MissionWorkbenchMissionTaskAttachRequest {
 export type MissionWorkbenchMissionTaskCreateRequest = Omit<TaskWorkbenchTaskCreateRequest, "missionId"> & {
   position?: number;
 };
+
+export interface MissionWorkbenchMissionRunRequest {
+  runId?: string;
+}
+
+export interface MissionWorkbenchMissionRunChild {
+  taskId: string;
+  runId: string;
+  status: TaskWorkbenchRunStatus;
+}
+
+export interface MissionWorkbenchMissionRun {
+  id: string;
+  targetType: "mission";
+  targetId: string;
+  status: TaskWorkbenchRunStatus;
+  backend?: string;
+  startedAt?: string;
+  endedAt?: string;
+  output?: unknown;
+  failure?: unknown;
+  safetyStop?: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MissionWorkbenchMissionRunDetail {
+  run: MissionWorkbenchMissionRun;
+  mission?: MissionWorkbenchMission;
+  childRuns: TaskWorkbenchTaskRun[];
+  events: TaskWorkbenchRunEvent[];
+}

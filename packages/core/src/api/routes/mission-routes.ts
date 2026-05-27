@@ -3,6 +3,7 @@ import {
   parseMissionWorkbenchCreateRequest,
   parseMissionWorkbenchCreateTaskRequest,
   parseMissionWorkbenchListQuery,
+  parseMissionWorkbenchRunRequest,
   parseMissionWorkbenchUpdateRequest
 } from "../request-parsers/index.js";
 import { readJson, writeSuccess } from "../route-helpers.js";
@@ -13,9 +14,11 @@ export const MISSION_ROUTES = defineApiRoutes("missions", [
   { method: "POST", path: "/api/v1/missions", handler: handleCreateMissionRoute },
   { method: "GET", path: "/api/v1/missions/:id", handler: handleGetMissionRoute },
   { method: "PUT", path: "/api/v1/missions/:id", handler: handleUpdateMissionRoute },
+  { method: "POST", path: "/api/v1/missions/:id/run", handler: handleRunMissionRoute },
   { method: "GET", path: "/api/v1/missions/:id/tasks", handler: handleListMissionTasksRoute },
   { method: "POST", path: "/api/v1/missions/:id/tasks", handler: handleCreateMissionTaskRoute },
-  { method: "POST", path: "/api/v1/missions/:id/tasks/attach", handler: handleAttachMissionTaskRoute }
+  { method: "POST", path: "/api/v1/missions/:id/tasks/attach", handler: handleAttachMissionTaskRoute },
+  { method: "GET", path: "/api/v1/mission-runs/:runId", handler: handleGetMissionRunRoute }
 ]);
 
 async function handleListMissionsRoute(context: ApiRouteContext): Promise<void> {
@@ -51,12 +54,31 @@ async function handleUpdateMissionRoute(context: ApiRouteContext): Promise<void>
   );
 }
 
+async function handleRunMissionRoute(context: ApiRouteContext): Promise<void> {
+  const body = await readJson(context.req);
+  writeSuccess(
+    context.res,
+    "runMission",
+    200,
+    await context.services.missionWorkbenchService.runMission(requireRouteParam(context, "id"), parseMissionWorkbenchRunRequest(body))
+  );
+}
+
 async function handleListMissionTasksRoute(context: ApiRouteContext): Promise<void> {
   writeSuccess(
     context.res,
     "listMissionTasks",
     200,
     await context.services.missionWorkbenchService.listTasks(requireRouteParam(context, "id"))
+  );
+}
+
+async function handleGetMissionRunRoute(context: ApiRouteContext): Promise<void> {
+  writeSuccess(
+    context.res,
+    "getMissionRun",
+    200,
+    await context.services.missionWorkbenchService.getMissionRun(requireRouteParam(context, "runId"))
   );
 }
 

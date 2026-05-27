@@ -33,12 +33,13 @@ Completed stories were moved to:
 - `planning/backlog/completed/2026.13.03-enforce-approval-and-limit-defaults.md`
 - `planning/backlog/completed/2026.14.01-add-mission-apis.md`
 - `planning/backlog/completed/2026.14.02-add-workflow-template-indexing.md`
+- `planning/backlog/completed/2026.14.03-run-sequential-mission-plans.md`
 
 ## Active Queue
 
-1. `planning/backlog/active/2026.14.03-run-sequential-mission-plans.md`
+1. `planning/backlog/active/2026.15.01-add-task-schedule-model-and-api.md`
 
-The next slice runs ordered mission task plans sequentially through the existing task workbench execution path, stopping on failure and recording mission-to-task-run lineage.
+The next slice adds the task schedule model/service/API so one-shot and recurring task schedules can be configured before a live scheduler service is added.
 
 ## Archived Previous Queue
 

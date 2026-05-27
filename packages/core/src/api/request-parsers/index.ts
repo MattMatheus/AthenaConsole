@@ -17,6 +17,7 @@ export {
   parseMissionWorkbenchCreateRequest,
   parseMissionWorkbenchCreateTaskRequest,
   parseMissionWorkbenchListQuery,
+  parseMissionWorkbenchRunRequest,
   parseMissionWorkbenchUpdateRequest
 } from "./mission-workbench.js";
 export { parseCursorPageQuery, parseTailQuery } from "./pagination.js";

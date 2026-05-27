@@ -37,6 +37,8 @@ describe("api route registration", () => {
     expect(AGENT_CATALOG_ROUTES.every((route) => route.meta.family === "agent-catalog")).toBe(true);
     expect(WORKFLOW_TEMPLATE_CATALOG_ROUTES.every((route) => route.meta.family === "workflow-templates")).toBe(true);
     expect(MISSION_ROUTES.every((route) => route.meta.family === "missions")).toBe(true);
+    expect(MISSION_ROUTES.some((route) => route.path === "/api/v1/missions/:id/run")).toBe(true);
+    expect(MISSION_ROUTES.some((route) => route.path === "/api/v1/mission-runs/:runId")).toBe(true);
     expect(TASK_ROUTES.every((route) => route.meta.family === "tasks")).toBe(true);
   });
 
@@ -73,6 +75,7 @@ describe("api route registration", () => {
     expect(table.some((route) => route.path === "/api/v1/runs" && route.meta.family === "runs")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/workflow-templates" && route.meta.family === "workflow-templates")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/missions" && route.meta.family === "missions")).toBe(true);
+    expect(table.some((route) => route.path === "/api/v1/missions/:id/run" && route.meta.family === "missions")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/tasks" && route.meta.family === "tasks")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/memory/search" && route.meta.family === "memory")).toBe(
       true
