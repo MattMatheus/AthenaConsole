@@ -489,6 +489,39 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
     },
     required: ["id", "targetType", "targetId", "status", "createdAt", "updatedAt"]
   },
+  MissionWorkbenchMissionRunSummary: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      targetType: { type: "string", enum: ["mission"] },
+      targetId: { type: "string", minLength: 1 },
+      status: {
+        type: "string",
+        enum: ["queued", "validating", "running", "waiting-for-approval", "completed", "failed", "cancelled", "stopped-by-limit"]
+      },
+      backend: { type: "string", minLength: 1 },
+      startedAt: { type: "string", format: "date-time" },
+      endedAt: { type: "string", format: "date-time" },
+      childRunCount: { type: "integer", minimum: 0 },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: ["id", "targetType", "targetId", "status", "childRunCount", "createdAt", "updatedAt"]
+  },
+  MissionWorkbenchMissionRunListResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      mission: { $ref: "#/components/schemas/MissionWorkbenchMission" },
+      runs: {
+        type: "array",
+        items: { $ref: "#/components/schemas/MissionWorkbenchMissionRunSummary" }
+      },
+      total: { type: "integer", minimum: 0 }
+    },
+    required: ["mission", "runs", "total"]
+  },
   MissionWorkbenchMissionRunDetail: {
     type: "object",
     additionalProperties: false,
@@ -1453,6 +1486,20 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       required: ["id"]
     },
     responseSchema: { $ref: "#/components/schemas/MissionWorkbenchMissionTaskListResult" }
+  },
+  listMissionRuns: {
+    operationId: "listMissionRuns",
+    method: "GET",
+    path: "/api/v1/missions/:id/runs",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        id: STRING_SCHEMA
+      },
+      required: ["id"]
+    },
+    responseSchema: { $ref: "#/components/schemas/MissionWorkbenchMissionRunListResult" }
   },
   createMissionTask: {
     operationId: "createMissionTask",

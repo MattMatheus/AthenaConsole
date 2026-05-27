@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchMissions, fetchMissionTasks, runMission } from "./api";
+import { fetchMissionRunDetail, fetchMissions, fetchMissionRuns, fetchMissionTasks, runMission } from "./api";
 import type { MissionWorkbenchMissionListQuery } from "./types";
 
 export function useMissionsQuery(query: MissionWorkbenchMissionListQuery = {}) {
@@ -19,6 +19,24 @@ export function useMissionTasksQuery(id: string | undefined) {
   });
 }
 
+export function useMissionRunsQuery(id: string | undefined) {
+  return useQuery({
+    queryKey: ["mission-workbench", "mission-runs", id],
+    queryFn: () => fetchMissionRuns(id ?? ""),
+    enabled: Boolean(id),
+    staleTime: 5_000,
+  });
+}
+
+export function useMissionRunDetailQuery(runId: string | undefined) {
+  return useQuery({
+    queryKey: ["mission-workbench", "mission-run", runId],
+    queryFn: () => fetchMissionRunDetail(runId ?? ""),
+    enabled: Boolean(runId),
+    staleTime: 5_000,
+  });
+}
+
 export function useRunMissionMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -26,6 +44,7 @@ export function useRunMissionMutation() {
     onSuccess: (_result, id) => {
       void queryClient.invalidateQueries({ queryKey: ["mission-workbench", "missions"] });
       void queryClient.invalidateQueries({ queryKey: ["mission-workbench", "mission-tasks", id] });
+      void queryClient.invalidateQueries({ queryKey: ["mission-workbench", "mission-runs", id] });
       void queryClient.invalidateQueries({ queryKey: ["task-workbench", "tasks"] });
     },
   });

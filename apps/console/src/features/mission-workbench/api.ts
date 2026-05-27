@@ -5,6 +5,8 @@ import type {
   MissionWorkbenchMissionListResult,
   MissionWorkbenchMissionRun,
   MissionWorkbenchMissionRunDetail,
+  MissionWorkbenchMissionRunListResult,
+  MissionWorkbenchMissionRunSummary,
   MissionWorkbenchMissionStatus,
   MissionWorkbenchMissionTaskListResult,
 } from "./types";
@@ -119,6 +121,24 @@ function parseMissionRun(value: unknown): MissionWorkbenchMissionRun {
   };
 }
 
+function parseMissionRunSummary(value: unknown): MissionWorkbenchMissionRunSummary {
+  if (!isRecord(value) || typeof value.id !== "string" || typeof value.targetId !== "string") {
+    throw new Error("Mission run summary payload is invalid.");
+  }
+  return {
+    id: value.id,
+    targetType: "mission",
+    targetId: value.targetId,
+    status: parseRunStatus(value.status),
+    ...(typeof value.backend === "string" ? { backend: value.backend } : {}),
+    ...(typeof value.startedAt === "string" ? { startedAt: value.startedAt } : {}),
+    ...(typeof value.endedAt === "string" ? { endedAt: value.endedAt } : {}),
+    childRunCount: typeof value.childRunCount === "number" ? value.childRunCount : 0,
+    createdAt: typeof value.createdAt === "string" ? value.createdAt : new Date(0).toISOString(),
+    updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : new Date(0).toISOString(),
+  };
+}
+
 function parseEvent(value: unknown): TaskWorkbenchRunEvent | undefined {
   if (!isRecord(value) || typeof value.id !== "string" || typeof value.runId !== "string" || typeof value.type !== "string") {
     return undefined;
@@ -184,6 +204,22 @@ export async function fetchMissionTasks(id: string): Promise<MissionWorkbenchMis
     tasks: payload.tasks.map(parseTask),
     total: typeof payload.total === "number" ? payload.total : payload.tasks.length,
   };
+}
+
+export async function fetchMissionRuns(id: string): Promise<MissionWorkbenchMissionRunListResult> {
+  const payload = await apiClient.get<unknown>(`/v1/missions/${encodeURIComponent(id)}/runs`);
+  if (!isRecord(payload) || !Array.isArray(payload.runs)) {
+    throw new Error("Mission run list payload is invalid.");
+  }
+  return {
+    mission: parseMission(payload.mission),
+    runs: payload.runs.map(parseMissionRunSummary),
+    total: typeof payload.total === "number" ? payload.total : payload.runs.length,
+  };
+}
+
+export async function fetchMissionRunDetail(runId: string): Promise<MissionWorkbenchMissionRunDetail> {
+  return parseRunDetail(await apiClient.get<unknown>(`/v1/mission-runs/${encodeURIComponent(runId)}`));
 }
 
 export async function runMission(id: string): Promise<MissionWorkbenchMissionRunDetail> {

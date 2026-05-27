@@ -58,6 +58,7 @@ export const API_V1_ROUTES: ApiRouteDefinition[] = [
   { method: "GET", path: `${API_V1_PREFIX}/missions/:id`, operationId: "getMission" },
   { method: "PUT", path: `${API_V1_PREFIX}/missions/:id`, operationId: "updateMission" },
   { method: "POST", path: `${API_V1_PREFIX}/missions/:id/run`, operationId: "runMission" },
+  { method: "GET", path: `${API_V1_PREFIX}/missions/:id/runs`, operationId: "listMissionRuns" },
   { method: "GET", path: `${API_V1_PREFIX}/missions/:id/tasks`, operationId: "listMissionTasks" },
   { method: "POST", path: `${API_V1_PREFIX}/missions/:id/tasks`, operationId: "createMissionTask" },
   { method: "POST", path: `${API_V1_PREFIX}/missions/:id/tasks/attach`, operationId: "attachMissionTask" },

@@ -4,17 +4,21 @@ import { Link, useSearchParams } from "react-router-dom";
 import {
   missionStatusTone,
   orderedMissionTasks,
+  useMissionRunDetailQuery,
+  useMissionRunsQuery,
   sortMissions,
   useMissionTasksQuery,
   useMissionsQuery,
   useRunMissionMutation,
   type MissionWorkbenchMission,
+  type MissionWorkbenchMissionRunSummary,
 } from "../features/mission-workbench";
 import type { TaskWorkbenchTask } from "../features/task-workbench";
 import styles from "./MissionsPage.module.css";
 
 const EMPTY_MISSIONS: MissionWorkbenchMission[] = [];
 const EMPTY_TASKS: TaskWorkbenchTask[] = [];
+const EMPTY_RUNS: MissionWorkbenchMissionRunSummary[] = [];
 
 function formatDate(value: string | undefined): string {
   if (!value) {
@@ -63,6 +67,7 @@ export function MissionsPage() {
   const [search, setSearch] = useState("");
   const [includeArchived, setIncludeArchived] = useState(false);
   const [selectedMissionId, setSelectedMissionId] = useState(requestedMissionId);
+  const [selectedRunId, setSelectedRunId] = useState("");
   const missionsQuery = useMissionsQuery({ includeArchived });
   const runMissionMutation = useRunMissionMutation();
   const missions = missionsQuery.data?.missions ?? EMPTY_MISSIONS;
@@ -75,7 +80,10 @@ export function MissionsPage() {
     [missions, selectedMissionId, visibleMissions],
   );
   const missionTasksQuery = useMissionTasksQuery(selectedMission?.id);
+  const missionRunsQuery = useMissionRunsQuery(selectedMission?.id);
+  const runDetailQuery = useMissionRunDetailQuery(selectedRunId);
   const tasks = missionTasksQuery.data?.tasks ?? EMPTY_TASKS;
+  const missionRuns = missionRunsQuery.data?.runs ?? EMPTY_RUNS;
   const orderedTasks = useMemo(() => orderedMissionTasks(selectedMission, tasks), [selectedMission, tasks]);
   const canRunMission = selectedMission?.status === "ready";
 
@@ -91,6 +99,18 @@ export function MissionsPage() {
     }
   }, [selectedMission, selectedMissionId]);
 
+  useEffect(() => {
+    if (runMissionMutation.data?.run.id) {
+      setSelectedRunId(runMissionMutation.data.run.id);
+    }
+  }, [runMissionMutation.data?.run.id]);
+
+  useEffect(() => {
+    if (!missionRuns.some((run) => run.id === selectedRunId)) {
+      setSelectedRunId(missionRuns[0]?.id ?? "");
+    }
+  }, [missionRuns, selectedRunId]);
+
   function selectMission(id: string): void {
     setSelectedMissionId(id);
     const next = new URLSearchParams(searchParams);
@@ -99,7 +119,12 @@ export function MissionsPage() {
   }
 
   async function refresh(): Promise<void> {
-    await Promise.all([missionsQuery.refetch(), selectedMission ? missionTasksQuery.refetch() : Promise.resolve()]);
+    await Promise.all([
+      missionsQuery.refetch(),
+      selectedMission ? missionTasksQuery.refetch() : Promise.resolve(),
+      selectedMission ? missionRunsQuery.refetch() : Promise.resolve(),
+      selectedRunId ? runDetailQuery.refetch() : Promise.resolve()
+    ]);
   }
 
   return (
@@ -286,17 +311,34 @@ export function MissionsPage() {
           <aside className={styles.panel}>
             <div className={styles.panelHeader}>
               <div>
-                <p className={styles.panelTitle}>Last Run</p>
-                <p className={styles.panelMeta}>{runMissionMutation.data?.run.status ?? "None"}</p>
+                <p className={styles.panelTitle}>Run History</p>
+                <p className={styles.panelMeta}>{missionRuns.length} runs</p>
               </div>
             </div>
             <div className={styles.panelBody}>
-              {runMissionMutation.data ? (
+              {missionRuns.length > 0 ? (
                 <section className={styles.section}>
-                  <p className={styles.missionName}>{runMissionMutation.data.run.id}</p>
-                  <p className={styles.mono}>{runMissionMutation.data.run.backend ?? "sequential-mission"}</p>
                   <div className={styles.taskList}>
-                    {runMissionMutation.data.childRuns.map((run) => (
+                    {missionRuns.map((run) => (
+                      <button
+                        type="button"
+                        key={run.id}
+                        className={`${styles.runRow} ${selectedRunId === run.id ? styles.runRowActive : ""}`}
+                        onClick={() => setSelectedRunId(run.id)}
+                      >
+                        <span className={styles.missionName}>{run.id}</span>
+                        <span className={styles.mono}>{run.backend ?? "sequential-mission"}</span>
+                        <span className={styles.badgeRow}>
+                          <span className={styles.badgeMuted}>{run.status}</span>
+                          <span className={styles.badgeMuted}>{run.childRunCount} child runs</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  {runDetailQuery.error instanceof Error ? <p className={styles.errorText}>{runDetailQuery.error.message}</p> : null}
+                  {runDetailQuery.isLoading ? <p className={styles.description}>Loading mission run detail.</p> : null}
+                  <div className={styles.taskList}>
+                    {(runDetailQuery.data?.childRuns ?? []).map((run) => (
                       <div key={run.id} className={styles.taskItem}>
                         <Link className={styles.inlineLink} to={`/tasks/runs/${encodeURIComponent(run.id)}`}>
                           {run.id}
@@ -308,7 +350,7 @@ export function MissionsPage() {
                   </div>
                 </section>
               ) : (
-                <p className={styles.description}>No mission run started in this session.</p>
+                <p className={styles.description}>No mission runs recorded for this mission.</p>
               )}
             </div>
           </aside>

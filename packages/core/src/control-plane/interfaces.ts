@@ -29,6 +29,7 @@ import type {
   MissionWorkbenchMissionListQuery,
   MissionWorkbenchMissionListResult,
   MissionWorkbenchMissionRunDetail,
+  MissionWorkbenchMissionRunListResult,
   MissionWorkbenchMissionRunRequest,
   MissionWorkbenchMissionTaskAttachRequest,
   MissionWorkbenchMissionTaskCreateRequest,
@@ -299,6 +300,7 @@ export interface MissionWorkbenchService {
   attachTask(id: string, request: MissionWorkbenchMissionTaskAttachRequest): Promise<MissionWorkbenchMissionTaskListResult>;
   createTask(id: string, request: MissionWorkbenchMissionTaskCreateRequest): Promise<MissionWorkbenchMissionTaskListResult>;
   runMission(id: string, request?: MissionWorkbenchMissionRunRequest): Promise<MissionWorkbenchMissionRunDetail>;
+  listMissionRuns(id: string): Promise<MissionWorkbenchMissionRunListResult>;
   getMissionRun(runId: string): Promise<MissionWorkbenchMissionRunDetail>;
 }
 

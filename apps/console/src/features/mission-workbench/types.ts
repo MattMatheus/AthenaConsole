@@ -58,6 +58,25 @@ export type MissionWorkbenchMissionRun = {
   updatedAt: string;
 };
 
+export type MissionWorkbenchMissionRunSummary = {
+  id: string;
+  targetType: "mission";
+  targetId: string;
+  status: TaskWorkbenchRunStatus;
+  backend?: string;
+  startedAt?: string;
+  endedAt?: string;
+  childRunCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MissionWorkbenchMissionRunListResult = {
+  mission: MissionWorkbenchMission;
+  runs: MissionWorkbenchMissionRunSummary[];
+  total: number;
+};
+
 export type MissionWorkbenchMissionRunDetail = {
   run: MissionWorkbenchMissionRun;
   mission?: MissionWorkbenchMission;

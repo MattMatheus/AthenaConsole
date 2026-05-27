@@ -40,6 +40,7 @@ describe("api route registration", () => {
     expect(WORKFLOW_TEMPLATE_CATALOG_ROUTES.some((route) => route.path === "/api/v1/workflow-templates/:id/instantiate")).toBe(true);
     expect(MISSION_ROUTES.every((route) => route.meta.family === "missions")).toBe(true);
     expect(MISSION_ROUTES.some((route) => route.path === "/api/v1/missions/:id/run")).toBe(true);
+    expect(MISSION_ROUTES.some((route) => route.path === "/api/v1/missions/:id/runs")).toBe(true);
     expect(MISSION_ROUTES.some((route) => route.path === "/api/v1/mission-runs/:runId")).toBe(true);
     expect(TASK_ROUTES.every((route) => route.meta.family === "tasks")).toBe(true);
   });
@@ -79,6 +80,7 @@ describe("api route registration", () => {
     expect(table.some((route) => route.path === "/api/v1/workflow-templates/:id/instantiate" && route.meta.family === "workflow-templates")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/missions" && route.meta.family === "missions")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/missions/:id/run" && route.meta.family === "missions")).toBe(true);
+    expect(table.some((route) => route.path === "/api/v1/missions/:id/runs" && route.meta.family === "missions")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/tasks" && route.meta.family === "tasks")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/memory/search" && route.meta.family === "memory")).toBe(
       true

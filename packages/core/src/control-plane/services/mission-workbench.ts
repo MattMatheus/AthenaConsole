@@ -9,7 +9,9 @@ import type {
   MissionWorkbenchMissionRun,
   MissionWorkbenchMissionRunChild,
   MissionWorkbenchMissionRunDetail,
+  MissionWorkbenchMissionRunListResult,
   MissionWorkbenchMissionRunRequest,
+  MissionWorkbenchMissionRunSummary,
   MissionWorkbenchMissionStatus,
   MissionWorkbenchMissionTaskAttachRequest,
   MissionWorkbenchMissionTaskCreateRequest,
@@ -236,6 +238,20 @@ export class LocalMissionWorkbenchService implements MissionWorkbenchService {
     });
   }
 
+  async listMissionRuns(id: string): Promise<MissionWorkbenchMissionRunListResult> {
+    return this.withAppState((appState) => {
+      const mission = requireMission(appState, id);
+      const runs = appState.runs
+        .list({ targetType: "mission", targetId: mission.id })
+        .map(mapMissionRunSummaryRecord);
+      return {
+        mission: mapMissionRecord(mission),
+        runs,
+        total: runs.length
+      };
+    });
+  }
+
   async getMissionRun(runId: string): Promise<MissionWorkbenchMissionRunDetail> {
     return this.withAppState((appState) => missionRunDetail(appState, requireMissionRun(appState, runId)));
   }
@@ -443,6 +459,21 @@ function mapMissionRunRecord(record: RunRecord): MissionWorkbenchMissionRun {
     ...(record.output !== undefined ? { output: record.output } : {}),
     ...(record.failure !== undefined ? { failure: record.failure } : {}),
     ...(record.safetyStop !== undefined ? { safetyStop: record.safetyStop } : {}),
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt
+  };
+}
+
+function mapMissionRunSummaryRecord(record: RunRecord): MissionWorkbenchMissionRunSummary {
+  return {
+    id: record.id,
+    targetType: "mission",
+    targetId: record.targetId,
+    status: record.status as MissionWorkbenchMissionRunSummary["status"],
+    ...(record.backend ? { backend: record.backend } : {}),
+    ...(record.startedAt ? { startedAt: record.startedAt } : {}),
+    ...(record.endedAt ? { endedAt: record.endedAt } : {}),
+    childRunCount: readMissionRunChildRuns(record).length,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt
   };

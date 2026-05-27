@@ -15,6 +15,7 @@ export const MISSION_ROUTES = defineApiRoutes("missions", [
   { method: "GET", path: "/api/v1/missions/:id", handler: handleGetMissionRoute },
   { method: "PUT", path: "/api/v1/missions/:id", handler: handleUpdateMissionRoute },
   { method: "POST", path: "/api/v1/missions/:id/run", handler: handleRunMissionRoute },
+  { method: "GET", path: "/api/v1/missions/:id/runs", handler: handleListMissionRunsRoute },
   { method: "GET", path: "/api/v1/missions/:id/tasks", handler: handleListMissionTasksRoute },
   { method: "POST", path: "/api/v1/missions/:id/tasks", handler: handleCreateMissionTaskRoute },
   { method: "POST", path: "/api/v1/missions/:id/tasks/attach", handler: handleAttachMissionTaskRoute },
@@ -70,6 +71,15 @@ async function handleListMissionTasksRoute(context: ApiRouteContext): Promise<vo
     "listMissionTasks",
     200,
     await context.services.missionWorkbenchService.listTasks(requireRouteParam(context, "id"))
+  );
+}
+
+async function handleListMissionRunsRoute(context: ApiRouteContext): Promise<void> {
+  writeSuccess(
+    context.res,
+    "listMissionRuns",
+    200,
+    await context.services.missionWorkbenchService.listMissionRuns(requireRouteParam(context, "id"))
   );
 }
 

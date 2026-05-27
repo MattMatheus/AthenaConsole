@@ -40,12 +40,13 @@ Completed stories were moved to:
 - `planning/backlog/completed/2026.16.01-instantiate-workflow-templates.md`
 - `planning/backlog/completed/2026.16.02-build-workflow-template-instantiation-ui.md`
 - `planning/backlog/completed/2026.16.03-build-mission-workbench-ui.md`
+- `planning/backlog/completed/2026.16.04-add-mission-run-history.md`
 
 ## Active Queue
 
-1. `planning/backlog/active/2026.16.04-add-mission-run-history.md`
+1. `planning/backlog/active/2026.16.05-schedule-workflow-templates.md`
 
-The next slice makes mission execution outcomes durable in the console by listing mission runs and opening mission-run detail after the current session.
+The next slice lets schedules target workflow templates so due schedules can instantiate fresh missions from repeatable workflows.
 
 ## Archived Previous Queue
 

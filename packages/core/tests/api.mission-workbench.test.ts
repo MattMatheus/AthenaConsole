@@ -219,6 +219,21 @@ describe("mission workbench api", () => {
         }
       });
       expect(getRunEnvelope.data.events.map((event) => event.type)).toContain("mission.run.completed");
+
+      const listRunsResponse = await fetch(`${base}/api/v1/missions/mission-api-run/runs`);
+      expect(listRunsResponse.status).toBe(200);
+      const listRunsEnvelope = (await listRunsResponse.json()) as {
+        ok: boolean;
+        data: { mission: { id: string }; total: number; runs: Array<{ id: string; status: string; childRunCount: number }> };
+      };
+      expect(listRunsEnvelope).toMatchObject({
+        ok: true,
+        data: {
+          mission: { id: "mission-api-run" },
+          total: 1,
+          runs: [{ id: "mission-api-run-1", status: "completed", childRunCount: 2 }]
+        }
+      });
     } finally {
       await server.stop();
       rmSync(dir, { recursive: true, force: true });
