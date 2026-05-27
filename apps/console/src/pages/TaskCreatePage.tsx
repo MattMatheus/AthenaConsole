@@ -1,5 +1,6 @@
 import { CheckCircle2, RefreshCw, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   useAgentCatalogAgentsQuery,
   type AgentCatalogAgentSummary,
@@ -11,6 +12,7 @@ import {
   initialInputValues,
   normalizeInputFields,
   useCreateTaskMutation,
+  useTasksQuery,
   useTaskWorkbenchMetadataQuery,
   validateTaskForm,
   type TaskInputValues,
@@ -40,8 +42,11 @@ function formatDate(value: string): string {
 }
 
 export function TaskCreatePage() {
+  const [searchParams] = useSearchParams();
+  const missionIdFilter = searchParams.get("missionId")?.trim() ?? "";
   const agentsQuery = useAgentCatalogAgentsQuery();
   const metadataQuery = useTaskWorkbenchMetadataQuery();
+  const missionTasksQuery = useTasksQuery(missionIdFilter ? { missionId: missionIdFilter } : {});
   const createTaskMutation = useCreateTaskMutation();
   const agents = agentsQuery.data?.agents ?? EMPTY_AGENTS;
   const capabilityOptions = useMemo(() => uniqueCapabilities(agents), [agents]);
@@ -75,6 +80,7 @@ export function TaskCreatePage() {
   const isLoading = agentsQuery.isLoading || metadataQuery.isLoading;
   const error = agentsQuery.error ?? metadataQuery.error;
   const createdTask = createTaskMutation.data;
+  const missionTasks = missionIdFilter ? missionTasksQuery.data?.tasks ?? [] : [];
 
   useEffect(() => {
     if (selectedAgentKey && !compatibleAgents.some((agent) => agentKey(agent) === selectedAgentKey)) {
@@ -130,7 +136,7 @@ export function TaskCreatePage() {
   }
 
   async function refresh(): Promise<void> {
-    await Promise.all([agentsQuery.refetch(), metadataQuery.refetch()]);
+    await Promise.all([agentsQuery.refetch(), metadataQuery.refetch(), missionIdFilter ? missionTasksQuery.refetch() : Promise.resolve()]);
   }
 
   return (
@@ -375,6 +381,35 @@ export function TaskCreatePage() {
                 <p className={styles.description}>No task saved in this session.</p>
               )}
             </section>
+
+            {missionIdFilter ? (
+              <section className={styles.panelSection}>
+                <div className={styles.sectionHeader}>
+                  <div>
+                    <p className={styles.panelTitle}>Mission Tasks</p>
+                    <p className={styles.panelMeta}>{missionTasks.length} for selected mission</p>
+                  </div>
+                </div>
+                <p className={styles.mono}>{missionIdFilter}</p>
+                {missionTasksQuery.error instanceof Error ? <p className={styles.errorText}>{missionTasksQuery.error.message}</p> : null}
+                {missionTasksQuery.isLoading ? <p className={styles.description}>Loading mission tasks.</p> : null}
+                {!missionTasksQuery.isLoading && missionTasks.length === 0 ? (
+                  <p className={styles.description}>No tasks found for this mission.</p>
+                ) : (
+                  <dl className={styles.kvList}>
+                    {missionTasks.map((task) => (
+                      <div key={task.id}>
+                        <dt>{task.title}</dt>
+                        <dd>
+                          <span className={styles.mono}>{task.id}</span>
+                          <span className={task.status === "ready" ? styles.badgeSuccess : styles.badge}>{task.status}</span>
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </section>
+            ) : null}
           </aside>
         </div>
       ) : null}

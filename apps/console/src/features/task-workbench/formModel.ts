@@ -80,7 +80,13 @@ export function initialInputValues(fields: TaskInputField[]): TaskInputValues {
   return Object.fromEntries(
     fields.map((field) => [
       field.key,
-      field.type === "boolean" ? Boolean(field.defaultValue) : field.defaultValue === undefined ? "" : String(field.defaultValue),
+      field.type === "boolean"
+        ? Boolean(field.defaultValue)
+        : field.defaultValue === undefined
+          ? ""
+          : field.type === "json" && typeof field.defaultValue === "object"
+            ? JSON.stringify(field.defaultValue)
+            : String(field.defaultValue),
     ]),
   );
 }

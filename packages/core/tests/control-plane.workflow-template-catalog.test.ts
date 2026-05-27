@@ -45,6 +45,10 @@ describe("workflow template catalog service", () => {
               version: "0.1.0",
               goal: "Prepare a release plan.",
               context: { release: "next" },
+              inputs: {
+                releaseName: { type: "string", label: "Release Name", required: true },
+                dryRun: { type: "boolean", default: true }
+              },
               tasks: [
                 { id: "plan", title: "Plan", capabilityRequirements: ["test.run"] },
                 { id: "review", title: "Review", dependsOn: ["plan"] }
@@ -75,6 +79,10 @@ describe("workflow template catalog service", () => {
           metadata: {
             goal: "Prepare a release plan.",
             context: { release: "next" },
+            inputs: {
+              releaseName: { type: "string", label: "Release Name", required: true },
+              dryRun: { type: "boolean", default: true }
+            },
             ui: { icon: "list-checks" }
           },
           validationErrors: []

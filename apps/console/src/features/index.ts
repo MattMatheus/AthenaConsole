@@ -4,6 +4,7 @@ export * from "./runs";
 export * from "./schedules";
 export * from "./sessions";
 export * from "./task-workbench";
+export * from "./workflow-templates";
 export * from "./rbac";
 export * from "./governance-audit";
 export * from "./dlq";

@@ -43,6 +43,9 @@ describe("workflow template catalog api", () => {
             name: "API Template Workflow",
             version: "0.1.0",
             goal: "Expose templates to clients.",
+            inputs: {
+              topic: { type: "string", required: true }
+            },
             tasks: [{ id: "plan", title: "Plan" }]
           }
         },
@@ -80,7 +83,12 @@ describe("workflow template catalog api", () => {
         ok: boolean;
         data: {
           total: number;
-          templates: Array<{ id: string; available: boolean; plugin: { name: string }; metadata: { goal?: string } }>;
+          templates: Array<{
+            id: string;
+            available: boolean;
+            plugin: { name: string };
+            metadata: { goal?: string; inputs?: Record<string, unknown> };
+          }>;
           filters: { pluginId?: string };
         };
       };
@@ -94,7 +102,10 @@ describe("workflow template catalog api", () => {
               id: "api.template.workflow",
               available: true,
               plugin: { name: "API Template Plugin" },
-              metadata: { goal: "Expose templates to clients." }
+              metadata: {
+                goal: "Expose templates to clients.",
+                inputs: { topic: { type: "string", required: true } }
+              }
             }
           ],
           filters: {

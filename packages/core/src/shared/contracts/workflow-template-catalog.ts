@@ -27,6 +27,7 @@ export interface WorkflowTemplateCatalogTemplateSummary {
   metadata: {
     goal?: string;
     context?: unknown;
+    inputs?: Record<string, unknown>;
     tasks?: unknown[];
     ui?: Record<string, unknown>;
   };

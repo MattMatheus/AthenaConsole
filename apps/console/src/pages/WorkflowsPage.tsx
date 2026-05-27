@@ -1,360 +1,451 @@
-import { useMemo, useState } from "react";
-import { exportA2aStallAlertHistoryCsv, useA2aObservabilityQuery, useA2aStallAlertHistoryQuery } from "../features/a2a-observability";
-import { ApiClientError } from "../services";
-import styles from "./PageScaffold.module.css";
+import { CheckCircle2, Play, RefreshCw, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import type { TaskInputField, TaskInputValues } from "../features/task-workbench";
+import {
+  buildWorkflowTemplateInstantiateRequest,
+  hasWorkflowTemplateInputErrors,
+  initialWorkflowTemplateInputValues,
+  useInstantiateWorkflowTemplateMutation,
+  useWorkflowTemplatesQuery,
+  validateWorkflowTemplateInputs,
+  workflowTemplateInputFields,
+  type WorkflowTemplateSummary,
+} from "../features/workflow-templates";
+import styles from "./WorkflowsPage.module.css";
 
-function formatDuration(ms: number): string {
-  if (!Number.isFinite(ms) || ms <= 0) {
-    return "0s";
+const EMPTY_TEMPLATES: WorkflowTemplateSummary[] = [];
+
+type AvailabilityFilter = "all" | "available" | "unavailable";
+
+function statusClass(template: WorkflowTemplateSummary): string {
+  if (!template.available || template.status === "invalid") {
+    return styles.badgeWarning ?? "";
   }
-  if (ms < 1_000) {
-    return `${Math.round(ms)}ms`;
+  if (template.status === "loaded") {
+    return styles.badgeSuccess ?? "";
   }
-  const seconds = ms / 1_000;
-  if (seconds < 60) {
-    return `${seconds.toFixed(1)}s`;
-  }
-  const minutes = seconds / 60;
-  return `${minutes.toFixed(1)}m`;
+  return styles.badgeMuted ?? "";
 }
 
-function formatBucket(iso: string): string {
-  const value = Date.parse(iso);
-  if (!Number.isFinite(value)) {
-    return iso;
+function matchesSearch(template: WorkflowTemplateSummary, search: string): boolean {
+  if (!search) {
+    return true;
   }
-  return new Date(value).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+  const lower = search.toLowerCase();
+  return [
+    template.id,
+    template.version,
+    template.name,
+    template.description,
+    template.plugin.id,
+    template.plugin.name,
+    template.metadata.goal ?? "",
+  ].some((value) => value.toLowerCase().includes(lower));
+}
+
+function formatJson(value: unknown): string {
+  if (value === undefined) {
+    return "";
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function inputMeta(fields: TaskInputField[]): string {
+  const required = fields.filter((field) => field.required).length;
+  if (fields.length === 0) {
+    return "No inputs";
+  }
+  return required > 0 ? `${fields.length} inputs, ${required} required` : `${fields.length} inputs`;
+}
+
+function templateKey(template: WorkflowTemplateSummary): string {
+  return `${template.id}@${template.version}:${template.plugin.id}@${template.plugin.version}`;
 }
 
 export function WorkflowsPage() {
-  const [windowMinutes, setWindowMinutes] = useState(60);
-  const [bucketMinutes, setBucketMinutes] = useState(5);
-  const [traceId, setTraceId] = useState("");
-  const [alertCursor, setAlertCursor] = useState<string | undefined>(undefined);
-  const [alertStepId, setAlertStepId] = useState("");
-  const [alertSeverity, setAlertSeverity] = useState<"" | "warning" | "critical">("");
-  const [alertCreatedAfter, setAlertCreatedAfter] = useState("");
-  const [alertCreatedBefore, setAlertCreatedBefore] = useState("");
-  const [exportStatus, setExportStatus] = useState<string | undefined>(undefined);
-
-  const observabilityQuery = useA2aObservabilityQuery({
-    limit: 800,
-    windowMinutes,
-    bucketMinutes,
-    ...(traceId.trim().length > 0 ? { traceId: traceId.trim() } : {})
-  });
-
-  const readDenied = observabilityQuery.error instanceof ApiClientError && observabilityQuery.error.status === 403;
-  const alertHistoryQuery = useA2aStallAlertHistoryQuery({
-    ...(alertCursor ? { cursor: alertCursor } : {}),
-    limit: 25,
-    ...(traceId.trim().length > 0 ? { traceId: traceId.trim() } : {}),
-    ...(alertStepId.trim().length > 0 ? { stepId: alertStepId.trim() } : {}),
-    ...(alertSeverity ? { severity: alertSeverity } : {}),
-    ...(alertCreatedAfter ? { createdAfter: new Date(alertCreatedAfter).toISOString() } : {}),
-    ...(alertCreatedBefore ? { createdBefore: new Date(alertCreatedBefore).toISOString() } : {})
-  });
-
-  const maxLatencyMs = useMemo(
+  const [search, setSearch] = useState("");
+  const [availability, setAvailability] = useState<AvailabilityFilter>("all");
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
+  const [inputValues, setInputValues] = useState<TaskInputValues>({});
+  const [hasAttemptedInstantiate, setHasAttemptedInstantiate] = useState(false);
+  const templatesQuery = useWorkflowTemplatesQuery({ includeUnavailable: true });
+  const instantiateMutation = useInstantiateWorkflowTemplateMutation();
+  const templates = templatesQuery.data?.templates ?? EMPTY_TEMPLATES;
+  const visibleTemplates = useMemo(
     () =>
-      Math.max(
-        1,
-        ...(observabilityQuery.data?.latencyHeatmap.map((row) => Math.max(row.averageLatencyMs, row.p95LatencyMs)) ?? [1])
-      ),
-    [observabilityQuery.data?.latencyHeatmap]
+      templates.filter((template) => {
+        if (availability === "available" && !template.available) {
+          return false;
+        }
+        if (availability === "unavailable" && template.available) {
+          return false;
+        }
+        return matchesSearch(template, search.trim());
+      }),
+    [availability, search, templates],
   );
+  const selectedTemplate = useMemo(
+    () => templates.find((template) => templateKey(template) === selectedTemplateKey) ?? visibleTemplates[0],
+    [selectedTemplateKey, templates, visibleTemplates],
+  );
+  const inputFields = useMemo(() => workflowTemplateInputFields(selectedTemplate), [selectedTemplate]);
+  const inputValidation = validateWorkflowTemplateInputs(inputFields, inputValues);
+  const displayedValidation = hasAttemptedInstantiate ? inputValidation : {};
+  const availableCount = templates.filter((template) => template.available).length;
+  const unavailableCount = templates.length - availableCount;
 
-  async function handleExportCsv(): Promise<void> {
-    const createdAfter = alertCreatedAfter ? new Date(alertCreatedAfter).toISOString() : undefined;
-    const createdBefore = alertCreatedBefore ? new Date(alertCreatedBefore).toISOString() : undefined;
-    if (!createdAfter || !createdBefore) {
-      setExportStatus("Set both Created After and Created Before before export.");
+  useEffect(() => {
+    if (!selectedTemplate && selectedTemplateKey) {
+      setSelectedTemplateKey("");
+    }
+    if (selectedTemplate && templateKey(selectedTemplate) !== selectedTemplateKey) {
+      setSelectedTemplateKey(templateKey(selectedTemplate));
+    }
+  }, [selectedTemplate, selectedTemplateKey]);
+
+  useEffect(() => {
+    setInputValues(initialWorkflowTemplateInputValues(selectedTemplate));
+    setHasAttemptedInstantiate(false);
+  }, [selectedTemplate]);
+
+  function updateInput(key: string, value: string | boolean): void {
+    setInputValues((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
+
+  async function refresh(): Promise<void> {
+    await templatesQuery.refetch();
+  }
+
+  function instantiateSelected(): void {
+    if (!selectedTemplate) {
       return;
     }
-    try {
-      setExportStatus("Exporting CSV...");
-      const csv = await exportA2aStallAlertHistoryCsv({
-        ...(traceId.trim().length > 0 ? { traceId: traceId.trim() } : {}),
-        ...(alertStepId.trim().length > 0 ? { stepId: alertStepId.trim() } : {}),
-        ...(alertSeverity ? { severity: alertSeverity } : {}),
-        createdAfter,
-        createdBefore
-      });
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const objectUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = objectUrl;
-      anchor.download = "a2a-stall-alerts.csv";
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      URL.revokeObjectURL(objectUrl);
-      setExportStatus("CSV exported.");
-    } catch (error) {
-      setExportStatus(error instanceof Error ? error.message : "CSV export failed.");
+    setHasAttemptedInstantiate(true);
+    if (hasWorkflowTemplateInputErrors(inputValidation)) {
+      return;
     }
+    instantiateMutation.mutate({
+      templateId: selectedTemplate.id,
+      request: buildWorkflowTemplateInstantiateRequest(selectedTemplate, inputFields, inputValues),
+    });
   }
 
   return (
     <section className={styles.page}>
-      <h2>Workflows</h2>
-      <p className={styles.lead}>
-        A2A throughput, queue depth, latency heatmap, and stall-alert monitoring for workflow bottleneck detection.
-      </p>
-      {readDenied ? <p>A2A observability requires Operator or Admin privileges.</p> : null}
-
-      <div className={styles.settingsPanel}>
-        <div className={styles.settingsHeader}>
-          <h3>Observability Controls</h3>
-          <p className={styles.settingsMuted}>Auto-refresh every 10 seconds</p>
+      <div className={styles.pageHeader}>
+        <div>
+          <p className={styles.panelMeta}>Workflow Templates</p>
+          <h2 className={styles.pageTitle}>Instantiate Workflows</h2>
         </div>
-        <div className={styles.observabilityFilterGrid}>
-          <label className={styles.policyField}>
-            <span>Window (minutes)</span>
-            <input
-              className={styles.settingsInput}
-              type="number"
-              min={5}
-              max={1440}
-              value={windowMinutes}
-              onChange={(event) => setWindowMinutes(Math.max(5, Math.min(1440, Number(event.target.value) || 60)))}
-            />
-          </label>
-          <label className={styles.policyField}>
-            <span>Bucket (minutes)</span>
-            <input
-              className={styles.settingsInput}
-              type="number"
-              min={1}
-              max={60}
-              value={bucketMinutes}
-              onChange={(event) => setBucketMinutes(Math.max(1, Math.min(60, Number(event.target.value) || 5)))}
-            />
-          </label>
-          <label className={styles.policyField}>
-            <span>Trace Filter (optional)</span>
-            <input
-              className={styles.settingsInput}
-              value={traceId}
-              onChange={(event) => {
-                setAlertCursor(undefined);
-                setTraceId(event.target.value);
-              }}
-              placeholder="trace-123..."
-            />
-          </label>
-        </div>
-        <p className={styles.settingsMuted}>
-          {observabilityQuery.data
-            ? `Sampled ${observabilityQuery.data.sampleCount} telemetry events between ${new Date(
-                observabilityQuery.data.windowStart
-              ).toLocaleTimeString()} and ${new Date(observabilityQuery.data.windowEnd).toLocaleTimeString()}`
-            : "Waiting for telemetry sample..."}
-          {observabilityQuery.data?.truncated ? " (sample capped)" : ""}
-        </p>
+        <button
+          type="button"
+          className={styles.iconButton}
+          onClick={() => void refresh()}
+          disabled={templatesQuery.isFetching}
+          aria-label="Refresh workflow templates"
+          title="Refresh workflow templates"
+        >
+          <RefreshCw size={16} />
+        </button>
       </div>
 
-      <div className={styles.settingsPanel}>
-        <div className={styles.settingsHeader}>
-          <h3>Throughput and Queue Depth</h3>
+      <div className={styles.summaryGrid}>
+        <div className={styles.metric}>
+          <span className={styles.metricLabel}>Templates</span>
+          <span className={styles.metricValue}>{templates.length}</span>
         </div>
-        {observabilityQuery.isLoading ? <p>Loading throughput snapshot...</p> : null}
-        {observabilityQuery.error instanceof Error && !readDenied ? <p>{observabilityQuery.error.message}</p> : null}
-        {observabilityQuery.data?.throughput.length === 0 ? (
-          <p className={styles.settingsMuted}>No throughput buckets found in the selected window.</p>
-        ) : null}
-        <div className={styles.tableWrapper}>
-          <table className={styles.settingsTable}>
-            <thead>
-              <tr>
-                <th>Queue</th>
-                <th>Bucket</th>
-                <th>Items/Minute</th>
-                <th>Processed</th>
-                <th>Queue Depth</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(observabilityQuery.data?.throughput ?? []).map((point) => (
-                <tr key={`${point.queueId}-${point.bucketStart}`}>
-                  <td className={styles.mono}>{point.queueId}</td>
-                  <td className={styles.mono}>{formatBucket(point.bucketStart)}</td>
-                  <td>{point.itemsPerMinute.toFixed(2)}</td>
-                  <td>{point.processedItems}</td>
-                  <td>{point.queueDepth}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className={styles.metric}>
+          <span className={styles.metricLabel}>Available</span>
+          <span className={styles.metricValue}>{availableCount}</span>
+        </div>
+        <div className={styles.metric}>
+          <span className={styles.metricLabel}>Unavailable</span>
+          <span className={styles.metricValue}>{unavailableCount}</span>
+        </div>
+        <div className={styles.metric}>
+          <span className={styles.metricLabel}>Visible</span>
+          <span className={styles.metricValue}>{visibleTemplates.length}</span>
         </div>
       </div>
 
-      <div className={styles.settingsPanel}>
-        <div className={styles.settingsHeader}>
-          <h3>Latency Heatmap</h3>
+      <div className={styles.filters}>
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Search</span>
+          <span className={styles.inputWrap}>
+            <Search size={15} />
+            <input
+              className={styles.input}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="template, plugin, goal"
+              type="search"
+            />
+          </span>
+        </label>
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>State</span>
+          <select className={styles.select} value={availability} onChange={(event) => setAvailability(event.target.value as AvailabilityFilter)}>
+            <option value="all">All states</option>
+            <option value="available">Available</option>
+            <option value="unavailable">Unavailable</option>
+          </select>
+        </label>
+      </div>
+
+      {templatesQuery.isLoading ? (
+        <div className={styles.state}>
+          <p className={styles.stateTitle}>Loading Workflow Templates</p>
+          <p className={styles.description}>Reading indexed workflow templates from the local catalog API.</p>
         </div>
-        {observabilityQuery.data?.latencyHeatmap.length === 0 ? (
-          <p className={styles.settingsMuted}>No completed A2A step latencies available for this window.</p>
-        ) : null}
-        <div className={styles.heatmapList}>
-          {(observabilityQuery.data?.latencyHeatmap ?? []).slice(0, 40).map((row) => {
-            const intensity = Math.max(8, Math.min(100, Math.round((Math.max(row.averageLatencyMs, row.p95LatencyMs) / maxLatencyMs) * 100)));
-            return (
-              <div
-                key={`${row.traceId}-${row.stepId}`}
-                className={styles.heatmapRow}
-                style={{ ["--heat-intensity" as string]: `${intensity}%` }}
-              >
-                <div>
-                  <p className={styles.heatmapTitle}>
-                    {row.stepId} <span className={styles.mono}>{row.traceId}</span>
-                  </p>
-                  <p className={styles.settingsMuted}>
-                    avg {formatDuration(row.averageLatencyMs)} | p95 {formatDuration(row.p95LatencyMs)} | queue wait{" "}
-                    {formatDuration(row.averageQueueWaitMs)}
-                  </p>
-                </div>
-                <span className={styles.mono}>{row.sampleSize} samples</span>
+      ) : null}
+
+      {templatesQuery.error instanceof Error ? (
+        <div className={styles.state}>
+          <p className={styles.stateTitle}>Unable To Load Workflow Templates</p>
+          <p className={styles.errorText}>{templatesQuery.error.message}</p>
+        </div>
+      ) : null}
+
+      {!templatesQuery.isLoading && !templatesQuery.error && templates.length === 0 ? (
+        <div className={styles.state}>
+          <p className={styles.stateTitle}>No Workflow Templates Indexed</p>
+          <p className={styles.description}>Install or configure plugins with workflow templates, then refresh the catalog.</p>
+        </div>
+      ) : null}
+
+      {!templatesQuery.isLoading && !templatesQuery.error && templates.length > 0 ? (
+        <div className={styles.layout}>
+          <section className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.panelTitle}>Catalog</p>
+                <p className={styles.panelMeta}>{visibleTemplates.length} shown</p>
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className={styles.settingsPanel}>
-        <div className={styles.settingsHeader}>
-          <h3>Live Stall Alerts</h3>
-        </div>
-        {observabilityQuery.data?.stallAlerts.length === 0 ? (
-          <p className={styles.settingsMuted}>No workflow stalls beyond historical P95 thresholds.</p>
-        ) : null}
-        <div className={styles.auditList}>
-          {(observabilityQuery.data?.stallAlerts ?? []).map((alert) => (
-            <article key={`${alert.traceId}-${alert.stepId}-${alert.correlationId}`} className={styles.auditEntry}>
-              <div className={styles.auditEntryHead}>
-                <p className={styles.auditTitle}>
-                  {alert.severity.toUpperCase()} | {alert.stepId}
-                </p>
-                <p className={styles.auditMeta}>
-                  <span className={styles.mono}>trace={alert.traceId}</span>
-                  <span className={styles.mono}>queue={alert.queueId}</span>
-                  <span className={styles.mono}>item={alert.correlationId}</span>
-                </p>
+            </div>
+            {visibleTemplates.length === 0 ? (
+              <div className={styles.stateInline}>
+                <p className={styles.stateTitle}>No Templates Match Filters</p>
+                <p className={styles.description}>Adjust the search or state filter.</p>
               </div>
-              <p className={styles.settingsMuted}>
-                Pending {formatDuration(alert.pendingForMs)} since {new Date(alert.startedAt).toLocaleTimeString()} (historical
-                p95 {formatDuration(alert.historicalP95Ms)}).
-              </p>
-            </article>
-          ))}
-        </div>
-      </div>
-
-      <div className={styles.settingsPanel}>
-        <div className={styles.settingsHeader}>
-          <h3>Alert History</h3>
-          <button className={styles.settingsButton} type="button" onClick={() => void handleExportCsv()} disabled={readDenied}>
-            Export CSV
-          </button>
-        </div>
-        <div className={styles.observabilityFilterGrid}>
-          <label className={styles.policyField}>
-            <span>Step ID (optional)</span>
-            <input
-              className={styles.settingsInput}
-              value={alertStepId}
-              onChange={(event) => {
-                setAlertCursor(undefined);
-                setAlertStepId(event.target.value);
-              }}
-              placeholder="planner"
-            />
-          </label>
-          <label className={styles.policyField}>
-            <span>Severity (optional)</span>
-            <select
-              className={styles.settingsInput}
-              value={alertSeverity}
-              onChange={(event) => {
-                setAlertCursor(undefined);
-                const value = event.target.value;
-                setAlertSeverity(value === "warning" || value === "critical" ? value : "");
-              }}
-            >
-              <option value="">all</option>
-              <option value="warning">warning</option>
-              <option value="critical">critical</option>
-            </select>
-          </label>
-          <label className={styles.policyField}>
-            <span>Created After</span>
-            <input
-              className={styles.settingsInput}
-              type="datetime-local"
-              value={alertCreatedAfter}
-              onChange={(event) => {
-                setAlertCursor(undefined);
-                setAlertCreatedAfter(event.target.value);
-              }}
-            />
-          </label>
-          <label className={styles.policyField}>
-            <span>Created Before</span>
-            <input
-              className={styles.settingsInput}
-              type="datetime-local"
-              value={alertCreatedBefore}
-              onChange={(event) => {
-                setAlertCursor(undefined);
-                setAlertCreatedBefore(event.target.value);
-              }}
-            />
-          </label>
-        </div>
-        {exportStatus ? <p className={styles.settingsMuted}>{exportStatus}</p> : null}
-        {alertHistoryQuery.isLoading ? <p>Loading alert history...</p> : null}
-        {alertHistoryQuery.error instanceof Error && !readDenied ? <p>{alertHistoryQuery.error.message}</p> : null}
-        {alertHistoryQuery.data?.items.length === 0 ? (
-          <p className={styles.settingsMuted}>No historical alerts matched these filters.</p>
-        ) : null}
-        <div className={styles.auditList}>
-          {(alertHistoryQuery.data?.items ?? []).map((alert) => (
-            <article key={alert.id} className={styles.auditEntry}>
-              <div className={styles.auditEntryHead}>
-                <p className={styles.auditTitle}>
-                  {alert.severity.toUpperCase()} | {alert.stepId} | {alert.status.toUpperCase()}
-                </p>
-                <p className={styles.auditMeta}>
-                  <span className={styles.mono}>trace={alert.traceId}</span>
-                  <span className={styles.mono}>queue={alert.queueId}</span>
-                  <span className={styles.mono}>item={alert.correlationId}</span>
-                </p>
+            ) : (
+              <div className={styles.templateList}>
+                {visibleTemplates.map((template) => (
+                  <button
+                    type="button"
+                    key={templateKey(template)}
+                    className={`${styles.templateRow} ${selectedTemplate && templateKey(selectedTemplate) === templateKey(template) ? styles.templateRowActive : ""}`}
+                    onClick={() => setSelectedTemplateKey(templateKey(template))}
+                  >
+                    <span className={styles.rowTop}>
+                      <span>
+                        <span className={styles.templateName}>{template.name}</span>
+                        <span className={styles.mono}>{template.id}@{template.version}</span>
+                      </span>
+                      <span className={statusClass(template)}>{template.available ? "Available" : "Unavailable"}</span>
+                    </span>
+                    <span className={styles.description}>{template.description || template.metadata.goal || "No description declared."}</span>
+                    <span className={styles.badgeRow}>
+                      <span className={styles.badge}>{template.taskCount} tasks</span>
+                      <span className={styles.badgeMuted}>{template.plugin.name}</span>
+                      <span className={styles.badgeMuted}>{inputMeta(workflowTemplateInputFields(template))}</span>
+                    </span>
+                  </button>
+                ))}
               </div>
-              <p className={styles.settingsMuted}>
-                Created {new Date(alert.createdAt).toLocaleString()} | Started {new Date(alert.startedAt).toLocaleTimeString()} | Pending{" "}
-                {formatDuration(alert.pendingForMs)} | historical p95 {formatDuration(alert.historicalP95Ms)}
-                {alert.resolvedAt ? ` | Resolved ${new Date(alert.resolvedAt).toLocaleString()}` : ""}
-              </p>
-            </article>
-          ))}
-        </div>
-        <div className={styles.settingsActions}>
-          <button
-            className={styles.settingsButton}
-            type="button"
-            onClick={() => setAlertCursor(alertHistoryQuery.data?.nextCursor)}
-            disabled={!alertHistoryQuery.data?.nextCursor}
+            )}
+          </section>
+
+          <form
+            className={styles.panel}
+            onSubmit={(event) => {
+              event.preventDefault();
+              instantiateSelected();
+            }}
           >
-            Next Page
-          </button>
-          <button className={styles.settingsButton} type="button" onClick={() => setAlertCursor(undefined)}>
-            First Page
-          </button>
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.panelTitle}>Instantiate</p>
+                <p className={styles.panelMeta}>{selectedTemplate ? selectedTemplate.plugin.name : "No template selected"}</p>
+              </div>
+            </div>
+
+            {selectedTemplate ? (
+              <div className={styles.panelBody}>
+                <section className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <div>
+                      <p className={styles.sectionTitle}>{selectedTemplate.name}</p>
+                      <p className={styles.mono}>{selectedTemplate.plugin.id}@{selectedTemplate.plugin.version}</p>
+                    </div>
+                    <span className={statusClass(selectedTemplate)}>{selectedTemplate.status}</span>
+                  </div>
+                  <p className={styles.description}>{selectedTemplate.description || "No description declared."}</p>
+                  {selectedTemplate.metadata.goal ? (
+                    <dl className={styles.kvList}>
+                      <div>
+                        <dt>Goal</dt>
+                        <dd>{selectedTemplate.metadata.goal}</dd>
+                      </div>
+                    </dl>
+                  ) : null}
+                  {selectedTemplate.metadata.context !== undefined ? (
+                    <details className={styles.details}>
+                      <summary>Context Preview</summary>
+                      <pre className={styles.codeBlock}>{formatJson(selectedTemplate.metadata.context)}</pre>
+                    </details>
+                  ) : null}
+                  {selectedTemplate.validationErrors.length > 0 ? (
+                    <ul className={styles.validationList}>
+                      {selectedTemplate.validationErrors.slice(0, 4).map((issue, index) => (
+                        <li key={`${issue.path}-${index}`}>
+                          <strong>{issue.resourceType}</strong> {issue.path}: {issue.message}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </section>
+
+                <section className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <div>
+                      <p className={styles.sectionTitle}>Inputs</p>
+                      <p className={styles.panelMeta}>{inputMeta(inputFields)}</p>
+                    </div>
+                  </div>
+                  {inputFields.length === 0 ? (
+                    <p className={styles.description}>This template does not declare operator inputs.</p>
+                  ) : (
+                    <div className={styles.inputGrid}>
+                      {inputFields.map((field) => renderInputField(field, inputValues, updateInput, displayedValidation))}
+                    </div>
+                  )}
+                </section>
+
+                {instantiateMutation.error instanceof Error ? <p className={styles.errorText}>{instantiateMutation.error.message}</p> : null}
+                {hasAttemptedInstantiate && hasWorkflowTemplateInputErrors(inputValidation) ? (
+                  <p className={styles.errorText}>Review the highlighted inputs before instantiating.</p>
+                ) : null}
+
+                <div className={styles.actionBar}>
+                  <button
+                    type="submit"
+                    className={styles.primaryButton}
+                    disabled={!selectedTemplate.available || instantiateMutation.isPending}
+                  >
+                    <Play size={16} /> Instantiate
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className={styles.stateInline}>
+                <p className={styles.stateTitle}>No Template Selected</p>
+                <p className={styles.description}>Select a workflow template from the catalog.</p>
+              </div>
+            )}
+          </form>
+
+          <aside className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.panelTitle}>Created Work</p>
+                <p className={styles.panelMeta}>{instantiateMutation.data ? instantiateMutation.data.mission.status : "None"}</p>
+              </div>
+            </div>
+            <div className={styles.panelBody}>
+              {instantiateMutation.data ? (
+                <section className={styles.section}>
+                  <div className={styles.successHeader}>
+                    <CheckCircle2 size={18} />
+                    <div>
+                      <p className={styles.sectionTitle}>{instantiateMutation.data.mission.title}</p>
+                      <p className={styles.mono}>{instantiateMutation.data.mission.id}</p>
+                    </div>
+                  </div>
+                  <Link className={styles.inlineLink} to={`/tasks?missionId=${encodeURIComponent(instantiateMutation.data.mission.id)}`}>
+                    View mission tasks
+                  </Link>
+                  <dl className={styles.kvList}>
+                    <div>
+                      <dt>Template</dt>
+                      <dd>{instantiateMutation.data.template.name}</dd>
+                    </div>
+                    <div>
+                      <dt>Tasks</dt>
+                      <dd>{instantiateMutation.data.tasks.length}</dd>
+                    </div>
+                  </dl>
+                  <div className={styles.taskList}>
+                    {instantiateMutation.data.tasks.map((task) => (
+                      <div key={task.id} className={styles.taskItem}>
+                        <p className={styles.templateName}>{task.title}</p>
+                        <p className={styles.mono}>{task.id}</p>
+                        <div className={styles.badgeRow}>
+                          <span className={task.status === "ready" ? styles.badgeSuccess : styles.badgeMuted}>{task.status}</span>
+                          {task.dependsOn.length > 0 ? <span className={styles.badgeMuted}>depends on {task.dependsOn.join(", ")}</span> : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : (
+                <p className={styles.description}>No workflow template instantiated in this session.</p>
+              )}
+            </div>
+          </aside>
         </div>
-      </div>
+      ) : null}
     </section>
+  );
+}
+
+function renderInputField(
+  field: TaskInputField,
+  values: TaskInputValues,
+  updateInput: (key: string, value: string | boolean) => void,
+  validation: Record<string, string>,
+): JSX.Element {
+  return (
+    <label key={field.key} className={styles.field}>
+      <span className={styles.fieldLabel}>
+        {field.label}
+        {field.required ? <span className={styles.required}>Required</span> : null}
+      </span>
+      {field.type === "markdown" || field.type === "json" ? (
+        <textarea
+          className={styles.textarea}
+          value={String(values[field.key] ?? "")}
+          onChange={(event) => updateInput(field.key, event.target.value)}
+          rows={field.type === "markdown" ? 5 : 4}
+        />
+      ) : field.type === "boolean" ? (
+        <span className={styles.toggleRow}>
+          <input
+            type="checkbox"
+            checked={Boolean(values[field.key])}
+            onChange={(event) => updateInput(field.key, event.target.checked)}
+          />
+          <span>{values[field.key] ? "True" : "False"}</span>
+        </span>
+      ) : (
+        <input
+          className={styles.input}
+          type={field.type === "integer" || field.type === "number" ? "number" : "text"}
+          value={String(values[field.key] ?? "")}
+          onChange={(event) => updateInput(field.key, event.target.value)}
+        />
+      )}
+      {validation[field.key] ? <span className={styles.fieldError}>{validation[field.key]}</span> : null}
+    </label>
   );
 }

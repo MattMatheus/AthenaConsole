@@ -401,6 +401,7 @@ function mapTemplateSummary(
     metadata: {
       ...(workflowManifest.workflow?.goal ? { goal: workflowManifest.workflow.goal } : {}),
       ...(workflowManifest.workflow?.context !== undefined ? { context: workflowManifest.workflow.context } : {}),
+      ...(workflowManifest.workflow?.inputs ? { inputs: workflowManifest.workflow.inputs } : {}),
       ...(workflowManifest.workflow?.tasks ? { tasks: workflowManifest.workflow.tasks } : {}),
       ...(workflowManifest.workflow?.ui ? { ui: workflowManifest.workflow.ui } : {})
     },

@@ -266,6 +266,10 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
         properties: {
           goal: { type: "string" },
           context: JSON_VALUE_SCHEMA,
+          inputs: {
+            type: "object",
+            additionalProperties: true
+          },
           tasks: {
             type: "array",
             items: JSON_VALUE_SCHEMA
