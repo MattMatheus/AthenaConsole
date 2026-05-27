@@ -36,6 +36,12 @@ export interface RunScheduleResult {
   status: "ok" | "failed" | "already-running";
   startedAt: string;
   finishedAt: string;
+  targetType?: ScheduleTargetType;
+  targetId?: string;
+  runId?: string;
+  nextRunAt?: string;
+  missedRunAt?: string;
+  reason?: string;
   error?: string;
   errorCode?: AthenaErrorCode;
 }

@@ -219,7 +219,14 @@ export interface ScheduleService {
     sessionId: string;
     startedAt: string;
     finishedAt: string;
+    targetType?: ScheduledTask["targetType"];
+    targetId?: string;
+    runId?: string;
+    nextRunAt?: string;
+    missedRunAt?: string;
+    reason?: string;
     error?: string;
+    errorCode?: RunScheduleResult["errorCode"];
   }>;
   runDue(at: Date, options?: { provider?: string; model?: string }): Promise<{ run: RunScheduleResult[]; skipped: number }>;
   logs(id: string, options?: { limit?: number }): Promise<ScheduleRunLog[]>;

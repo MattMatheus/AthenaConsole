@@ -580,7 +580,29 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       sessionId: { type: "string", minLength: 1 },
       startedAt: { type: "string", format: "date-time" },
       finishedAt: { type: "string", format: "date-time" },
-      error: { type: "string" }
+      targetType: { type: "string", enum: ["task", "mission", "workflow-template"] },
+      targetId: { type: "string", minLength: 1 },
+      runId: { type: "string", minLength: 1 },
+      nextRunAt: { type: "string", format: "date-time" },
+      missedRunAt: { type: "string", format: "date-time" },
+      reason: { type: "string" },
+      error: { type: "string" },
+      errorCode: {
+        type: "string",
+        enum: [
+          "CONFIG_ERROR",
+          "POLICY_CONCURRENCY_LIMIT_EXCEEDED",
+          "PAYLOAD_TOO_LARGE",
+          "SESSION_LOCK_TIMEOUT",
+          "SESSION_IO_ERROR",
+          "CONTEXT_OVERFLOW",
+          "PROVIDER_NOT_FOUND",
+          "PROVIDER_ERROR",
+          "RUN_TIMEOUT",
+          "RUN_CANCELLED",
+          "SCHEDULE_TIMEOUT"
+        ]
+      }
     },
     required: ["status", "id", "sessionId", "startedAt", "finishedAt"]
   },

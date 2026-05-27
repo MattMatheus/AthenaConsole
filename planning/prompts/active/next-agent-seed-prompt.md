@@ -6,7 +6,7 @@ Your task is to execute the next Team Orchestrator story.
 
 ## Primary Task
 
-- **Backlog Item:** `planning/backlog/active/2026.15.02-add-local-scheduler-service.md`
+- **Backlog Item:** `planning/backlog/active/2026.15.03-build-schedule-ui.md`
 
 Read the active story, then review its source decisions:
 
@@ -15,6 +15,7 @@ Read the active story, then review its source decisions:
 - `planning/architecture/0009-task-mission-run-domain-model.md`
 - `planning/architecture/0010-sqlite-app-state-architecture.md`
 - `planning/architecture/0011-runtime-backend-interface.md`
+- `planning/architecture/0014-scheduling-model.md`
 - `planning/backlog/completed/2026.12.01-add-task-apis.md`
 - `planning/backlog/completed/2026.12.02-build-manual-task-create-flow.md`
 - `planning/backlog/completed/2026.12.03-implement-local-process-task-runs.md`
@@ -26,12 +27,13 @@ Read the active story, then review its source decisions:
 - `planning/backlog/completed/2026.14.02-add-workflow-template-indexing.md`
 - `planning/backlog/completed/2026.14.03-run-sequential-mission-plans.md`
 - `planning/backlog/completed/2026.15.01-add-task-schedule-model-and-api.md`
+- `planning/backlog/completed/2026.15.02-add-local-scheduler-service.md`
 - `planning/backlog/refinement/2026.15.00-epic-scheduling.md`
 - `planning/backlog/refinement/2026.14.00-epic-missions-workflow-templates.md`
 
 ## Current Context
 
-The foundation track now has SQLite app state, manifest schemas, local plugin indexing, task/mission/run repositories, a local agent catalog API/service surface, console catalog/detail pages, task workbench APIs, the first manual task creation UI, local-process task execution, the first run inspection view, container-command and HTTP/API task backends, first-pass approval/limit enforcement, mission creation/task-ordering APIs, workflow template manifest indexing/listing, sequential mission task execution, and task-target schedule configuration APIs. The next slice executes due SQLite task schedules through the existing task workbench path.
+The foundation track now has SQLite app state, manifest schemas, local plugin indexing, task/mission/run repositories, a local agent catalog API/service surface, console catalog/detail pages, task workbench APIs, the first manual task creation UI, local-process task execution, the first run inspection view, container-command and HTTP/API task backends, first-pass approval/limit enforcement, mission creation/task-ordering APIs, workflow template manifest indexing/listing, sequential mission task execution, task-target schedule configuration APIs, and local due-schedule execution through the task workbench. The next slice builds the first console schedule management surface for task-target schedules.
 
 ## Agent Workflow (Mandatory)
 

@@ -3,7 +3,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { resolve, relative } from "node:path";
 import { resolveSpecialistsDirectory } from "../../personas/loader.js";
 import { randomUUID } from "node:crypto";
-import { ScheduleManager, type UpsertScheduleRequest } from "../../schedule/index.js";
+import { ScheduleManager, type RunScheduleResult, type UpsertScheduleRequest } from "../../schedule/index.js";
 import { AthenaError } from "../../runtime/errors.js";
 import { assertValidSessionId } from "../../runtime/session-store.js";
 import { transcriptStreamBroker, type TranscriptSubscription } from "../../runtime/transcript-stream.js";
@@ -69,6 +69,7 @@ import type { AppStateDatabase, ScheduleRecord } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
 import type { StateStore } from "../state-store.js";
 import { clampLimit, decodeOffsetCursor, encodeOffsetCursor } from "./pagination.js";
+import { LocalTaskWorkbenchService } from "./task-workbench.js";
 
 export class LocalSessionService implements SessionService {
   private searchIndex = new Map<string, SessionSearchIndexEntry>();
@@ -977,6 +978,7 @@ export class LocalWorkService implements WorkService {
 
 export class LocalScheduleService implements ScheduleService {
   private readonly manager: ScheduleManager;
+  private readonly runningAppStateScheduleIds = new Set<string>();
 
   constructor(
     private readonly config: AthenaConfig,
@@ -1043,7 +1045,11 @@ export class LocalScheduleService implements ScheduleService {
     return this.manager.removeTask(id);
   }
 
-  run(id: string, options: { provider?: string; model?: string } = {}) {
+  async run(id: string, options: { provider?: string; model?: string } = {}) {
+    const appStateSchedule = this.withAppState((appState) => appState.schedules.get(id));
+    if (appStateSchedule) {
+      return this.runAppStateSchedule(id, new Date(), options);
+    }
     return this.manager.runTask(id, async (task, runOptions) => {
       const timeoutMs = await this.resolveScheduleRunTimeoutMs();
       await this.backend.run(
@@ -1061,8 +1067,9 @@ export class LocalScheduleService implements ScheduleService {
     });
   }
 
-  runDue(at: Date, options: { provider?: string; model?: string } = {}) {
-    return this.manager.runDue(at, async (task, runOptions) => {
+  async runDue(at: Date, options: { provider?: string; model?: string } = {}) {
+    const appStateResult = await this.runDueAppStateSchedules(at, options);
+    const legacyResult = await this.manager.runDue(at, async (task, runOptions) => {
       const timeoutMs = await this.resolveScheduleRunTimeoutMs();
       await this.backend.run(
         {
@@ -1077,6 +1084,10 @@ export class LocalScheduleService implements ScheduleService {
         }
       );
     });
+    return {
+      run: [...appStateResult.run, ...legacyResult.run],
+      skipped: appStateResult.skipped + legacyResult.skipped
+    };
   }
 
   logs(id: string, options: { limit?: number } = {}): Promise<ScheduleRunLog[]> {
@@ -1092,6 +1103,143 @@ export class LocalScheduleService implements ScheduleService {
     return this.withAppState((appState) => appState.schedules.list().map(mapScheduleRecord));
   }
 
+  private async runDueAppStateSchedules(
+    at: Date,
+    options: { provider?: string; model?: string } = {}
+  ): Promise<{ run: RunScheduleResult[]; skipped: number }> {
+    const schedules = this.withAppState((appState) => appState.schedules.list());
+    const due = schedules.filter((schedule) => schedule.status === "active" && isDueSchedule(schedule, at));
+    const run: RunScheduleResult[] = [];
+
+    for (const schedule of due) {
+      run.push(await this.runAppStateSchedule(schedule.id, at, options));
+    }
+
+    return {
+      run,
+      skipped: schedules.length - due.length
+    };
+  }
+
+  private async runAppStateSchedule(
+    id: string,
+    at: Date,
+    _options: { provider?: string; model?: string } = {}
+  ): Promise<RunScheduleResult> {
+    const startedAt = new Date().toISOString();
+    if (this.runningAppStateScheduleIds.has(id)) {
+      return {
+        id,
+        sessionId: "unknown",
+        status: "already-running",
+        startedAt,
+        finishedAt: startedAt,
+        reason: "skip-if-running"
+      };
+    }
+
+    this.runningAppStateScheduleIds.add(id);
+    try {
+      return await this.withAppStateAsync(async (appState) => {
+        const schedule = appState.schedules.get(id);
+        if (!schedule) {
+          throw new AthenaError("PROVIDER_NOT_FOUND", `Schedule not found: ${id}`);
+        }
+        if (schedule.targetType !== "task") {
+          throw new AthenaError("CONFIG_ERROR", "Only task schedules are supported in this slice.");
+        }
+
+        const missedRunAt = schedule.nextRunAt && schedule.nextRunAt < at.toISOString() ? schedule.nextRunAt : undefined;
+        const runId = `run-${randomUUID()}`;
+        const taskService = new LocalTaskWorkbenchService(this.config, { appState });
+        try {
+          const taskRun = await taskService.runTask(schedule.targetId, { runId });
+          const finishedAt = new Date().toISOString();
+          const nextRunAt = nextRunAfterScheduleAttempt(schedule, at);
+          const runSucceeded = taskRun.status === "completed";
+          const nextStatus: ScheduleStatus = runSucceeded ? (nextRunAt ? "active" : "disabled") : "error";
+          const resultStatus: RunScheduleResult["status"] = runSucceeded ? "ok" : "failed";
+          const failurePolicy = updateScheduleFailurePolicy(schedule.failurePolicy, {
+            status: resultStatus,
+            runId: taskRun.id,
+            attemptedAt: startedAt,
+            ...(taskRun.status !== "completed" ? { runStatus: taskRun.status } : {})
+          });
+          const updated = appState.schedules.update(schedule.id, {
+            status: nextStatus,
+            lastRunId: taskRun.id,
+            nextRunAt: nextRunAt ?? null,
+            failurePolicy,
+            now: new Date(finishedAt)
+          });
+          appState.runEvents.append({
+            id: `event-${randomUUID()}`,
+            runId: taskRun.id,
+            taskId: schedule.targetId,
+            ...(taskRun.agentId ? { agentId: taskRun.agentId } : {}),
+            type: "schedule.run.linked",
+            level: "info",
+            message: `Schedule run linked: ${schedule.id}.`,
+            payload: {
+              scheduleId: schedule.id,
+              scheduleName: schedule.name,
+              targetType: schedule.targetType,
+              targetId: schedule.targetId,
+              scheduledRunAt: schedule.nextRunAt,
+              ...(missedRunAt ? { missedRunAt } : {}),
+              ...(updated.nextRunAt ? { nextRunAt: updated.nextRunAt } : {}),
+              status: resultStatus
+            }
+          });
+          return {
+            id: schedule.id,
+            sessionId: schedule.targetId,
+            status: resultStatus,
+            startedAt,
+            finishedAt,
+            targetType: schedule.targetType,
+            targetId: schedule.targetId,
+            runId: taskRun.id,
+            ...(updated.nextRunAt ? { nextRunAt: updated.nextRunAt } : {}),
+            ...(missedRunAt ? { missedRunAt } : {}),
+            ...(resultStatus === "failed" ? { reason: `task-run-${taskRun.status}` } : {})
+          };
+        } catch (error) {
+          const finishedAt = new Date().toISOString();
+          const message = error instanceof Error ? error.message : String(error);
+          const errorCode = error instanceof AthenaError ? error.code : undefined;
+          const nextRunAt = nextRunAfterScheduleAttempt(schedule, at);
+          const updated = appState.schedules.update(schedule.id, {
+            status: "error",
+            nextRunAt: nextRunAt ?? null,
+            failurePolicy: updateScheduleFailurePolicy(schedule.failurePolicy, {
+              status: "failed",
+              attemptedAt: startedAt,
+              error: message,
+              ...(errorCode ? { errorCode } : {})
+            }),
+            now: new Date(finishedAt)
+          });
+          return {
+            id: schedule.id,
+            sessionId: schedule.targetId,
+            status: "failed",
+            startedAt,
+            finishedAt,
+            targetType: schedule.targetType,
+            targetId: schedule.targetId,
+            ...(updated.nextRunAt ? { nextRunAt: updated.nextRunAt } : {}),
+            ...(missedRunAt ? { missedRunAt } : {}),
+            error: message,
+            ...(errorCode ? { errorCode } : {})
+          };
+        }
+      });
+    } finally {
+      this.runningAppStateScheduleIds.delete(id);
+    }
+  }
+
   private withAppState<T>(access: (appState: AppStateDatabase) => T): T {
     if (this.options.appState) {
       return access(this.options.appState);
@@ -1099,6 +1247,18 @@ export class LocalScheduleService implements ScheduleService {
     const appState = openAppStateDatabase(this.config);
     try {
       return access(appState);
+    } finally {
+      appState.close();
+    }
+  }
+
+  private async withAppStateAsync<T>(access: (appState: AppStateDatabase) => Promise<T>): Promise<T> {
+    if (this.options.appState) {
+      return access(this.options.appState);
+    }
+    const appState = openAppStateDatabase(this.config);
+    try {
+      return await access(appState);
     } finally {
       appState.close();
     }
@@ -1143,6 +1303,87 @@ function nextRunFromRRule(rrule: string | undefined): string | undefined {
     throw new AthenaError("CONFIG_ERROR", "schedules.create.rrule must allow at least one run.");
   }
   return new Date().toISOString();
+}
+
+function isDueSchedule(schedule: ScheduleRecord, at: Date): boolean {
+  return Boolean(schedule.nextRunAt && schedule.nextRunAt <= at.toISOString());
+}
+
+function nextRunAfterScheduleAttempt(schedule: ScheduleRecord, at: Date): string | undefined {
+  if (!schedule.rrule) {
+    return undefined;
+  }
+  return nextRunAfterRRule(schedule.rrule, schedule.nextRunAt ?? at.toISOString(), at);
+}
+
+function nextRunAfterRRule(rrule: string, seedIso: string, after: Date): string {
+  const parts = parseRRule(rrule);
+  const frequency = parts.FREQ;
+  const interval = parsePositiveInteger(parts.INTERVAL ?? "1", "INTERVAL");
+  const intervalMs = intervalToMilliseconds(frequency, interval);
+  const seedMs = Date.parse(seedIso);
+  if (!Number.isFinite(seedMs)) {
+    throw new AthenaError("CONFIG_ERROR", `schedules.rrule seed must be a valid ISO datetime: '${seedIso}'.`);
+  }
+  const afterMs = after.getTime();
+  const nextMs =
+    seedMs > afterMs ? seedMs : seedMs + (Math.floor((afterMs - seedMs) / intervalMs) + 1) * intervalMs;
+  return new Date(nextMs).toISOString();
+}
+
+function parseRRule(rrule: string): Record<string, string> {
+  const entries = rrule
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => {
+      const [key, value] = part.split("=");
+      if (!key || !value) {
+        throw new AthenaError("CONFIG_ERROR", `Unsupported RRULE part: '${part}'.`);
+      }
+      return [key.toUpperCase(), value.toUpperCase()] as const;
+    });
+  const parsed = Object.fromEntries(entries);
+  if (!parsed.FREQ) {
+    throw new AthenaError("CONFIG_ERROR", "schedules.rrule must include FREQ.");
+  }
+  return parsed;
+}
+
+function intervalToMilliseconds(frequency: string | undefined, interval: number): number {
+  switch (frequency) {
+    case "MINUTELY":
+      return interval * 60_000;
+    case "HOURLY":
+      return interval * 60 * 60_000;
+    case "DAILY":
+      return interval * 24 * 60 * 60_000;
+    case "WEEKLY":
+      return interval * 7 * 24 * 60 * 60_000;
+    default:
+      throw new AthenaError("CONFIG_ERROR", `Unsupported schedules.rrule FREQ: '${frequency ?? ""}'.`);
+  }
+}
+
+function parsePositiveInteger(raw: string, field: string): number {
+  const value = Number.parseInt(raw, 10);
+  if (!Number.isInteger(value) || value <= 0 || String(value) !== raw) {
+    throw new AthenaError("CONFIG_ERROR", `schedules.rrule ${field} must be a positive integer.`);
+  }
+  return value;
+}
+
+function updateScheduleFailurePolicy(policy: unknown, attempt: Record<string, unknown>): Record<string, unknown> {
+  const base = isRecord(policy) ? policy : {};
+  return {
+    ...base,
+    overlap: typeof base.overlap === "string" ? base.overlap : "skip-if-running",
+    lastAttempt: attempt
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 export class LocalMemoryService implements MemoryService {

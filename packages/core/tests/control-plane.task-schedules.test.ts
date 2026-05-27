@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -70,6 +70,182 @@ describe("task schedule service", () => {
     }
   });
 
+  it("runs due one-shot task schedules through the task workbench", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-schedule-due-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "success.js"),
+        "process.stdout.write(JSON.stringify({ output: { ok: true }, artifacts: [] }));",
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableTask(appState, pluginDir, "success.js", "task-due");
+        const service = new LocalScheduleService(config, noopBackend, noopPolicyService, { appState });
+        await service.upsert({
+          id: "schedule-due",
+          name: "Run due task",
+          targetType: "task",
+          targetId: "task-due",
+          runAt: "2026-06-01T09:00:00.000Z",
+          timezone: "UTC"
+        });
+
+        const result = await service.runDue(new Date("2026-06-01T09:00:00.000Z"));
+        const updatedSchedule = appState.schedules.require("schedule-due");
+        const runId = updatedSchedule.lastRunId;
+
+        expect(result.skipped).toBe(0);
+        expect(result.run).toEqual([
+          expect.objectContaining({
+            id: "schedule-due",
+            status: "ok",
+            targetType: "task",
+            targetId: "task-due",
+            runId
+          })
+        ]);
+        expect(updatedSchedule.status).toBe("disabled");
+        expect(updatedSchedule.nextRunAt).toBeUndefined();
+        expect(runId).toBeTruthy();
+        expect(appState.runs.require(runId ?? "")).toMatchObject({
+          targetType: "task",
+          targetId: "task-due",
+          status: "completed"
+        });
+        expect(appState.runEvents.listForRun(runId ?? "").map((event) => event.type)).toContain("schedule.run.linked");
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("skips non-due task schedules", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-schedule-not-due-"));
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        seedReadyTask(appState, "task-not-due");
+        const service = new LocalScheduleService(config, noopBackend, noopPolicyService, { appState });
+        await service.upsert({
+          id: "schedule-not-due",
+          targetType: "task",
+          targetId: "task-not-due",
+          runAt: "2026-06-01T09:00:00.000Z",
+          timezone: "UTC"
+        });
+
+        const result = await service.runDue(new Date("2026-06-01T08:59:59.000Z"));
+
+        expect(result).toEqual({ run: [], skipped: 1 });
+        const unchangedSchedule = appState.schedules.require("schedule-not-due");
+        expect(unchangedSchedule).toMatchObject({
+          status: "active",
+          nextRunAt: "2026-06-01T09:00:00.000Z"
+        });
+        expect(unchangedSchedule.lastRunId).toBeUndefined();
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("marks failed scheduled task runs as schedule errors", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-schedule-failed-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(join(pluginDir, "fail.js"), "process.stderr.write('boom'); process.exit(7);", "utf8");
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableTask(appState, pluginDir, "fail.js", "task-fails");
+        const service = new LocalScheduleService(config, noopBackend, noopPolicyService, { appState });
+        await service.upsert({
+          id: "schedule-fails",
+          targetType: "task",
+          targetId: "task-fails",
+          runAt: "2026-06-01T09:00:00.000Z",
+          timezone: "UTC"
+        });
+
+        const result = await service.runDue(new Date("2026-06-01T09:00:00.000Z"));
+        const updatedSchedule = appState.schedules.require("schedule-fails");
+
+        expect(result.run[0]).toMatchObject({
+          id: "schedule-fails",
+          status: "failed",
+          reason: "task-run-failed"
+        });
+        expect(updatedSchedule).toMatchObject({
+          status: "error",
+          failurePolicy: {
+            overlap: "skip-if-running",
+            lastAttempt: expect.objectContaining({ status: "failed", runStatus: "failed" })
+          }
+        });
+        expect(updatedSchedule.lastRunId).toBeTruthy();
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("advances recurring task schedules past missed occurrences", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-schedule-recurring-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "success.js"),
+        "process.stdout.write(JSON.stringify({ output: { ok: true }, artifacts: [] }));",
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableTask(appState, pluginDir, "success.js", "task-recurs");
+        const service = new LocalScheduleService(config, noopBackend, noopPolicyService, { appState });
+        await service.upsert({
+          id: "schedule-recurs",
+          targetType: "task",
+          targetId: "task-recurs",
+          runAt: "2026-06-01T09:00:00.000Z",
+          rrule: "FREQ=DAILY;INTERVAL=1",
+          timezone: "UTC"
+        });
+
+        const result = await service.runDue(new Date("2026-06-04T12:00:00.000Z"));
+        const updatedSchedule = appState.schedules.require("schedule-recurs");
+
+        expect(result.run[0]).toMatchObject({
+          id: "schedule-recurs",
+          status: "ok",
+          missedRunAt: "2026-06-01T09:00:00.000Z",
+          nextRunAt: "2026-06-05T09:00:00.000Z"
+        });
+        expect(updatedSchedule).toMatchObject({
+          status: "active",
+          nextRunAt: "2026-06-05T09:00:00.000Z"
+        });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("validates scheduled task targets", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-task-schedule-invalid-"));
     try {
@@ -133,6 +309,54 @@ function seedReadyTask(appState: ReturnType<typeof openAppStateDatabase>, taskId
     title: "Scheduled task",
     status: "ready",
     assignedAgentId: "scheduler.agent",
+    assignedAgentVersion: "1.0.0",
+    capabilityRequirements: ["test.run"]
+  });
+}
+
+function seedRunnableTask(
+  appState: ReturnType<typeof openAppStateDatabase>,
+  pluginDir: string,
+  scriptName: string,
+  taskId: string
+): void {
+  appState.plugins.upsert({
+    id: "team-orchestrator.test.scheduler-runnable",
+    version: "0.1.0",
+    path: pluginDir,
+    enabled: true,
+    status: "loaded",
+    sourceType: "local",
+    manifest: { plugin: { name: "Runnable Scheduler Test" } },
+    validationErrors: []
+  });
+  appState.agents.upsert({
+    id: "scheduler.runnable.agent",
+    version: "1.0.0",
+    pluginId: "team-orchestrator.test.scheduler-runnable",
+    pluginVersion: "0.1.0",
+    name: "Runnable Scheduler Agent",
+    capabilities: ["test.run"],
+    manifest: {
+      agent: {
+        implementation: {
+          type: "local-command",
+          command: process.execPath,
+          args: [scriptName]
+        },
+        runtime: {
+          preferredBackend: "local-process",
+          workingDirectory: "."
+        }
+      }
+    },
+    status: "loaded"
+  });
+  appState.tasks.create({
+    id: taskId,
+    title: "Scheduled runnable task",
+    status: "ready",
+    assignedAgentId: "scheduler.runnable.agent",
     assignedAgentVersion: "1.0.0",
     capabilityRequirements: ["test.run"]
   });

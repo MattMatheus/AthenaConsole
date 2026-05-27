@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -110,6 +110,91 @@ describe("task schedule api", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("ticks due task schedules", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-task-schedule-tick-"));
+    const config = loadConfig(dir);
+    const pluginDir = join(dir, "plugin");
+    mkdirSync(pluginDir, { recursive: true });
+    writeFileSync(
+      join(pluginDir, "success.js"),
+      "process.stdout.write(JSON.stringify({ output: { ok: true }, artifacts: [] }));",
+      "utf8"
+    );
+    const appState = openAppStateDatabase(config);
+    try {
+      seedRunnableTask(appState, pluginDir, "success.js", "task-api-due");
+    } finally {
+      appState.close();
+    }
+
+    const server = createApiServer({
+      config,
+      host: "127.0.0.1",
+      port: 0
+    });
+    let bound: { host: string; port: number };
+    try {
+      bound = await server.start();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      rmSync(dir, { recursive: true, force: true });
+      if (message.includes("EPERM")) {
+        return;
+      }
+      throw error;
+    }
+    const base = `http://${bound.host}:${bound.port}`;
+
+    try {
+      const createResponse = await fetch(`${base}/api/v1/schedules`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: "api-task-schedule-due",
+          targetType: "task",
+          targetId: "task-api-due",
+          runAt: "2026-06-01T09:00:00.000Z",
+          timezone: "UTC"
+        })
+      });
+      expect(createResponse.status).toBe(200);
+
+      const tickResponse = await fetch(`${base}/api/v1/schedules/tick`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ at: "2026-06-01T09:00:00.000Z" })
+      });
+      expect(tickResponse.status).toBe(200);
+      await expect(tickResponse.json()).resolves.toMatchObject({
+        ok: true,
+        data: {
+          skipped: 0,
+          run: [
+            {
+              id: "api-task-schedule-due",
+              status: "ok",
+              targetType: "task",
+              targetId: "task-api-due"
+            }
+          ]
+        }
+      });
+
+      const getResponse = await fetch(`${base}/api/v1/schedules/api-task-schedule-due`);
+      expect(getResponse.status).toBe(200);
+      await expect(getResponse.json()).resolves.toMatchObject({
+        ok: true,
+        data: {
+          id: "api-task-schedule-due",
+          status: "disabled"
+        }
+      });
+    } finally {
+      await server.stop();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 function seedReadyTask(appState: ReturnType<typeof openAppStateDatabase>, taskId: string): void {
@@ -138,6 +223,54 @@ function seedReadyTask(appState: ReturnType<typeof openAppStateDatabase>, taskId
     title: "Scheduled task",
     status: "ready",
     assignedAgentId: "api.scheduler.agent",
+    assignedAgentVersion: "1.0.0",
+    capabilityRequirements: ["test.run"]
+  });
+}
+
+function seedRunnableTask(
+  appState: ReturnType<typeof openAppStateDatabase>,
+  pluginDir: string,
+  scriptName: string,
+  taskId: string
+): void {
+  appState.plugins.upsert({
+    id: "team-orchestrator.test.api-scheduler-runnable",
+    version: "0.1.0",
+    path: pluginDir,
+    enabled: true,
+    status: "loaded",
+    sourceType: "local",
+    manifest: { plugin: { name: "API Runnable Scheduler Test" } },
+    validationErrors: []
+  });
+  appState.agents.upsert({
+    id: "api.scheduler.runnable.agent",
+    version: "1.0.0",
+    pluginId: "team-orchestrator.test.api-scheduler-runnable",
+    pluginVersion: "0.1.0",
+    name: "API Runnable Scheduler Agent",
+    capabilities: ["test.run"],
+    manifest: {
+      agent: {
+        implementation: {
+          type: "local-command",
+          command: process.execPath,
+          args: [scriptName]
+        },
+        runtime: {
+          preferredBackend: "local-process",
+          workingDirectory: "."
+        }
+      }
+    },
+    status: "loaded"
+  });
+  appState.tasks.create({
+    id: taskId,
+    title: "API scheduled runnable task",
+    status: "ready",
+    assignedAgentId: "api.scheduler.runnable.agent",
     assignedAgentVersion: "1.0.0",
     capabilityRequirements: ["test.run"]
   });
