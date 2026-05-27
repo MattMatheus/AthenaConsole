@@ -4,6 +4,7 @@ import { AgentCatalogPage } from "../pages/AgentCatalogPage";
 import { AgentDetailPage } from "../pages/AgentDetailPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { MissionControlPage } from "../pages/MissionControlPage";
+import { MissionsPage } from "../pages/MissionsPage";
 import { DlqPage } from "../pages/DlqPage";
 import { AuditTrailPage } from "../pages/AuditTrailPage";
 import { RbacPage } from "../pages/RbacPage";
@@ -43,6 +44,10 @@ export const router = createBrowserRouter([
       {
         path: "schedules",
         element: <SchedulesPage />,
+      },
+      {
+        path: "missions",
+        element: <MissionsPage />,
       },
       {
         path: "mission-control",

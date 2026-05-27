@@ -372,8 +372,8 @@ export function WorkflowsPage() {
                       <p className={styles.mono}>{instantiateMutation.data.mission.id}</p>
                     </div>
                   </div>
-                  <Link className={styles.inlineLink} to={`/tasks?missionId=${encodeURIComponent(instantiateMutation.data.mission.id)}`}>
-                    View mission tasks
+                  <Link className={styles.inlineLink} to={`/missions?missionId=${encodeURIComponent(instantiateMutation.data.mission.id)}`}>
+                    Open mission
                   </Link>
                   <dl className={styles.kvList}>
                     <div>

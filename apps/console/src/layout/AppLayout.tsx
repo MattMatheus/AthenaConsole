@@ -13,6 +13,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   { path: "/", label: "Dashboard", match: /^\/$/ },
   { path: "/agents", label: "Agents", match: /^\/agents/ },
+  { path: "/missions", label: "Missions", match: /^\/missions/ },
   { path: "/tasks", label: "Tasks", match: /^\/tasks/ },
   { path: "/schedules", label: "Schedules", match: /^\/schedules/ },
   { path: "/mission-control", label: "Mission Control", match: /^\/mission-control/ },

@@ -39,12 +39,13 @@ Completed stories were moved to:
 - `planning/backlog/completed/2026.15.03-build-schedule-ui.md`
 - `planning/backlog/completed/2026.16.01-instantiate-workflow-templates.md`
 - `planning/backlog/completed/2026.16.02-build-workflow-template-instantiation-ui.md`
+- `planning/backlog/completed/2026.16.03-build-mission-workbench-ui.md`
 
 ## Active Queue
 
-1. `planning/backlog/active/2026.16.03-build-mission-workbench-ui.md`
+1. `planning/backlog/active/2026.16.04-add-mission-run-history.md`
 
-The next slice makes created missions first-class in the console by listing missions, showing ordered tasks, and starting sequential mission runs.
+The next slice makes mission execution outcomes durable in the console by listing mission runs and opening mission-run detail after the current session.
 
 ## Archived Previous Queue
 
