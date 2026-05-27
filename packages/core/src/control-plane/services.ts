@@ -43,6 +43,7 @@ import { LocalA2aDlqService, LocalEventService } from "./services/event-dlq.js";
 import { LocalA2aFlowService } from "./services/a2a-flow.js";
 import { LocalA2aObservabilityService } from "./services/a2a-observability.js";
 import { LocalAgentCatalogService } from "./services/agent-catalog.js";
+import { LocalMissionWorkbenchService } from "./services/mission-workbench.js";
 import { LocalTaskWorkbenchService } from "./services/task-workbench.js";
 import { LocalCapabilityService, LocalFleetMetricsProvider, LocalFleetService } from "./services/fleet.js";
 import { AzureBillingFleetCostProvider } from "./azure-billing-cost-provider.js";
@@ -62,6 +63,7 @@ import { LocalLspService, type LocalLspServiceOptions } from "./services/lsp.js"
 import { LocalPolicyService, PolicyAwareExecutionBackend } from "./services/policy.js";
 import { LocalRunService } from "./services/run-service.js";
 import { LocalWorkflowService } from "./services/workflow-service.js";
+import { LocalWorkflowTemplateCatalogService } from "./services/workflow-template-catalog.js";
 import type {
   A2aDlqService,
   A2aFlowService,
@@ -71,6 +73,7 @@ import type {
   DirectiveService,
   HarnessProfileService,
   LspService,
+  MissionWorkbenchService,
   RunTemplateService,
   EventService,
   FleetService,
@@ -85,6 +88,7 @@ import type {
   SessionService,
   TaskWorkbenchService,
   WorkflowService,
+  WorkflowTemplateCatalogService,
   WorkService
 } from "./interfaces.js";
 import { FileStateStore, type StateStore } from "./state-store.js";
@@ -116,6 +120,7 @@ export interface ControlPlaneServices {
   harnessProfileService: HarnessProfileService;
   runTemplateService: RunTemplateService;
   workflowService: WorkflowService;
+  workflowTemplateCatalogService: WorkflowTemplateCatalogService;
   workService: WorkService;
   memoryService: MemoryService;
   lspService: LspService;
@@ -132,6 +137,7 @@ export interface ControlPlaneServices {
   identityService: IdentityService;
   capabilityService: CapabilityService;
   agentCatalogService: AgentCatalogService;
+  missionWorkbenchService: MissionWorkbenchService;
   taskWorkbenchService: TaskWorkbenchService;
   shutdown?: () => Promise<void>;
 }
@@ -231,6 +237,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     harnessProfileService: new LocalHarnessProfileService(stateStore, options.config),
     runTemplateService: new LocalRunTemplateService(stateStore, runService),
     workflowService,
+    workflowTemplateCatalogService: new LocalWorkflowTemplateCatalogService(options.config),
     workService,
     memoryService,
     lspService: authorizedLspService,
@@ -256,6 +263,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     ),
     capabilityService: new LocalCapabilityService(executionBackend, fleetMetricsProvider, sandboxExecutionBackend),
     agentCatalogService: new LocalAgentCatalogService(options.config),
+    missionWorkbenchService: new LocalMissionWorkbenchService(options.config),
     taskWorkbenchService: new LocalTaskWorkbenchService(options.config),
     shutdown: async () => {
       if (hasShutdown(eventService)) {

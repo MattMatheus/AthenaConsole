@@ -24,6 +24,14 @@ import type {
   TaskWorkbenchTaskRunDetail,
   TaskWorkbenchTaskRunRequest,
   TaskWorkbenchTaskUpdateRequest,
+  MissionWorkbenchMission,
+  MissionWorkbenchMissionCreateRequest,
+  MissionWorkbenchMissionListQuery,
+  MissionWorkbenchMissionListResult,
+  MissionWorkbenchMissionTaskAttachRequest,
+  MissionWorkbenchMissionTaskCreateRequest,
+  MissionWorkbenchMissionTaskListResult,
+  MissionWorkbenchMissionUpdateRequest,
   CancelRunByRunIdRequest,
   CancelRunByRunIdResult,
   CancelRunRequest,
@@ -54,6 +62,8 @@ import type {
   WorkflowRun,
   WorkflowListQuery,
   WorkflowListResult,
+  WorkflowTemplateCatalogListQuery,
+  WorkflowTemplateCatalogListResult,
   PolicyConcurrencyRejectionQuery,
   PolicyConcurrencyRejectionQueryResult,
   PolicyOriginDetails,
@@ -133,6 +143,10 @@ export interface WorkflowService {
   create(request: WorkflowCreateRequest): Promise<Workflow>;
   status(id: string): Promise<WorkflowRunObservability>;
   resume(id: string): Promise<WorkflowRun>;
+}
+
+export interface WorkflowTemplateCatalogService {
+  list(query?: WorkflowTemplateCatalogListQuery): Promise<WorkflowTemplateCatalogListResult>;
 }
 
 export interface WorkService {
@@ -261,6 +275,16 @@ export interface TaskWorkbenchService {
   getRun(runId: string): Promise<TaskWorkbenchTaskRunDetail>;
   runTask(id: string, request?: TaskWorkbenchTaskRunRequest): Promise<TaskWorkbenchTaskRun>;
   cancelRun(runId: string, request?: TaskWorkbenchTaskRunCancelRequest): Promise<TaskWorkbenchTaskRunCancelResult>;
+}
+
+export interface MissionWorkbenchService {
+  list(query?: MissionWorkbenchMissionListQuery): Promise<MissionWorkbenchMissionListResult>;
+  get(id: string): Promise<MissionWorkbenchMission>;
+  create(request: MissionWorkbenchMissionCreateRequest): Promise<MissionWorkbenchMission>;
+  update(id: string, request: MissionWorkbenchMissionUpdateRequest): Promise<MissionWorkbenchMission>;
+  listTasks(id: string): Promise<MissionWorkbenchMissionTaskListResult>;
+  attachTask(id: string, request: MissionWorkbenchMissionTaskAttachRequest): Promise<MissionWorkbenchMissionTaskListResult>;
+  createTask(id: string, request: MissionWorkbenchMissionTaskCreateRequest): Promise<MissionWorkbenchMissionTaskListResult>;
 }
 
 export interface A2aDlqService {

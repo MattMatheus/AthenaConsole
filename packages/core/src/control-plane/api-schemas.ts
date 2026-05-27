@@ -57,6 +57,11 @@ const TASK_STATUS_SCHEMA: ApiSchema = {
   enum: ["draft", "proposed", "ready", "running", "blocked", "completed", "failed", "cancelled", "archived"]
 };
 
+const MISSION_STATUS_SCHEMA: ApiSchema = {
+  type: "string",
+  enum: ["draft", "ready", "running", "blocked", "completed", "failed", "cancelled", "archived"]
+};
+
 const JSON_VALUE_SCHEMA: ApiSchema = {
   anyOf: [
     { type: "object", additionalProperties: true },
@@ -218,6 +223,101 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
     },
     required: ["agents", "total", "filters"]
   },
+  WorkflowTemplateCatalogPluginRef: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      version: { type: "string", minLength: 1 },
+      name: { type: "string", minLength: 1 },
+      sourceType: { type: "string", minLength: 1 },
+      enabled: { type: "boolean" },
+      status: { type: "string", minLength: 1 }
+    },
+    required: ["id", "version", "name", "sourceType", "enabled", "status"]
+  },
+  WorkflowTemplateCatalogValidationIssue: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      file: { type: "string" },
+      path: { type: "string" },
+      message: { type: "string" },
+      keyword: { type: "string" },
+      resourceType: { type: "string", enum: ["workflow-template", "plugin", "unknown"] }
+    },
+    required: ["path", "message", "resourceType"]
+  },
+  WorkflowTemplateCatalogTemplateSummary: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      version: { type: "string", minLength: 1 },
+      name: { type: "string", minLength: 1 },
+      description: { type: "string" },
+      plugin: { $ref: "#/components/schemas/WorkflowTemplateCatalogPluginRef" },
+      status: { type: "string", minLength: 1 },
+      available: { type: "boolean" },
+      taskCount: { type: "integer", minimum: 0 },
+      metadata: {
+        type: "object",
+        additionalProperties: true,
+        properties: {
+          goal: { type: "string" },
+          context: JSON_VALUE_SCHEMA,
+          tasks: {
+            type: "array",
+            items: JSON_VALUE_SCHEMA
+          },
+          ui: {
+            type: "object",
+            additionalProperties: true
+          }
+        }
+      },
+      validationErrors: {
+        type: "array",
+        items: { $ref: "#/components/schemas/WorkflowTemplateCatalogValidationIssue" }
+      },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: [
+      "id",
+      "version",
+      "name",
+      "description",
+      "plugin",
+      "status",
+      "available",
+      "taskCount",
+      "metadata",
+      "validationErrors",
+      "createdAt",
+      "updatedAt"
+    ]
+  },
+  WorkflowTemplateCatalogListResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      templates: {
+        type: "array",
+        items: { $ref: "#/components/schemas/WorkflowTemplateCatalogTemplateSummary" }
+      },
+      total: { type: "integer", minimum: 0 },
+      filters: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          pluginId: { type: "string" },
+          includeUnavailable: { type: "boolean" }
+        }
+      }
+    },
+    required: ["templates", "total", "filters"]
+  },
   TaskWorkbenchTask: {
     type: "object",
     additionalProperties: false,
@@ -267,6 +367,57 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       }
     },
     required: ["tasks", "total", "filters"]
+  },
+  MissionWorkbenchMission: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      title: { type: "string", minLength: 1 },
+      goal: { type: "string" },
+      context: JSON_VALUE_SCHEMA,
+      status: MISSION_STATUS_SCHEMA,
+      taskOrder: {
+        type: "array",
+        items: { type: "string", minLength: 1 }
+      },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" },
+      archivedAt: { type: "string", format: "date-time" }
+    },
+    required: ["id", "title", "goal", "context", "status", "taskOrder", "createdAt", "updatedAt"]
+  },
+  MissionWorkbenchMissionListResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      missions: {
+        type: "array",
+        items: { $ref: "#/components/schemas/MissionWorkbenchMission" }
+      },
+      total: { type: "integer", minimum: 0 },
+      filters: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          includeArchived: { type: "boolean" }
+        }
+      }
+    },
+    required: ["missions", "total", "filters"]
+  },
+  MissionWorkbenchMissionTaskListResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      mission: { $ref: "#/components/schemas/MissionWorkbenchMission" },
+      tasks: {
+        type: "array",
+        items: { $ref: "#/components/schemas/TaskWorkbenchTask" }
+      },
+      total: { type: "integer", minimum: 0 }
+    },
+    required: ["mission", "tasks", "total"]
   },
   TaskWorkbenchMetadata: {
     type: "object",
@@ -978,6 +1129,39 @@ function taskMutationRequestSchema(required: string[] = []): ApiSchema {
   };
 }
 
+function missionMutationRequestSchema(required: string[] = []): ApiSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      title: { type: "string", minLength: 1 },
+      goal: { type: "string" },
+      context: JSON_VALUE_SCHEMA,
+      status: MISSION_STATUS_SCHEMA,
+      taskOrder: {
+        type: "array",
+        items: { type: "string", minLength: 1 }
+      }
+    },
+    required
+  };
+}
+
+function missionTaskCreateRequestSchema(): ApiSchema {
+  const schema = taskMutationRequestSchema(["title"]);
+  if ("type" in schema && schema.type === "object") {
+    return {
+      ...schema,
+      properties: {
+        ...schema.properties,
+        position: { type: "integer", minimum: 0 }
+      }
+    };
+  }
+  return schema;
+}
+
 export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
   getCapabilities: {
     operationId: "getCapabilities",
@@ -1032,6 +1216,125 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       }
     },
     responseSchema: { $ref: "#/components/schemas/AgentCatalogAgentListResult" }
+  },
+  listWorkflowTemplates: {
+    operationId: "listWorkflowTemplates",
+    method: "GET",
+    path: "/api/v1/workflow-templates",
+    querySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        pluginId: { type: "string" },
+        includeUnavailable: { type: "string" }
+      }
+    },
+    responseSchema: { $ref: "#/components/schemas/WorkflowTemplateCatalogListResult" }
+  },
+  listMissions: {
+    operationId: "listMissions",
+    method: "GET",
+    path: "/api/v1/missions",
+    querySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        includeArchived: { type: "string" }
+      }
+    },
+    responseSchema: { $ref: "#/components/schemas/MissionWorkbenchMissionListResult" }
+  },
+  createMission: {
+    operationId: "createMission",
+    method: "POST",
+    path: "/api/v1/missions",
+    requestBodySchema: missionMutationRequestSchema(["title"]),
+    responseSchema: { $ref: "#/components/schemas/MissionWorkbenchMission" }
+  },
+  getMission: {
+    operationId: "getMission",
+    method: "GET",
+    path: "/api/v1/missions/:id",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        id: STRING_SCHEMA
+      },
+      required: ["id"]
+    },
+    responseSchema: { $ref: "#/components/schemas/MissionWorkbenchMission" }
+  },
+  updateMission: {
+    operationId: "updateMission",
+    method: "PUT",
+    path: "/api/v1/missions/:id",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        id: STRING_SCHEMA
+      },
+      required: ["id"]
+    },
+    requestBodySchema: missionMutationRequestSchema(),
+    responseSchema: { $ref: "#/components/schemas/MissionWorkbenchMission" }
+  },
+  listMissionTasks: {
+    operationId: "listMissionTasks",
+    method: "GET",
+    path: "/api/v1/missions/:id/tasks",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        id: STRING_SCHEMA
+      },
+      required: ["id"]
+    },
+    responseSchema: { $ref: "#/components/schemas/MissionWorkbenchMissionTaskListResult" }
+  },
+  createMissionTask: {
+    operationId: "createMissionTask",
+    method: "POST",
+    path: "/api/v1/missions/:id/tasks",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        id: STRING_SCHEMA
+      },
+      required: ["id"]
+    },
+    requestBodySchema: missionTaskCreateRequestSchema(),
+    responseSchema: { $ref: "#/components/schemas/MissionWorkbenchMissionTaskListResult" }
+  },
+  attachMissionTask: {
+    operationId: "attachMissionTask",
+    method: "POST",
+    path: "/api/v1/missions/:id/tasks/attach",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        id: STRING_SCHEMA
+      },
+      required: ["id"]
+    },
+    requestBodySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        taskId: { type: "string", minLength: 1 },
+        dependsOn: {
+          type: "array",
+          items: { type: "string", minLength: 1 }
+        },
+        position: { type: "integer", minimum: 0 }
+      },
+      required: ["taskId"]
+    },
+    responseSchema: { $ref: "#/components/schemas/MissionWorkbenchMissionTaskListResult" }
   },
   getTaskMetadata: {
     operationId: "getTaskMetadata",

@@ -6,6 +6,7 @@ import type { HttpMethod, RouteDefinition } from "../router.js";
 export type ApiRouteFamily =
   | "agent-catalog"
   | "tasks"
+  | "missions"
   | "core"
   | "runs"
   | "sessions"
@@ -13,6 +14,7 @@ export type ApiRouteFamily =
   | "harness-profiles"
   | "run-templates"
   | "workflows"
+  | "workflow-templates"
   | "memory"
   | "work"
   | "schedules"

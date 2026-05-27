@@ -1,0 +1,37 @@
+schemaVersion: 1
+workflow:
+  id: podcast.production.workflow
+  name: Podcast Production
+  version: 0.1.0
+  description: Turn a transcript into a show-note package.
+  goal: Produce a publishable episode summary and show notes from a podcast transcript.
+  context:
+    audience: podcast-producer
+    artifactFormat: markdown
+  tasks:
+    - id: summarize
+      title: Summarize transcript
+      description: Extract the central themes, guest claims, and notable quotes.
+      capabilityRequirements:
+        - text.summarize
+      assignedAgentId: podcast.transcript-summary.local
+      assignedAgentVersion: 0.1.0
+      inputs:
+        transcript: "{{transcript}}"
+    - id: show-notes
+      title: Draft show notes
+      description: Convert the summary into listener-facing show notes.
+      capabilityRequirements:
+        - content.draft
+      assignedAgentId: podcast.show-notes.local
+      assignedAgentVersion: 0.1.0
+      dependsOn:
+        - summarize
+      inputs:
+        summary: "{{tasks.summarize.output}}"
+  ui:
+    icon: audio-lines
+    color: "#4361ee"
+    tags:
+      - podcast
+      - template

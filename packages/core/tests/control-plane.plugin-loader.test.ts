@@ -13,7 +13,8 @@ describe("local plugin loader and indexer", () => {
       writeFileSync(join(dir, ".env"), "ATHENA_PLUGIN_PATHS=plugins\n", "utf8");
       writePluginPackage(join(dir, "plugins", "news"), {
         pluginId: "team-orchestrator.test.news",
-        agentId: "news.digest.test"
+        agentId: "news.digest.test",
+        workflowTemplateId: "news.digest.workflow"
       });
 
       const config = loadConfig(dir);
@@ -30,9 +31,11 @@ describe("local plugin loader and indexer", () => {
           sourceType: "local"
         });
         expect(result.plugins[0]?.agents.map((agent) => agent.id)).toEqual(["news.digest.test"]);
+        expect(result.plugins[0]?.workflowTemplates.map((template) => template.id)).toEqual(["news.digest.workflow"]);
 
         const plugins = appState.plugins.list();
         const agents = appState.agents.list();
+        const workflowTemplates = appState.workflowTemplates.list();
         expect(plugins).toHaveLength(1);
         expect(plugins[0]?.validationErrors).toEqual([]);
         expect(agents).toHaveLength(1);
@@ -43,6 +46,17 @@ describe("local plugin loader and indexer", () => {
           pluginVersion: "0.1.0",
           name: "Test Agent",
           capabilities: ["test.run"]
+        });
+        expect(workflowTemplates).toHaveLength(1);
+        expect(workflowTemplates[0]).toMatchObject({
+          id: "news.digest.workflow",
+          version: "0.1.0",
+          pluginId: "team-orchestrator.test.news",
+          pluginVersion: "0.1.0",
+          name: "Test Workflow",
+          description: "A repeatable test workflow.",
+          taskCount: 2,
+          status: "loaded"
         });
       } finally {
         appState.close();
@@ -87,6 +101,7 @@ describe("local plugin loader and indexer", () => {
           status: "invalid"
         });
         expect(appState.agents.list()).toEqual([]);
+        expect(appState.workflowTemplates.list()).toEqual([]);
       } finally {
         appState.close();
       }
@@ -108,6 +123,11 @@ describe("local plugin loader and indexer", () => {
         id: "explicit.unreferenced",
         name: "Unreferenced Agent"
       });
+      mkdirSync(join(pluginRoot, "workflows"), { recursive: true });
+      writeWorkflowTemplate(join(pluginRoot, "workflows", "unreferenced.workflow.yaml"), {
+        id: "explicit.unreferenced.workflow",
+        name: "Unreferenced Workflow"
+      });
 
       const config = loadConfig(dir);
       const appState = openAppStateDatabase(config);
@@ -115,6 +135,7 @@ describe("local plugin loader and indexer", () => {
         indexConfiguredLocalPlugins(config, { appState });
 
         expect(appState.agents.list().map((agent) => agent.id)).toEqual(["explicit.referenced"]);
+        expect(appState.workflowTemplates.list()).toEqual([]);
       } finally {
         appState.close();
       }
@@ -188,6 +209,69 @@ describe("local plugin loader and indexer", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("captures workflow template validation errors and avoids indexing templates for invalid plugins", () => {
+    const dir = mkdtemp("athena-plugin-invalid-workflow-");
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_PLUGIN_PATHS=plugins\n", "utf8");
+      const pluginRoot = join(dir, "plugins", "broken-workflow");
+      mkdirSync(join(pluginRoot, "agents"), { recursive: true });
+      mkdirSync(join(pluginRoot, "workflows"), { recursive: true });
+      writeFileSync(
+        join(pluginRoot, "plugin.yaml"),
+        [
+          "schemaVersion: 1",
+          "plugin:",
+          "  id: team-orchestrator.test.broken-workflow",
+          "  name: Broken Workflow Plugin",
+          "  version: 0.1.0",
+          "  agents:",
+          "    - path: agents/test.agent.yaml",
+          "      id: broken.workflow.agent",
+          "      version: 0.1.0",
+          "  workflowTemplates:",
+          "    - path: workflows/broken.workflow.yaml",
+          "      id: broken.workflow.template",
+          "      version: 0.1.0",
+          ""
+        ].join("\n"),
+        "utf8"
+      );
+      writeAgentManifest(join(pluginRoot, "agents", "test.agent.yaml"), {
+        id: "broken.workflow.agent",
+        name: "Broken Workflow Agent"
+      });
+      writeFileSync(
+        join(pluginRoot, "workflows", "broken.workflow.yaml"),
+        [
+          "schemaVersion: 1",
+          "workflow:",
+          "  id: broken.workflow.template",
+          "  name: Broken Workflow",
+          "  version: 0.1.0",
+          "  tasks: []",
+          ""
+        ].join("\n"),
+        "utf8"
+      );
+
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        const result = indexConfiguredLocalPlugins(config, { appState });
+
+        expect(result.plugins).toHaveLength(1);
+        expect(result.plugins[0]?.status).toBe("invalid");
+        expect(result.plugins[0]?.validationErrors.some((issue) => issue.file?.endsWith("broken.workflow.yaml"))).toBe(true);
+        expect(appState.agents.list()).toEqual([]);
+        expect(appState.workflowTemplates.list()).toEqual([]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 function mkdtemp(prefix: string): string {
@@ -196,8 +280,14 @@ function mkdtemp(prefix: string): string {
   return dir;
 }
 
-function writePluginPackage(pluginRoot: string, options: { pluginId: string; agentId: string }): void {
+function writePluginPackage(
+  pluginRoot: string,
+  options: { pluginId: string; agentId: string; workflowTemplateId?: string }
+): void {
   mkdirSync(join(pluginRoot, "agents"), { recursive: true });
+  if (options.workflowTemplateId) {
+    mkdirSync(join(pluginRoot, "workflows"), { recursive: true });
+  }
   writeFileSync(
     join(pluginRoot, "plugin.yaml"),
     [
@@ -210,6 +300,14 @@ function writePluginPackage(pluginRoot: string, options: { pluginId: string; age
       "    - path: agents/test.agent.yaml",
       `      id: ${options.agentId}`,
       "      version: 0.1.0",
+      ...(options.workflowTemplateId
+        ? [
+            "  workflowTemplates:",
+            "    - path: workflows/test.workflow.yaml",
+            `      id: ${options.workflowTemplateId}`,
+            "      version: 0.1.0"
+          ]
+        : []),
       "  compatibility:",
       "    manifestSchema: team-orchestrator.manifests.v1",
       "  permissions:",
@@ -223,6 +321,12 @@ function writePluginPackage(pluginRoot: string, options: { pluginId: string; age
     id: options.agentId,
     name: "Test Agent"
   });
+  if (options.workflowTemplateId) {
+    writeWorkflowTemplate(join(pluginRoot, "workflows", "test.workflow.yaml"), {
+      id: options.workflowTemplateId,
+      name: "Test Workflow"
+    });
+  }
 }
 
 function writeAgentManifest(filePath: string, options: { id: string; name: string }): void {
@@ -253,6 +357,41 @@ function writeAgentManifest(filePath: string, options: { id: string; name: strin
       "    maxToolCalls: 1",
       "  observability:",
       "    mode: black-box",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+}
+
+function writeWorkflowTemplate(filePath: string, options: { id: string; name: string }): void {
+  writeFileSync(
+    filePath,
+    [
+      "schemaVersion: 1",
+      "workflow:",
+      `  id: ${options.id}`,
+      `  name: ${options.name}`,
+      "  version: 0.1.0",
+      "  description: A repeatable test workflow.",
+      "  goal: Coordinate test work from planning to summary.",
+      "  context:",
+      "    source: test",
+      "  tasks:",
+      "    - id: plan",
+      "      title: Plan",
+      "      capabilityRequirements:",
+      "        - test.run",
+      "      inputs:",
+      "        brief: Plan the test work.",
+      "    - id: summarize",
+      "      title: Summarize",
+      "      capabilityRequirements:",
+      "        - test.run",
+      "      dependsOn:",
+      "        - plan",
+      "  ui:",
+      "    icon: list-checks",
+      "    color: \"#2f855a\"",
       ""
     ].join("\n"),
     "utf8"

@@ -6,7 +6,7 @@ Your task is to execute the next Team Orchestrator story.
 
 ## Primary Task
 
-- **Backlog Item:** `planning/backlog/active/2026.14.01-add-mission-apis.md`
+- **Backlog Item:** `planning/backlog/active/2026.14.03-run-sequential-mission-plans.md`
 
 Read the active story, then review its source decisions:
 
@@ -22,11 +22,13 @@ Read the active story, then review its source decisions:
 - `planning/backlog/completed/2026.13.01-add-container-command-backend.md`
 - `planning/backlog/completed/2026.13.02-add-http-api-backend-prototype.md`
 - `planning/backlog/completed/2026.13.03-enforce-approval-and-limit-defaults.md`
+- `planning/backlog/completed/2026.14.01-add-mission-apis.md`
+- `planning/backlog/completed/2026.14.02-add-workflow-template-indexing.md`
 - `planning/backlog/refinement/2026.14.00-epic-missions-workflow-templates.md`
 
 ## Current Context
 
-The foundation track now has SQLite app state, manifest schemas, local plugin indexing, task/mission/run repositories, a local agent catalog API/service surface, console catalog/detail pages, task workbench APIs, the first manual task creation UI, local-process task execution, the first run inspection view, container-command and HTTP/API task backends, and first-pass approval/limit enforcement. The next slice starts the Missions and Workflow Templates milestone with mission creation, task ordering, and mission task listing APIs.
+The foundation track now has SQLite app state, manifest schemas, local plugin indexing, task/mission/run repositories, a local agent catalog API/service surface, console catalog/detail pages, task workbench APIs, the first manual task creation UI, local-process task execution, the first run inspection view, container-command and HTTP/API task backends, first-pass approval/limit enforcement, mission creation/task-ordering APIs, and workflow template manifest indexing/listing. The next slice runs ordered mission task plans sequentially through the existing task workbench execution path.
 
 ## Agent Workflow (Mandatory)
 

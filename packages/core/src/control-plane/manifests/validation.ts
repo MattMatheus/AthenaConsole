@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import Ajv, { type ErrorObject, type ValidateFunction } from "ajv";
 import { load as loadYaml } from "js-yaml";
 
-export type TeamOrchestratorManifestKind = "plugin" | "agent";
+export type TeamOrchestratorManifestKind = "plugin" | "agent" | "workflow";
 
 export interface ManifestValidationIssue {
   file?: string;
@@ -35,11 +35,19 @@ interface PluginResourceReference {
 interface PluginManifestDocument {
   plugin?: {
     agents?: Array<string | PluginResourceReference>;
+    workflowTemplates?: Array<string | PluginResourceReference>;
   };
 }
 
 interface AgentManifestDocument {
   agent?: {
+    id?: string;
+    version?: string;
+  };
+}
+
+interface WorkflowTemplateManifestDocument {
+  workflow?: {
     id?: string;
     version?: string;
   };
@@ -155,6 +163,49 @@ export function validatePluginPackage(
         path: "$.agent.version",
         message: `referenced agent version '${normalizedReference.version}' does not match manifest version '${
           agentDocument.agent?.version ?? ""
+        }'`
+      });
+    }
+  }
+
+  for (const reference of pluginDocument.plugin?.workflowTemplates ?? []) {
+    const normalizedReference = normalizeResourceReference(reference);
+    if (!normalizedReference) {
+      continue;
+    }
+
+    const workflowPath = resolvePathInside(pluginRoot, normalizedReference.path);
+    if (!workflowPath) {
+      issues.push({
+        file: pluginManifestPath,
+        path: "$.plugin.workflowTemplates",
+        message: `workflow template reference escapes plugin root: ${normalizedReference.path}`
+      });
+      continue;
+    }
+
+    const workflowValidation = validateManifestFile("workflow", workflowPath, options);
+    issues.push(...workflowValidation.issues);
+    if (!workflowValidation.ok) {
+      continue;
+    }
+
+    const workflowDocument = loadYamlManifest(workflowPath) as WorkflowTemplateManifestDocument;
+    if (normalizedReference.id && workflowDocument.workflow?.id !== normalizedReference.id) {
+      issues.push({
+        file: workflowPath,
+        path: "$.workflow.id",
+        message: `referenced workflow template id '${normalizedReference.id}' does not match manifest id '${
+          workflowDocument.workflow?.id ?? ""
+        }'`
+      });
+    }
+    if (normalizedReference.version && workflowDocument.workflow?.version !== normalizedReference.version) {
+      issues.push({
+        file: workflowPath,
+        path: "$.workflow.version",
+        message: `referenced workflow template version '${normalizedReference.version}' does not match manifest version '${
+          workflowDocument.workflow?.version ?? ""
         }'`
       });
     }

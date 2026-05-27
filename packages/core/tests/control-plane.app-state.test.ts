@@ -38,7 +38,8 @@ describe("control-plane app-state database", () => {
             "run_events",
             "runs",
             "schedules",
-            "tasks"
+            "tasks",
+            "workflow_template_index"
           ])
         );
 
@@ -55,6 +56,10 @@ describe("control-plane app-state database", () => {
             expect.objectContaining({
               version: 3,
               name: "add-task-dependencies"
+            }),
+            expect.objectContaining({
+              version: 4,
+              name: "add-workflow-template-index"
             })
           ])
         );
@@ -74,8 +79,8 @@ describe("control-plane app-state database", () => {
 
       const appState = openAppStateDatabase(config);
       try {
-        expect(appState.migrations.list()).toHaveLength(3);
-        expect(appState.migrations.listVersions()).toEqual([1, 2, 3]);
+        expect(appState.migrations.list()).toHaveLength(4);
+        expect(appState.migrations.listVersions()).toEqual([1, 2, 3, 4]);
       } finally {
         appState.close();
       }

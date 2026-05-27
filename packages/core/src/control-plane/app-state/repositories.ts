@@ -44,6 +44,21 @@ interface AgentIndexRow {
   updated_at: string;
 }
 
+interface WorkflowTemplateIndexRow {
+  id: string;
+  version: string;
+  plugin_id: string;
+  plugin_version: string;
+  name: string;
+  description: string;
+  task_count: number;
+  manifest_json: string;
+  status: string;
+  validation_errors_json: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export class AppStateMigrationRepository {
   private readonly listVersionsStatement: Database.Statement;
   private readonly listStatement: Database.Statement;
@@ -393,6 +408,140 @@ export class AgentIndexRepository {
       capabilities: JSON.parse(row.capabilities_json) as string[],
       manifest: JSON.parse(row.manifest_json) as unknown,
       status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  }
+}
+
+export interface WorkflowTemplateIndexRecord {
+  id: string;
+  version: string;
+  pluginId: string;
+  pluginVersion: string;
+  name: string;
+  description: string;
+  taskCount: number;
+  manifest: unknown;
+  status: string;
+  validationErrors: unknown[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkflowTemplateIndexUpsert {
+  id: string;
+  version: string;
+  pluginId: string;
+  pluginVersion: string;
+  name: string;
+  description?: string;
+  taskCount?: number;
+  manifest: unknown;
+  status: "loaded" | "invalid";
+  validationErrors?: unknown[];
+  now?: Date;
+}
+
+export class WorkflowTemplateIndexRepository {
+  private readonly listStatement: Database.Statement;
+  private readonly listForPluginStatement: Database.Statement;
+  private readonly upsertStatement: Database.Statement;
+  private readonly deleteForPluginStatement: Database.Statement;
+
+  constructor(private readonly db: Database.Database) {
+    this.listStatement = db.prepare(
+      "select id, version, plugin_id, plugin_version, name, description, task_count, manifest_json, status, validation_errors_json, created_at, updated_at from workflow_template_index order by id asc, version asc, plugin_id asc, plugin_version asc"
+    );
+    this.listForPluginStatement = db.prepare(
+      "select id, version, plugin_id, plugin_version, name, description, task_count, manifest_json, status, validation_errors_json, created_at, updated_at from workflow_template_index where plugin_id = ? and plugin_version = ? order by id asc, version asc"
+    );
+    this.upsertStatement = db.prepare(`
+      insert into workflow_template_index (
+        id,
+        version,
+        plugin_id,
+        plugin_version,
+        name,
+        description,
+        task_count,
+        manifest_json,
+        status,
+        validation_errors_json,
+        created_at,
+        updated_at
+      )
+      values (
+        @id,
+        @version,
+        @pluginId,
+        @pluginVersion,
+        @name,
+        @description,
+        @taskCount,
+        @manifestJson,
+        @status,
+        @validationErrorsJson,
+        @createdAt,
+        @updatedAt
+      )
+      on conflict(id, version, plugin_id, plugin_version) do update set
+        name = excluded.name,
+        description = excluded.description,
+        task_count = excluded.task_count,
+        manifest_json = excluded.manifest_json,
+        status = excluded.status,
+        validation_errors_json = excluded.validation_errors_json,
+        updated_at = excluded.updated_at
+    `);
+    this.deleteForPluginStatement = db.prepare("delete from workflow_template_index where plugin_id = ? and plugin_version = ?");
+  }
+
+  list(): WorkflowTemplateIndexRecord[] {
+    return this.listStatement.all().map((row) => this.mapRow(row as WorkflowTemplateIndexRow));
+  }
+
+  listForPlugin(pluginId: string, pluginVersion: string): WorkflowTemplateIndexRecord[] {
+    return this.listForPluginStatement.all(pluginId, pluginVersion).map((row) => this.mapRow(row as WorkflowTemplateIndexRow));
+  }
+
+  upsert(input: WorkflowTemplateIndexUpsert): void {
+    const now = (input.now ?? new Date()).toISOString();
+    const existing = this.listForPlugin(input.pluginId, input.pluginVersion).find(
+      (template) => template.id === input.id && template.version === input.version
+    );
+    this.upsertStatement.run({
+      id: input.id,
+      version: input.version,
+      pluginId: input.pluginId,
+      pluginVersion: input.pluginVersion,
+      name: input.name,
+      description: input.description ?? "",
+      taskCount: input.taskCount ?? 0,
+      manifestJson: JSON.stringify(input.manifest),
+      status: input.status,
+      validationErrorsJson: JSON.stringify(input.validationErrors ?? []),
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now
+    });
+  }
+
+  deleteForPlugin(pluginId: string, pluginVersion: string): number {
+    return this.deleteForPluginStatement.run(pluginId, pluginVersion).changes;
+  }
+
+  private mapRow(row: WorkflowTemplateIndexRow): WorkflowTemplateIndexRecord {
+    return {
+      id: row.id,
+      version: row.version,
+      pluginId: row.plugin_id,
+      pluginVersion: row.plugin_version,
+      name: row.name,
+      description: row.description,
+      taskCount: row.task_count,
+      manifest: JSON.parse(row.manifest_json) as unknown,
+      status: row.status,
+      validationErrors: JSON.parse(row.validation_errors_json) as unknown[],
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };

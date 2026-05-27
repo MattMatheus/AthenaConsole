@@ -18,6 +18,7 @@ import { createIdentityExtractionMiddleware } from "./middleware/auth.js";
 import { writeError } from "./route-helpers.js";
 import { A2A_ROUTES } from "./routes/a2a-routes.js";
 import { AGENT_CATALOG_ROUTES } from "./routes/agent-catalog-routes.js";
+import { MISSION_ROUTES } from "./routes/mission-routes.js";
 import { TASK_ROUTES } from "./routes/task-routes.js";
 import { CORE_ROUTES } from "./routes/core-routes.js";
 import { FLEET_EVENTS_ROUTES } from "./routes/fleet-events-routes.js";
@@ -28,6 +29,7 @@ import { RBAC_ROUTES } from "./routes/identity-rbac-routes.js";
 import { DIRECTIVE_ROUTES } from "./routes/directive-routes.js";
 import { HARNESS_PROFILE_ROUTES } from "./routes/harness-profile-routes.js";
 import { RUN_TEMPLATE_ROUTES } from "./routes/run-template-routes.js";
+import { WORKFLOW_TEMPLATE_CATALOG_ROUTES } from "./routes/workflow-template-catalog-routes.js";
 import { WORKFLOW_ROUTES } from "./routes/workflow-routes.js";
 import { MEMORY_ROUTES, WORK_ROUTES } from "./routes/work-memory-routes.js";
 import {
@@ -51,12 +53,14 @@ export interface ApiServerHandle {
 const API_V1_ROUTE_TABLE = composeApiRouteTable(
   CORE_ROUTES,
   AGENT_CATALOG_ROUTES,
+  MISSION_ROUTES,
   TASK_ROUTES,
   RUN_ROUTES,
   SESSION_ROUTES,
   DIRECTIVE_ROUTES,
   HARNESS_PROFILE_ROUTES,
   RUN_TEMPLATE_ROUTES,
+  WORKFLOW_TEMPLATE_CATALOG_ROUTES,
   WORKFLOW_ROUTES,
   MEMORY_ROUTES,
   WORK_ROUTES,

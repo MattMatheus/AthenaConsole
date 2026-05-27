@@ -13,6 +13,10 @@ plugin:
     - path: agents/show-notes.agent.yaml
       id: podcast.show-notes.local
       version: 0.1.0
+  workflowTemplates:
+    - path: workflows/podcast-production.workflow.yaml
+      id: podcast.production.workflow
+      version: 0.1.0
   schemas:
     - path: schemas/transcript-input.schema.json
   docs:

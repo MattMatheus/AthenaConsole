@@ -52,6 +52,23 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
         foreign key (plugin_id, plugin_version) references plugin_index(id, version) on delete cascade
       );
 
+      create table if not exists workflow_template_index (
+        id text not null,
+        version text not null,
+        plugin_id text not null,
+        plugin_version text not null,
+        name text not null,
+        description text not null default '',
+        task_count integer not null default 0,
+        manifest_json text not null default '{}',
+        status text not null,
+        validation_errors_json text not null default '[]',
+        created_at text not null,
+        updated_at text not null,
+        primary key (id, version, plugin_id, plugin_version),
+        foreign key (plugin_id, plugin_version) references plugin_index(id, version) on delete cascade
+      );
+
       create table if not exists missions (
         id text primary key,
         title text not null,
@@ -172,6 +189,7 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
       );
 
       create index if not exists idx_agent_index_plugin on agent_index(plugin_id, plugin_version);
+      create index if not exists idx_workflow_template_index_plugin on workflow_template_index(plugin_id, plugin_version);
       create index if not exists idx_tasks_status on tasks(status);
       create index if not exists idx_tasks_mission on tasks(mission_id);
       create index if not exists idx_runs_target on runs(target_type, target_id);
@@ -194,6 +212,29 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
     name: "add-task-dependencies",
     sql: `
       alter table tasks add column depends_on_json text not null default '[]';
+    `
+  },
+  {
+    version: 4,
+    name: "add-workflow-template-index",
+    sql: `
+      create table if not exists workflow_template_index (
+        id text not null,
+        version text not null,
+        plugin_id text not null,
+        plugin_version text not null,
+        name text not null,
+        description text not null default '',
+        task_count integer not null default 0,
+        manifest_json text not null default '{}',
+        status text not null,
+        validation_errors_json text not null default '[]',
+        created_at text not null,
+        updated_at text not null,
+        primary key (id, version, plugin_id, plugin_version),
+        foreign key (plugin_id, plugin_version) references plugin_index(id, version) on delete cascade
+      );
+      create index if not exists idx_workflow_template_index_plugin on workflow_template_index(plugin_id, plugin_version);
     `
   }
 ];

@@ -12,6 +12,13 @@ export { parseFleetCostReportQuery, parseProviderCostSettingsPutRequest } from "
 export { parseCreateHarnessProfileRequest } from "./harness-profile.js";
 export { parseIdentityAssignmentUpsertRequest } from "./identity.js";
 export { parseMemoryGetRequest, parseMemorySearchQuery } from "./memory.js";
+export {
+  parseMissionWorkbenchAttachTaskRequest,
+  parseMissionWorkbenchCreateRequest,
+  parseMissionWorkbenchCreateTaskRequest,
+  parseMissionWorkbenchListQuery,
+  parseMissionWorkbenchUpdateRequest
+} from "./mission-workbench.js";
 export { parseCursorPageQuery, parseTailQuery } from "./pagination.js";
 export {
   parsePolicyConcurrencyRejectionsQuery,
@@ -32,3 +39,4 @@ export {
 } from "./task-workbench.js";
 export { parseWorkDrainRequest, parseWorkEnqueueRequest } from "./work.js";
 export { parseCreateWorkflowRequest } from "./workflow.js";
+export { parseWorkflowTemplateCatalogListQuery } from "./workflow-template-catalog.js";

@@ -27,6 +27,15 @@ export interface IndexedAgentSummary {
   capabilities: string[];
 }
 
+export interface IndexedWorkflowTemplateSummary {
+  id: string;
+  version: string;
+  path: string;
+  name: string;
+  description: string;
+  taskCount: number;
+}
+
 export interface IndexedPluginSummary {
   id: string;
   version: string;
@@ -36,6 +45,7 @@ export interface IndexedPluginSummary {
   enabled: boolean;
   validationErrors: ManifestValidationIssue[];
   agents: IndexedAgentSummary[];
+  workflowTemplates: IndexedWorkflowTemplateSummary[];
 }
 
 export interface PluginIndexResult {
@@ -59,6 +69,7 @@ interface PluginManifestDocument {
     id?: string;
     version?: string;
     agents?: Array<string | PluginResourceReference>;
+    workflowTemplates?: Array<string | PluginResourceReference>;
   };
 }
 
@@ -68,6 +79,16 @@ interface AgentManifestDocument {
     version?: string;
     name?: string;
     capabilities?: string[];
+  };
+}
+
+interface WorkflowTemplateManifestDocument {
+  workflow?: {
+    id?: string;
+    version?: string;
+    name?: string;
+    description?: string;
+    tasks?: unknown[];
   };
 }
 
@@ -143,6 +164,7 @@ export function indexLocalPluginPackage(
   const pluginId = pluginManifest?.plugin?.id ?? createInvalidPluginId(pluginPath);
   const pluginVersion = pluginManifest?.plugin?.version ?? "0.0.0";
   const agents: IndexedAgentSummary[] = [];
+  const workflowTemplates: IndexedWorkflowTemplateSummary[] = [];
 
   if (pluginValidation.ok) {
     for (const reference of pluginManifest?.plugin?.agents ?? []) {
@@ -194,6 +216,57 @@ export function indexLocalPluginPackage(
         });
       }
     }
+
+    for (const reference of pluginManifest?.plugin?.workflowTemplates ?? []) {
+      const normalizedReference = normalizeResourceReference(reference);
+      if (!normalizedReference) {
+        continue;
+      }
+
+      const workflowPath = resolvePathInside(pluginPath, normalizedReference.path);
+      if (!workflowPath) {
+        issues.push({
+          file: pluginManifestPath,
+          path: "$.plugin.workflowTemplates",
+          message: `workflow template reference escapes plugin root: ${normalizedReference.path}`
+        });
+        continue;
+      }
+
+      const workflowValidation = validateManifestFile("workflow", workflowPath);
+      const workflowIssues = [...workflowValidation.issues];
+      const workflowManifest = loadManifestIfPossible<WorkflowTemplateManifestDocument>(workflowPath);
+      if (workflowValidation.ok && normalizedReference.id && workflowManifest?.workflow?.id !== normalizedReference.id) {
+        workflowIssues.push({
+          file: workflowPath,
+          path: "$.workflow.id",
+          message: `referenced workflow template id '${normalizedReference.id}' does not match manifest id '${
+            workflowManifest?.workflow?.id ?? ""
+          }'`
+        });
+      }
+      if (workflowValidation.ok && normalizedReference.version && workflowManifest?.workflow?.version !== normalizedReference.version) {
+        workflowIssues.push({
+          file: workflowPath,
+          path: "$.workflow.version",
+          message: `referenced workflow template version '${normalizedReference.version}' does not match manifest version '${
+            workflowManifest?.workflow?.version ?? ""
+          }'`
+        });
+      }
+
+      issues.push(...workflowIssues);
+      if (workflowIssues.length === 0 && workflowManifest?.workflow?.id && workflowManifest.workflow.version) {
+        workflowTemplates.push({
+          id: workflowManifest.workflow.id,
+          version: workflowManifest.workflow.version,
+          path: workflowPath,
+          name: workflowManifest.workflow.name ?? workflowManifest.workflow.id,
+          description: workflowManifest.workflow.description ?? "",
+          taskCount: Array.isArray(workflowManifest.workflow.tasks) ? workflowManifest.workflow.tasks.length : 0
+        });
+      }
+    }
   }
 
   const status = issues.length === 0 ? "loaded" : "invalid";
@@ -208,6 +281,7 @@ export function indexLocalPluginPackage(
       validationErrors: issues
     });
     appState.agents.deleteForPlugin(pluginId, pluginVersion);
+    appState.workflowTemplates.deleteForPlugin(pluginId, pluginVersion);
     if (status === "loaded") {
       for (const agent of agents) {
         appState.agents.upsert({
@@ -219,6 +293,20 @@ export function indexLocalPluginPackage(
           capabilities: agent.capabilities,
           manifest: loadManifestIfPossible(resolve(agent.path)) ?? {},
           status: "loaded"
+        });
+      }
+      for (const template of workflowTemplates) {
+        appState.workflowTemplates.upsert({
+          id: template.id,
+          version: template.version,
+          pluginId,
+          pluginVersion,
+          name: template.name,
+          description: template.description,
+          taskCount: template.taskCount,
+          manifest: loadManifestIfPossible(resolve(template.path)) ?? {},
+          status: "loaded",
+          validationErrors: []
         });
       }
     }
@@ -234,7 +322,8 @@ export function indexLocalPluginPackage(
     status,
     enabled,
     validationErrors: issues,
-    agents: status === "loaded" ? agents : []
+    agents: status === "loaded" ? agents : [],
+    workflowTemplates: status === "loaded" ? workflowTemplates : []
   };
 }
 

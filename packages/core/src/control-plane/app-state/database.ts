@@ -14,7 +14,8 @@ import {
   AgentIndexRepository,
   AppSettingsRepository,
   AppStateMigrationRepository,
-  PluginIndexRepository
+  PluginIndexRepository,
+  WorkflowTemplateIndexRepository
 } from "./repositories.js";
 
 export const APP_STATE_DB_FILENAME = "team-orchestrator.sqlite";
@@ -30,6 +31,7 @@ export interface AppStateDatabase {
   readonly settings: AppSettingsRepository;
   readonly plugins: PluginIndexRepository;
   readonly agents: AgentIndexRepository;
+  readonly workflowTemplates: WorkflowTemplateIndexRepository;
   readonly tasks: TaskRepository;
   readonly missions: MissionRepository;
   readonly runs: RunRepository;
@@ -65,6 +67,7 @@ export function openAppStateDatabase(config: AthenaConfig, options: AppStateData
     settings: new AppSettingsRepository(db),
     plugins: new PluginIndexRepository(db),
     agents: new AgentIndexRepository(db),
+    workflowTemplates: new WorkflowTemplateIndexRepository(db),
     tasks: new TaskRepository(db),
     missions: new MissionRepository(db),
     runs: new RunRepository(db),
