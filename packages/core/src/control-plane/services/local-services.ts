@@ -1098,8 +1098,16 @@ export class LocalScheduleService implements ScheduleService {
     };
   }
 
-  logs(id: string, options: { limit?: number } = {}): Promise<ScheduleRunLog[]> {
-    return this.manager.readLogs(id, options.limit ?? 20);
+  async logs(id: string, options: { limit?: number } = {}): Promise<ScheduleRunLog[]> {
+    const limit = Math.max(1, Math.min(options.limit ?? 20, 100));
+    const appStateLogs = this.withAppState((appState) => {
+      const schedule = appState.schedules.get(id);
+      return schedule ? appState.scheduleRunHistory.listForSchedule(id, { limit }) : [];
+    });
+    const legacyLogs = await this.manager.readLogs(id, limit);
+    return [...appStateLogs, ...legacyLogs]
+      .sort((left, right) => right.startedAt.localeCompare(left.startedAt))
+      .slice(0, limit);
   }
 
   private async resolveScheduleRunTimeoutMs(): Promise<number> {
@@ -1136,14 +1144,24 @@ export class LocalScheduleService implements ScheduleService {
   ): Promise<RunScheduleResult> {
     const startedAt = new Date().toISOString();
     if (this.runningAppStateScheduleIds.has(id)) {
-      return {
-        id,
-        sessionId: "unknown",
-        status: "already-running",
-        startedAt,
-        finishedAt: startedAt,
-        reason: "skip-if-running"
-      };
+      return this.withAppState((appState) => {
+        const schedule = appState.schedules.get(id);
+        const result: RunScheduleResult = {
+          id,
+          sessionId: schedule?.targetId ?? "unknown",
+          status: "already-running",
+          startedAt,
+          finishedAt: startedAt,
+          ...(schedule?.targetType ? { targetType: schedule.targetType } : {}),
+          ...(schedule?.targetId ? { targetId: schedule.targetId } : {}),
+          ...(schedule?.nextRunAt ? { nextRunAt: schedule.nextRunAt } : {}),
+          reason: "skip-if-running"
+        };
+        if (schedule) {
+          this.recordAppStateScheduleRun(appState, result);
+        }
+        return result;
+      });
     }
 
     this.runningAppStateScheduleIds.add(id);
@@ -1202,7 +1220,7 @@ export class LocalScheduleService implements ScheduleService {
               status: resultStatus
             }
           });
-          return {
+          const result: RunScheduleResult = {
             id: schedule.id,
             sessionId: schedule.targetId,
             status: resultStatus,
@@ -1215,6 +1233,8 @@ export class LocalScheduleService implements ScheduleService {
             ...(missedRunAt ? { missedRunAt } : {}),
             ...(resultStatus === "failed" ? { reason: `task-run-${taskRun.status}` } : {})
           };
+          this.recordAppStateScheduleRun(appState, result);
+          return result;
         } catch (error) {
           const finishedAt = new Date().toISOString();
           const message = error instanceof Error ? error.message : String(error);
@@ -1231,7 +1251,7 @@ export class LocalScheduleService implements ScheduleService {
             }),
             now: new Date(finishedAt)
           });
-          return {
+          const result: RunScheduleResult = {
             id: schedule.id,
             sessionId: schedule.targetId,
             status: "failed",
@@ -1244,6 +1264,8 @@ export class LocalScheduleService implements ScheduleService {
             error: message,
             ...(errorCode ? { errorCode } : {})
           };
+          this.recordAppStateScheduleRun(appState, result);
+          return result;
         }
       });
     } finally {
@@ -1280,7 +1302,7 @@ export class LocalScheduleService implements ScheduleService {
         failurePolicy,
         now: new Date(finishedAt)
       });
-      return {
+      const result: RunScheduleResult = {
         id: schedule.id,
         sessionId: instantiation.mission.id,
         status: "ok",
@@ -1293,6 +1315,8 @@ export class LocalScheduleService implements ScheduleService {
         ...(updated.nextRunAt ? { nextRunAt: updated.nextRunAt } : {}),
         ...(missedRunAt ? { missedRunAt } : {})
       };
+      this.recordAppStateScheduleRun(appState, result);
+      return result;
     } catch (error) {
       const finishedAt = new Date().toISOString();
       const message = error instanceof Error ? error.message : String(error);
@@ -1309,7 +1333,7 @@ export class LocalScheduleService implements ScheduleService {
         }),
         now: new Date(finishedAt)
       });
-      return {
+      const result: RunScheduleResult = {
         id: schedule.id,
         sessionId: schedule.targetId,
         status: "failed",
@@ -1322,7 +1346,29 @@ export class LocalScheduleService implements ScheduleService {
         error: message,
         ...(errorCode ? { errorCode } : {})
       };
+      this.recordAppStateScheduleRun(appState, result);
+      return result;
     }
+  }
+
+  private recordAppStateScheduleRun(appState: AppStateDatabase, result: RunScheduleResult): ScheduleRunLog {
+    return appState.scheduleRunHistory.create({
+      scheduleId: result.id,
+      sessionId: result.sessionId,
+      startedAt: result.startedAt,
+      finishedAt: result.finishedAt,
+      status: result.status,
+      ...(result.targetType ? { targetType: result.targetType } : {}),
+      ...(result.targetId ? { targetId: result.targetId } : {}),
+      ...(result.runId ? { runId: result.runId } : {}),
+      ...(result.missionId ? { missionId: result.missionId } : {}),
+      ...(result.taskIds ? { taskIds: result.taskIds } : {}),
+      ...(result.nextRunAt ? { nextRunAt: result.nextRunAt } : {}),
+      ...(result.missedRunAt ? { missedRunAt: result.missedRunAt } : {}),
+      ...(result.reason ? { reason: result.reason } : {}),
+      ...(result.error ? { error: result.error } : {}),
+      ...(result.errorCode ? { errorCode: result.errorCode } : {})
+    });
   }
 
   private withAppState<T>(access: (appState: AppStateDatabase) => T): T {

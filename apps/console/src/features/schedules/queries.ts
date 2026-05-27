@@ -4,6 +4,7 @@ import {
   deleteSchedule,
   disableSchedule,
   enableSchedule,
+  fetchScheduleLogs,
   fetchSchedules,
   runSchedule,
   tickSchedules,
@@ -16,6 +17,15 @@ export function useSchedulesQuery() {
   return useQuery({
     queryKey: SCHEDULES_QUERY_KEY,
     queryFn: fetchSchedules,
+    staleTime: 5_000,
+  });
+}
+
+export function useScheduleLogsQuery(id: string | undefined) {
+  return useQuery({
+    queryKey: [...SCHEDULES_QUERY_KEY, "logs", id],
+    queryFn: () => fetchScheduleLogs(id ?? ""),
+    enabled: Boolean(id),
     staleTime: 5_000,
   });
 }

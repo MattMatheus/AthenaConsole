@@ -2707,6 +2707,38 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
           "already-running"
         ]
       },
+      "targetType": {
+        "type": "string",
+        "enum": [
+          "task",
+          "mission",
+          "workflow-template"
+        ]
+      },
+      "targetId": {
+        "type": "string"
+      },
+      "runId": {
+        "type": "string"
+      },
+      "missionId": {
+        "type": "string"
+      },
+      "taskIds": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "nextRunAt": {
+        "type": "string"
+      },
+      "missedRunAt": {
+        "type": "string"
+      },
+      "reason": {
+        "type": "string"
+      },
       "error": {
         "type": "string"
       },

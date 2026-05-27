@@ -1,4 +1,6 @@
+import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
+import type { ScheduleRunLog } from "../../shared/contracts/schedule.js";
 
 export type TaskStatus =
   | "draft"
@@ -90,6 +92,26 @@ interface ScheduleRow {
   failure_policy_json: string;
   created_at: string;
   updated_at: string;
+}
+
+interface ScheduleRunHistoryRow {
+  id: string;
+  schedule_id: string;
+  session_id: string;
+  status: ScheduleRunLog["status"];
+  target_type: AppStateScheduleTargetType | null;
+  target_id: string | null;
+  run_id: string | null;
+  mission_id: string | null;
+  task_ids_json: string;
+  started_at: string;
+  finished_at: string | null;
+  next_run_at: string | null;
+  missed_run_at: string | null;
+  reason: string | null;
+  error: string | null;
+  error_code: ScheduleRunLog["errorCode"] | null;
+  created_at: string;
 }
 
 interface RunEventRow {
@@ -629,6 +651,112 @@ export class ScheduleRepository {
   }
 }
 
+export type CreateScheduleRunHistoryInput = Omit<ScheduleRunLog, "id" | "scheduleId"> & {
+  id?: string;
+  scheduleId: string;
+  createdAt?: string;
+};
+
+export class ScheduleRunHistoryRepository {
+  private readonly insertStatement: Database.Statement;
+  private readonly listForScheduleStatement: Database.Statement;
+
+  constructor(private readonly db: Database.Database) {
+    this.insertStatement = db.prepare(`
+      insert into schedule_run_history (
+        id,
+        schedule_id,
+        session_id,
+        status,
+        target_type,
+        target_id,
+        run_id,
+        mission_id,
+        task_ids_json,
+        started_at,
+        finished_at,
+        next_run_at,
+        missed_run_at,
+        reason,
+        error,
+        error_code,
+        created_at
+      )
+      values (
+        @id,
+        @scheduleId,
+        @sessionId,
+        @status,
+        @targetType,
+        @targetId,
+        @runId,
+        @missionId,
+        @taskIdsJson,
+        @startedAt,
+        @finishedAt,
+        @nextRunAt,
+        @missedRunAt,
+        @reason,
+        @error,
+        @errorCode,
+        @createdAt
+      )
+    `);
+    this.listForScheduleStatement = db.prepare(
+      scheduleRunHistorySelectSql("where schedule_id = @scheduleId order by started_at desc, created_at desc limit @limit")
+    );
+  }
+
+  create(input: CreateScheduleRunHistoryInput): ScheduleRunLog {
+    const id = input.id ?? `schedule-run-${randomUUID()}`;
+    const createdAt = input.createdAt ?? input.finishedAt ?? input.startedAt;
+    this.insertStatement.run({
+      id,
+      scheduleId: input.scheduleId,
+      sessionId: input.sessionId,
+      status: input.status,
+      targetType: input.targetType ?? null,
+      targetId: input.targetId ?? null,
+      runId: input.runId ?? null,
+      missionId: input.missionId ?? null,
+      taskIdsJson: JSON.stringify(input.taskIds ?? []),
+      startedAt: input.startedAt,
+      finishedAt: input.finishedAt ?? null,
+      nextRunAt: input.nextRunAt ?? null,
+      missedRunAt: input.missedRunAt ?? null,
+      reason: input.reason ?? null,
+      error: input.error ?? null,
+      errorCode: input.errorCode ?? null,
+      createdAt
+    });
+    return {
+      id,
+      scheduleId: input.scheduleId,
+      sessionId: input.sessionId,
+      startedAt: input.startedAt,
+      ...(input.finishedAt ? { finishedAt: input.finishedAt } : {}),
+      status: input.status,
+      ...(input.targetType ? { targetType: input.targetType } : {}),
+      ...(input.targetId ? { targetId: input.targetId } : {}),
+      ...(input.runId ? { runId: input.runId } : {}),
+      ...(input.missionId ? { missionId: input.missionId } : {}),
+      ...(input.taskIds && input.taskIds.length > 0 ? { taskIds: input.taskIds } : {}),
+      ...(input.nextRunAt ? { nextRunAt: input.nextRunAt } : {}),
+      ...(input.missedRunAt ? { missedRunAt: input.missedRunAt } : {}),
+      ...(input.reason ? { reason: input.reason } : {}),
+      ...(input.error ? { error: input.error } : {}),
+      ...(input.errorCode ? { errorCode: input.errorCode } : {})
+    };
+  }
+
+  listForSchedule(scheduleId: string, options: { limit?: number } = {}): ScheduleRunLog[] {
+    const limit = Math.max(1, Math.min(options.limit ?? 20, 100));
+    return this.listForScheduleStatement
+      .all({ scheduleId, limit })
+      .map((row) => mapScheduleRunHistoryRow(row as ScheduleRunHistoryRow));
+  }
+}
+
 export interface RunRecord {
   id: string;
   targetType: RunTargetType;
@@ -1034,6 +1162,10 @@ function scheduleSelectSql(suffix: string): string {
   return `select id, name, target_type, target_id, input_bindings_json, rrule, timezone, status, last_run_id, next_run_at, failure_policy_json, created_at, updated_at from schedules ${suffix}`;
 }
 
+function scheduleRunHistorySelectSql(suffix: string): string {
+  return `select id, schedule_id, session_id, status, target_type, target_id, run_id, mission_id, task_ids_json, started_at, finished_at, next_run_at, missed_run_at, reason, error, error_code, created_at from schedule_run_history ${suffix}`;
+}
+
 function runSelectSql(suffix: string): string {
   return `select id, target_type, target_id, status, backend, agent_id, agent_version, started_at, ended_at, output_json, failure_json, safety_stop_json, created_at, updated_at from runs ${suffix}`;
 }
@@ -1088,6 +1220,30 @@ function mapScheduleRow(row: ScheduleRow): ScheduleRecord {
     failurePolicy: JSON.parse(row.failure_policy_json) as unknown,
     createdAt: row.created_at,
     updatedAt: row.updated_at
+  };
+}
+
+function mapScheduleRunHistoryRow(row: ScheduleRunHistoryRow): ScheduleRunLog {
+  const taskIds = JSON.parse(row.task_ids_json) as unknown;
+  return {
+    id: row.id,
+    scheduleId: row.schedule_id,
+    sessionId: row.session_id,
+    startedAt: row.started_at,
+    ...(row.finished_at ? { finishedAt: row.finished_at } : {}),
+    status: row.status,
+    ...(row.target_type ? { targetType: row.target_type } : {}),
+    ...(row.target_id ? { targetId: row.target_id } : {}),
+    ...(row.run_id ? { runId: row.run_id } : {}),
+    ...(row.mission_id ? { missionId: row.mission_id } : {}),
+    ...(Array.isArray(taskIds) && taskIds.length > 0
+      ? { taskIds: taskIds.filter((item): item is string => typeof item === "string") }
+      : {}),
+    ...(row.next_run_at ? { nextRunAt: row.next_run_at } : {}),
+    ...(row.missed_run_at ? { missedRunAt: row.missed_run_at } : {}),
+    ...(row.reason ? { reason: row.reason } : {}),
+    ...(row.error ? { error: row.error } : {}),
+    ...(row.error_code ? { errorCode: row.error_code } : {})
   };
 }
 

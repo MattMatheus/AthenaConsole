@@ -236,6 +236,37 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
       );
       create index if not exists idx_workflow_template_index_plugin on workflow_template_index(plugin_id, plugin_version);
     `
+  },
+  {
+    version: 5,
+    name: "add-schedule-run-history",
+    sql: `
+      create table if not exists schedule_run_history (
+        id text primary key,
+        schedule_id text not null,
+        session_id text not null,
+        status text not null,
+        target_type text,
+        target_id text,
+        run_id text,
+        mission_id text,
+        task_ids_json text not null default '[]',
+        started_at text not null,
+        finished_at text,
+        next_run_at text,
+        missed_run_at text,
+        reason text,
+        error text,
+        error_code text,
+        created_at text not null,
+        foreign key (schedule_id) references schedules(id) on delete cascade,
+        foreign key (run_id) references runs(id) on delete set null,
+        foreign key (mission_id) references missions(id) on delete set null
+      );
+
+      create index if not exists idx_schedule_run_history_schedule_started
+        on schedule_run_history(schedule_id, started_at desc);
+    `
   }
 ];
 

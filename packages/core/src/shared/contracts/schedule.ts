@@ -39,6 +39,14 @@ export interface ScheduleRunLog {
   startedAt: string;
   finishedAt?: string;
   status: "ok" | "failed" | "already-running";
+  targetType?: ScheduleTargetType;
+  targetId?: string;
+  runId?: string;
+  missionId?: string;
+  taskIds?: string[];
+  nextRunAt?: string;
+  missedRunAt?: string;
+  reason?: string;
   error?: string;
   errorCode?: AthenaErrorCode;
 }

@@ -7,6 +7,7 @@ import {
   MissionRepository,
   RunEventRepository,
   RunRepository,
+  ScheduleRunHistoryRepository,
   ScheduleRepository,
   TaskRepository
 } from "./domain-repositories.js";
@@ -37,6 +38,7 @@ export interface AppStateDatabase {
   readonly missions: MissionRepository;
   readonly runs: RunRepository;
   readonly schedules: ScheduleRepository;
+  readonly scheduleRunHistory: ScheduleRunHistoryRepository;
   readonly runEvents: RunEventRepository;
   readonly artifacts: ArtifactMetadataRepository;
   close(): void;
@@ -74,6 +76,7 @@ export function openAppStateDatabase(config: AthenaConfig, options: AppStateData
     missions: new MissionRepository(db),
     runs: new RunRepository(db),
     schedules: new ScheduleRepository(db),
+    scheduleRunHistory: new ScheduleRunHistoryRepository(db),
     runEvents: new RunEventRepository(db),
     artifacts: new ArtifactMetadataRepository(db),
     close: () => {

@@ -117,6 +117,16 @@ describe("task schedule service", () => {
           status: "completed"
         });
         expect(appState.runEvents.listForRun(runId ?? "").map((event) => event.type)).toContain("schedule.run.linked");
+        await expect(service.logs("schedule-due")).resolves.toEqual([
+          expect.objectContaining({
+            scheduleId: "schedule-due",
+            sessionId: "task-due",
+            status: "ok",
+            targetType: "task",
+            targetId: "task-due",
+            runId
+          })
+        ]);
       } finally {
         appState.close();
       }
@@ -193,6 +203,16 @@ describe("task schedule service", () => {
           }
         });
         expect(updatedSchedule.lastRunId).toBeTruthy();
+        await expect(service.logs("schedule-fails")).resolves.toEqual([
+          expect.objectContaining({
+            scheduleId: "schedule-fails",
+            status: "failed",
+            targetType: "task",
+            targetId: "task-fails",
+            runId: updatedSchedule.lastRunId,
+            reason: "task-run-failed"
+          })
+        ]);
       } finally {
         appState.close();
       }
@@ -310,6 +330,17 @@ describe("task schedule service", () => {
             taskIds: run?.taskIds
           }
         });
+        await expect(service.logs("schedule-release-workflow")).resolves.toEqual([
+          expect.objectContaining({
+            scheduleId: "schedule-release-workflow",
+            sessionId: run?.missionId,
+            status: "ok",
+            targetType: "workflow-template",
+            targetId: "templates.release.workflow",
+            missionId: run?.missionId,
+            taskIds: run?.taskIds
+          })
+        ]);
       } finally {
         appState.close();
       }

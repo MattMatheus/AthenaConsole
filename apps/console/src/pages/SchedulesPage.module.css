@@ -38,9 +38,16 @@
   align-items: start;
 }
 
+.listColumn {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
 .scheduleListPanel,
 .formPanel,
 .inputPanel,
+.historyPanel,
 .resultPanel,
 .state {
   display: grid;
@@ -107,6 +114,12 @@
   border-radius: 8px;
   background: #fff;
   padding: var(--space-3);
+  cursor: pointer;
+}
+
+.tableRowActive {
+  border-color: var(--color-brand-500);
+  box-shadow: 0 0 0 3px rgb(31 111 212 / 0.12);
 }
 
 .compactKv {
@@ -146,6 +159,40 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.historyList {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.historyItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fff;
+  padding: var(--space-3);
+}
+
+.historySummary {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.historyLinks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  min-width: 0;
 }
 
 .resultItem {
@@ -367,6 +414,14 @@
   }
 
   .rowActions {
+    justify-content: flex-start;
+  }
+
+  .historyItem {
+    grid-template-columns: 1fr;
+  }
+
+  .historyLinks {
     justify-content: flex-start;
   }
 }

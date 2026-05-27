@@ -51,6 +51,12 @@ export type ScheduleRunResult = {
   errorCode?: string;
 };
 
+export type ScheduleRunLog = Omit<ScheduleRunResult, "id" | "finishedAt"> & {
+  id: string;
+  scheduleId: string;
+  finishedAt?: string;
+};
+
 export type ScheduleTickResult = {
   at: string;
   run: ScheduleRunResult[];

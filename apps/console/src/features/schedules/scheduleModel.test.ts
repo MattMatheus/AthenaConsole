@@ -5,6 +5,7 @@ import {
   formatScheduleCadence,
   hasScheduleValidationErrors,
   parseSimpleRRule,
+  summarizeScheduleRunLog,
   summarizeScheduleRunResult,
   validateScheduleForm,
 } from "./scheduleModel";
@@ -114,6 +115,16 @@ describe("schedule model", () => {
         reason: "task-run-failed",
       }),
     ).toBe("schedule-1 failed: task-run-failed");
+    expect(
+      summarizeScheduleRunLog({
+        id: "log-1",
+        scheduleId: "workflow-schedule",
+        sessionId: "mission-1",
+        status: "ok",
+        startedAt: "2026-06-01T09:00:00.000Z",
+        missionId: "mission-1",
+      }),
+    ).toContain("Created mission mission-1.");
   });
 });
 

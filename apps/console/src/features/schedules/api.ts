@@ -3,6 +3,7 @@ import type {
   CreateScheduleRequest,
   ScheduleListResult,
   ScheduleMutationResult,
+  ScheduleRunLog,
   ScheduleRunResult,
   ScheduleRunStatus,
   ScheduleStatus,
@@ -84,6 +85,22 @@ function parseScheduleRunResult(value: unknown): ScheduleRunResult {
   };
 }
 
+function parseScheduleRunLog(value: unknown): ScheduleRunLog {
+  const parsed = parseScheduleRunResult(value);
+  if (!isRecord(value) || typeof value.scheduleId !== "string") {
+    throw new Error("Schedule log payload is invalid.");
+  }
+  const log: ScheduleRunLog = {
+    ...parsed,
+    scheduleId: value.scheduleId,
+    ...(typeof value.finishedAt === "string" ? { finishedAt: value.finishedAt } : {}),
+  };
+  if (typeof value.finishedAt !== "string") {
+    delete log.finishedAt;
+  }
+  return log;
+}
+
 export async function fetchSchedules(): Promise<ScheduleListResult> {
   const value = await apiClient.get<unknown>("/v1/schedules");
   if (!isRecord(value) || !Array.isArray(value.items)) {
@@ -93,6 +110,14 @@ export async function fetchSchedules(): Promise<ScheduleListResult> {
     items: value.items.map(parseSchedule),
     ...(typeof value.nextCursor === "string" ? { nextCursor: value.nextCursor } : {}),
   };
+}
+
+export async function fetchScheduleLogs(id: string, limit = 10): Promise<ScheduleRunLog[]> {
+  const value = await apiClient.get<unknown>(`/v1/schedules/${encodeURIComponent(id)}/logs?limit=${limit}`);
+  if (!Array.isArray(value)) {
+    throw new Error("Schedule logs payload is invalid.");
+  }
+  return value.map(parseScheduleRunLog);
 }
 
 export async function createSchedule(request: CreateScheduleRequest): Promise<ScheduledTask> {

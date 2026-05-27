@@ -3,6 +3,7 @@ import type {
   ScheduleFormDraft,
   ScheduleFormValidation,
   ScheduleFrequency,
+  ScheduleRunLog,
   ScheduleRunResult,
   ScheduleStatus,
   ScheduledTask,
@@ -148,6 +149,20 @@ export function summarizeScheduleRunResult(result: ScheduleRunResult): string {
   const next = result.nextRunAt ? ` Next: ${formatScheduleDate(result.nextRunAt)}.` : "";
   const missed = result.missedRunAt ? ` Missed: ${formatScheduleDate(result.missedRunAt)}.` : "";
   return `${result.id} ran successfully.${created}${missed}${next}`;
+}
+
+export function summarizeScheduleRunLog(log: ScheduleRunLog): string {
+  if (log.status === "already-running") {
+    return `${log.scheduleId} skipped because it is already running.`;
+  }
+  if (log.status === "failed") {
+    return `${log.scheduleId} failed${log.error ? `: ${log.error}` : log.reason ? `: ${log.reason}` : "."}`;
+  }
+  const created = log.missionId ? ` Created mission ${log.missionId}.` : "";
+  const run = log.runId ? ` Task run ${log.runId}.` : "";
+  const next = log.nextRunAt ? ` Next: ${formatScheduleDate(log.nextRunAt)}.` : "";
+  const missed = log.missedRunAt ? ` Missed: ${formatScheduleDate(log.missedRunAt)}.` : "";
+  return `${log.scheduleId} ran successfully.${created}${run}${missed}${next}`;
 }
 
 function toIsoFromLocalDateTime(value: string): string | undefined {

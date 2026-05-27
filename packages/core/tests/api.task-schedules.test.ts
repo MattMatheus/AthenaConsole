@@ -190,6 +190,21 @@ describe("task schedule api", () => {
           status: "disabled"
         }
       });
+
+      const logsResponse = await fetch(`${base}/api/v1/schedules/api-task-schedule-due/logs`);
+      expect(logsResponse.status).toBe(200);
+      await expect(logsResponse.json()).resolves.toMatchObject({
+        ok: true,
+        data: [
+          {
+            scheduleId: "api-task-schedule-due",
+            status: "ok",
+            targetType: "task",
+            targetId: "task-api-due",
+            runId: expect.stringMatching(/^run-/)
+          }
+        ]
+      });
     } finally {
       await server.stop();
       rmSync(dir, { recursive: true, force: true });
@@ -282,6 +297,22 @@ describe("task schedule api", () => {
         }
       });
       expect(ticked.data.run[0]?.taskIds?.[0]).toMatch(/^mission-.*-plan$/);
+
+      const logsResponse = await fetch(`${base}/api/v1/schedules/api-workflow-template-schedule/logs`);
+      expect(logsResponse.status).toBe(200);
+      await expect(logsResponse.json()).resolves.toMatchObject({
+        ok: true,
+        data: [
+          {
+            scheduleId: "api-workflow-template-schedule",
+            status: "ok",
+            targetType: "workflow-template",
+            targetId: "templates.release.workflow",
+            missionId: ticked.data.run[0]?.missionId,
+            taskIds: ticked.data.run[0]?.taskIds
+          }
+        ]
+      });
     } finally {
       await server.stop();
       rmSync(dir, { recursive: true, force: true });

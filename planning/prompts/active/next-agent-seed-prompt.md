@@ -6,23 +6,22 @@ Your task is to execute the next Team Orchestrator story.
 
 ## Primary Task
 
-- **Backlog Item:** `planning/backlog/active/2026.16.06-add-durable-schedule-run-history.md`
+- **Backlog Item:** `planning/backlog/active/2026.17.01-implement-workflow-dag-definition-parser.md`
 
 Read the active story, then review its source decisions:
 
-- `planning/architecture/0014-scheduling-model.md`
-- `planning/backlog/completed/2026.15.01-add-task-schedule-model-and-api.md`
-- `planning/backlog/completed/2026.15.02-add-local-scheduler-service.md`
-- `planning/backlog/completed/2026.15.03-build-schedule-ui.md`
-- `planning/backlog/completed/2026.16.05-schedule-workflow-templates.md`
-- `planning/backlog/refinement/2026.15.00-epic-scheduling.md`
+- `planning/architecture/0008-plugin-package-format.md`
+- `planning/architecture/0009-task-mission-run-domain-model.md`
+- `planning/architecture/0011-runtime-backend-interface.md`
+- `planning/architecture/0012-event-artifact-observability-model.md`
+- `planning/backlog/refinement/26.00-epic-workflow-dag-engine.md`
 - `planning/backlog/refinement/2026.14.00-epic-missions-workflow-templates.md`
 
 ## Current Context
 
-The foundation track now has SQLite app state, manifest schemas, local plugin indexing, task/mission/run/event/artifact repositories, local agent catalog API/service surfaces, console catalog/detail pages, task workbench APIs, manual task creation UI, local-process task execution, run inspection, container-command and HTTP/API task backends, approval/limit defaults, mission APIs, workflow template indexing/listing, sequential mission task execution, task-target schedules, local due-schedule execution, schedule management UI, backend workflow-template instantiation, console workflow-template instantiation, a mission workbench UI, durable mission run history, and workflow-template schedules that instantiate fresh missions/tasks.
+The foundation track now has SQLite app state, manifest schemas, local plugin indexing, task/mission/run/event/artifact repositories, local agent catalog API/service surfaces, console catalog/detail pages, task workbench APIs, manual task creation UI, local-process task execution, run inspection, container-command and HTTP/API task backends, approval/limit defaults, mission APIs, workflow template indexing/listing, sequential mission task execution, task-target schedules, local due-schedule execution, schedule management UI, backend workflow-template instantiation, console workflow-template instantiation, a mission workbench UI, durable mission run history, workflow-template schedules, and durable schedule run history for task and workflow-template schedules.
 
-The next slice should make schedule execution history durable for app-state schedules. Task schedules and workflow-template schedules should both retain recent execution attempts after refresh/restart, and the schedule UI should expose those attempts with task run and mission links.
+The next slice should start the workflow DAG engine by adding a workflow-template DAG parser/validator. Preserve existing sequential workflow behavior, but support explicit task dependencies with deterministic topological ordering and actionable validation errors.
 
 ## Agent Workflow (Mandatory)
 

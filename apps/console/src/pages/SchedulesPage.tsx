@@ -18,11 +18,13 @@ import {
   formatScheduleDate,
   hasScheduleValidationErrors,
   scheduleStatusTone,
+  summarizeScheduleRunLog,
   summarizeScheduleRunResult,
   useCreateScheduleMutation,
   useDeleteScheduleMutation,
   useDisableScheduleMutation,
   useEnableScheduleMutation,
+  useScheduleLogsQuery,
   useRunScheduleMutation,
   useSchedulesQuery,
   useTickSchedulesMutation,
@@ -132,6 +134,7 @@ export function SchedulesPage() {
   const [hasAttemptedCreate, setHasAttemptedCreate] = useState(false);
   const [runResults, setRunResults] = useState<ScheduleRunResult[]>([]);
   const [skippedCount, setSkippedCount] = useState<number | undefined>();
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | undefined>();
   const tasks = tasksQuery.data?.tasks ?? EMPTY_TASKS;
   const readyTasks = useMemo(() => tasks.filter((task) => task.status === "ready"), [tasks]);
   const workflowTemplates = workflowTemplatesQuery.data?.templates ?? EMPTY_TEMPLATES;
@@ -147,7 +150,6 @@ export function SchedulesPage() {
   const validation = validateScheduleForm(draft);
   const displayedValidation = hasAttemptedCreate ? validation : {};
   const displayedWorkflowValidation = hasAttemptedCreate ? workflowInputValidation : {};
-  const isRefreshing = schedulesQuery.isFetching || tasksQuery.isFetching || workflowTemplatesQuery.isFetching;
   const actionError = mutationError(
     createScheduleMutation.error,
     enableScheduleMutation.error,
@@ -160,7 +162,14 @@ export function SchedulesPage() {
     () => [...(schedulesQuery.data?.items ?? [])].sort((left, right) => left.id.localeCompare(right.id)),
     [schedulesQuery.data?.items],
   );
-  const dataError = mutationError(schedulesQuery.error, tasksQuery.error, workflowTemplatesQuery.error);
+  const selectedSchedule = useMemo(
+    () => sortedSchedules.find((schedule) => schedule.id === selectedScheduleId) ?? sortedSchedules[0],
+    [selectedScheduleId, sortedSchedules],
+  );
+  const scheduleLogsQuery = useScheduleLogsQuery(selectedSchedule?.id);
+  const scheduleLogs = scheduleLogsQuery.data ?? [];
+  const isRefreshing = schedulesQuery.isFetching || tasksQuery.isFetching || workflowTemplatesQuery.isFetching || scheduleLogsQuery.isFetching;
+  const dataError = mutationError(schedulesQuery.error, tasksQuery.error, workflowTemplatesQuery.error, scheduleLogsQuery.error);
 
   useEffect(() => {
     if (draft.targetType !== "workflow-template") {
@@ -180,6 +189,16 @@ export function SchedulesPage() {
   useEffect(() => {
     setWorkflowInputValues(initialWorkflowTemplateInputValues(selectedWorkflowTemplate));
   }, [selectedWorkflowTemplate]);
+
+  useEffect(() => {
+    if (sortedSchedules.length === 0) {
+      setSelectedScheduleId(undefined);
+      return;
+    }
+    if (!selectedScheduleId || !sortedSchedules.some((schedule) => schedule.id === selectedScheduleId)) {
+      setSelectedScheduleId(sortedSchedules[0]?.id);
+    }
+  }, [selectedScheduleId, sortedSchedules]);
 
   function updateDraft<K extends keyof ScheduleFormDraft>(key: K, value: ScheduleFormDraft[K]): void {
     setDraft((current) => ({
@@ -252,7 +271,12 @@ export function SchedulesPage() {
   }
 
   async function refresh(): Promise<void> {
-    await Promise.all([schedulesQuery.refetch(), tasksQuery.refetch(), workflowTemplatesQuery.refetch()]);
+    await Promise.all([
+      schedulesQuery.refetch(),
+      tasksQuery.refetch(),
+      workflowTemplatesQuery.refetch(),
+      selectedSchedule ? scheduleLogsQuery.refetch() : Promise.resolve(),
+    ]);
   }
 
   return (
@@ -333,6 +357,7 @@ export function SchedulesPage() {
       ) : null}
 
       <div className={styles.layout}>
+        <div className={styles.listColumn}>
         <section className={styles.scheduleListPanel}>
           <div className={styles.sectionHeader}>
             <div>
@@ -355,7 +380,11 @@ export function SchedulesPage() {
                 <span>Actions</span>
               </div>
               {sortedSchedules.map((schedule) => (
-                <article key={schedule.id} className={styles.tableRow}>
+                <article
+                  key={schedule.id}
+                  className={`${styles.tableRow} ${selectedSchedule?.id === schedule.id ? styles.tableRowActive : ""}`}
+                  onClick={() => setSelectedScheduleId(schedule.id)}
+                >
                   <div className={styles.identityCell}>
                     <span className={statusClass(schedule.status)}>{schedule.status ?? (schedule.enabled ? "active" : "paused")}</span>
                     <div>
@@ -404,7 +433,10 @@ export function SchedulesPage() {
                       <button
                         type="button"
                         className={styles.iconButton}
-                        onClick={() => disableScheduleMutation.mutate(schedule.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          disableScheduleMutation.mutate(schedule.id);
+                        }}
                         disabled={disableScheduleMutation.isPending}
                         aria-label={`Pause ${schedule.id}`}
                         title="Pause schedule"
@@ -415,7 +447,10 @@ export function SchedulesPage() {
                       <button
                         type="button"
                         className={styles.iconButton}
-                        onClick={() => enableScheduleMutation.mutate(schedule.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          enableScheduleMutation.mutate(schedule.id);
+                        }}
                         disabled={enableScheduleMutation.isPending}
                         aria-label={`Resume ${schedule.id}`}
                         title="Resume schedule"
@@ -426,7 +461,11 @@ export function SchedulesPage() {
                     <button
                       type="button"
                       className={styles.iconButton}
-                      onClick={() => runNow(schedule.id)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setSelectedScheduleId(schedule.id);
+                        runNow(schedule.id);
+                      }}
                       disabled={runScheduleMutation.isPending}
                       aria-label={`Run ${schedule.id}`}
                       title="Run schedule"
@@ -436,7 +475,10 @@ export function SchedulesPage() {
                     <button
                       type="button"
                       className={styles.iconButtonDanger}
-                      onClick={() => deleteScheduleMutation.mutate(schedule.id)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        deleteScheduleMutation.mutate(schedule.id);
+                      }}
                       disabled={deleteScheduleMutation.isPending}
                       aria-label={`Delete ${schedule.id}`}
                       title="Delete schedule"
@@ -449,6 +491,55 @@ export function SchedulesPage() {
             </div>
           )}
         </section>
+
+        <section className={styles.historyPanel}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <p className={styles.panelTitle}>Run History</p>
+              <p className={styles.panelMeta}>{selectedSchedule ? selectedSchedule.id : "No schedule selected"}</p>
+            </div>
+          </div>
+
+          {!selectedSchedule ? (
+            <p className={styles.description}>No schedule selected.</p>
+          ) : scheduleLogsQuery.isLoading ? (
+            <p className={styles.description}>Loading history.</p>
+          ) : scheduleLogs.length === 0 ? (
+            <p className={styles.description}>No schedule runs recorded.</p>
+          ) : (
+            <ul className={styles.historyList}>
+              {scheduleLogs.map((log) => (
+                <li key={log.id} className={styles.historyItem}>
+                  <div className={styles.historySummary}>
+                    <span className={log.status === "ok" ? styles.badgeSuccess : log.status === "already-running" ? styles.badgeWarning : styles.badgeDanger}>
+                      {log.status}
+                    </span>
+                    <div>
+                      <p className={styles.rowTitle}>{summarizeScheduleRunLog(log)}</p>
+                      <p className={styles.panelMeta}>
+                        {formatScheduleDate(log.startedAt)}
+                        {log.finishedAt ? ` - ${formatScheduleDate(log.finishedAt)}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={styles.historyLinks}>
+                    {log.missionId ? (
+                      <Link className={styles.inlineLink} to={`/missions?missionId=${encodeURIComponent(log.missionId)}`}>
+                        {log.missionId}
+                      </Link>
+                    ) : null}
+                    {log.runId ? (
+                      <Link className={styles.inlineLink} to={`/tasks/runs/${encodeURIComponent(log.runId)}`}>
+                        {log.runId}
+                      </Link>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        </div>
 
         <aside className={styles.formPanel}>
           <div className={styles.sectionHeader}>

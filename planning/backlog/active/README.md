@@ -42,12 +42,13 @@ Completed stories were moved to:
 - `planning/backlog/completed/2026.16.03-build-mission-workbench-ui.md`
 - `planning/backlog/completed/2026.16.04-add-mission-run-history.md`
 - `planning/backlog/completed/2026.16.05-schedule-workflow-templates.md`
+- `planning/backlog/completed/2026.16.06-add-durable-schedule-run-history.md`
 
 ## Active Queue
 
-1. `planning/backlog/active/2026.16.06-add-durable-schedule-run-history.md`
+1. `planning/backlog/active/2026.17.01-implement-workflow-dag-definition-parser.md`
 
-The next slice adds durable schedule run history for app-state task and workflow-template schedules so prior executions remain inspectable after refresh or restart.
+The next slice starts the workflow DAG engine by parsing and validating workflow-template task dependencies while preserving existing sequential workflow behavior.
 
 ## Archived Previous Queue
 
