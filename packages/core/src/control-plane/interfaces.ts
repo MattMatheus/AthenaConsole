@@ -13,6 +13,17 @@ import type {
   AgentCatalogAgentListQuery,
   AgentCatalogAgentListResult,
   AgentCatalogPluginListResult,
+  TaskWorkbenchMetadata,
+  TaskWorkbenchTask,
+  TaskWorkbenchTaskCreateRequest,
+  TaskWorkbenchTaskListQuery,
+  TaskWorkbenchTaskListResult,
+  TaskWorkbenchTaskRun,
+  TaskWorkbenchTaskRunCancelRequest,
+  TaskWorkbenchTaskRunCancelResult,
+  TaskWorkbenchTaskRunDetail,
+  TaskWorkbenchTaskRunRequest,
+  TaskWorkbenchTaskUpdateRequest,
   CancelRunByRunIdRequest,
   CancelRunByRunIdResult,
   CancelRunRequest,
@@ -239,6 +250,17 @@ export interface CapabilityService {
 export interface AgentCatalogService {
   listPlugins(): Promise<AgentCatalogPluginListResult>;
   listAgents(query?: AgentCatalogAgentListQuery): Promise<AgentCatalogAgentListResult>;
+}
+
+export interface TaskWorkbenchService {
+  metadata(): Promise<TaskWorkbenchMetadata>;
+  list(query?: TaskWorkbenchTaskListQuery): Promise<TaskWorkbenchTaskListResult>;
+  get(id: string): Promise<TaskWorkbenchTask>;
+  create(request: TaskWorkbenchTaskCreateRequest): Promise<TaskWorkbenchTask>;
+  update(id: string, request: TaskWorkbenchTaskUpdateRequest): Promise<TaskWorkbenchTask>;
+  getRun(runId: string): Promise<TaskWorkbenchTaskRunDetail>;
+  runTask(id: string, request?: TaskWorkbenchTaskRunRequest): Promise<TaskWorkbenchTaskRun>;
+  cancelRun(runId: string, request?: TaskWorkbenchTaskRunCancelRequest): Promise<TaskWorkbenchTaskRunCancelResult>;
 }
 
 export interface A2aDlqService {

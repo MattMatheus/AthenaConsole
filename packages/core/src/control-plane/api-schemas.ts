@@ -52,6 +52,33 @@ export interface ApiOperationSchema {
   stream?: "sse";
 }
 
+const TASK_STATUS_SCHEMA: ApiSchema = {
+  type: "string",
+  enum: ["draft", "proposed", "ready", "running", "blocked", "completed", "failed", "cancelled", "archived"]
+};
+
+const JSON_VALUE_SCHEMA: ApiSchema = {
+  anyOf: [
+    { type: "object", additionalProperties: true },
+    {
+      type: "array",
+      items: {
+        anyOf: [
+          { type: "object", additionalProperties: true },
+          { type: "string" },
+          { type: "number" },
+          { type: "boolean" },
+          { type: "null" }
+        ]
+      }
+    },
+    { type: "string" },
+    { type: "number" },
+    { type: "boolean" },
+    { type: "null" }
+  ]
+};
+
 const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
   AgentCatalogValidationIssue: {
     type: "object",
@@ -190,6 +217,158 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       }
     },
     required: ["agents", "total", "filters"]
+  },
+  TaskWorkbenchTask: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      title: { type: "string", minLength: 1 },
+      description: { type: "string" },
+      status: TASK_STATUS_SCHEMA,
+      capabilityRequirements: {
+        type: "array",
+        items: { type: "string", minLength: 1 }
+      },
+      assignedAgentId: { type: "string", minLength: 1 },
+      assignedAgentVersion: { type: "string", minLength: 1 },
+      inputs: JSON_VALUE_SCHEMA,
+      dependsOn: {
+        type: "array",
+        items: { type: "string", minLength: 1 }
+      },
+      missionId: { type: "string", minLength: 1 },
+      sourceRunId: { type: "string", minLength: 1 },
+      provenance: JSON_VALUE_SCHEMA,
+      createdBy: { type: "string", minLength: 1 },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" },
+      archivedAt: { type: "string", format: "date-time" }
+    },
+    required: ["id", "title", "description", "status", "capabilityRequirements", "inputs", "dependsOn", "createdAt", "updatedAt"]
+  },
+  TaskWorkbenchTaskListResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      tasks: {
+        type: "array",
+        items: { $ref: "#/components/schemas/TaskWorkbenchTask" }
+      },
+      total: { type: "integer", minimum: 0 },
+      filters: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          status: TASK_STATUS_SCHEMA,
+          missionId: { type: "string", minLength: 1 },
+          includeArchived: { type: "boolean" }
+        }
+      }
+    },
+    required: ["tasks", "total", "filters"]
+  },
+  TaskWorkbenchMetadata: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      statuses: {
+        type: "array",
+        items: TASK_STATUS_SCHEMA
+      },
+      defaultStatus: TASK_STATUS_SCHEMA,
+      readyRequiresAssignedAgent: { type: "boolean" }
+    },
+    required: ["statuses", "defaultStatus", "readyRequiresAssignedAgent"]
+  },
+  TaskWorkbenchTaskRun: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      targetType: { type: "string", enum: ["task"] },
+      targetId: { type: "string", minLength: 1 },
+      status: {
+        type: "string",
+        enum: ["queued", "validating", "running", "waiting-for-approval", "completed", "failed", "cancelled", "stopped-by-limit"]
+      },
+      backend: { type: "string", minLength: 1 },
+      agentId: { type: "string", minLength: 1 },
+      agentVersion: { type: "string", minLength: 1 },
+      startedAt: { type: "string", format: "date-time" },
+      endedAt: { type: "string", format: "date-time" },
+      output: JSON_VALUE_SCHEMA,
+      failure: JSON_VALUE_SCHEMA,
+      safetyStop: JSON_VALUE_SCHEMA,
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: ["id", "targetType", "targetId", "status", "createdAt", "updatedAt"]
+  },
+  TaskWorkbenchRunEvent: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      runId: { type: "string", minLength: 1 },
+      taskId: { type: "string", minLength: 1 },
+      missionId: { type: "string", minLength: 1 },
+      agentId: { type: "string", minLength: 1 },
+      type: { type: "string", minLength: 1 },
+      level: { type: "string", enum: ["debug", "info", "warning", "error"] },
+      timestamp: { type: "string", format: "date-time" },
+      message: { type: "string" },
+      payload: JSON_VALUE_SCHEMA,
+      parentEventId: { type: "string", minLength: 1 },
+      traceId: { type: "string", minLength: 1 }
+    },
+    required: ["id", "runId", "type", "level", "timestamp", "message", "payload"]
+  },
+  TaskWorkbenchArtifactMetadata: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      runId: { type: "string", minLength: 1 },
+      taskId: { type: "string", minLength: 1 },
+      agentId: { type: "string", minLength: 1 },
+      label: { type: "string", minLength: 1 },
+      kind: { type: "string", minLength: 1 },
+      format: { type: "string", minLength: 1 },
+      storageUri: { type: "string", minLength: 1 },
+      sizeBytes: { type: "integer", minimum: 0 },
+      hash: { type: "string", minLength: 1 },
+      metadata: JSON_VALUE_SCHEMA,
+      schemaValidation: JSON_VALUE_SCHEMA,
+      createdAt: { type: "string", format: "date-time" }
+    },
+    required: ["id", "runId", "label", "kind", "format", "storageUri", "metadata", "createdAt"]
+  },
+  TaskWorkbenchTaskRunDetail: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      run: { $ref: "#/components/schemas/TaskWorkbenchTaskRun" },
+      task: { $ref: "#/components/schemas/TaskWorkbenchTask" },
+      events: {
+        type: "array",
+        items: { $ref: "#/components/schemas/TaskWorkbenchRunEvent" }
+      },
+      artifacts: {
+        type: "array",
+        items: { $ref: "#/components/schemas/TaskWorkbenchArtifactMetadata" }
+      }
+    },
+    required: ["run", "events", "artifacts"]
+  },
+  TaskWorkbenchTaskRunCancelResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      runId: { type: "string", minLength: 1 },
+      status: { type: "string", enum: ["cancelled", "not-running", "failed", "unsupported"] }
+    },
+    required: ["runId", "status"]
   },
   WorkDrainResult: {
     type: "object",
@@ -770,6 +949,35 @@ const OPTIONAL_STRING_QUERY: ApiSchema = {
   }
 };
 
+function taskMutationRequestSchema(required: string[] = []): ApiSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      title: { type: "string", minLength: 1 },
+      description: { type: "string" },
+      status: TASK_STATUS_SCHEMA,
+      capabilityRequirements: {
+        type: "array",
+        items: { type: "string", minLength: 1 }
+      },
+      assignedAgentId: { type: "string", minLength: 1 },
+      assignedAgentVersion: { type: "string", minLength: 1 },
+      inputs: JSON_VALUE_SCHEMA,
+      dependsOn: {
+        type: "array",
+        items: { type: "string", minLength: 1 }
+      },
+      missionId: { type: "string", minLength: 1 },
+      sourceRunId: { type: "string", minLength: 1 },
+      provenance: JSON_VALUE_SCHEMA,
+      createdBy: { type: "string", minLength: 1 }
+    },
+    required
+  };
+}
+
 export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
   getCapabilities: {
     operationId: "getCapabilities",
@@ -824,6 +1032,119 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       }
     },
     responseSchema: { $ref: "#/components/schemas/AgentCatalogAgentListResult" }
+  },
+  getTaskMetadata: {
+    operationId: "getTaskMetadata",
+    method: "GET",
+    path: "/api/v1/tasks/metadata",
+    responseSchema: { $ref: "#/components/schemas/TaskWorkbenchMetadata" }
+  },
+  listTasks: {
+    operationId: "listTasks",
+    method: "GET",
+    path: "/api/v1/tasks",
+    querySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        status: TASK_STATUS_SCHEMA,
+        missionId: { type: "string" },
+        includeArchived: { type: "string" }
+      }
+    },
+    responseSchema: { $ref: "#/components/schemas/TaskWorkbenchTaskListResult" }
+  },
+  createTask: {
+    operationId: "createTask",
+    method: "POST",
+    path: "/api/v1/tasks",
+    requestBodySchema: taskMutationRequestSchema(["title"]),
+    responseSchema: { $ref: "#/components/schemas/TaskWorkbenchTask" }
+  },
+  getTask: {
+    operationId: "getTask",
+    method: "GET",
+    path: "/api/v1/tasks/:id",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        id: STRING_SCHEMA
+      },
+      required: ["id"]
+    },
+    responseSchema: { $ref: "#/components/schemas/TaskWorkbenchTask" }
+  },
+  updateTask: {
+    operationId: "updateTask",
+    method: "PUT",
+    path: "/api/v1/tasks/:id",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        id: STRING_SCHEMA
+      },
+      required: ["id"]
+    },
+    requestBodySchema: taskMutationRequestSchema(),
+    responseSchema: { $ref: "#/components/schemas/TaskWorkbenchTask" }
+  },
+  runTask: {
+    operationId: "runTask",
+    method: "POST",
+    path: "/api/v1/tasks/:id/run",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        id: STRING_SCHEMA
+      },
+      required: ["id"]
+    },
+    requestBodySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        runId: { type: "string", minLength: 1 }
+      }
+    },
+    responseSchema: { $ref: "#/components/schemas/TaskWorkbenchTaskRun" }
+  },
+  getTaskRun: {
+    operationId: "getTaskRun",
+    method: "GET",
+    path: "/api/v1/task-runs/:runId",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        runId: STRING_SCHEMA
+      },
+      required: ["runId"]
+    },
+    responseSchema: { $ref: "#/components/schemas/TaskWorkbenchTaskRunDetail" }
+  },
+  cancelTaskRun: {
+    operationId: "cancelTaskRun",
+    method: "POST",
+    path: "/api/v1/task-runs/:runId/cancel",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        runId: STRING_SCHEMA
+      },
+      required: ["runId"]
+    },
+    requestBodySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        reason: { type: "string" }
+      }
+    },
+    responseSchema: { $ref: "#/components/schemas/TaskWorkbenchTaskRunCancelResult" }
   },
   createRun: {
     operationId: "createRun",

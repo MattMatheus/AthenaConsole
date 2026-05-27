@@ -172,31 +172,52 @@ describe("CLI schedule commands", () => {
   it("supports schedule run/tick/remove in API-only transport and reports remote errors", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-cli-schedule-api-unsupported-"));
     try {
-      const removeOut = await runCli(
-        ["schedule", "remove", "--id", "job1", "--transport", "api", "--api-base-url", "http://127.0.0.1:8787"],
-        {
-          cwd: dir
-        }
-      );
-      expect(JSON.parse(removeOut)).toEqual({ id: "job1", removed: false });
-      await expect(
-        runCli(["schedule", "run", "--id", "job1", "--transport", "api", "--api-base-url", "http://127.0.0.1:8787"], {
-          cwd: dir
-        })
-      ).rejects.toThrow("Schedule 'job1' not found");
-      const tickOut = await runCli(
-        ["schedule", "tick", "--transport", "api", "--api-base-url", "http://127.0.0.1:8787"],
-        { cwd: dir }
-      );
-      expect(JSON.parse(tickOut)).toMatchObject({
-        run: [],
-        skipped: 0,
-        summary: {
-          ok: 0,
-          failed: 0,
-          alreadyRunning: 0
-        }
+      const config = loadConfig(dir);
+      const server = createApiServer({
+        config,
+        host: "127.0.0.1",
+        port: 0
       });
+      let bound: { host: string; port: number };
+      try {
+        bound = await server.start();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("EPERM")) {
+          return;
+        }
+        throw error;
+      }
+      const baseUrl = `http://${bound.host}:${bound.port}`;
+      try {
+        const removeOut = await runCli(
+          ["schedule", "remove", "--id", "job1", "--transport", "api", "--api-base-url", baseUrl],
+          {
+            cwd: dir
+          }
+        );
+        expect(JSON.parse(removeOut)).toEqual({ id: "job1", removed: false });
+        await expect(
+          runCli(["schedule", "run", "--id", "job1", "--transport", "api", "--api-base-url", baseUrl], {
+            cwd: dir
+          })
+        ).rejects.toThrow("Schedule 'job1' not found");
+        const tickOut = await runCli(
+          ["schedule", "tick", "--transport", "api", "--api-base-url", baseUrl],
+          { cwd: dir }
+        );
+        expect(JSON.parse(tickOut)).toMatchObject({
+          run: [],
+          skipped: 0,
+          summary: {
+            ok: 0,
+            failed: 0,
+            alreadyRunning: 0
+          }
+        });
+      } finally {
+        await server.stop();
+      }
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

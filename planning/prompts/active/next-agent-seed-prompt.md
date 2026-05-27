@@ -6,20 +6,25 @@ Your task is to execute the next Team Orchestrator story.
 
 ## Primary Task
 
-- **Backlog Item:** `planning/backlog/active/2026.12.01-add-task-apis.md`
+- **Backlog Item:** `planning/backlog/active/2026.13.01-add-container-command-backend.md`
 
 Read the active story, then review its source decisions:
 
+- `planning/architecture/0007-agent-manifest-and-lifecycle-contract.md`
 - `planning/architecture/0009-task-mission-run-domain-model.md`
-- `planning/architecture/0010-sqlite-app-state-architecture.md`
 - `planning/architecture/0011-runtime-backend-interface.md`
 - `planning/architecture/0012-event-artifact-observability-model.md`
 - `planning/architecture/0013-safety-approval-and-loop-limit-model.md`
 - `planning/backlog/refinement/2026.12.00-epic-task-workbench.md`
+- `planning/backlog/completed/2026.12.01-add-task-apis.md`
+- `planning/backlog/completed/2026.12.02-build-manual-task-create-flow.md`
+- `planning/backlog/completed/2026.12.03-implement-local-process-task-runs.md`
+- `planning/backlog/completed/2026.12.04-build-run-inspection-view.md`
+- `planning/backlog/refinement/2026.13.00-epic-runtime-safety-backends.md`
 
 ## Current Context
 
-The foundation track now has SQLite app state, manifest schemas, local plugin indexing, task/mission/run repositories, a local agent catalog API/service surface, and console catalog/detail pages. The next slice starts the task workbench by exposing task APIs over the existing SQLite repositories.
+The foundation track now has SQLite app state, manifest schemas, local plugin indexing, task/mission/run repositories, a local agent catalog API/service surface, console catalog/detail pages, task workbench APIs, the first manual task creation UI, local-process task execution, and the first run inspection view. The next slice starts the Runtime Backends and Safety milestone with a container-command task execution backend.
 
 ## Agent Workflow (Mandatory)
 

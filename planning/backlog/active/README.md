@@ -24,12 +24,16 @@ Completed stories were moved to:
 - `planning/backlog/completed/2026.11.01-add-agent-catalog-api.md`
 - `planning/backlog/completed/2026.11.02-build-agent-catalog-page.md`
 - `planning/backlog/completed/2026.11.03-build-agent-detail-page.md`
+- `planning/backlog/completed/2026.12.01-add-task-apis.md`
+- `planning/backlog/completed/2026.12.02-build-manual-task-create-flow.md`
+- `planning/backlog/completed/2026.12.03-implement-local-process-task-runs.md`
+- `planning/backlog/completed/2026.12.04-build-run-inspection-view.md`
 
 ## Active Queue
 
-1. `planning/backlog/active/2026.12.01-add-task-apis.md`
+1. `planning/backlog/active/2026.13.01-add-container-command-backend.md`
 
-The next slice starts the task workbench milestone by exposing task CRUD, assignment, and status filtering through core API/service surfaces.
+The next slice starts the Runtime Backends and Safety milestone with a container-command task execution backend.
 
 ## Archived Previous Queue
 

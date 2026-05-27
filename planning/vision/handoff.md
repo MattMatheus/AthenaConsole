@@ -4,47 +4,35 @@
 
 ## Delivered
 
-- Completed `planning/backlog/completed/2026.11.03-build-agent-detail-page.md`.
-- Added `/agents/:agentId` detail navigation from the console catalog.
-- Preserved catalog filters in URL search params across catalog-to-detail-to-catalog navigation.
-- Extended console catalog parsing to retain manifest `inputs`, `outputs`, and `runtime` metadata.
-- Rendered agent inputs, output/artifact hints, runtime contract, observability, limits, permissions, derived risk labels, capabilities, and source plugin metadata.
-- Added loading, API error, and missing-agent states for the detail page.
-- Completed `planning/backlog/completed/2026.11.02-build-agent-catalog-page.md`.
-- Added the first console agent catalog page at `/agents`.
-- Added `apps/console/src/features/agent-catalog/` with API parsing and query hooks for the catalog endpoints.
-- Rendered workspace/system plugin source, plugin status, validation warnings, and agent counts.
-- Rendered agent rows with name, version, plugin, capabilities, implementation type, observability mode, runtime/tool-call limits, availability, and source.
-- Added search, source filtering, availability/warning filtering, and API-backed capability filtering.
-- Verified the page in the in-app browser against seeded local catalog data.
-- Completed `planning/backlog/completed/2026.11.01-add-agent-catalog-api.md`.
-- Added a local agent catalog service over SQLite app-state repositories.
-- Added catalog API routes:
-  - `GET /api/v1/agent-catalog/plugins`
-  - `GET /api/v1/agent-catalog/agents`
-- Added capability filtering through `capability` and comma-separated `capabilities` query parameters.
-- Returned console-ready plugin and agent metadata from manifests, including implementation, limits, observability, permissions, UI metadata, compatibility data, and validation/load errors.
-- Exposed both indexed `sourceType` and operator-facing `sourceScope` so the console can distinguish workspace and system plugins.
-- Registered catalog routes in API contracts, response schemas, route metadata, and server routing.
-- Promoted `planning/backlog/active/2026.11.02-build-agent-catalog-page.md` as the next story.
+- Completed `planning/backlog/completed/2026.12.04-build-run-inspection-view.md`.
+- Added `GET /api/v1/task-runs/:runId` for task run detail.
+- Extended task workbench contracts with run detail, event, and artifact metadata DTOs.
+- Wired run detail through `LocalTaskWorkbenchService`, route registration, API contracts, and API schemas.
+- Added console route `/tasks/runs/:runId`.
+- Added `TaskRunDetailPage` with run/task summary, terminal state detail, chronological timeline, final output, and artifact metadata.
+- Timeline rendering distinguishes lifecycle, log, artifact, and error events.
+- Output, failure, and safety-stop data render as readable JSON/text.
+- Artifact metadata renders label, kind, format, storage URI, size, and hash without previewing file contents.
+- Promoted `planning/backlog/active/2026.13.01-add-container-command-backend.md` as the next story.
 
 ## Validation
 
 - Pass: `npm --workspace @athena/core run typecheck`
-- Pass: `npx vitest run tests/control-plane.agent-catalog.test.ts tests/api.route-registration.test.ts tests/api.schemas.test.ts tests/api.server.test.ts`
-- Pass: `npx vitest run tests/control-plane.api-contracts.test.ts tests/docs.stage-consistency.test.ts`
-- Pass: `npm --workspace @athena/core run test:unit`
 - Pass: `npm --workspace @athena/console run typecheck`
+- Pass: `npm --workspace @athena/core exec vitest run tests/api.task-workbench.test.ts tests/control-plane.api-contracts.test.ts tests/api.server.test.ts tests/api.schemas.test.ts tests/api.route-registration.test.ts`
+- Pass: `npm --workspace @athena/core exec vitest run tests/control-plane.task-workbench.test.ts tests/api.task-workbench.test.ts tests/control-plane.api-contracts.test.ts tests/api.server.test.ts tests/api.schemas.test.ts tests/api.route-registration.test.ts`
+- Pass: `npm --workspace @athena/console exec vitest run src/features/task-workbench/runInspectionModel.test.ts src/features/task-workbench/formModel.test.ts`
+- Pass: `npm --workspace @athena/console run test`
 - Pass: `npm --workspace @athena/console run lint`
 - Pass: `npm --workspace @athena/console run build`
-- Pass: `npm --workspace @athena/console run test`
-- Pass: Browser verification at `http://127.0.0.1:5173/agents` against a seeded local API on `127.0.0.1:8787`
-- Pass: Browser verification for `/agents/software.implementer?capability=code.modify&source=workspace&q=software&version=1.0.0`, back-link filter preservation, and not-found state
+- Pass: `npm --workspace @athena/core run test:unit`
+- Pass: Browser verification in Firefox at `http://127.0.0.1:5175/tasks/runs/run-browser-1` against seeded local API data on `127.0.0.1:8792`.
 - Pass: `git diff --check`
 
 ## Next Work
 
-- Execute `planning/backlog/active/2026.12.01-add-task-apis.md`.
-- Start from the existing SQLite task repository in `packages/core/src/control-plane/app-state/domain-repositories.ts`.
-- Expose task CRUD, assignment, and status filtering for the future manual task create flow.
-- Keep execution, missions, scheduling, and console task UI out of this slice.
+- Execute `planning/backlog/active/2026.13.01-add-container-command-backend.md`.
+- Start from the existing local-process implementation in `LocalTaskWorkbenchService`.
+- Preserve the completed run detail API and console inspection page.
+- Add container-command execution behind the same task/run/event/artifact model and deterministic status transitions.
+- Keep hosted remote execution, HTTP/API backend work, plugin registry work, and console backend configuration UI out of this slice.

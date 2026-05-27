@@ -43,6 +43,7 @@ import { LocalA2aDlqService, LocalEventService } from "./services/event-dlq.js";
 import { LocalA2aFlowService } from "./services/a2a-flow.js";
 import { LocalA2aObservabilityService } from "./services/a2a-observability.js";
 import { LocalAgentCatalogService } from "./services/agent-catalog.js";
+import { LocalTaskWorkbenchService } from "./services/task-workbench.js";
 import { LocalCapabilityService, LocalFleetMetricsProvider, LocalFleetService } from "./services/fleet.js";
 import { AzureBillingFleetCostProvider } from "./azure-billing-cost-provider.js";
 import { LocalIdentityService } from "./services/identity.js";
@@ -82,6 +83,7 @@ import type {
   RunService,
   ScheduleService,
   SessionService,
+  TaskWorkbenchService,
   WorkflowService,
   WorkService
 } from "./interfaces.js";
@@ -130,6 +132,7 @@ export interface ControlPlaneServices {
   identityService: IdentityService;
   capabilityService: CapabilityService;
   agentCatalogService: AgentCatalogService;
+  taskWorkbenchService: TaskWorkbenchService;
   shutdown?: () => Promise<void>;
 }
 
@@ -253,6 +256,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     ),
     capabilityService: new LocalCapabilityService(executionBackend, fleetMetricsProvider, sandboxExecutionBackend),
     agentCatalogService: new LocalAgentCatalogService(options.config),
+    taskWorkbenchService: new LocalTaskWorkbenchService(options.config),
     shutdown: async () => {
       if (hasShutdown(eventService)) {
         await eventService.shutdown();

@@ -50,6 +50,14 @@ describe("api server", () => {
     expect(resolveApiRouteFamily("POST", "/api/v1/personas/run")).toBe("specialists");
     expect(resolveApiRouteFamily("GET", "/api/v1/agent-catalog/plugins")).toBe("agent-catalog");
     expect(resolveApiRouteFamily("GET", "/api/v1/agent-catalog/agents")).toBe("agent-catalog");
+    expect(resolveApiRouteFamily("GET", "/api/v1/tasks/metadata")).toBe("tasks");
+    expect(resolveApiRouteFamily("GET", "/api/v1/tasks")).toBe("tasks");
+    expect(resolveApiRouteFamily("POST", "/api/v1/tasks")).toBe("tasks");
+    expect(resolveApiRouteFamily("GET", "/api/v1/tasks/task-1")).toBe("tasks");
+    expect(resolveApiRouteFamily("PUT", "/api/v1/tasks/task-1")).toBe("tasks");
+    expect(resolveApiRouteFamily("POST", "/api/v1/tasks/task-1/run")).toBe("tasks");
+    expect(resolveApiRouteFamily("GET", "/api/v1/task-runs/run-1")).toBe("tasks");
+    expect(resolveApiRouteFamily("POST", "/api/v1/task-runs/run-1/cancel")).toBe("tasks");
     expect(resolveApiRouteFamily("GET", "/api/v1/unknown")).toBeUndefined();
   });
 

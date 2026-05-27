@@ -23,5 +23,12 @@ export { parseCancelRunRequest, parseCreateRunRequest, parseRunControlQuery } fr
 export { parseSessionSearchQuery } from "./session.js";
 export { parseCreateRunTemplateRequest, parseTemplateRunRequest } from "./run-template.js";
 export { parseScheduleRunRequest, parseScheduleTickRequest, parseScheduleUpsertRequest } from "./schedule.js";
+export {
+  parseTaskWorkbenchCancelRunRequest,
+  parseTaskWorkbenchCreateRequest,
+  parseTaskWorkbenchListQuery,
+  parseTaskWorkbenchRunRequest,
+  parseTaskWorkbenchUpdateRequest
+} from "./task-workbench.js";
 export { parseWorkDrainRequest, parseWorkEnqueueRequest } from "./work.js";
 export { parseCreateWorkflowRequest } from "./workflow.js";

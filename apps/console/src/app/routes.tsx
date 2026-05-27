@@ -10,6 +10,8 @@ import { RbacPage } from "../pages/RbacPage";
 import { ResourcesPage } from "../pages/ResourcesPage";
 import { SessionsPage } from "../pages/SessionsPage";
 import { SettingsPage } from "../pages/SettingsPage";
+import { TaskCreatePage } from "../pages/TaskCreatePage";
+import { TaskRunDetailPage } from "../pages/TaskRunDetailPage";
 import { WorkflowsPage } from "../pages/WorkflowsPage";
 
 export const router = createBrowserRouter([
@@ -28,6 +30,14 @@ export const router = createBrowserRouter([
       {
         path: "agents/:agentId",
         element: <AgentDetailPage />,
+      },
+      {
+        path: "tasks",
+        element: <TaskCreatePage />,
+      },
+      {
+        path: "tasks/runs/:runId",
+        element: <TaskRunDetailPage />,
       },
       {
         path: "mission-control",

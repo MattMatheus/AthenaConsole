@@ -9,7 +9,7 @@ import {
 
 describe("control-plane api contracts", () => {
   it("declares the full initial v1 route surface", () => {
-    expect(API_V1_ROUTES.length).toBe(66);
+    expect(API_V1_ROUTES.length).toBe(74);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/capabilities")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/health")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/agent-catalog/plugins")).toBe(
@@ -18,6 +18,14 @@ describe("control-plane api contracts", () => {
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/agent-catalog/agents")).toBe(
       true
     );
+    expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/tasks/metadata")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/tasks")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/tasks")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/tasks/:id")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "PUT" && route.path === "/api/v1/tasks/:id")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/tasks/:id/run")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/task-runs/:runId")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/task-runs/:runId/cancel")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/runs")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/runs/active")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/runs/cancel-requests")).toBe(true);

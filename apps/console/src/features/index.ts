@@ -2,6 +2,7 @@ export * from "./fleet";
 export * from "./policy";
 export * from "./runs";
 export * from "./sessions";
+export * from "./task-workbench";
 export * from "./rbac";
 export * from "./governance-audit";
 export * from "./dlq";
