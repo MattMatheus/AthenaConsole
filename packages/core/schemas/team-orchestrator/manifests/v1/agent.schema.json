@@ -82,12 +82,12 @@
           "additionalProperties": false,
           "properties": {
             "preferredBackend": {
-              "enum": ["local-process", "container", "api", "any"]
+              "enum": ["local-process", "container-command", "container", "http-api", "api", "any"]
             },
             "backendPreferences": {
               "type": "array",
               "items": {
-                "enum": ["local-process", "container", "api"]
+                "enum": ["local-process", "container-command", "container", "http-api", "api"]
               },
               "minItems": 1,
               "uniqueItems": true
@@ -310,7 +310,7 @@
       "required": ["type"],
       "properties": {
         "type": {
-          "enum": ["local-command", "container-command", "http", "js-module", "python-module", "langgraph", "native-dag"]
+          "enum": ["local-command", "container-command", "http", "http-api", "js-module", "python-module", "langgraph", "native-dag"]
         },
         "command": {
           "type": "string"
@@ -341,6 +341,15 @@
         },
         "url": {
           "type": "string"
+        },
+        "method": {
+          "enum": ["POST", "PUT", "PATCH"]
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
         },
         "module": {
           "$ref": "#/definitions/relativePath"
@@ -384,7 +393,7 @@
           "if": {
             "properties": {
               "type": {
-                "const": "http"
+                "enum": ["http", "http-api"]
               }
             }
           },

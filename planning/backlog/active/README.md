@@ -28,12 +28,15 @@ Completed stories were moved to:
 - `planning/backlog/completed/2026.12.02-build-manual-task-create-flow.md`
 - `planning/backlog/completed/2026.12.03-implement-local-process-task-runs.md`
 - `planning/backlog/completed/2026.12.04-build-run-inspection-view.md`
+- `planning/backlog/completed/2026.13.01-add-container-command-backend.md`
+- `planning/backlog/completed/2026.13.02-add-http-api-backend-prototype.md`
+- `planning/backlog/completed/2026.13.03-enforce-approval-and-limit-defaults.md`
 
 ## Active Queue
 
-1. `planning/backlog/active/2026.13.01-add-container-command-backend.md`
+1. `planning/backlog/active/2026.14.01-add-mission-apis.md`
 
-The next slice starts the Runtime Backends and Safety milestone with a container-command task execution backend.
+The next slice starts the Missions and Workflow Templates milestone with mission creation, task ordering, and mission task listing APIs.
 
 ## Archived Previous Queue
 

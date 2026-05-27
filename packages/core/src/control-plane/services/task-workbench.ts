@@ -24,6 +24,7 @@ import type {
   AppStateDatabase,
   ArtifactMetadataRecord,
   PluginIndexRecord,
+  RunEventLevel,
   RunEventRecord,
   RunRecord,
   TaskRecord
@@ -36,11 +37,22 @@ export interface LocalTaskWorkbenchServiceOptions {
 }
 
 interface ActiveTaskRun {
-  child: ChildProcessWithoutNullStreams;
+  child?: ChildProcessWithoutNullStreams;
   taskId: string;
   agentId: string;
+  backend: TaskExecutionBackend;
   cancellationRequested: boolean;
 }
+
+type TaskExecutionBackend = "local-process" | "container-command" | "http-api";
+
+const DEFAULT_TASK_RUN_LIMITS = {
+  maxRuntimeSeconds: 900,
+  maxToolCalls: 80,
+  maxRepeatedActions: 3,
+  maxRetries: 2,
+  maxFollowUpTasks: 5
+} as const;
 
 interface AgentManifestDocument {
   agent?: {
@@ -49,13 +61,73 @@ interface AgentManifestDocument {
       type?: string;
       command?: string;
       args?: unknown[];
+      cwd?: string;
+      env?: Record<string, unknown>;
+      image?: string;
+      entrypoint?: unknown[];
+      url?: string;
+      method?: string;
+      headers?: Record<string, unknown>;
     };
     runtime?: {
       preferredBackend?: string;
       backendPreferences?: unknown[];
       workingDirectory?: string;
+      environment?: Record<string, unknown>;
+    };
+    permissions?: {
+      containers?: string;
+      approvalRequiredFor?: unknown[];
+    };
+    limits?: {
+      maxRuntimeSeconds?: unknown;
+      maxToolCalls?: unknown;
+      maxRepeatedActions?: unknown;
+      maxRetries?: unknown;
+      maxFollowUpTasks?: unknown;
+      maxOutputBytes?: unknown;
+      maxArtifacts?: unknown;
     };
   };
+}
+
+interface ResolvedTaskCommand {
+  backend: "local-process" | "container-command";
+  command: string;
+  args: string[];
+  cwd: string;
+  env?: Record<string, string>;
+  image?: string;
+}
+
+interface ResolvedHttpApiRequest {
+  backend: "http-api";
+  url: string;
+  method: "POST" | "PUT" | "PATCH";
+  headers: Record<string, string>;
+}
+
+type ResolvedTaskExecution = ResolvedTaskCommand | ResolvedHttpApiRequest;
+
+interface ResolvedTaskRunSafety {
+  limits: {
+    maxRuntimeSeconds: number;
+    maxToolCalls: number;
+    maxRepeatedActions: number;
+    maxRetries: number;
+    maxFollowUpTasks: number;
+    maxOutputBytes?: number;
+    maxArtifacts?: number;
+  };
+  approvalRequiredFor: string[];
+}
+
+interface TaskRunSafetyStop {
+  limitType: "maxRuntimeSeconds" | "maxOutputBytes" | "maxArtifacts";
+  threshold: number;
+  observed?: number;
+  reason: string;
+  backend: TaskExecutionBackend;
 }
 
 interface AgentRunEnvelope {
@@ -189,7 +261,8 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       validateCompatibleAssignment(appState, agent.id, agent.version, task.capabilityRequirements);
       const manifest = normalizeAgentManifest(agent.manifest);
       validateTaskInputs(manifest.agent?.inputs, task.inputs);
-      const command = resolveLocalCommand(manifest, plugin);
+      const execution = resolveTaskExecution(manifest, plugin);
+      const safety = resolveTaskRunSafety(manifest);
       const runId = request.runId ?? `run-${randomUUID()}`;
       const startedAt = new Date().toISOString();
       let run = appState.runs.create({
@@ -197,7 +270,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         targetType: "task",
         targetId: task.id,
         status: "running",
-        backend: "local-process",
+        backend: execution.backend,
         agentId: agent.id,
         agentVersion: agent.version,
         startedAt
@@ -206,21 +279,28 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       appendRunEvent(appState, run.id, task, agent.id, "run.validated", "Task inputs validated.", {
         inputKeys: Object.keys(isRecord(task.inputs) ? task.inputs : {})
       });
-      appendRunEvent(appState, run.id, task, agent.id, "run.started", "Local process task run started.", {
-        backend: "local-process",
-        command: command.command,
-        args: command.args
+      appendRunEvent(appState, run.id, task, agent.id, "run.safety.limits", "Task run safety limits resolved.", {
+        limits: safety.limits
+      });
+      appendApprovalRequiredEvents(appState, run, task, agent.id, execution.backend, safety);
+      appendRunEvent(appState, run.id, task, agent.id, "run.started", `${backendLabel(execution.backend)} task run started.`, {
+        backend: execution.backend,
+        ...executionStartPayload(execution)
       });
 
+      if (execution.backend === "http-api") {
+        return await this.runHttpApiTask(appState, run, task, agent, execution, safety);
+      }
+      const command = execution;
       let child: ChildProcessWithoutNullStreams;
       try {
         child = spawn(command.command, command.args, {
           cwd: command.cwd,
-          env: process.env,
+          env: command.env ?? process.env,
           stdio: ["pipe", "pipe", "pipe"]
         });
       } catch (error) {
-        return failTaskRun(appState, run, task, agent.id, "Local process task run failed to start.", {
+        return failTaskRun(appState, run, task, agent.id, `${backendLabel(command.backend)} task run failed to start.`, {
           phase: "start",
           error: error instanceof Error ? error.message : String(error)
         });
@@ -229,6 +309,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         child,
         taskId: task.id,
         agentId: agent.id,
+        backend: command.backend,
         cancellationRequested: false
       };
       this.activeRuns.set(run.id, active);
@@ -248,12 +329,12 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       });
       child.stdin.end(JSON.stringify({ task, agent: { id: agent.id, version: agent.version }, run: { id: run.id } }));
 
-      let exit: { code: number | null; signal: NodeJS.Signals | null };
+      let exit: { code: number | null; signal: NodeJS.Signals | null; safetyStop?: TaskRunSafetyStop };
       try {
-        exit = await waitForExit(child);
+        exit = await waitForExit(child, command.backend, safety);
       } catch (error) {
         this.activeRuns.delete(run.id);
-        return failTaskRun(appState, run, task, agent.id, "Local process task run errored.", {
+        return failTaskRun(appState, run, task, agent.id, `${backendLabel(command.backend)} task run errored.`, {
           phase: "process",
           error: error instanceof Error ? error.message : String(error)
         });
@@ -272,24 +353,32 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
             signal: exit.signal
           }
         });
-        appendRunEvent(appState, run.id, task, agent.id, "run.cancelled", "Local process task run cancelled.", {
+        appendRunEvent(appState, run.id, task, agent.id, "run.cancelled", `${backendLabel(command.backend)} task run cancelled.`, {
           signal: exit.signal
         });
         return mapRunRecord(run);
+      }
+      if (exit.safetyStop) {
+        return stopTaskRunByLimit(appState, run, task, agent.id, exit.safetyStop);
       }
       if (exit.code === 0) {
         let envelope: AgentRunEnvelope;
         try {
           envelope = parseAgentRunEnvelope(stdout);
         } catch (error) {
-          return failTaskRun(appState, run, task, agent.id, "Local process task run returned invalid output.", {
+          return failTaskRun(appState, run, task, agent.id, `${backendLabel(command.backend)} task run returned invalid output.`, {
             phase: "output",
             error: error instanceof Error ? error.message : String(error),
             stdout
           });
         }
+        const envelopeSafetyStop = validateEnvelopeLimits(envelope, command.backend, safety);
+        if (envelopeSafetyStop) {
+          return stopTaskRunByLimit(appState, run, task, agent.id, envelopeSafetyStop);
+        }
         for (const artifact of envelope.artifacts) {
           try {
+            validateArtifactBoundary(command, artifact);
             const created = appState.artifacts.create({
               id: artifact.id ?? `artifact-${randomUUID()}`,
               runId: run.id,
@@ -323,7 +412,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
           endedAt,
           output: envelope.output
         });
-        appendRunEvent(appState, run.id, task, agent.id, "run.completed", "Local process task run completed.", {
+        appendRunEvent(appState, run.id, task, agent.id, "run.completed", `${backendLabel(command.backend)} task run completed.`, {
           artifactCount: envelope.artifacts.length
         });
         return mapRunRecord(run);
@@ -338,12 +427,140 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
           stderr
         }
       });
-      appendRunEvent(appState, run.id, task, agent.id, "run.failed", "Local process task run failed.", {
+      appendRunEvent(appState, run.id, task, agent.id, "run.failed", `${backendLabel(command.backend)} task run failed.`, {
         code: exit.code,
         signal: exit.signal
       });
       return mapRunRecord(run);
     });
+  }
+
+  private async runHttpApiTask(
+    appState: AppStateDatabase,
+    initialRun: RunRecord,
+    task: TaskRecord,
+    agent: AgentIndexRecord,
+    request: ResolvedHttpApiRequest,
+    safety: ResolvedTaskRunSafety
+  ): Promise<TaskWorkbenchTaskRun> {
+    let run = initialRun;
+    const active: ActiveTaskRun = {
+      taskId: task.id,
+      agentId: agent.id,
+      backend: request.backend,
+      cancellationRequested: false
+    };
+    this.activeRuns.set(run.id, active);
+    let response: Response;
+    let responseText = "";
+    let runtimeSafetyStop: TaskRunSafetyStop | undefined;
+    const abortController = new AbortController();
+    const timeout = setTimeout(() => {
+      runtimeSafetyStop = createRuntimeSafetyStop(request.backend, safety);
+      abortController.abort();
+    }, safety.limits.maxRuntimeSeconds * 1000);
+    timeout.unref();
+    try {
+      response = await fetch(request.url, {
+        method: request.method,
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/plain",
+          ...request.headers
+        },
+        body: JSON.stringify({ task, agent: { id: agent.id, version: agent.version }, run: { id: run.id } }),
+        signal: abortController.signal
+      });
+      responseText = await response.text();
+    } catch (error) {
+      clearTimeout(timeout);
+      this.activeRuns.delete(run.id);
+      if (runtimeSafetyStop) {
+        return stopTaskRunByLimit(appState, run, task, agent.id, runtimeSafetyStop);
+      }
+      return failTaskRun(appState, run, task, agent.id, "HTTP/API task run failed to reach endpoint.", {
+        phase: "request",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+    clearTimeout(timeout);
+    this.activeRuns.delete(run.id);
+    appendRunEvent(appState, run.id, task, agent.id, "run.response", "HTTP/API task run received response.", {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+    const endedAt = new Date().toISOString();
+    if (!response.ok) {
+      appState.tasks.update(task.id, { status: "failed" });
+      run = appState.runs.update(run.id, {
+        status: "failed",
+        endedAt,
+        failure: {
+          status: response.status,
+          statusText: response.statusText,
+          body: responseText
+        }
+      });
+      appendRunEvent(appState, run.id, task, agent.id, "run.failed", "HTTP/API task run failed.", {
+        status: response.status,
+        statusText: response.statusText
+      });
+      return mapRunRecord(run);
+    }
+    let envelope: AgentRunEnvelope;
+    try {
+      envelope = parseAgentRunEnvelope(responseText);
+    } catch (error) {
+      return failTaskRun(appState, run, task, agent.id, "HTTP/API task run returned invalid output.", {
+        phase: "output",
+        error: error instanceof Error ? error.message : String(error),
+        body: responseText
+      });
+    }
+    const envelopeSafetyStop = validateEnvelopeLimits(envelope, request.backend, safety);
+    if (envelopeSafetyStop) {
+      return stopTaskRunByLimit(appState, run, task, agent.id, envelopeSafetyStop);
+    }
+    for (const artifact of envelope.artifacts) {
+      try {
+        const created = appState.artifacts.create({
+          id: artifact.id ?? `artifact-${randomUUID()}`,
+          runId: run.id,
+          taskId: task.id,
+          agentId: agent.id,
+          label: artifact.label,
+          kind: artifact.kind,
+          format: artifact.format,
+          storageUri: artifact.storageUri,
+          ...(artifact.sizeBytes !== undefined ? { sizeBytes: artifact.sizeBytes } : {}),
+          ...(artifact.hash ? { hash: artifact.hash } : {}),
+          ...(artifact.metadata !== undefined ? { metadata: artifact.metadata } : {}),
+          ...(artifact.schemaValidation !== undefined ? { schemaValidation: artifact.schemaValidation } : {})
+        });
+        appendRunEvent(appState, run.id, task, agent.id, "artifact.created", `Artifact created: ${created.label}`, {
+          artifactId: created.id,
+          storageUri: created.storageUri,
+          format: created.format
+        });
+      } catch (error) {
+        return failTaskRun(appState, run, task, agent.id, "HTTP/API task run artifact persistence failed.", {
+          phase: "artifact",
+          error: error instanceof Error ? error.message : String(error),
+          artifact
+        });
+      }
+    }
+    appState.tasks.update(task.id, { status: "completed" });
+    run = appState.runs.update(run.id, {
+      status: "completed",
+      endedAt,
+      output: envelope.output
+    });
+    appendRunEvent(appState, run.id, task, agent.id, "run.completed", "HTTP/API task run completed.", {
+      artifactCount: envelope.artifacts.length
+    });
+    return mapRunRecord(run);
   }
 
   async cancelRun(runId: string, request: TaskWorkbenchTaskRunCancelRequest = {}): Promise<TaskWorkbenchTaskRunCancelResult> {
@@ -361,8 +578,19 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         appendRunEvent(appState, runId, task, active.agentId, "run.cancel.requested", request.reason ?? "Cancellation requested.", {
           ...(request.reason ? { reason: request.reason } : {})
         });
+        if (!active.child) {
+          appendRunEvent(appState, runId, task, active.agentId, "run.cancel.unsupported", "Cancellation is unsupported for this active backend.", {
+            backend: active.backend
+          });
+        }
       }
     });
+    if (!active.child) {
+      return {
+        runId,
+        status: "unsupported"
+      };
+    }
     active.child.kill("SIGTERM");
     return {
       runId,
@@ -469,44 +697,330 @@ function normalizeAgentManifest(manifest: unknown): AgentManifestDocument {
   return isRecord(manifest) ? (manifest as AgentManifestDocument) : {};
 }
 
-function resolveLocalCommand(
-  manifest: AgentManifestDocument,
-  plugin: PluginIndexRecord
-): { command: string; args: string[]; cwd: string } {
-  const implementation = manifest.agent?.implementation;
-  if (implementation?.type !== "local-command") {
-    throw new AthenaError("CONFIG_ERROR", "Task runs currently require an assigned local-command agent.");
+function resolveTaskRunSafety(manifest: AgentManifestDocument): ResolvedTaskRunSafety {
+  const limits = manifest.agent?.limits ?? {};
+  return {
+    limits: {
+      maxRuntimeSeconds: normalizePositiveIntegerLimit(
+        limits.maxRuntimeSeconds,
+        "limits.maxRuntimeSeconds",
+        DEFAULT_TASK_RUN_LIMITS.maxRuntimeSeconds
+      ),
+      maxToolCalls: normalizeNonNegativeIntegerLimit(limits.maxToolCalls, "limits.maxToolCalls", DEFAULT_TASK_RUN_LIMITS.maxToolCalls),
+      maxRepeatedActions: normalizePositiveIntegerLimit(
+        limits.maxRepeatedActions,
+        "limits.maxRepeatedActions",
+        DEFAULT_TASK_RUN_LIMITS.maxRepeatedActions
+      ),
+      maxRetries: normalizeNonNegativeIntegerLimit(limits.maxRetries, "limits.maxRetries", DEFAULT_TASK_RUN_LIMITS.maxRetries),
+      maxFollowUpTasks: normalizeNonNegativeIntegerLimit(
+        limits.maxFollowUpTasks,
+        "limits.maxFollowUpTasks",
+        DEFAULT_TASK_RUN_LIMITS.maxFollowUpTasks
+      ),
+      ...(limits.maxOutputBytes !== undefined
+        ? { maxOutputBytes: normalizePositiveIntegerLimit(limits.maxOutputBytes, "limits.maxOutputBytes") }
+        : {}),
+      ...(limits.maxArtifacts !== undefined ? { maxArtifacts: normalizeNonNegativeIntegerLimit(limits.maxArtifacts, "limits.maxArtifacts") } : {})
+    },
+    approvalRequiredFor: normalizeStringArray(manifest.agent?.permissions?.approvalRequiredFor, "permissions.approvalRequiredFor")
+  };
+}
+
+function normalizePositiveIntegerLimit(value: unknown, path: string, fallback?: number): number {
+  if (value === undefined) {
+    if (fallback === undefined) {
+      throw new AthenaError("CONFIG_ERROR", `${path} is required.`);
+    }
+    return fallback;
   }
-  if (!implementation.command?.trim()) {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
+    throw new AthenaError("CONFIG_ERROR", `${path} must be a positive integer.`);
+  }
+  return value;
+}
+
+function normalizeNonNegativeIntegerLimit(value: unknown, path: string, fallback?: number): number {
+  if (value === undefined) {
+    if (fallback === undefined) {
+      throw new AthenaError("CONFIG_ERROR", `${path} is required.`);
+    }
+    return fallback;
+  }
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    throw new AthenaError("CONFIG_ERROR", `${path} must be a non-negative integer.`);
+  }
+  return value;
+}
+
+function resolveTaskExecution(manifest: AgentManifestDocument, plugin: PluginIndexRecord): ResolvedTaskExecution {
+  const implementation = manifest.agent?.implementation;
+  if (implementation?.type === "local-command") {
+    return resolveLocalCommand(manifest, plugin);
+  }
+  if (implementation?.type === "container-command") {
+    return resolveContainerCommand(manifest, plugin);
+  }
+  if (implementation?.type === "http" || implementation?.type === "http-api") {
+    return resolveHttpApiRequest(manifest);
+  }
+  throw new AthenaError("CONFIG_ERROR", "Task runs currently require an assigned local-command, container-command, or HTTP/API agent.");
+}
+
+function resolveLocalCommand(manifest: AgentManifestDocument, plugin: PluginIndexRecord): ResolvedTaskCommand {
+  const implementation = manifest.agent?.implementation;
+  if (!implementation?.command?.trim()) {
     throw new AthenaError("CONFIG_ERROR", "local-command agents require implementation.command.");
   }
-  const args = Array.isArray(implementation.args)
-    ? implementation.args.map((arg, index) => {
+  validateBackendCompatibility(manifest, "local-process", ["local-process"]);
+  return {
+    backend: "local-process",
+    command: implementation.command,
+    args: normalizeStringArray(implementation.args, "implementation.args"),
+    cwd: resolveBoundedWorkingDirectory(manifest, plugin)
+  };
+}
+
+function resolveContainerCommand(manifest: AgentManifestDocument, plugin: PluginIndexRecord): ResolvedTaskCommand {
+  const implementation = manifest.agent?.implementation;
+  if (!implementation?.image?.trim()) {
+    throw new AthenaError("CONFIG_ERROR", "container-command agents require implementation.image.");
+  }
+  if (!implementation.command?.trim()) {
+    throw new AthenaError("CONFIG_ERROR", "container-command agents require implementation.command in the local runtime.");
+  }
+  if (manifest.agent?.permissions?.containers !== "allow") {
+    throw new AthenaError("CONFIG_ERROR", "container-command agents require permissions.containers: allow.");
+  }
+  validateBackendCompatibility(manifest, "container-command", ["container-command", "container"]);
+  const env = normalizeStringMap(
+    {
+      ...(manifest.agent?.runtime?.environment ?? {}),
+      ...(implementation.env ?? {})
+    },
+    "container-command environment"
+  );
+  return {
+    backend: "container-command",
+    command: implementation.command,
+    args: [...normalizeStringArray(implementation.entrypoint, "implementation.entrypoint"), ...normalizeStringArray(implementation.args, "implementation.args")],
+    cwd: resolveBoundedWorkingDirectory(manifest, plugin),
+    ...(Object.keys(env).length > 0 ? { env } : { env: {} }),
+    image: implementation.image
+  };
+}
+
+function resolveHttpApiRequest(manifest: AgentManifestDocument): ResolvedHttpApiRequest {
+  const implementation = manifest.agent?.implementation;
+  if (!implementation?.url?.trim()) {
+    throw new AthenaError("CONFIG_ERROR", "HTTP/API agents require implementation.url.");
+  }
+  let url: URL;
+  try {
+    url = new URL(implementation.url);
+  } catch {
+    throw new AthenaError("CONFIG_ERROR", "HTTP/API implementation.url must be an absolute HTTP(S) URL.");
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new AthenaError("CONFIG_ERROR", "HTTP/API implementation.url must use http or https.");
+  }
+  const method = normalizeHttpMethod(implementation.method);
+  const headers = normalizeHttpHeaders(implementation.headers ?? {}, "implementation.headers");
+  normalizeStringMap(
+    {
+      ...(manifest.agent?.runtime?.environment ?? {}),
+      ...(implementation.env ?? {})
+    },
+    "HTTP/API environment"
+  );
+  validateBackendCompatibility(manifest, "http-api", ["http-api", "api"]);
+  return {
+    backend: "http-api",
+    url: url.toString(),
+    method,
+    headers
+  };
+}
+
+function normalizeHttpMethod(value: unknown): "POST" | "PUT" | "PATCH" {
+  const method = typeof value === "string" && value.trim() ? value.trim().toUpperCase() : "POST";
+  if (method === "POST" || method === "PUT" || method === "PATCH") {
+    return method;
+  }
+  throw new AthenaError("CONFIG_ERROR", "HTTP/API implementation.method must be POST, PUT, or PATCH.");
+}
+
+function normalizeHttpHeaders(value: Record<string, unknown>, path: string): Record<string, string> {
+  const headers = normalizeStringMap(value, path);
+  for (const key of Object.keys(headers)) {
+    const normalized = key.toLowerCase();
+    if (normalized === "content-length" || normalized === "host" || normalized === "connection") {
+      throw new AthenaError("CONFIG_ERROR", `HTTP/API ${path}.${key} is not allowed.`);
+    }
+  }
+  return headers;
+}
+
+function validateBackendCompatibility(
+  manifest: AgentManifestDocument,
+  backend: TaskExecutionBackend,
+  compatibleBackendNames: string[]
+): void {
+  const backendPreferences = manifest.agent?.runtime?.backendPreferences;
+  const preferredBackend = manifest.agent?.runtime?.preferredBackend;
+  if (preferredBackend === "any") {
+    return;
+  }
+  if (preferredBackend && !compatibleBackendNames.includes(preferredBackend)) {
+    if (!(Array.isArray(backendPreferences) && backendPreferences.some((candidate) => compatibleBackendNames.includes(String(candidate))))) {
+      throw new AthenaError("CONFIG_ERROR", `Assigned agent does not declare ${backend} runtime compatibility.`);
+    }
+  }
+}
+
+function normalizeStringArray(value: unknown, path: string): string[] {
+  return Array.isArray(value)
+    ? value.map((arg, index) => {
         if (typeof arg !== "string") {
-          throw new AthenaError("CONFIG_ERROR", `implementation.args[${index}] must be a string.`);
+          throw new AthenaError("CONFIG_ERROR", `${path}[${index}] must be a string.`);
         }
         return arg;
       })
     : [];
-  const backendPreferences = manifest.agent?.runtime?.backendPreferences;
-  const preferredBackend = manifest.agent?.runtime?.preferredBackend;
-  if (
-    preferredBackend &&
-    preferredBackend !== "local-process" &&
-    !(Array.isArray(backendPreferences) && backendPreferences.includes("local-process"))
-  ) {
-    throw new AthenaError("CONFIG_ERROR", "Assigned agent does not declare local-process runtime compatibility.");
+}
+
+function normalizeStringMap(value: Record<string, unknown>, path: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, rawValue] of Object.entries(value)) {
+    if (typeof rawValue !== "string") {
+      throw new AthenaError("CONFIG_ERROR", `${path}.${key} must be a string.`);
+    }
+    result[key] = rawValue;
   }
+  return result;
+}
+
+function resolveBoundedWorkingDirectory(manifest: AgentManifestDocument, plugin: PluginIndexRecord): string {
+  const implementation = manifest.agent?.implementation;
+  const workingDirectory = manifest.agent?.runtime?.workingDirectory ?? implementation?.cwd ?? ".";
   const pluginRoot = resolve(plugin.path);
-  const workingDirectory = manifest.agent?.runtime?.workingDirectory ?? ".";
   const cwd = resolve(pluginRoot, workingDirectory);
   if (isAbsolute(workingDirectory) || !isPathInside(pluginRoot, cwd)) {
     throw new AthenaError("CONFIG_ERROR", "runtime.workingDirectory must stay inside the plugin directory.");
   }
+  return cwd;
+}
+
+function validateArtifactBoundary(command: ResolvedTaskCommand, artifact: AgentRunArtifact): void {
+  if (command.backend !== "container-command") {
+    return;
+  }
+  const artifactRoot = resolve("/", "artifacts");
+  const artifactPath = resolve("/", artifact.storageUri);
+  if (isAbsolute(artifact.storageUri) || !isPathInside(artifactRoot, artifactPath)) {
+    throw new AthenaError("CONFIG_ERROR", "container-command artifact storageUri must stay inside artifacts/.");
+  }
+}
+
+function backendLabel(backend: TaskExecutionBackend): string {
+  if (backend === "container-command") {
+    return "Container command";
+  }
+  if (backend === "http-api") {
+    return "HTTP/API";
+  }
+  return "Local process";
+}
+
+function executionStartPayload(execution: ResolvedTaskExecution): Record<string, unknown> {
+  if (execution.backend === "http-api") {
+    return {
+      url: execution.url,
+      method: execution.method,
+      headerNames: Object.keys(execution.headers).sort((left, right) => left.localeCompare(right))
+    };
+  }
   return {
-    command: implementation.command,
-    args,
-    cwd
+    command: execution.command,
+    args: execution.args,
+    ...(execution.image ? { image: execution.image } : {})
+  };
+}
+
+function appendApprovalRequiredEvents(
+  appState: AppStateDatabase,
+  run: RunRecord,
+  task: TaskRecord,
+  agentId: string,
+  backend: TaskExecutionBackend,
+  safety: ResolvedTaskRunSafety
+): void {
+  for (const riskClass of safety.approvalRequiredFor) {
+    appendRunEvent(
+      appState,
+      run.id,
+      task,
+      agentId,
+      "run.approval.required",
+      `Approval requirement recorded for ${riskClass}.`,
+      {
+        action: "task.run",
+        riskClass,
+        decision: "pending",
+        scope: {
+          taskId: task.id,
+          runId: run.id,
+          backend
+        },
+        expires: "run-end"
+      },
+      "warning"
+    );
+  }
+}
+
+function validateEnvelopeLimits(
+  envelope: AgentRunEnvelope,
+  backend: TaskExecutionBackend,
+  safety: ResolvedTaskRunSafety
+): TaskRunSafetyStop | undefined {
+  const maxOutputBytes = safety.limits.maxOutputBytes;
+  if (maxOutputBytes !== undefined) {
+    const observed = measureOutputBytes(envelope.output);
+    if (observed > maxOutputBytes) {
+      return {
+        limitType: "maxOutputBytes",
+        threshold: maxOutputBytes,
+        observed,
+        reason: `Run output exceeded maxOutputBytes (${observed} > ${maxOutputBytes}).`,
+        backend
+      };
+    }
+  }
+  const maxArtifacts = safety.limits.maxArtifacts;
+  if (maxArtifacts !== undefined && envelope.artifacts.length > maxArtifacts) {
+    return {
+      limitType: "maxArtifacts",
+      threshold: maxArtifacts,
+      observed: envelope.artifacts.length,
+      reason: `Run produced too many artifacts (${envelope.artifacts.length} > ${maxArtifacts}).`,
+      backend
+    };
+  }
+  return undefined;
+}
+
+function measureOutputBytes(output: unknown): number {
+  const serialized = typeof output === "string" ? output : JSON.stringify(output) ?? "";
+  return Buffer.byteLength(serialized, "utf8");
+}
+
+function createRuntimeSafetyStop(backend: TaskExecutionBackend, safety: ResolvedTaskRunSafety): TaskRunSafetyStop {
+  return {
+    limitType: "maxRuntimeSeconds",
+    threshold: safety.limits.maxRuntimeSeconds,
+    reason: `Run exceeded maxRuntimeSeconds (${safety.limits.maxRuntimeSeconds}).`,
+    backend
   };
 }
 
@@ -597,7 +1111,8 @@ function appendRunEvent(
   agentId: string,
   type: string,
   message: string,
-  payload: unknown = {}
+  payload: unknown = {},
+  level: RunEventLevel = type === "run.failed" ? "error" : type === "run.stopped-by-limit" ? "warning" : "info"
 ): void {
   appState.runEvents.append({
     id: `event-${randomUUID()}`,
@@ -606,10 +1121,32 @@ function appendRunEvent(
     ...(task.missionId ? { missionId: task.missionId } : {}),
     agentId,
     type,
-    level: type === "run.failed" ? "error" : "info",
+    level,
     message,
     payload
   });
+}
+
+function stopTaskRunByLimit(
+  appState: AppStateDatabase,
+  run: RunRecord,
+  task: TaskRecord,
+  agentId: string,
+  safetyStop: TaskRunSafetyStop
+): TaskWorkbenchTaskRun {
+  const endedAt = new Date().toISOString();
+  appState.tasks.update(task.id, { status: "failed" });
+  const stoppedRun = appState.runs.update(run.id, {
+    status: "stopped-by-limit",
+    endedAt,
+    failure: safetyStop,
+    safetyStop: {
+      ...safetyStop,
+      stoppedAt: endedAt
+    }
+  });
+  appendRunEvent(appState, stoppedRun.id, task, agentId, "run.stopped-by-limit", safetyStop.reason, safetyStop);
+  return mapRunRecord(stoppedRun);
 }
 
 function failTaskRun(
@@ -630,10 +1167,37 @@ function failTaskRun(
   return mapRunRecord(failedRun);
 }
 
-function waitForExit(child: ChildProcessWithoutNullStreams): Promise<{ code: number | null; signal: NodeJS.Signals | null }> {
+function waitForExit(
+  child: ChildProcessWithoutNullStreams,
+  backend: TaskExecutionBackend,
+  safety: ResolvedTaskRunSafety
+): Promise<{ code: number | null; signal: NodeJS.Signals | null; safetyStop?: TaskRunSafetyStop }> {
   return new Promise((resolveExit, reject) => {
-    child.once("error", reject);
-    child.once("close", (code, signal) => resolveExit({ code, signal }));
+    let safetyStop: TaskRunSafetyStop | undefined;
+    let forceKillTimeout: NodeJS.Timeout | undefined;
+    const runtimeTimeout = setTimeout(() => {
+      safetyStop = createRuntimeSafetyStop(backend, safety);
+      child.kill("SIGTERM");
+      forceKillTimeout = setTimeout(() => {
+        child.kill("SIGKILL");
+      }, 1000);
+      forceKillTimeout.unref();
+    }, safety.limits.maxRuntimeSeconds * 1000);
+    runtimeTimeout.unref();
+    child.once("error", (error) => {
+      clearTimeout(runtimeTimeout);
+      if (forceKillTimeout) {
+        clearTimeout(forceKillTimeout);
+      }
+      reject(error);
+    });
+    child.once("close", (code, signal) => {
+      clearTimeout(runtimeTimeout);
+      if (forceKillTimeout) {
+        clearTimeout(forceKillTimeout);
+      }
+      resolveExit({ code, signal, ...(safetyStop ? { safetyStop } : {}) });
+    });
   });
 }
 
