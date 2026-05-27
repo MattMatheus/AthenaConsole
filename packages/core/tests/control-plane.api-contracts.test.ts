@@ -9,9 +9,15 @@ import {
 
 describe("control-plane api contracts", () => {
   it("declares the full initial v1 route surface", () => {
-    expect(API_V1_ROUTES.length).toBe(64);
+    expect(API_V1_ROUTES.length).toBe(66);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/capabilities")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/health")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/agent-catalog/plugins")).toBe(
+      true
+    );
+    expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/agent-catalog/agents")).toBe(
+      true
+    );
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/runs")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/runs/active")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/runs/cancel-requests")).toBe(true);

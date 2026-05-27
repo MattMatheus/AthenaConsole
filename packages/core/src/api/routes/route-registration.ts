@@ -4,6 +4,7 @@ import type { ControlPlaneServices } from "../../control-plane/services.js";
 import type { HttpMethod, RouteDefinition } from "../router.js";
 
 export type ApiRouteFamily =
+  | "agent-catalog"
   | "core"
   | "runs"
   | "sessions"

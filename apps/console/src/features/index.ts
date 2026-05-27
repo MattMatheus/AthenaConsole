@@ -6,3 +6,4 @@ export * from "./rbac";
 export * from "./governance-audit";
 export * from "./dlq";
 export * from "./a2a-observability";
+export * from "./agent-catalog";

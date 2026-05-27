@@ -32,7 +32,7 @@ describe("FleetApiService", () => {
 
   it("wraps ApiClientError with a user-safe service error", async () => {
     const service = new FleetApiService({
-      async get<TResponse>() {
+      async get<TResponse>(): Promise<TResponse> {
         throw new ApiClientError("backend unavailable", { status: 503, code: "PROVIDER_ERROR" });
       }
     });
@@ -43,7 +43,7 @@ describe("FleetApiService", () => {
 
   it("wraps unknown failures gracefully", async () => {
     const service = new FleetApiService({
-      async get<TResponse>() {
+      async get<TResponse>(): Promise<TResponse> {
         throw new Error("timeout");
       }
     });

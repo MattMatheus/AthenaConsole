@@ -42,6 +42,7 @@ import {
 import { LocalA2aDlqService, LocalEventService } from "./services/event-dlq.js";
 import { LocalA2aFlowService } from "./services/a2a-flow.js";
 import { LocalA2aObservabilityService } from "./services/a2a-observability.js";
+import { LocalAgentCatalogService } from "./services/agent-catalog.js";
 import { LocalCapabilityService, LocalFleetMetricsProvider, LocalFleetService } from "./services/fleet.js";
 import { AzureBillingFleetCostProvider } from "./azure-billing-cost-provider.js";
 import { LocalIdentityService } from "./services/identity.js";
@@ -64,6 +65,7 @@ import type {
   A2aDlqService,
   A2aFlowService,
   A2aObservabilityService,
+  AgentCatalogService,
   CapabilityService,
   DirectiveService,
   HarnessProfileService,
@@ -127,6 +129,7 @@ export interface ControlPlaneServices {
   governanceAuditService: GovernanceAuditService;
   identityService: IdentityService;
   capabilityService: CapabilityService;
+  agentCatalogService: AgentCatalogService;
   shutdown?: () => Promise<void>;
 }
 
@@ -249,6 +252,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
       authorizer
     ),
     capabilityService: new LocalCapabilityService(executionBackend, fleetMetricsProvider, sandboxExecutionBackend),
+    agentCatalogService: new LocalAgentCatalogService(options.config),
     shutdown: async () => {
       if (hasShutdown(eventService)) {
         await eventService.shutdown();

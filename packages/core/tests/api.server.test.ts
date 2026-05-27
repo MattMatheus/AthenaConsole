@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import { createApiServer, resolveApiRouteFamily } from "../src/api/server.js";
+import { openAppStateDatabase } from "../src/control-plane/app-state/index.js";
 import type { ExecutionBackend } from "../src/control-plane/backends.js";
 import { createLocalControlPlaneServices } from "../src/control-plane/services.js";
 import { loadConfig } from "../src/shared/config.js";
@@ -47,6 +48,8 @@ describe("api server", () => {
     expect(resolveApiRouteFamily("POST", "/api/v1/a2a/dlq/msg-1/requeue")).toBe("a2a");
     expect(resolveApiRouteFamily("POST", "/api/v1/specialists/run")).toBe("specialists");
     expect(resolveApiRouteFamily("POST", "/api/v1/personas/run")).toBe("specialists");
+    expect(resolveApiRouteFamily("GET", "/api/v1/agent-catalog/plugins")).toBe("agent-catalog");
+    expect(resolveApiRouteFamily("GET", "/api/v1/agent-catalog/agents")).toBe("agent-catalog");
     expect(resolveApiRouteFamily("GET", "/api/v1/unknown")).toBeUndefined();
   });
 
@@ -121,6 +124,109 @@ describe("api server", () => {
         await server.stop();
       }
       expect(shutdownCalls).toBe(started ? 1 : 0);
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("serves agent catalog routes from SQLite app state", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-server-agent-catalog-"));
+    const config = loadConfig(dir);
+    const appState = openAppStateDatabase(config);
+    try {
+      appState.plugins.upsert({
+        id: "team-orchestrator.test.catalog",
+        version: "0.1.0",
+        path: "/tmp/team-orchestrator-catalog-plugin",
+        enabled: true,
+        status: "loaded",
+        sourceType: "local",
+        manifest: {
+          plugin: {
+            name: "Catalog Plugin"
+          }
+        },
+        validationErrors: []
+      });
+      appState.agents.upsert({
+        id: "catalog.writer",
+        version: "1.0.0",
+        pluginId: "team-orchestrator.test.catalog",
+        pluginVersion: "0.1.0",
+        name: "Catalog Writer",
+        capabilities: ["text.write", "text.summarize"],
+        status: "loaded",
+        manifest: {
+          agent: {
+            implementation: {
+              type: "local-command",
+              command: "npm"
+            },
+            observability: {
+              mode: "black-box"
+            }
+          }
+        }
+      });
+    } finally {
+      appState.close();
+    }
+
+    const server = createApiServer({
+      config,
+      host: "127.0.0.1",
+      port: 0
+    });
+    let bound: { host: string; port: number };
+    try {
+      bound = await server.start();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      rmSync(dir, { recursive: true, force: true });
+      if (message.includes("EPERM")) {
+        return;
+      }
+      throw error;
+    }
+    const base = `http://${bound.host}:${bound.port}`;
+
+    try {
+      const pluginsResponse = await fetch(`${base}/api/v1/agent-catalog/plugins`);
+      expect(pluginsResponse.status).toBe(200);
+      const pluginsEnvelope = (await pluginsResponse.json()) as {
+        ok: boolean;
+        data: { total: number; plugins: Array<{ id: string; metadata: { name: string } }> };
+      };
+      expect(pluginsEnvelope.ok).toBe(true);
+      expect(pluginsEnvelope.data).toMatchObject({
+        total: 1,
+        plugins: [
+          {
+            id: "team-orchestrator.test.catalog",
+            metadata: {
+              name: "Catalog Plugin"
+            }
+          }
+        ]
+      });
+
+      const agentsResponse = await fetch(`${base}/api/v1/agent-catalog/agents?capability=text.summarize`);
+      expect(agentsResponse.status).toBe(200);
+      const agentsEnvelope = (await agentsResponse.json()) as {
+        ok: boolean;
+        data: { total: number; agents: Array<{ id: string; available: boolean }> };
+      };
+      expect(agentsEnvelope.ok).toBe(true);
+      expect(agentsEnvelope.data).toMatchObject({
+        total: 1,
+        agents: [
+          {
+            id: "catalog.writer",
+            available: true
+          }
+        ]
+      });
+    } finally {
+      await server.stop();
       rmSync(dir, { recursive: true, force: true });
     }
   });

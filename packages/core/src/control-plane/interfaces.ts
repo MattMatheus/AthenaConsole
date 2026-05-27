@@ -10,6 +10,9 @@ import type {
   A2aStallAlertCsvExportQuery,
   A2aStallAlertHistoryQuery,
   A2aStallAlertHistoryResult,
+  AgentCatalogAgentListQuery,
+  AgentCatalogAgentListResult,
+  AgentCatalogPluginListResult,
   CancelRunByRunIdRequest,
   CancelRunByRunIdResult,
   CancelRunRequest,
@@ -231,6 +234,11 @@ export interface FleetService {
 
 export interface CapabilityService {
   getCapabilities(): Promise<CapabilitySet>;
+}
+
+export interface AgentCatalogService {
+  listPlugins(): Promise<AgentCatalogPluginListResult>;
+  listAgents(query?: AgentCatalogAgentListQuery): Promise<AgentCatalogAgentListResult>;
 }
 
 export interface A2aDlqService {

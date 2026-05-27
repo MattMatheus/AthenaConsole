@@ -53,6 +53,144 @@ export interface ApiOperationSchema {
 }
 
 const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
+  AgentCatalogValidationIssue: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      file: { type: "string" },
+      path: { type: "string" },
+      message: { type: "string" },
+      keyword: { type: "string" },
+      resourceType: { type: "string", enum: ["plugin", "agent", "unknown"] }
+    },
+    required: ["path", "message", "resourceType"]
+  },
+  AgentCatalogPluginListResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      plugins: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            id: { type: "string", minLength: 1 },
+            version: { type: "string", minLength: 1 },
+            path: { type: "string", minLength: 1 },
+            enabled: { type: "boolean" },
+            status: { type: "string", minLength: 1 },
+            sourceType: { type: "string", minLength: 1 },
+            sourceScope: { type: "string", enum: ["workspace", "system"] },
+            metadata: {
+              type: "object",
+              additionalProperties: true,
+              properties: {
+                name: { type: "string", minLength: 1 }
+              },
+              required: ["name"]
+            },
+            validationErrors: {
+              type: "array",
+              items: { $ref: "#/components/schemas/AgentCatalogValidationIssue" }
+            },
+            agentCount: { type: "integer", minimum: 0 },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" }
+          },
+          required: [
+            "id",
+            "version",
+            "path",
+            "enabled",
+            "status",
+            "sourceType",
+            "sourceScope",
+            "metadata",
+            "validationErrors",
+            "agentCount",
+            "createdAt",
+            "updatedAt"
+          ]
+        }
+      },
+      total: { type: "integer", minimum: 0 }
+    },
+    required: ["plugins", "total"]
+  },
+  AgentCatalogAgentListResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      agents: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            id: { type: "string", minLength: 1 },
+            version: { type: "string", minLength: 1 },
+            name: { type: "string", minLength: 1 },
+            plugin: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: { type: "string", minLength: 1 },
+                version: { type: "string", minLength: 1 },
+                name: { type: "string", minLength: 1 },
+                sourceType: { type: "string", minLength: 1 },
+                sourceScope: { type: "string", enum: ["workspace", "system"] },
+                enabled: { type: "boolean" },
+                status: { type: "string", minLength: 1 }
+              },
+              required: ["id", "version", "name", "sourceType", "sourceScope", "enabled", "status"]
+            },
+            capabilities: {
+              type: "array",
+              items: { type: "string", minLength: 1 }
+            },
+            status: { type: "string", minLength: 1 },
+            available: { type: "boolean" },
+            metadata: {
+              type: "object",
+              additionalProperties: true
+            },
+            validationErrors: {
+              type: "array",
+              items: { $ref: "#/components/schemas/AgentCatalogValidationIssue" }
+            },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" }
+          },
+          required: [
+            "id",
+            "version",
+            "name",
+            "plugin",
+            "capabilities",
+            "status",
+            "available",
+            "metadata",
+            "validationErrors",
+            "createdAt",
+            "updatedAt"
+          ]
+        }
+      },
+      total: { type: "integer", minimum: 0 },
+      filters: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          capabilities: {
+            type: "array",
+            items: { type: "string", minLength: 1 }
+          }
+        }
+      }
+    },
+    required: ["agents", "total", "filters"]
+  },
   WorkDrainResult: {
     type: "object",
     additionalProperties: false,
@@ -666,6 +804,26 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       },
       required: ["status", "now"]
     }
+  },
+  listAgentCatalogPlugins: {
+    operationId: "listAgentCatalogPlugins",
+    method: "GET",
+    path: "/api/v1/agent-catalog/plugins",
+    responseSchema: { $ref: "#/components/schemas/AgentCatalogPluginListResult" }
+  },
+  listAgentCatalogAgents: {
+    operationId: "listAgentCatalogAgents",
+    method: "GET",
+    path: "/api/v1/agent-catalog/agents",
+    querySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        capability: { type: "string" },
+        capabilities: { type: "string" }
+      }
+    },
+    responseSchema: { $ref: "#/components/schemas/AgentCatalogAgentListResult" }
   },
   createRun: {
     operationId: "createRun",

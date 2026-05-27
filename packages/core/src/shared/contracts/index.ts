@@ -10,6 +10,7 @@ export * from "./session.js";
 export * from "./memory.js";
 export * from "./schedule.js";
 export * from "./capabilities.js";
+export * from "./agent-catalog.js";
 export * from "./events.js";
 export * from "./policy.js";
 export * from "./a2a.js";

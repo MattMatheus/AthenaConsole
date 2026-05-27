@@ -1,5 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import { AppLayout } from "../layout/AppLayout";
+import { AgentCatalogPage } from "../pages/AgentCatalogPage";
+import { AgentDetailPage } from "../pages/AgentDetailPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { MissionControlPage } from "../pages/MissionControlPage";
 import { DlqPage } from "../pages/DlqPage";
@@ -18,6 +20,14 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: <DashboardPage />,
+      },
+      {
+        path: "agents",
+        element: <AgentCatalogPage />,
+      },
+      {
+        path: "agents/:agentId",
+        element: <AgentDetailPage />,
       },
       {
         path: "mission-control",

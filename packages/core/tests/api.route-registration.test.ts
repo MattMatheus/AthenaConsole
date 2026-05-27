@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { AGENT_CATALOG_ROUTES } from "../src/api/routes/agent-catalog-routes.js";
 import { SPECIALIST_ROUTES } from "../src/api/routes/persona-routes.js";
 import { POLICY_ROUTES, SCHEDULE_ROUTES } from "../src/api/routes/policy-schedule-routes.js";
 import { RUN_ROUTES, SESSION_ROUTES } from "../src/api/routes/run-routes.js";
@@ -30,6 +31,7 @@ describe("api route registration", () => {
     expect(SCHEDULE_ROUTES.every((route) => route.meta.family === "schedules")).toBe(true);
     expect(POLICY_ROUTES.every((route) => route.meta.family === "fleet-events-policy")).toBe(true);
     expect(SPECIALIST_ROUTES.every((route) => route.meta.family === "specialists")).toBe(true);
+    expect(AGENT_CATALOG_ROUTES.every((route) => route.meta.family === "agent-catalog")).toBe(true);
   });
 
   it("composes a unified route table from route collection exports", () => {
@@ -42,6 +44,7 @@ describe("api route registration", () => {
 
     const table = composeApiRouteTable(
       coreRoutes,
+      AGENT_CATALOG_ROUTES,
       RUN_ROUTES,
       SESSION_ROUTES,
       DIRECTIVE_ROUTES,

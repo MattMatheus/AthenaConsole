@@ -17,6 +17,7 @@ import { APIRouter } from "./router.js";
 import { createIdentityExtractionMiddleware } from "./middleware/auth.js";
 import { writeError } from "./route-helpers.js";
 import { A2A_ROUTES } from "./routes/a2a-routes.js";
+import { AGENT_CATALOG_ROUTES } from "./routes/agent-catalog-routes.js";
 import { CORE_ROUTES } from "./routes/core-routes.js";
 import { FLEET_EVENTS_ROUTES } from "./routes/fleet-events-routes.js";
 import { PERSONA_ROUTES } from "./routes/persona-routes.js";
@@ -48,6 +49,7 @@ export interface ApiServerHandle {
 
 const API_V1_ROUTE_TABLE = composeApiRouteTable(
   CORE_ROUTES,
+  AGENT_CATALOG_ROUTES,
   RUN_ROUTES,
   SESSION_ROUTES,
   DIRECTIVE_ROUTES,

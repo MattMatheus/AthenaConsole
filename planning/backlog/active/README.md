@@ -21,12 +21,15 @@ Every story in this queue is derived from the accepted reset ADRs:
 Completed stories were moved to:
 
 - `planning/backlog/completed/2026-product-direction-reset/`
+- `planning/backlog/completed/2026.11.01-add-agent-catalog-api.md`
+- `planning/backlog/completed/2026.11.02-build-agent-catalog-page.md`
+- `planning/backlog/completed/2026.11.03-build-agent-detail-page.md`
 
 ## Active Queue
 
-1. `planning/backlog/active/2026.11.01-add-agent-catalog-api.md`
+1. `planning/backlog/active/2026.12.01-add-task-apis.md`
 
-This starts the local agent catalog milestone by exposing indexed plugins and agents to the console through core API/service surfaces.
+The next slice starts the task workbench milestone by exposing task CRUD, assignment, and status filtering through core API/service surfaces.
 
 ## Archived Previous Queue
 
