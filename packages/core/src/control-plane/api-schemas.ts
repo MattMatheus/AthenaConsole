@@ -664,6 +664,8 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       targetType: { type: "string", enum: ["task", "mission", "workflow-template"] },
       targetId: { type: "string", minLength: 1 },
       runId: { type: "string", minLength: 1 },
+      missionId: { type: "string", minLength: 1 },
+      taskIds: { type: "array", items: { type: "string", minLength: 1 } },
       nextRunAt: { type: "string", format: "date-time" },
       missedRunAt: { type: "string", format: "date-time" },
       reason: { type: "string" },
@@ -1063,6 +1065,7 @@ const API_COMPONENT_SCHEMA_STRICTNESS_HINTS: Record<string, ApiSchema> = {
         additionalProperties: true
       },
       lastRunId: { type: "string", minLength: 1 },
+      lastMissionId: { type: "string", minLength: 1 },
       sessionId: { type: "string", minLength: 1 },
       everyMinutes: { type: "integer", minimum: 1 },
       createdAt: { type: "string", format: "date-time" },

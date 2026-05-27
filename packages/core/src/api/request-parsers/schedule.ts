@@ -33,6 +33,9 @@ export function parseScheduleUpsertRequest(
     if (runAt && Number.isNaN(new Date(runAt).getTime())) {
       throw new AthenaError("CONFIG_ERROR", `${context}.runAt must be a valid ISO datetime.`);
     }
+    if (targetType === "workflow-template") {
+      validateWorkflowTemplateScheduleBindings(body.inputBindings, `${context}.inputBindings`);
+    }
     return {
       name: optionalString(body, "name", context),
       targetType,
@@ -54,6 +57,26 @@ export function parseScheduleUpsertRequest(
     ...(enabled !== undefined ? { enabled } : {}),
     ...(startNow !== undefined ? { startNow } : {})
   };
+}
+
+function validateWorkflowTemplateScheduleBindings(value: unknown, context: string): void {
+  if (value === undefined || value === null) {
+    return;
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new AthenaError("CONFIG_ERROR", `${context} must be an object for workflow-template schedules.`);
+  }
+  const bindings = value as Record<string, unknown>;
+  for (const field of ["version", "pluginId", "pluginVersion"]) {
+    const raw = bindings[field];
+    if (raw !== undefined && typeof raw !== "string") {
+      throw new AthenaError("CONFIG_ERROR", `${context}.${field} must be a string when provided.`);
+    }
+  }
+  const inputs = bindings.inputs;
+  if (inputs !== undefined && (!inputs || typeof inputs !== "object" || Array.isArray(inputs))) {
+    throw new AthenaError("CONFIG_ERROR", `${context}.inputs must be an object when provided.`);
+  }
 }
 
 function parseOptionalTargetType(value: unknown, context: string): ScheduleTargetType | undefined {

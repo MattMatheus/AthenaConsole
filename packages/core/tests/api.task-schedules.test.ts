@@ -195,6 +195,98 @@ describe("task schedule api", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("creates and ticks workflow-template schedules", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-workflow-template-schedule-"));
+    const config = loadConfig(dir);
+    const appState = openAppStateDatabase(config);
+    try {
+      seedWorkflowTemplateScheduleTarget(appState);
+    } finally {
+      appState.close();
+    }
+
+    const server = createApiServer({
+      config,
+      host: "127.0.0.1",
+      port: 0
+    });
+    let bound: { host: string; port: number };
+    try {
+      bound = await server.start();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      rmSync(dir, { recursive: true, force: true });
+      if (message.includes("EPERM")) {
+        return;
+      }
+      throw error;
+    }
+    const base = `http://${bound.host}:${bound.port}`;
+
+    try {
+      const createResponse = await fetch(`${base}/api/v1/schedules`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: "api-workflow-template-schedule",
+          targetType: "workflow-template",
+          targetId: "templates.release.workflow",
+          inputBindings: {
+            version: "0.1.0",
+            pluginId: "team-orchestrator.test.api-scheduler-templates",
+            pluginVersion: "0.1.0",
+            inputs: { releaseName: "v3.0.0" }
+          },
+          runAt: "2026-06-01T09:00:00.000Z",
+          timezone: "UTC"
+        })
+      });
+      expect(createResponse.status).toBe(200);
+      await expect(createResponse.json()).resolves.toMatchObject({
+        ok: true,
+        data: {
+          id: "api-workflow-template-schedule",
+          targetType: "workflow-template",
+          targetId: "templates.release.workflow",
+          inputBindings: {
+            version: "0.1.0",
+            inputs: { releaseName: "v3.0.0" }
+          }
+        }
+      });
+
+      const tickResponse = await fetch(`${base}/api/v1/schedules/tick`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ at: "2026-06-01T09:00:00.000Z" })
+      });
+      expect(tickResponse.status).toBe(200);
+      const ticked = (await tickResponse.json()) as {
+        ok: boolean;
+        data: { run: Array<{ missionId?: string; taskIds?: string[] }> };
+      };
+      expect(ticked).toMatchObject({
+        ok: true,
+        data: {
+          run: [
+            {
+              id: "api-workflow-template-schedule",
+              status: "ok",
+              targetType: "workflow-template",
+              targetId: "templates.release.workflow",
+              missionId: expect.stringMatching(/^mission-/),
+              taskIds: expect.any(Array)
+            }
+          ]
+        }
+      });
+      expect(ticked.data.run[0]?.taskIds?.[0]).toMatch(/^mission-.*-plan$/);
+    } finally {
+      await server.stop();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 function seedReadyTask(appState: ReturnType<typeof openAppStateDatabase>, taskId: string): void {
@@ -273,5 +365,62 @@ function seedRunnableTask(
     assignedAgentId: "api.scheduler.runnable.agent",
     assignedAgentVersion: "1.0.0",
     capabilityRequirements: ["test.run"]
+  });
+}
+
+function seedWorkflowTemplateScheduleTarget(appState: ReturnType<typeof openAppStateDatabase>): void {
+  appState.plugins.upsert({
+    id: "team-orchestrator.test.api-scheduler-templates",
+    version: "0.1.0",
+    path: "/tmp/team-orchestrator-api-scheduler-template-plugin",
+    enabled: true,
+    sourceType: "local",
+    status: "loaded",
+    manifest: { plugin: { name: "API Scheduler Template Plugin" } },
+    validationErrors: []
+  });
+  appState.agents.upsert({
+    id: "api.scheduler.template.agent",
+    version: "1.0.0",
+    pluginId: "team-orchestrator.test.api-scheduler-templates",
+    pluginVersion: "0.1.0",
+    name: "API Scheduler Template Agent",
+    capabilities: ["release.plan"],
+    manifest: {},
+    status: "loaded"
+  });
+  appState.workflowTemplates.upsert({
+    id: "templates.release.workflow",
+    version: "0.1.0",
+    pluginId: "team-orchestrator.test.api-scheduler-templates",
+    pluginVersion: "0.1.0",
+    name: "Release Workflow",
+    description: "Prepare a release.",
+    taskCount: 1,
+    manifest: {
+      workflow: {
+        id: "templates.release.workflow",
+        name: "Release Workflow",
+        version: "0.1.0",
+        goal: "Prepare release {{releaseName}}.",
+        inputs: {
+          releaseName: { required: true }
+        },
+        tasks: [
+          {
+            id: "plan",
+            title: "Plan {{releaseName}}",
+            capabilityRequirements: ["release.plan"],
+            assignedAgentId: "api.scheduler.template.agent",
+            assignedAgentVersion: "1.0.0",
+            inputs: {
+              release: "{{releaseName}}"
+            }
+          }
+        ]
+      }
+    },
+    status: "loaded",
+    validationErrors: []
   });
 }

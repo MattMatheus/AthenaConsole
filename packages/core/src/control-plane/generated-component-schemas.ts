@@ -2637,6 +2637,9 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
       "lastRunId": {
         "type": "string"
       },
+      "lastMissionId": {
+        "type": "string"
+      },
       "sessionId": {
         "type": "string"
       },

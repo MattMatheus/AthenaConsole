@@ -54,6 +54,36 @@ describe("schedule model", () => {
     });
   });
 
+  it("builds workflow-template schedule requests with input bindings", () => {
+    expect(
+      buildCreateScheduleRequest(
+        {
+          ...draft(),
+          id: "release-workflow",
+          targetType: "workflow-template",
+          targetId: "templates.release.workflow",
+        },
+        {
+          inputBindings: {
+            version: "0.1.0",
+            pluginId: "test.templates",
+            pluginVersion: "0.1.0",
+            inputs: { releaseName: "v1.2.0" },
+          },
+        },
+      ),
+    ).toMatchObject({
+      id: "release-workflow",
+      targetType: "workflow-template",
+      targetId: "templates.release.workflow",
+      inputBindings: {
+        version: "0.1.0",
+        inputs: { releaseName: "v1.2.0" },
+      },
+    });
+  });
+
+
   it("validates ids, ready task selection, run times, and intervals", () => {
     const validation = validateScheduleForm({
       ...draft(),
@@ -91,6 +121,7 @@ function draft(): ScheduleFormDraft {
   return {
     id: "schedule-1",
     name: "",
+    targetType: "task",
     targetId: "task-1",
     mode: "one-shot",
     runAtLocal: "2026-06-01T09:00",

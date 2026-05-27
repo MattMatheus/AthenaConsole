@@ -41,12 +41,13 @@ Completed stories were moved to:
 - `planning/backlog/completed/2026.16.02-build-workflow-template-instantiation-ui.md`
 - `planning/backlog/completed/2026.16.03-build-mission-workbench-ui.md`
 - `planning/backlog/completed/2026.16.04-add-mission-run-history.md`
+- `planning/backlog/completed/2026.16.05-schedule-workflow-templates.md`
 
 ## Active Queue
 
-1. `planning/backlog/active/2026.16.05-schedule-workflow-templates.md`
+1. `planning/backlog/active/2026.16.06-add-durable-schedule-run-history.md`
 
-The next slice lets schedules target workflow templates so due schedules can instantiate fresh missions from repeatable workflows.
+The next slice adds durable schedule run history for app-state task and workflow-template schedules so prior executions remain inspectable after refresh or restart.
 
 ## Archived Previous Queue
 

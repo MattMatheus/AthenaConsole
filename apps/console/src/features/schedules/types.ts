@@ -16,6 +16,7 @@ export type ScheduledTask = {
   status?: ScheduleStatus;
   failurePolicy?: unknown;
   lastRunId?: string;
+  lastMissionId?: string;
   sessionId: string;
   input: string;
   everyMinutes: number;
@@ -41,6 +42,8 @@ export type ScheduleRunResult = {
   targetType?: ScheduleTargetType;
   targetId?: string;
   runId?: string;
+  missionId?: string;
+  taskIds?: string[];
   nextRunAt?: string;
   missedRunAt?: string;
   reason?: string;
@@ -64,8 +67,9 @@ export type ScheduleMutationResult = {
 export type CreateScheduleRequest = {
   id: string;
   name?: string;
-  targetType: "task";
+  targetType: "task" | "workflow-template";
   targetId: string;
+  inputBindings?: unknown;
   runAt?: string;
   rrule?: string;
   timezone: string;
@@ -76,6 +80,7 @@ export type CreateScheduleRequest = {
 export type ScheduleFormDraft = {
   id: string;
   name: string;
+  targetType: "task" | "workflow-template";
   targetId: string;
   mode: ScheduleMode;
   runAtLocal: string;

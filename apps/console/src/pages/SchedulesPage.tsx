@@ -8,8 +8,9 @@ import {
   Timer,
   Trash2,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import type { TaskInputField, TaskInputValues } from "../features/task-workbench";
 import {
   buildCreateScheduleRequest,
   defaultTimezone,
@@ -32,9 +33,19 @@ import {
   type ScheduledTask,
 } from "../features/schedules";
 import { useTasksQuery, type TaskWorkbenchTask } from "../features/task-workbench";
+import {
+  buildWorkflowTemplateInstantiateRequest,
+  hasWorkflowTemplateInputErrors,
+  initialWorkflowTemplateInputValues,
+  useWorkflowTemplatesQuery,
+  validateWorkflowTemplateInputs,
+  workflowTemplateInputFields,
+  type WorkflowTemplateSummary,
+} from "../features/workflow-templates";
 import styles from "./SchedulesPage.module.css";
 
 const EMPTY_TASKS: TaskWorkbenchTask[] = [];
+const EMPTY_TEMPLATES: WorkflowTemplateSummary[] = [];
 
 function defaultRunAtLocal(): string {
   const next = new Date(Date.now() + 60 * 60_000);
@@ -47,6 +58,7 @@ function createInitialDraft(): ScheduleFormDraft {
   return {
     id: "",
     name: "",
+    targetType: "task",
     targetId: "",
     mode: "one-shot",
     runAtLocal: defaultRunAtLocal(),
@@ -70,10 +82,35 @@ function statusClass(status: ScheduleStatus | undefined): string {
   return styles.badge ?? "";
 }
 
-function targetLabel(schedule: ScheduledTask, tasks: TaskWorkbenchTask[]): string {
+function targetLabel(schedule: ScheduledTask, tasks: TaskWorkbenchTask[], templates: WorkflowTemplateSummary[]): string {
   const targetId = schedule.targetId ?? schedule.sessionId;
+  if (schedule.targetType === "workflow-template") {
+    const template = templates.find((item) => item.id === targetId);
+    return template ? `${template.name} (${template.id})` : targetId;
+  }
   const task = tasks.find((item) => item.id === targetId);
   return task ? `${task.title} (${task.id})` : targetId;
+}
+
+function templateKey(template: WorkflowTemplateSummary): string {
+  return `${template.id}@${template.version}:${template.plugin.id}@${template.plugin.version}`;
+}
+
+function inputMeta(fields: TaskInputField[]): string {
+  const required = fields.filter((field) => field.required).length;
+  if (fields.length === 0) {
+    return "No inputs";
+  }
+  return required > 0 ? `${fields.length} inputs, ${required} required` : `${fields.length} inputs`;
+}
+
+function workflowScheduleBindings(
+  template: WorkflowTemplateSummary,
+  fields: TaskInputField[],
+  values: TaskInputValues,
+): Record<string, unknown> {
+  const request = buildWorkflowTemplateInstantiateRequest(template, fields, values);
+  return Object.fromEntries(Object.entries(request).filter(([key]) => key !== "createdBy"));
 }
 
 function mutationError(...errors: unknown[]): Error | undefined {
@@ -83,6 +120,7 @@ function mutationError(...errors: unknown[]): Error | undefined {
 export function SchedulesPage() {
   const schedulesQuery = useSchedulesQuery();
   const tasksQuery = useTasksQuery();
+  const workflowTemplatesQuery = useWorkflowTemplatesQuery();
   const createScheduleMutation = useCreateScheduleMutation();
   const enableScheduleMutation = useEnableScheduleMutation();
   const disableScheduleMutation = useDisableScheduleMutation();
@@ -90,14 +128,26 @@ export function SchedulesPage() {
   const runScheduleMutation = useRunScheduleMutation();
   const tickSchedulesMutation = useTickSchedulesMutation();
   const [draft, setDraft] = useState<ScheduleFormDraft>(() => createInitialDraft());
+  const [workflowInputValues, setWorkflowInputValues] = useState<TaskInputValues>({});
   const [hasAttemptedCreate, setHasAttemptedCreate] = useState(false);
   const [runResults, setRunResults] = useState<ScheduleRunResult[]>([]);
   const [skippedCount, setSkippedCount] = useState<number | undefined>();
   const tasks = tasksQuery.data?.tasks ?? EMPTY_TASKS;
   const readyTasks = useMemo(() => tasks.filter((task) => task.status === "ready"), [tasks]);
+  const workflowTemplates = workflowTemplatesQuery.data?.templates ?? EMPTY_TEMPLATES;
+  const availableWorkflowTemplates = useMemo(() => workflowTemplates.filter((template) => template.available), [workflowTemplates]);
+  const selectedWorkflowTemplate = useMemo(() => {
+    if (draft.targetType !== "workflow-template") {
+      return undefined;
+    }
+    return availableWorkflowTemplates.find((template) => template.id === draft.targetId) ?? availableWorkflowTemplates[0];
+  }, [availableWorkflowTemplates, draft.targetId, draft.targetType]);
+  const workflowInputFields = useMemo(() => workflowTemplateInputFields(selectedWorkflowTemplate), [selectedWorkflowTemplate]);
+  const workflowInputValidation = validateWorkflowTemplateInputs(workflowInputFields, workflowInputValues);
   const validation = validateScheduleForm(draft);
   const displayedValidation = hasAttemptedCreate ? validation : {};
-  const isRefreshing = schedulesQuery.isFetching || tasksQuery.isFetching;
+  const displayedWorkflowValidation = hasAttemptedCreate ? workflowInputValidation : {};
+  const isRefreshing = schedulesQuery.isFetching || tasksQuery.isFetching || workflowTemplatesQuery.isFetching;
   const actionError = mutationError(
     createScheduleMutation.error,
     enableScheduleMutation.error,
@@ -110,10 +160,53 @@ export function SchedulesPage() {
     () => [...(schedulesQuery.data?.items ?? [])].sort((left, right) => left.id.localeCompare(right.id)),
     [schedulesQuery.data?.items],
   );
-  const dataError = mutationError(schedulesQuery.error, tasksQuery.error);
+  const dataError = mutationError(schedulesQuery.error, tasksQuery.error, workflowTemplatesQuery.error);
+
+  useEffect(() => {
+    if (draft.targetType !== "workflow-template") {
+      return;
+    }
+    if (!selectedWorkflowTemplate) {
+      if (draft.targetId) {
+        updateDraft("targetId", "");
+      }
+      return;
+    }
+    if (draft.targetId !== selectedWorkflowTemplate.id) {
+      updateDraft("targetId", selectedWorkflowTemplate.id);
+    }
+  }, [draft.targetId, draft.targetType, selectedWorkflowTemplate]);
+
+  useEffect(() => {
+    setWorkflowInputValues(initialWorkflowTemplateInputValues(selectedWorkflowTemplate));
+  }, [selectedWorkflowTemplate]);
 
   function updateDraft<K extends keyof ScheduleFormDraft>(key: K, value: ScheduleFormDraft[K]): void {
     setDraft((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
+
+  function selectTargetType(targetType: ScheduleFormDraft["targetType"]): void {
+    setDraft((current) => ({
+      ...current,
+      targetType,
+      targetId: "",
+    }));
+    setHasAttemptedCreate(false);
+  }
+
+  function selectWorkflowTemplate(value: string): void {
+    const template = availableWorkflowTemplates.find((item) => templateKey(item) === value);
+    setDraft((current) => ({
+      ...current,
+      targetId: template?.id ?? "",
+    }));
+  }
+
+  function updateWorkflowInput(key: string, value: string | boolean): void {
+    setWorkflowInputValues((current) => ({
       ...current,
       [key]: value,
     }));
@@ -124,9 +217,17 @@ export function SchedulesPage() {
     if (hasScheduleValidationErrors(validation)) {
       return;
     }
-    createScheduleMutation.mutate(buildCreateScheduleRequest(draft), {
+    if (draft.targetType === "workflow-template" && (!selectedWorkflowTemplate || hasWorkflowTemplateInputErrors(workflowInputValidation))) {
+      return;
+    }
+    const inputBindings =
+      draft.targetType === "workflow-template" && selectedWorkflowTemplate
+        ? workflowScheduleBindings(selectedWorkflowTemplate, workflowInputFields, workflowInputValues)
+        : undefined;
+    createScheduleMutation.mutate(buildCreateScheduleRequest(draft, { inputBindings }), {
       onSuccess: () => {
         setDraft(createInitialDraft());
+        setWorkflowInputValues({});
         setHasAttemptedCreate(false);
       },
     });
@@ -151,14 +252,14 @@ export function SchedulesPage() {
   }
 
   async function refresh(): Promise<void> {
-    await Promise.all([schedulesQuery.refetch(), tasksQuery.refetch()]);
+    await Promise.all([schedulesQuery.refetch(), tasksQuery.refetch(), workflowTemplatesQuery.refetch()]);
   }
 
   return (
     <section className={styles.page}>
       <div className={styles.pageHeader}>
         <div>
-          <p className={styles.panelMeta}>Task Schedules</p>
+          <p className={styles.panelMeta}>Task & Workflow Schedules</p>
           <h2 className={styles.pageTitle}>Schedules</h2>
         </div>
         <div className={styles.headerActions}>
@@ -215,7 +316,11 @@ export function SchedulesPage() {
                     {result.status}
                   </span>
                   <span>{summarizeScheduleRunResult(result)}</span>
-                  {result.runId ? (
+                  {result.missionId ? (
+                    <Link className={styles.inlineLink} to={`/missions?missionId=${encodeURIComponent(result.missionId)}`}>
+                      {result.missionId}
+                    </Link>
+                  ) : result.runId ? (
                     <Link className={styles.inlineLink} to={`/tasks/runs/${encodeURIComponent(result.runId)}`}>
                       {result.runId}
                     </Link>
@@ -239,7 +344,7 @@ export function SchedulesPage() {
           {schedulesQuery.isLoading ? (
             <p className={styles.description}>Loading schedules.</p>
           ) : sortedSchedules.length === 0 ? (
-            <p className={styles.description}>No task schedules configured.</p>
+            <p className={styles.description}>No schedules configured.</p>
           ) : (
             <div className={styles.scheduleTable}>
               <div className={styles.tableHeader}>
@@ -259,7 +364,7 @@ export function SchedulesPage() {
                     </div>
                   </div>
                   <div>
-                    <p className={styles.rowTitle}>{targetLabel(schedule, tasks)}</p>
+                    <p className={styles.rowTitle}>{targetLabel(schedule, tasks, workflowTemplates)}</p>
                     <p className={styles.panelMeta}>{schedule.targetType ?? "legacy"}</p>
                   </div>
                   <dl className={styles.compactKv}>
@@ -276,7 +381,11 @@ export function SchedulesPage() {
                     <div>
                       <dt>Last run</dt>
                       <dd>
-                        {schedule.lastRunId ? (
+                        {schedule.targetType === "workflow-template" && schedule.lastMissionId ? (
+                          <Link className={styles.inlineLink} to={`/missions?missionId=${encodeURIComponent(schedule.lastMissionId)}`}>
+                            {schedule.lastMissionId}
+                          </Link>
+                        ) : schedule.lastRunId ? (
                           <Link className={styles.inlineLink} to={`/tasks/runs/${encodeURIComponent(schedule.lastRunId)}`}>
                             {schedule.lastRunId}
                           </Link>
@@ -345,7 +454,9 @@ export function SchedulesPage() {
           <div className={styles.sectionHeader}>
             <div>
               <p className={styles.panelTitle}>New Schedule</p>
-              <p className={styles.panelMeta}>{readyTasks.length} ready tasks</p>
+              <p className={styles.panelMeta}>
+                {readyTasks.length} ready tasks, {availableWorkflowTemplates.length} workflows
+              </p>
             </div>
             <CalendarClock size={18} aria-hidden="true" />
           </div>
@@ -371,6 +482,24 @@ export function SchedulesPage() {
             />
           </label>
 
+          <div className={styles.segmentedControl} role="group" aria-label="Schedule target type">
+            <button
+              type="button"
+              className={draft.targetType === "task" ? styles.segmentActive : styles.segment}
+              onClick={() => selectTargetType("task")}
+            >
+              Task
+            </button>
+            <button
+              type="button"
+              className={draft.targetType === "workflow-template" ? styles.segmentActive : styles.segment}
+              onClick={() => selectTargetType("workflow-template")}
+            >
+              Workflow
+            </button>
+          </div>
+
+          {draft.targetType === "task" ? (
           <label className={styles.field}>
             <span className={styles.fieldLabel}>Ready Task</span>
             <select
@@ -387,6 +516,48 @@ export function SchedulesPage() {
             </select>
             {displayedValidation.targetId ? <span className={styles.fieldError}>{displayedValidation.targetId}</span> : null}
           </label>
+          ) : (
+            <>
+              <label className={styles.field}>
+                <span className={styles.fieldLabel}>Workflow Template</span>
+                <select
+                  className={styles.select}
+                  value={selectedWorkflowTemplate ? templateKey(selectedWorkflowTemplate) : ""}
+                  onChange={(event) => selectWorkflowTemplate(event.target.value)}
+                >
+                  <option value="">Select workflow</option>
+                  {availableWorkflowTemplates.map((template) => (
+                    <option key={templateKey(template)} value={templateKey(template)}>
+                      {template.name} ({template.id}@{template.version})
+                    </option>
+                  ))}
+                </select>
+                {displayedValidation.targetId ? <span className={styles.fieldError}>{displayedValidation.targetId}</span> : null}
+              </label>
+              {selectedWorkflowTemplate ? (
+                <section className={styles.inputPanel}>
+                  <div className={styles.sectionHeader}>
+                    <div>
+                      <p className={styles.panelTitle}>Inputs</p>
+                      <p className={styles.panelMeta}>{inputMeta(workflowInputFields)}</p>
+                    </div>
+                  </div>
+                  {workflowInputFields.length === 0 ? (
+                    <p className={styles.description}>This template does not declare operator inputs.</p>
+                  ) : (
+                    <div className={styles.inputGrid}>
+                      {workflowInputFields.map((field) =>
+                        renderInputField(field, workflowInputValues, updateWorkflowInput, displayedWorkflowValidation),
+                      )}
+                    </div>
+                  )}
+                  {hasAttemptedCreate && hasWorkflowTemplateInputErrors(workflowInputValidation) ? (
+                    <p className={styles.errorText}>Review the highlighted inputs before creating the schedule.</p>
+                  ) : null}
+                </section>
+              ) : null}
+            </>
+          )}
 
           <div className={styles.segmentedControl} role="group" aria-label="Schedule mode">
             <button
@@ -465,5 +636,46 @@ export function SchedulesPage() {
         </aside>
       </div>
     </section>
+  );
+}
+
+function renderInputField(
+  field: TaskInputField,
+  values: TaskInputValues,
+  updateInput: (key: string, value: string | boolean) => void,
+  validation: Record<string, string>,
+): JSX.Element {
+  return (
+    <label key={field.key} className={styles.field}>
+      <span className={styles.fieldLabel}>
+        {field.label}
+        {field.required ? <span className={styles.required}>Required</span> : null}
+      </span>
+      {field.type === "markdown" || field.type === "json" ? (
+        <textarea
+          className={styles.textarea}
+          value={String(values[field.key] ?? "")}
+          onChange={(event) => updateInput(field.key, event.target.value)}
+          rows={field.type === "markdown" ? 5 : 4}
+        />
+      ) : field.type === "boolean" ? (
+        <span className={styles.toggleRow}>
+          <input
+            type="checkbox"
+            checked={Boolean(values[field.key])}
+            onChange={(event) => updateInput(field.key, event.target.checked)}
+          />
+          <span>{values[field.key] ? "True" : "False"}</span>
+        </span>
+      ) : (
+        <input
+          className={styles.input}
+          type={field.type === "integer" || field.type === "number" ? "number" : "text"}
+          value={String(values[field.key] ?? "")}
+          onChange={(event) => updateInput(field.key, event.target.value)}
+        />
+      )}
+      {validation[field.key] ? <span className={styles.fieldError}>{validation[field.key]}</span> : null}
+    </label>
   );
 }

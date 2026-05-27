@@ -87,7 +87,7 @@ export function validateScheduleForm(draft: ScheduleFormDraft): ScheduleFormVali
     validation.id = "Use letters, numbers, dots, underscores, or hyphens.";
   }
   if (!draft.targetId) {
-    validation.targetId = "Choose a ready task.";
+    validation.targetId = draft.targetType === "workflow-template" ? "Choose a workflow template." : "Choose a ready task.";
   }
   if (draft.mode === "one-shot" && !toIsoFromLocalDateTime(draft.runAtLocal)) {
     validation.runAtLocal = "Choose a valid run time.";
@@ -103,19 +103,25 @@ export function hasScheduleValidationErrors(validation: ScheduleFormValidation):
   return Boolean(validation.id || validation.targetId || validation.runAtLocal || validation.interval);
 }
 
-export function buildCreateScheduleRequest(draft: ScheduleFormDraft): CreateScheduleRequest {
+export function buildCreateScheduleRequest(
+  draft: ScheduleFormDraft,
+  options: { inputBindings?: unknown } = {},
+): CreateScheduleRequest {
   const validation = validateScheduleForm(draft);
   if (hasScheduleValidationErrors(validation)) {
     throw new Error("Schedule form is invalid.");
   }
   const request: CreateScheduleRequest = {
     id: draft.id.trim(),
-    targetType: "task",
+    targetType: draft.targetType,
     targetId: draft.targetId,
     timezone: draft.timezone.trim() || defaultTimezone(),
     status: "active",
     failurePolicy: { overlap: "skip-if-running" },
   };
+  if (draft.targetType === "workflow-template" && options.inputBindings !== undefined) {
+    request.inputBindings = options.inputBindings;
+  }
   const name = draft.name.trim();
   if (name) {
     request.name = name;
@@ -138,9 +144,10 @@ export function summarizeScheduleRunResult(result: ScheduleRunResult): string {
   if (result.status === "failed") {
     return `${result.id} failed${result.error ? `: ${result.error}` : result.reason ? `: ${result.reason}` : "."}`;
   }
+  const created = result.missionId ? ` Created mission ${result.missionId}.` : "";
   const next = result.nextRunAt ? ` Next: ${formatScheduleDate(result.nextRunAt)}.` : "";
   const missed = result.missedRunAt ? ` Missed: ${formatScheduleDate(result.missedRunAt)}.` : "";
-  return `${result.id} ran successfully.${missed}${next}`;
+  return `${result.id} ran successfully.${created}${missed}${next}`;
 }
 
 function toIsoFromLocalDateTime(value: string): string | undefined {

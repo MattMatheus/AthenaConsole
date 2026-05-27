@@ -39,6 +39,8 @@ export interface RunScheduleResult {
   targetType?: ScheduleTargetType;
   targetId?: string;
   runId?: string;
+  missionId?: string;
+  taskIds?: string[];
   nextRunAt?: string;
   missedRunAt?: string;
   reason?: string;

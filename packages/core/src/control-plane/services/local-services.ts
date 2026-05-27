@@ -37,6 +37,7 @@ import type {
   SessionRecord,
   TemplateRunRequest,
   TranscriptEntry,
+  WorkflowTemplateInstantiateRequest,
   WorkQueueState
 } from "../../shared/contracts.js";
 import { WorkManager, type DrainResult, type EnqueueWorkRequest } from "../../work/index.js";
@@ -70,6 +71,7 @@ import { openAppStateDatabase } from "../app-state/index.js";
 import type { StateStore } from "../state-store.js";
 import { clampLimit, decodeOffsetCursor, encodeOffsetCursor } from "./pagination.js";
 import { LocalTaskWorkbenchService } from "./task-workbench.js";
+import { LocalWorkflowTemplateCatalogService } from "./workflow-template-catalog.js";
 
 export class LocalSessionService implements SessionService {
   private searchIndex = new Map<string, SessionSearchIndexEntry>();
@@ -1004,16 +1006,22 @@ export class LocalScheduleService implements ScheduleService {
   async upsert(request: UpsertScheduleRequest): Promise<ScheduledTask> {
     if (request.targetType) {
       return this.withAppState((appState) => {
-        if (request.targetType !== "task") {
-          throw new AthenaError("CONFIG_ERROR", "Only task schedules are supported in this slice.");
-        }
         const targetId = request.targetId;
-        const task = targetId ? appState.tasks.get(targetId) : undefined;
-        if (!targetId || !task) {
-          throw new AthenaError("PROVIDER_NOT_FOUND", `Scheduled task target not found: ${request.targetId ?? ""}`);
+        if (!targetId) {
+          throw new AthenaError("CONFIG_ERROR", "schedules.create.targetId is required.");
         }
-        if (task.status !== "ready") {
-          throw new AthenaError("CONFIG_ERROR", `Scheduled task target must be ready: ${task.id}`);
+        if (request.targetType === "task") {
+          const task = appState.tasks.get(targetId);
+          if (!task) {
+            throw new AthenaError("PROVIDER_NOT_FOUND", `Scheduled task target not found: ${request.targetId ?? ""}`);
+          }
+          if (task.status !== "ready") {
+            throw new AthenaError("CONFIG_ERROR", `Scheduled task target must be ready: ${task.id}`);
+          }
+        } else if (request.targetType === "workflow-template") {
+          assertWorkflowTemplateScheduleTarget(appState, targetId, request.inputBindings);
+        } else {
+          throw new AthenaError("CONFIG_ERROR", `Unsupported schedule target type: ${request.targetType}`);
         }
         const timezone = request.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC";
         const nextRunAt = request.runAt ?? nextRunFromRRule(request.rrule);
@@ -1145,14 +1153,17 @@ export class LocalScheduleService implements ScheduleService {
         if (!schedule) {
           throw new AthenaError("PROVIDER_NOT_FOUND", `Schedule not found: ${id}`);
         }
-        if (schedule.targetType !== "task") {
-          throw new AthenaError("CONFIG_ERROR", "Only task schedules are supported in this slice.");
-        }
 
         const missedRunAt = schedule.nextRunAt && schedule.nextRunAt < at.toISOString() ? schedule.nextRunAt : undefined;
-        const runId = `run-${randomUUID()}`;
+        if (schedule.targetType === "workflow-template") {
+          return this.runWorkflowTemplateSchedule(appState, schedule, at, startedAt, missedRunAt);
+        }
+        if (schedule.targetType !== "task") {
+          throw new AthenaError("CONFIG_ERROR", `Unsupported schedule target type: ${schedule.targetType}`);
+        }
         const taskService = new LocalTaskWorkbenchService(this.config, { appState });
         try {
+          const runId = `run-${randomUUID()}`;
           const taskRun = await taskService.runTask(schedule.targetId, { runId });
           const finishedAt = new Date().toISOString();
           const nextRunAt = nextRunAfterScheduleAttempt(schedule, at);
@@ -1240,6 +1251,80 @@ export class LocalScheduleService implements ScheduleService {
     }
   }
 
+  private async runWorkflowTemplateSchedule(
+    appState: AppStateDatabase,
+    schedule: ScheduleRecord,
+    at: Date,
+    startedAt: string,
+    missedRunAt: string | undefined
+  ): Promise<RunScheduleResult> {
+    try {
+      const templateService = new LocalWorkflowTemplateCatalogService(this.config, { appState });
+      const instantiation = await templateService.instantiate(schedule.targetId, {
+        ...workflowTemplateInstantiationRequestFromSchedule(schedule.inputBindings),
+        createdBy: `schedule:${schedule.id}`
+      });
+      const finishedAt = new Date().toISOString();
+      const nextRunAt = nextRunAfterScheduleAttempt(schedule, at);
+      const taskIds = instantiation.tasks.map((task) => task.id);
+      const failurePolicy = updateScheduleFailurePolicy(schedule.failurePolicy, {
+        status: "ok",
+        missionId: instantiation.mission.id,
+        taskIds,
+        attemptedAt: startedAt,
+        template: instantiation.template
+      });
+      const updated = appState.schedules.update(schedule.id, {
+        status: nextRunAt ? "active" : "disabled",
+        nextRunAt: nextRunAt ?? null,
+        failurePolicy,
+        now: new Date(finishedAt)
+      });
+      return {
+        id: schedule.id,
+        sessionId: instantiation.mission.id,
+        status: "ok",
+        startedAt,
+        finishedAt,
+        targetType: schedule.targetType,
+        targetId: schedule.targetId,
+        missionId: instantiation.mission.id,
+        taskIds,
+        ...(updated.nextRunAt ? { nextRunAt: updated.nextRunAt } : {}),
+        ...(missedRunAt ? { missedRunAt } : {})
+      };
+    } catch (error) {
+      const finishedAt = new Date().toISOString();
+      const message = error instanceof Error ? error.message : String(error);
+      const errorCode = error instanceof AthenaError ? error.code : undefined;
+      const nextRunAt = nextRunAfterScheduleAttempt(schedule, at);
+      const updated = appState.schedules.update(schedule.id, {
+        status: "error",
+        nextRunAt: nextRunAt ?? null,
+        failurePolicy: updateScheduleFailurePolicy(schedule.failurePolicy, {
+          status: "failed",
+          attemptedAt: startedAt,
+          error: message,
+          ...(errorCode ? { errorCode } : {})
+        }),
+        now: new Date(finishedAt)
+      });
+      return {
+        id: schedule.id,
+        sessionId: schedule.targetId,
+        status: "failed",
+        startedAt,
+        finishedAt,
+        targetType: schedule.targetType,
+        targetId: schedule.targetId,
+        ...(updated.nextRunAt ? { nextRunAt: updated.nextRunAt } : {}),
+        ...(missedRunAt ? { missedRunAt } : {}),
+        error: message,
+        ...(errorCode ? { errorCode } : {})
+      };
+    }
+  }
+
   private withAppState<T>(access: (appState: AppStateDatabase) => T): T {
     if (this.options.appState) {
       return access(this.options.appState);
@@ -1278,6 +1363,7 @@ function mapScheduleRecord(record: ScheduleRecord): ScheduledTask {
     status: record.status,
     failurePolicy: record.failurePolicy,
     ...(record.lastRunId ? { lastRunId: record.lastRunId } : {}),
+    ...(lastMissionIdFromSchedule(record) ? { lastMissionId: lastMissionIdFromSchedule(record) } : {}),
     sessionId: record.targetId,
     input: "",
     everyMinutes: 1,
@@ -1287,6 +1373,61 @@ function mapScheduleRecord(record: ScheduleRecord): ScheduledTask {
     updatedAt: record.updatedAt,
     ...(record.lastRunId ? { lastRunAt: record.updatedAt } : {}),
     nextRunAt: record.nextRunAt ?? record.createdAt
+  };
+}
+
+function assertWorkflowTemplateScheduleTarget(appState: AppStateDatabase, targetId: string, inputBindings: unknown): void {
+  const request = workflowTemplateInstantiationRequestFromSchedule(inputBindings);
+  const matches = appState.workflowTemplates.list().filter((template) => {
+    return (
+      template.id === targetId &&
+      (!request.version || template.version === request.version) &&
+      (!request.pluginId || template.pluginId === request.pluginId) &&
+      (!request.pluginVersion || template.pluginVersion === request.pluginVersion)
+    );
+  });
+  if (matches.length === 0) {
+    throw new AthenaError("PROVIDER_NOT_FOUND", `Scheduled workflow template target not found: ${targetId}`);
+  }
+  if (matches.length > 1) {
+    throw new AthenaError(
+      "CONFIG_ERROR",
+      `Scheduled workflow template target is ambiguous: ${targetId}; provide version, pluginId, or pluginVersion.`
+    );
+  }
+  const template = matches[0]!;
+  const plugin = appState.plugins.get(template.pluginId, template.pluginVersion);
+  if (!plugin || !plugin.enabled || plugin.status !== "loaded" || template.status !== "loaded") {
+    throw new AthenaError("CONFIG_ERROR", `Scheduled workflow template target is not available: ${targetId}`);
+  }
+}
+
+function lastMissionIdFromSchedule(record: ScheduleRecord): string | undefined {
+  if (record.targetType !== "workflow-template" || !isRecord(record.failurePolicy)) {
+    return undefined;
+  }
+  const lastAttempt = record.failurePolicy.lastAttempt;
+  return isRecord(lastAttempt) && typeof lastAttempt.missionId === "string" ? lastAttempt.missionId : undefined;
+}
+
+function workflowTemplateInstantiationRequestFromSchedule(inputBindings: unknown): WorkflowTemplateInstantiateRequest {
+  if (inputBindings === undefined || inputBindings === null) {
+    return {};
+  }
+  if (!isRecord(inputBindings)) {
+    throw new AthenaError("CONFIG_ERROR", "workflow-template schedule inputBindings must be an object.");
+  }
+  const inputs = inputBindings.inputs;
+  if (inputs !== undefined && !isRecord(inputs)) {
+    throw new AthenaError("CONFIG_ERROR", "workflow-template schedule inputBindings.inputs must be an object.");
+  }
+  return {
+    ...(typeof inputBindings.version === "string" && inputBindings.version.trim() ? { version: inputBindings.version } : {}),
+    ...(typeof inputBindings.pluginId === "string" && inputBindings.pluginId.trim() ? { pluginId: inputBindings.pluginId } : {}),
+    ...(typeof inputBindings.pluginVersion === "string" && inputBindings.pluginVersion.trim()
+      ? { pluginVersion: inputBindings.pluginVersion }
+      : {}),
+    ...(inputs ? { inputs } : {})
   };
 }
 

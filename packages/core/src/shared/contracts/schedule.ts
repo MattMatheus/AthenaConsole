@@ -15,6 +15,7 @@ export interface ScheduledTask {
   status?: ScheduleStatus;
   failurePolicy?: unknown;
   lastRunId?: string;
+  lastMissionId?: string;
   sessionId: string;
   input: string;
   everyMinutes: number;

@@ -226,6 +226,8 @@ export interface ScheduleService {
     targetType?: ScheduledTask["targetType"];
     targetId?: string;
     runId?: string;
+    missionId?: string;
+    taskIds?: string[];
     nextRunAt?: string;
     missedRunAt?: string;
     reason?: string;
