@@ -36,12 +36,13 @@ Completed stories were moved to:
 - `planning/backlog/completed/2026.14.03-run-sequential-mission-plans.md`
 - `planning/backlog/completed/2026.15.01-add-task-schedule-model-and-api.md`
 - `planning/backlog/completed/2026.15.02-add-local-scheduler-service.md`
+- `planning/backlog/completed/2026.15.03-build-schedule-ui.md`
 
 ## Active Queue
 
-1. `planning/backlog/active/2026.15.03-build-schedule-ui.md`
+1. `planning/backlog/active/2026.16.01-instantiate-workflow-templates.md`
 
-The next slice builds the first console schedule management surface for task-target schedules.
+The next slice makes indexed workflow templates executable by instantiating them into missions and ordered tasks.
 
 ## Archived Previous Queue
 

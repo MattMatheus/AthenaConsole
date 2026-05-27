@@ -6,7 +6,7 @@ Your task is to execute the next Team Orchestrator story.
 
 ## Primary Task
 
-- **Backlog Item:** `planning/backlog/active/2026.15.03-build-schedule-ui.md`
+- **Backlog Item:** `planning/backlog/active/2026.16.01-instantiate-workflow-templates.md`
 
 Read the active story, then review its source decisions:
 
@@ -28,12 +28,13 @@ Read the active story, then review its source decisions:
 - `planning/backlog/completed/2026.14.03-run-sequential-mission-plans.md`
 - `planning/backlog/completed/2026.15.01-add-task-schedule-model-and-api.md`
 - `planning/backlog/completed/2026.15.02-add-local-scheduler-service.md`
+- `planning/backlog/completed/2026.15.03-build-schedule-ui.md`
 - `planning/backlog/refinement/2026.15.00-epic-scheduling.md`
 - `planning/backlog/refinement/2026.14.00-epic-missions-workflow-templates.md`
 
 ## Current Context
 
-The foundation track now has SQLite app state, manifest schemas, local plugin indexing, task/mission/run repositories, a local agent catalog API/service surface, console catalog/detail pages, task workbench APIs, the first manual task creation UI, local-process task execution, the first run inspection view, container-command and HTTP/API task backends, first-pass approval/limit enforcement, mission creation/task-ordering APIs, workflow template manifest indexing/listing, sequential mission task execution, task-target schedule configuration APIs, and local due-schedule execution through the task workbench. The next slice builds the first console schedule management surface for task-target schedules.
+The foundation track now has SQLite app state, manifest schemas, local plugin indexing, task/mission/run repositories, a local agent catalog API/service surface, console catalog/detail pages, task workbench APIs, the first manual task creation UI, local-process task execution, the first run inspection view, container-command and HTTP/API task backends, first-pass approval/limit enforcement, mission creation/task-ordering APIs, workflow template manifest indexing/listing, sequential mission task execution, task-target schedule configuration APIs, local due-schedule execution through the task workbench, and a first console schedule management surface. The next slice makes indexed workflow templates executable by instantiating them into missions and ordered tasks.
 
 ## Agent Workflow (Mandatory)
 

@@ -8,6 +8,7 @@ import { DlqPage } from "../pages/DlqPage";
 import { AuditTrailPage } from "../pages/AuditTrailPage";
 import { RbacPage } from "../pages/RbacPage";
 import { ResourcesPage } from "../pages/ResourcesPage";
+import { SchedulesPage } from "../pages/SchedulesPage";
 import { SessionsPage } from "../pages/SessionsPage";
 import { SettingsPage } from "../pages/SettingsPage";
 import { TaskCreatePage } from "../pages/TaskCreatePage";
@@ -38,6 +39,10 @@ export const router = createBrowserRouter([
       {
         path: "tasks/runs/:runId",
         element: <TaskRunDetailPage />,
+      },
+      {
+        path: "schedules",
+        element: <SchedulesPage />,
       },
       {
         path: "mission-control",

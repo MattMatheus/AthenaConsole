@@ -14,6 +14,7 @@ const navItems: NavItem[] = [
   { path: "/", label: "Dashboard", match: /^\/$/ },
   { path: "/agents", label: "Agents", match: /^\/agents/ },
   { path: "/tasks", label: "Tasks", match: /^\/tasks/ },
+  { path: "/schedules", label: "Schedules", match: /^\/schedules/ },
   { path: "/mission-control", label: "Mission Control", match: /^\/mission-control/ },
   { path: "/sessions", label: "Sessions", match: /^\/sessions/ },
   { path: "/workflows", label: "Workflows", match: /^\/workflows/ },

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createTask, fetchTaskRunDetail, fetchTaskWorkbenchMetadata } from "./api";
-import type { TaskWorkbenchTaskCreateRequest } from "./types";
+import { createTask, fetchTaskRunDetail, fetchTaskWorkbenchMetadata, fetchTasks } from "./api";
+import type { TaskWorkbenchTaskCreateRequest, TaskWorkbenchTaskListQuery } from "./types";
 
 export function useTaskWorkbenchMetadataQuery() {
   return useQuery({
@@ -16,6 +16,14 @@ export function useTaskRunDetailQuery(runId: string | undefined) {
     queryFn: () => fetchTaskRunDetail(runId ?? ""),
     enabled: Boolean(runId),
     staleTime: 5_000,
+  });
+}
+
+export function useTasksQuery(query: TaskWorkbenchTaskListQuery = {}) {
+  return useQuery({
+    queryKey: ["task-workbench", "tasks", query],
+    queryFn: () => fetchTasks(query),
+    staleTime: 10_000,
   });
 }
 

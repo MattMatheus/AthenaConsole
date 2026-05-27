@@ -6,6 +6,8 @@ import type {
   TaskWorkbenchRunStatus,
   TaskWorkbenchTask,
   TaskWorkbenchTaskCreateRequest,
+  TaskWorkbenchTaskListQuery,
+  TaskWorkbenchTaskListResult,
   TaskWorkbenchTaskRun,
   TaskWorkbenchTaskRunDetail,
   TaskWorkbenchTaskStatus,
@@ -147,6 +149,29 @@ function parseMetadata(value: unknown): TaskWorkbenchMetadata {
 
 export async function fetchTaskWorkbenchMetadata(): Promise<TaskWorkbenchMetadata> {
   return parseMetadata(await apiClient.get<unknown>("/v1/tasks/metadata"));
+}
+
+export async function fetchTasks(query: TaskWorkbenchTaskListQuery = {}): Promise<TaskWorkbenchTaskListResult> {
+  const params = new URLSearchParams();
+  if (query.status) {
+    params.set("status", query.status);
+  }
+  if (query.missionId) {
+    params.set("missionId", query.missionId);
+  }
+  if (query.includeArchived !== undefined) {
+    params.set("includeArchived", String(query.includeArchived));
+  }
+  const suffix = params.size > 0 ? `?${params.toString()}` : "";
+  const value = await apiClient.get<unknown>(`/v1/tasks${suffix}`);
+  if (!isRecord(value) || !Array.isArray(value.tasks)) {
+    throw new Error("Task list payload is invalid.");
+  }
+  return {
+    tasks: value.tasks.map(parseTask),
+    total: typeof value.total === "number" ? value.total : value.tasks.length,
+    filters: isRecord(value.filters) ? (value.filters as TaskWorkbenchTaskListQuery) : {},
+  };
 }
 
 export async function createTask(request: TaskWorkbenchTaskCreateRequest): Promise<TaskWorkbenchTask> {

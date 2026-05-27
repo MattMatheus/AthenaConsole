@@ -28,6 +28,18 @@ export type TaskWorkbenchTask = {
   archivedAt?: string;
 };
 
+export type TaskWorkbenchTaskListQuery = {
+  status?: TaskWorkbenchTaskStatus;
+  missionId?: string;
+  includeArchived?: boolean;
+};
+
+export type TaskWorkbenchTaskListResult = {
+  tasks: TaskWorkbenchTask[];
+  total: number;
+  filters: TaskWorkbenchTaskListQuery;
+};
+
 export type TaskWorkbenchMetadata = {
   statuses: TaskWorkbenchTaskStatus[];
   defaultStatus: TaskWorkbenchTaskStatus;

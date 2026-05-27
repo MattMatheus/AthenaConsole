@@ -1,6 +1,7 @@
 export * from "./fleet";
 export * from "./policy";
 export * from "./runs";
+export * from "./schedules";
 export * from "./sessions";
 export * from "./task-workbench";
 export * from "./rbac";

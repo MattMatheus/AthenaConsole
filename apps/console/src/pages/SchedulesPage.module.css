@@ -1,0 +1,355 @@
+.page {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.pageHeader,
+.headerActions,
+.sectionHeader,
+.resultItem,
+.identityCell,
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.pageHeader,
+.sectionHeader {
+  justify-content: space-between;
+}
+
+.headerActions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pageTitle {
+  margin: 0;
+  color: var(--color-brand-900);
+  font-size: var(--font-size-500);
+  line-height: 1.15;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 26rem);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.scheduleListPanel,
+.formPanel,
+.resultPanel,
+.state {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-elevated);
+  padding: var(--space-4);
+}
+
+.panelTitle,
+.stateTitle,
+.rowTitle {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.panelMeta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-200);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.description {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-200);
+  line-height: 1.5;
+}
+
+.errorText,
+.fieldError {
+  margin: 0;
+  color: var(--color-error);
+  font-size: var(--font-size-200);
+  font-weight: 700;
+}
+
+.scheduleTable {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.tableHeader,
+.tableRow {
+  display: grid;
+  grid-template-columns: minmax(13rem, 1.1fr) minmax(12rem, 1fr) minmax(12rem, 1fr) minmax(11rem, 0.9fr) minmax(8.5rem, auto);
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.tableHeader {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-200);
+  font-weight: 700;
+}
+
+.tableRow {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fff;
+  padding: var(--space-3);
+}
+
+.compactKv {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.compactKv div {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.compactKv dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-200);
+  font-weight: 700;
+}
+
+.compactKv dd {
+  margin: 0;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.mono {
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-200);
+  overflow-wrap: anywhere;
+}
+
+.resultList {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.resultItem {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fff;
+  padding: var(--space-3);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.fieldLabel {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-200);
+  font-weight: 700;
+}
+
+.input,
+.select {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--color-text);
+  font: inherit;
+  padding: 0.65rem 0.75rem;
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--color-brand-500);
+  box-shadow: 0 0 0 3px rgb(31 111 212 / 0.14);
+}
+
+.recurrenceGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: var(--space-3);
+}
+
+.segmentedControl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segment,
+.segmentActive {
+  min-height: 2.35rem;
+  border: 0;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.segment {
+  background: #fff;
+  color: var(--color-text-muted);
+}
+
+.segmentActive {
+  background: var(--color-brand-700);
+  color: #fff;
+}
+
+.primaryButton,
+.secondaryButton,
+.iconButton,
+.iconButtonDanger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.primaryButton,
+.secondaryButton {
+  min-height: 2.4rem;
+  padding: 0.55rem 0.9rem;
+  font-weight: 700;
+}
+
+.primaryButton {
+  border: 1px solid var(--color-brand-700);
+  background: var(--color-brand-700);
+  color: #fff;
+}
+
+.secondaryButton,
+.iconButton {
+  border: 1px solid var(--color-border);
+  background: #fff;
+  color: var(--color-brand-900);
+}
+
+.iconButton,
+.iconButtonDanger {
+  width: 2.125rem;
+  height: 2.125rem;
+}
+
+.iconButtonDanger {
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: var(--color-error);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.iconButton:disabled,
+.iconButtonDanger:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.badge,
+.badgeSuccess,
+.badgeWarning,
+.badgeDanger {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge {
+  border: 1px solid #dbe4ee;
+  background: #f8fafc;
+  color: var(--color-text-muted);
+}
+
+.badgeSuccess {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: var(--color-success);
+}
+
+.badgeWarning {
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: var(--color-warning);
+}
+
+.badgeDanger {
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: var(--color-error);
+}
+
+.inlineLink {
+  color: var(--color-brand-700);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-200);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1180px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .tableHeader {
+    display: none;
+  }
+
+  .tableRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rowActions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .pageHeader,
+  .headerActions,
+  .sectionHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .tableRow,
+  .recurrenceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+  }
+}
