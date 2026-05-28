@@ -1,0 +1,71 @@
+{
+  "cycle_id": "STORY-20260528-workflow-status-api",
+  "generated_at_utc": "2026-05-28T02:51:55Z",
+  "branch": "main",
+  "story_path": "flywheel/backlog/engineering/done/STORY-20260528-workflow-status-api.md",
+  "actor": "",
+  "stage_trace": [],
+  "diff_inventory": [
+    "A\tflywheel/backlog/engineering/done/STORY-20260528-workflow-status-api.md",
+    "A\tpackages/core/src/control-plane/services/workflow-status.ts",
+    "A\tpackages/core/src/shared/contracts/workflow-status.ts",
+    "A\tpackages/core/tests/control-plane.workflow-status.test.ts",
+    "D\tflywheel/backlog/engineering/ready/STORY-20260528-workflow-status-api.md",
+    "M\tflywheel/backlog/engineering/active/README.md",
+    "M\tflywheel/backlog/engineering/done/README.md",
+    "M\tflywheel/backlog/engineering/ready/README.md",
+    "M\tpackages/core/src/api/routes/workflow-routes.ts",
+    "M\tpackages/core/src/control-plane/api-contracts.ts",
+    "M\tpackages/core/src/control-plane/api-schemas.ts",
+    "M\tpackages/core/src/control-plane/interfaces.ts",
+    "M\tpackages/core/src/control-plane/services.ts",
+    "M\tpackages/core/src/control-plane/services/authorization.ts",
+    "M\tpackages/core/src/shared/contracts/index.ts",
+    "M\tpackages/core/tests/api.server.test.ts",
+    "M\tpackages/core/tests/control-plane.api-contracts.test.ts"
+  ],
+  "objective": {
+    "intended_outcome": "",
+    "scope_boundary": ""
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [],
+    "tools_used": [],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [],
+    "state_transitions": [],
+    "non_file_actions": []
+  },
+  "validation": {
+    "checks_run": [],
+    "results": [],
+    "checks_not_run": []
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": false,
+    "prompts_updated_if_stage_behavior_changed": false,
+    "process_docs_updated_if_contracts_or_gates_changed": false,
+    "queue_order_and_state_synchronized": false
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [],
+    "assumptions_carried": [],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "",
+    "approval_required": "",
+    "approval_reference": ""
+  },
+  "next_step": {
+    "recommended_next_state": "",
+    "follow_up_work": [],
+    "durable_promotions": []
+  },
+  "release_impact": {
+    "release_scope": "",
+    "additional_release_actions": []
+  }
+}

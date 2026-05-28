@@ -12,6 +12,4 @@ No active engineering stories.
 
 ## Next Up
 
-After the story in QA is validated and moved to done, promote the top ready item:
-
-- `../ready/STORY-20260528-workflow-status-api.md`
+No ready engineering stories are queued after the active item.

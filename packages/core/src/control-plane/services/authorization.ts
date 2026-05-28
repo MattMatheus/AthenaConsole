@@ -25,6 +25,7 @@ import type {
   ScheduleService,
   SessionService,
   WorkflowService,
+  WorkflowStatusService,
   WorkService
 } from "../interfaces.js";
 
@@ -71,6 +72,7 @@ interface AuthorizationRequirement {
     | "workflow.list"
     | "workflow.resume"
     | "workflow.status"
+    | "workflowRun.status"
     | "work.drain"
     | "work.enqueue"
     | "work.status";
@@ -526,6 +528,22 @@ export class AuthorizedWorkflowService implements WorkflowService {
       requiredRoles: ["Operator", "Admin"]
     });
     return this.delegate.resume(id);
+  }
+}
+
+export class AuthorizedWorkflowStatusService implements WorkflowStatusService {
+  constructor(
+    private readonly delegate: WorkflowStatusService,
+    private readonly authorizer: ServiceAuthorizer
+  ) {}
+
+  async getStatus(runId: string) {
+    await this.authorizer.assertAllowed({
+      operation: "workflowRun.status",
+      requiredRoles: ["Operator", "Admin"],
+      runId
+    });
+    return this.delegate.getStatus(runId);
   }
 }
 

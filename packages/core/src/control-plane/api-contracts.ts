@@ -111,6 +111,7 @@ export const API_V1_ROUTES: ApiRouteDefinition[] = [
   { method: "POST", path: `${API_V1_PREFIX}/workflows`, operationId: "createWorkflow" },
   { method: "GET", path: `${API_V1_PREFIX}/workflows/run/:id`, operationId: "getWorkflowRun" },
   { method: "POST", path: `${API_V1_PREFIX}/workflows/run/:id/resume`, operationId: "resumeWorkflow" },
+  { method: "GET", path: `${API_V1_PREFIX}/workflow-runs/:runId/status`, operationId: "getWorkflowRunStatus" },
   { method: "GET", path: `${API_V1_PREFIX}/memory/search`, operationId: "searchMemory" },
   { method: "POST", path: `${API_V1_PREFIX}/memory/get`, operationId: "getMemory" },
   { method: "POST", path: `${API_V1_PREFIX}/work/enqueue`, operationId: "enqueueWork" },

@@ -5,6 +5,7 @@ export * from "./directive.js";
 export * from "./harness.js";
 export * from "./run-template.js";
 export * from "./workflow.js";
+export * from "./workflow-status.js";
 export * from "./work.js";
 export * from "./session.js";
 export * from "./memory.js";

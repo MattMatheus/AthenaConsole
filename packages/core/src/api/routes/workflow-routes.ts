@@ -7,7 +7,8 @@ export const WORKFLOW_ROUTES = defineApiRoutes("workflows", [
   { method: "GET", path: "/api/v1/workflows", handler: handleListWorkflowsRoute },
   { method: "POST", path: "/api/v1/workflows", handler: handleCreateWorkflowRoute },
   { method: "GET", path: "/api/v1/workflows/run/:id", handler: handleGetWorkflowStatusRoute },
-  { method: "POST", path: "/api/v1/workflows/run/:id/resume", handler: handleResumeWorkflowRoute }
+  { method: "POST", path: "/api/v1/workflows/run/:id/resume", handler: handleResumeWorkflowRoute },
+  { method: "GET", path: "/api/v1/workflow-runs/:runId/status", handler: handleGetWorkflowRunGraphStatusRoute }
 ]);
 
 async function handleListWorkflowsRoute(context: ApiRouteContext): Promise<void> {
@@ -48,6 +49,15 @@ async function handleResumeWorkflowRoute(context: ApiRouteContext, params: Route
 
 async function handleGetWorkflowStatusRoute(context: ApiRouteContext, params: RouteParams): Promise<void> {
   writeSuccess(context.res, "getWorkflowRun", 200, await context.services.workflowService.status(decodeRouteParam(params, "id")));
+}
+
+async function handleGetWorkflowRunGraphStatusRoute(context: ApiRouteContext, params: RouteParams): Promise<void> {
+  writeSuccess(
+    context.res,
+    "getWorkflowRunStatus",
+    200,
+    await context.services.workflowStatusService.getStatus(decodeRouteParam(params, "runId"))
+  );
 }
 
 function decodeRouteParam(params: RouteParams, key: string): string {

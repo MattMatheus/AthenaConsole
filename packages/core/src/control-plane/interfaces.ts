@@ -61,6 +61,7 @@ import type {
   TemplateRunRequest,
   Workflow,
   WorkflowCreateRequest,
+  WorkflowRunGraphStatus,
   WorkflowRunObservability,
   WorkflowRun,
   WorkflowListQuery,
@@ -148,6 +149,10 @@ export interface WorkflowService {
   create(request: WorkflowCreateRequest): Promise<Workflow>;
   status(id: string): Promise<WorkflowRunObservability>;
   resume(id: string): Promise<WorkflowRun>;
+}
+
+export interface WorkflowStatusService {
+  getStatus(runId: string): Promise<WorkflowRunGraphStatus>;
 }
 
 export interface WorkflowTemplateCatalogService {

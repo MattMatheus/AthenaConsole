@@ -9,7 +9,7 @@ import {
 
 describe("control-plane api contracts", () => {
   it("declares the full initial v1 route surface", () => {
-    expect(API_V1_ROUTES.length).toBe(87);
+    expect(API_V1_ROUTES.length).toBe(88);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/capabilities")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/health")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/agent-catalog/plugins")).toBe(
@@ -66,6 +66,9 @@ describe("control-plane api contracts", () => {
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/workflows")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/workflows/run/:id")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/workflows/run/:id/resume")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/workflow-runs/:runId/status")).toBe(
+      true
+    );
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/specialists/run")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/personas/run")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "DELETE" && route.path === "/api/v1/schedules/:id")).toBe(true);

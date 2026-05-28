@@ -37,6 +37,7 @@ import {
   AuthorizedSessionService,
   AuthorizedWorkService,
   AuthorizedWorkflowService,
+  AuthorizedWorkflowStatusService,
   ServiceAuthorizer
 } from "./services/authorization.js";
 import { LocalA2aDlqService, LocalEventService } from "./services/event-dlq.js";
@@ -63,6 +64,7 @@ import { LocalLspService, type LocalLspServiceOptions } from "./services/lsp.js"
 import { LocalPolicyService, PolicyAwareExecutionBackend } from "./services/policy.js";
 import { LocalRunService } from "./services/run-service.js";
 import { LocalWorkflowService } from "./services/workflow-service.js";
+import { LocalWorkflowStatusService } from "./services/workflow-status.js";
 import { LocalWorkflowTemplateCatalogService } from "./services/workflow-template-catalog.js";
 import type {
   A2aDlqService,
@@ -88,6 +90,7 @@ import type {
   SessionService,
   TaskWorkbenchService,
   WorkflowService,
+  WorkflowStatusService,
   WorkflowTemplateCatalogService,
   WorkService
 } from "./interfaces.js";
@@ -120,6 +123,7 @@ export interface ControlPlaneServices {
   harnessProfileService: HarnessProfileService;
   runTemplateService: RunTemplateService;
   workflowService: WorkflowService;
+  workflowStatusService: WorkflowStatusService;
   workflowTemplateCatalogService: WorkflowTemplateCatalogService;
   workService: WorkService;
   memoryService: MemoryService;
@@ -214,6 +218,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
   const sessionService = new AuthorizedSessionService(new LocalSessionService(stateStore, options.config), authorizer);
   const directiveService = new AuthorizedDirectiveService(new LocalDirectiveService(stateStore), authorizer);
   const workflowService = new AuthorizedWorkflowService(new LocalWorkflowService(stateStore, runService), authorizer);
+  const workflowStatusService = new AuthorizedWorkflowStatusService(new LocalWorkflowStatusService(options.config), authorizer);
   const workService = new AuthorizedWorkService(new LocalWorkService(options.config, executionBackend), authorizer);
   const memoryService = new AuthorizedMemoryService(new LocalMemoryService(options.config), authorizer);
   const authorizedLspService = new AuthorizedLspService(baseLspService, authorizer);
@@ -237,6 +242,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     harnessProfileService: new LocalHarnessProfileService(stateStore, options.config),
     runTemplateService: new LocalRunTemplateService(stateStore, runService),
     workflowService,
+    workflowStatusService,
     workflowTemplateCatalogService: new LocalWorkflowTemplateCatalogService(options.config),
     workService,
     memoryService,

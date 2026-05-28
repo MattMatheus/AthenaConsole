@@ -2210,6 +2210,23 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
     },
     responseSchema: { $ref: "#/components/schemas/WorkflowRunObservability" }
   },
+  getWorkflowRunStatus: {
+    operationId: "getWorkflowRunStatus",
+    method: "GET",
+    path: "/api/v1/workflow-runs/:runId/status",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        runId: STRING_SCHEMA
+      },
+      required: ["runId"]
+    },
+    responseSchema: {
+      type: "object",
+      additionalProperties: true
+    }
+  },
   searchMemory: {
     operationId: "searchMemory",
     method: "GET",

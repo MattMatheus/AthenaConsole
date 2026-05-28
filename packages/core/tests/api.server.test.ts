@@ -31,6 +31,7 @@ describe("api server", () => {
     expect(resolveApiRouteFamily("GET", "/api/v1/workflows")).toBe("workflows");
     expect(resolveApiRouteFamily("GET", "/api/v1/workflows/run/workflow-1")).toBe("workflows");
     expect(resolveApiRouteFamily("POST", "/api/v1/workflows/run/workflow-1/resume")).toBe("workflows");
+    expect(resolveApiRouteFamily("GET", "/api/v1/workflow-runs/workflow-run-1/status")).toBe("workflows");
     expect(resolveApiRouteFamily("GET", "/api/v1/work/observability")).toBe("work");
     expect(resolveApiRouteFamily("GET", "/api/v1/work/observability/alerts")).toBe("work");
     expect(resolveApiRouteFamily("GET", "/api/v1/work/observability/alerts/export.csv")).toBe("work");
