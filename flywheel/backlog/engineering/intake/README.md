@@ -4,7 +4,7 @@ Raw engineering work enters here before PM refinement.
 
 ## Candidate Sequence
 
-1. `BUG-20260528-glob10-deprecation-warning.md`
+No candidate engineering items.
 
 ## Refinement Rule
 

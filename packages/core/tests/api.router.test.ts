@@ -195,6 +195,36 @@ describe("api router", () => {
     expect(calls).toEqual(["id"]);
   });
 
+  it("uses raw path lexical tie-break when normalized segments are identical", async () => {
+    const calls: string[] = [];
+    const routes: RouteTable<{ calls: string[] }> = [
+      {
+        method: "GET",
+        path: "api/v1/capabilities/",
+        handler(context) {
+          context.calls.push("without-leading-slash");
+        }
+      },
+      {
+        method: "GET",
+        path: "/api/v1/capabilities",
+        handler(context) {
+          context.calls.push("with-leading-slash");
+        }
+      }
+    ];
+    const router = new APIRouter(routes);
+
+    const handled = await router.dispatch({
+      method: "GET",
+      path: "/api/v1/capabilities",
+      context: { calls }
+    });
+
+    expect(handled).toBe(true);
+    expect(calls).toEqual(["with-leading-slash"]);
+  });
+
   it("does not match when method differs for the same path", async () => {
     const routes: RouteTable<{}> = [
       {

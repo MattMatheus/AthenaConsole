@@ -309,7 +309,7 @@ export class SessionStore {
   }
 
   private async atomicWriteFile(path: string, payload: string): Promise<void> {
-    const tmpPath = `${path}.${process.pid}.tmp`;
+    const tmpPath = `${path}.${process.pid}.${randomUUID()}.tmp`;
     await writeFile(tmpPath, payload, "utf8");
     await rename(tmpPath, path);
     await rm(tmpPath, { force: true });

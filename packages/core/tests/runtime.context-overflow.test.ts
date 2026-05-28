@@ -171,7 +171,8 @@ describe("runtime context overflow recovery", () => {
         }
       });
 
-      await expect(runtime.run({ sessionId: "s1", input: "u".repeat(5000) })).rejects.toMatchObject({
+      const error = await runtime.run({ sessionId: "s1", input: "u".repeat(5000) }).catch((caught: unknown) => caught);
+      expect(error).toMatchObject({
         code: "CONTEXT_OVERFLOW"
       });
     } finally {

@@ -1,0 +1,121 @@
+{
+  "cycle_id": "20260528-glob10-deprecation-warning",
+  "generated_at_utc": "2026-05-28T15:47:09Z",
+  "branch": "main",
+  "story_path": "flywheel/backlog/engineering/done/BUG-20260528-glob10-deprecation-warning.md",
+  "actor": "Codex",
+  "stage_trace": [],
+  "diff_inventory": [
+    "A\tflywheel/backlog/engineering/done/BUG-20260528-glob10-deprecation-warning.md",
+    "D\tflywheel/backlog/engineering/intake/BUG-20260528-glob10-deprecation-warning.md",
+    "M\tflywheel/backlog/engineering/done/README.md",
+    "M\tflywheel/backlog/engineering/intake/README.md",
+    "M\tpackage-lock.json",
+    "M\tpackages/core/package-lock.json",
+    "M\tpackages/core/package.json",
+    "M\tpackages/core/src/runtime/session-store.ts",
+    "M\tpackages/core/tests/api.router.test.ts",
+    "M\tpackages/core/tests/runtime.context-overflow.test.ts"
+  ],
+  "objective": {
+    "intended_outcome": "Remove the deprecated glob@10.5.0 dependency path from CI installs and document validation evidence.",
+    "scope_boundary": "Dependency hygiene for the @athena/core coverage tooling path plus QA fixes required to keep the upgraded coverage stack green."
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [
+      "flywheel/backlog/engineering/done/BUG-20260528-glob10-deprecation-warning.md",
+      "package-lock.json",
+      "packages/core/package-lock.json",
+      "packages/core/package.json"
+    ],
+    "tools_used": [
+      "npm ls glob",
+      "npm audit --omit=dev",
+      "npm audit",
+      "npm --workspace @athena/core run typecheck",
+      "npm --workspace @athena/core run test:unit",
+      "npm --workspace @athena/core run test:coverage",
+      "rg",
+      "flywheel_state.sh",
+      "validate_workflow_state.sh",
+      "flywheel_doctor.sh"
+    ],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [
+      "packages/core/package.json",
+      "package-lock.json",
+      "packages/core/package-lock.json",
+      "packages/core/src/runtime/session-store.ts",
+      "packages/core/tests/api.router.test.ts",
+      "packages/core/tests/runtime.context-overflow.test.ts",
+      "backlog lane README/story files"
+    ],
+    "state_transitions": [
+      "intake -> active",
+      "active -> qa",
+      "qa -> done"
+    ],
+    "non_file_actions": [
+      "npm install",
+      "dependency graph validation",
+      "audit reporting",
+      "full coverage QA"
+    ]
+  },
+  "validation": {
+    "checks_run": [
+      "npm ls glob",
+      "rg 'glob-10\\\\.5\\\\.0|test-exclude-7\\\\.0\\\\.1' package-lock.json packages/core/package-lock.json",
+      "npm audit --omit=dev",
+      "npm audit",
+      "npm --workspace @athena/core run typecheck",
+      "npm --workspace @athena/core run test:unit -- tests/api.router.test.ts tests/runtime.lock.test.ts",
+      "npm --workspace @athena/core run test:unit -- tests/runtime.context-overflow.test.ts",
+      "npm --workspace @athena/core run test:coverage",
+      "./flywheel/tools/validate_workflow_state.sh --format json",
+      "./flywheel/tools/flywheel_doctor.sh --format json",
+      "git diff --check"
+    ],
+    "results": [
+      "npm ls glob reported (empty)",
+      "lockfile grep returned no deprecated glob/test-exclude matches",
+      "typecheck passed",
+      "focused tests passed",
+      "full coverage passed with 83 test files and 391 tests",
+      "workflow validation passed",
+      "doctor passed",
+      "diff check passed",
+      "audits still report unrelated pre-existing advisories"
+    ],
+    "checks_not_run": []
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": true,
+    "prompts_updated_if_stage_behavior_changed": true,
+    "process_docs_updated_if_contracts_or_gates_changed": true,
+    "queue_order_and_state_synchronized": true
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [
+      "npm audit --omit=dev and npm audit still fail because of unrelated advisories outside the removed glob path."
+    ],
+    "assumptions_carried": [],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "dependency refresh",
+    "approval_required": "no",
+    "approval_reference": "n/a"
+  },
+  "next_step": {
+    "recommended_next_state": "committed",
+    "follow_up_work": [],
+    "durable_promotions": []
+  },
+  "release_impact": {
+    "release_scope": "Dependency hygiene and test stability for @athena/core.",
+    "additional_release_actions": []
+  }
+}
