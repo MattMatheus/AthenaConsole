@@ -9,7 +9,7 @@ import {
 
 describe("control-plane api contracts", () => {
   it("declares the full initial v1 route surface", () => {
-    expect(API_V1_ROUTES.length).toBe(85);
+    expect(API_V1_ROUTES.length).toBe(86);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/capabilities")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/health")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/readiness")).toBe(true);
@@ -69,6 +69,11 @@ describe("control-plane api contracts", () => {
       true
     );
     expect(API_V1_ROUTES.find((route) => route.path === "/api/v1/workflow-runs/:runId/status")).toMatchObject({
+      lifecycle: "stable",
+      surface: "canonical"
+    });
+    expect(API_V1_ROUTES.find((route) => route.path === "/api/v1/workflow-runs/:runId/execute")).toMatchObject({
+      method: "POST",
       lifecycle: "stable",
       surface: "canonical"
     });

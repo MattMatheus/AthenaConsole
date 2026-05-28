@@ -89,6 +89,7 @@ import type {
   MemorySearchResult,
   WorkQueueState
 } from "../shared/contracts.js";
+import type { WorkflowDagExecutionResult } from "./services/workflow-dag-executor.js";
 import type { RunScheduleResult, UpsertScheduleRequest } from "../schedule/index.js";
 import type { DrainResult, EnqueueWorkRequest } from "../work/index.js";
 import type { MemoryGetRequest, MemoryGetResult, MemorySearchOptions } from "../memory/index.js";
@@ -140,6 +141,11 @@ export interface RunTemplateService {
 
 export interface WorkflowStatusService {
   getStatus(runId: string): Promise<WorkflowRunGraphStatus>;
+}
+
+export interface WorkflowDagExecutorService {
+  execute(runId: string): Promise<WorkflowDagExecutionResult>;
+  resume(runId: string): Promise<WorkflowDagExecutionResult>;
 }
 
 export interface WorkflowTemplateCatalogService {

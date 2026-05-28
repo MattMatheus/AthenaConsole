@@ -118,6 +118,13 @@ export const API_V1_ROUTES: ApiRouteDefinition[] = [
     lifecycle: "stable",
     surface: "canonical"
   },
+  {
+    method: "POST",
+    path: `${API_V1_PREFIX}/workflow-runs/:runId/execute`,
+    operationId: "executeWorkflowRun",
+    lifecycle: "stable",
+    surface: "canonical"
+  },
   { method: "GET", path: `${API_V1_PREFIX}/memory/search`, operationId: "searchMemory" },
   { method: "POST", path: `${API_V1_PREFIX}/memory/get`, operationId: "getMemory" },
   { method: "POST", path: `${API_V1_PREFIX}/work/enqueue`, operationId: "enqueueWork" },

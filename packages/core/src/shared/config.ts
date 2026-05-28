@@ -209,7 +209,7 @@ const DEFAULT_CONFIG: AthenaConfig = {
     maxInjectedChars: 2_500
   },
   plugins: {
-    searchPaths: [".athena/plugins"],
+    searchPaths: ["sample-plugins", ".athena/plugins"],
     systemPluginPaths: []
   },
   context: {

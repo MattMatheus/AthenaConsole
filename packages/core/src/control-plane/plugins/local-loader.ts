@@ -280,8 +280,8 @@ export function indexLocalPluginPackage(
       manifest: pluginManifest ?? {},
       validationErrors: issues
     });
-    appState.agents.deleteForPlugin(pluginId, pluginVersion);
-    appState.workflowTemplates.deleteForPlugin(pluginId, pluginVersion);
+    reconcileIndexedAgents(appState, pluginId, pluginVersion, status === "loaded" ? agents : []);
+    reconcileIndexedWorkflowTemplates(appState, pluginId, pluginVersion, status === "loaded" ? workflowTemplates : []);
     if (status === "loaded") {
       for (const agent of agents) {
         appState.agents.upsert({
@@ -325,6 +325,53 @@ export function indexLocalPluginPackage(
     agents: status === "loaded" ? agents : [],
     workflowTemplates: status === "loaded" ? workflowTemplates : []
   };
+}
+
+function reconcileIndexedAgents(
+  appState: AppStateDatabase,
+  pluginId: string,
+  pluginVersion: string,
+  agents: IndexedAgentSummary[]
+): void {
+  const currentKeys = new Set(agents.map((agent) => resourceKey(agent.id, agent.version)));
+  for (const existing of appState.agents.listForPlugin(pluginId, pluginVersion)) {
+    if (currentKeys.has(resourceKey(existing.id, existing.version))) {
+      continue;
+    }
+    try {
+      appState.agents.delete(existing.id, existing.version);
+    } catch {
+      appState.agents.upsert({
+        id: existing.id,
+        version: existing.version,
+        pluginId,
+        pluginVersion,
+        name: existing.name,
+        capabilities: existing.capabilities,
+        manifest: existing.manifest,
+        status: "invalid"
+      });
+    }
+  }
+}
+
+function reconcileIndexedWorkflowTemplates(
+  appState: AppStateDatabase,
+  pluginId: string,
+  pluginVersion: string,
+  workflowTemplates: IndexedWorkflowTemplateSummary[]
+): void {
+  const currentKeys = new Set(workflowTemplates.map((template) => resourceKey(template.id, template.version)));
+  for (const existing of appState.workflowTemplates.listForPlugin(pluginId, pluginVersion)) {
+    if (currentKeys.has(resourceKey(existing.id, existing.version))) {
+      continue;
+    }
+    appState.workflowTemplates.delete(existing.id, existing.version, pluginId, pluginVersion);
+  }
+}
+
+function resourceKey(id: string, version: string): string {
+  return `${id}@${version}`;
 }
 
 function resolveConfiguredPath(config: AthenaConfig, path: string): string {

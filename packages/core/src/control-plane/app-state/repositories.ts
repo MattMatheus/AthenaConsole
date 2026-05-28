@@ -353,7 +353,7 @@ export interface AgentIndexUpsert {
   name: string;
   capabilities: string[];
   manifest: unknown;
-  status: "loaded";
+  status: "loaded" | "invalid";
   now?: Date;
 }
 
@@ -361,6 +361,7 @@ export class AgentIndexRepository {
   private readonly listStatement: Database.Statement;
   private readonly listForPluginStatement: Database.Statement;
   private readonly upsertStatement: Database.Statement;
+  private readonly deleteStatement: Database.Statement;
   private readonly deleteForPluginStatement: Database.Statement;
 
   constructor(private readonly db: Database.Database) {
@@ -404,6 +405,7 @@ export class AgentIndexRepository {
         status = excluded.status,
         updated_at = excluded.updated_at
     `);
+    this.deleteStatement = db.prepare("delete from agent_index where id = ? and version = ?");
     this.deleteForPluginStatement = db.prepare("delete from agent_index where plugin_id = ? and plugin_version = ?");
   }
 
@@ -436,6 +438,10 @@ export class AgentIndexRepository {
 
   deleteForPlugin(pluginId: string, pluginVersion: string): number {
     return this.deleteForPluginStatement.run(pluginId, pluginVersion).changes;
+  }
+
+  delete(id: string, version: string): number {
+    return this.deleteStatement.run(id, version).changes;
   }
 
   private mapRow(row: AgentIndexRow): AgentIndexRecord {
@@ -487,6 +493,7 @@ export class WorkflowTemplateIndexRepository {
   private readonly listStatement: Database.Statement;
   private readonly listForPluginStatement: Database.Statement;
   private readonly upsertStatement: Database.Statement;
+  private readonly deleteStatement: Database.Statement;
   private readonly deleteForPluginStatement: Database.Statement;
 
   constructor(private readonly db: Database.Database) {
@@ -534,6 +541,9 @@ export class WorkflowTemplateIndexRepository {
         validation_errors_json = excluded.validation_errors_json,
         updated_at = excluded.updated_at
     `);
+    this.deleteStatement = db.prepare(
+      "delete from workflow_template_index where id = ? and version = ? and plugin_id = ? and plugin_version = ?"
+    );
     this.deleteForPluginStatement = db.prepare("delete from workflow_template_index where plugin_id = ? and plugin_version = ?");
   }
 
@@ -568,6 +578,10 @@ export class WorkflowTemplateIndexRepository {
 
   deleteForPlugin(pluginId: string, pluginVersion: string): number {
     return this.deleteForPluginStatement.run(pluginId, pluginVersion).changes;
+  }
+
+  delete(id: string, version: string, pluginId: string, pluginVersion: string): number {
+    return this.deleteStatement.run(id, version, pluginId, pluginVersion).changes;
   }
 
   private mapRow(row: WorkflowTemplateIndexRow): WorkflowTemplateIndexRecord {

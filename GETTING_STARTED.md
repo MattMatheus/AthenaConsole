@@ -77,7 +77,20 @@ To stop and remove containers:
 podman compose -f docker-compose.prod.yml down
 ```
 
-## 6. Run A Sample Persona
+## 6. Run The First-Run Demo Workflow
+
+The local stack includes a checked-in sample plugin at `sample-plugins/first-run-demo`.
+
+```bash
+curl "http://127.0.0.1:8787/api/v1/workflow-templates?pluginId=team-orchestrator.samples.first-run"
+curl -X POST http://127.0.0.1:8787/api/v1/workflow-templates/first-run.demo.workflow/instantiate \
+  -H "content-type: application/json" \
+  -d '{"missionId":"mission-first-run-demo","taskIdPrefix":"first-run-demo","inputs":{"demoName":"First-Run Demo"}}'
+curl -X POST http://127.0.0.1:8787/api/v1/workflow-runs/workflow-run-mission-first-run-demo/execute
+curl http://127.0.0.1:8787/api/v1/workflow-runs/workflow-run-mission-first-run-demo/status
+```
+
+## 7. Run A Sample Persona
 
 In a second terminal (from the repository root), run:
 

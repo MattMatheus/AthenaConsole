@@ -1,0 +1,37 @@
+schemaVersion: 1
+plugin:
+  id: team-orchestrator.samples.first-run
+  name: First-Run Demo
+  version: 0.1.0
+  description: Local sample plugin that exercises the canonical workflow DAG run loop.
+  authors:
+    - name: Team Orchestrator
+  agents:
+    - path: agents/demo-agent.agent.yaml
+      id: first-run.demo.local
+      version: 0.1.0
+  workflowTemplates:
+    - path: workflows/first-run-demo.workflow.yaml
+      id: first-run.demo.workflow
+      version: 0.1.0
+  docs:
+    readme: docs/README.md
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    manifestSchema: team-orchestrator.manifests.v1
+    runtimeBackends:
+      - local-process
+    platforms:
+      - any
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+  ui:
+    icon: route
+    color: "#2a9d8f"
+    tags:
+      - sample
+      - first-run
+      - workflow

@@ -2229,6 +2229,36 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       additionalProperties: true
     }
   },
+  executeWorkflowRun: {
+    operationId: "executeWorkflowRun",
+    method: "POST",
+    path: "/api/v1/workflow-runs/:runId/execute",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        runId: STRING_SCHEMA
+      },
+      required: ["runId"]
+    },
+    responseSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        runId: STRING_SCHEMA,
+        status: { type: "string", enum: ["pending", "running", "completed", "failed", "resumable", "cancelled"] },
+        executedStepIds: {
+          type: "array",
+          items: STRING_SCHEMA
+        },
+        snapshot: {
+          type: "object",
+          additionalProperties: true
+        }
+      },
+      required: ["runId", "status", "executedStepIds", "snapshot"]
+    }
+  },
   searchMemory: {
     operationId: "searchMemory",
     method: "GET",

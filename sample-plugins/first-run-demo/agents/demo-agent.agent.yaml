@@ -1,0 +1,55 @@
+schemaVersion: 1
+agent:
+  id: first-run.demo.local
+  name: First-Run Demo Agent
+  version: 0.1.0
+  description: Produces deterministic local evidence for first-run workflow demos.
+  capabilities:
+    - demo.prepare
+    - demo.verify
+    - artifacts.produce
+  inputs:
+    demoName:
+      type: string
+      required: true
+    stepPurpose:
+      type: string
+      required: true
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: demoEvidence
+        label: Demo Evidence
+        kind: supporting
+        format: json
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - agents/demo-runner.js
+  runtime:
+    preferredBackend: local-process
+    backendPreferences:
+      - local-process
+    workingDirectory: .
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+  limits:
+    maxRuntimeSeconds: 60
+    maxToolCalls: 5
+    maxRepeatedActions: 1
+    maxRetries: 0
+    maxFollowUpTasks: 0
+    maxOutputBytes: 32768
+    maxArtifacts: 2
+  observability:
+    mode: inspectable
+    eventHints:
+      - run.started
+      - artifact.created
+      - run.completed
+  compatibility:
+    teamOrchestrator: ">=0.1.0"

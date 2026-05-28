@@ -65,6 +65,7 @@ import { LocalReadinessService } from "./services/readiness.js";
 import { LocalRunService } from "./services/run-service.js";
 import { LocalStateDiagnosticsService } from "./services/state-diagnostics.js";
 import { LocalWorkflowStatusService } from "./services/workflow-status.js";
+import { LocalWorkflowDagExecutorService } from "./services/workflow-dag-executor.js";
 import { LocalWorkflowTemplateCatalogService } from "./services/workflow-template-catalog.js";
 import { recoverStaleTaskAndMissionRuns, recoverStaleWorkflowDagRuns } from "./services/stale-run-recovery.js";
 import type {
@@ -93,11 +94,13 @@ import type {
   StateDiagnosticsService,
   TaskWorkbenchService,
   WorkflowStatusService,
+  WorkflowDagExecutorService,
   WorkflowTemplateCatalogService,
   WorkService
 } from "./interfaces.js";
 import { FileStateStore, type StateStore } from "./state-store.js";
 import { openAppStateDatabase } from "./app-state/index.js";
+import { indexConfiguredLocalPlugins } from "./plugins/index.js";
 import { SqliteHarnessProfileStateStore } from "./state-store/sqlite-harness-profile-state-store.js";
 
 interface LocalControlPlaneOptions {
@@ -127,6 +130,7 @@ export interface ControlPlaneServices {
   harnessProfileService: HarnessProfileService;
   runTemplateService: RunTemplateService;
   workflowStatusService: WorkflowStatusService;
+  workflowDagExecutorService: WorkflowDagExecutorService;
   workflowTemplateCatalogService: WorkflowTemplateCatalogService;
   workService: WorkService;
   memoryService: MemoryService;
@@ -183,6 +187,7 @@ function createDistributedLock(options: LocalControlPlaneOptions): IDistributedL
 export function createLocalControlPlaneServices(options: LocalControlPlaneOptions): ControlPlaneServices {
   const appState = openAppStateDatabase(options.config);
   try {
+    indexConfiguredLocalPlugins(options.config, { appState });
     recoverStaleTaskAndMissionRuns(appState);
     recoverStaleWorkflowDagRuns(appState);
   } finally {
@@ -265,6 +270,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     harnessProfileService: new LocalHarnessProfileService(stateStore, options.config),
     runTemplateService: new LocalRunTemplateService(stateStore, runService),
     workflowStatusService,
+    workflowDagExecutorService: new LocalWorkflowDagExecutorService(options.config),
     workflowTemplateCatalogService,
     workService,
     memoryService,

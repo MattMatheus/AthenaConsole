@@ -1,0 +1,48 @@
+schemaVersion: 1
+workflow:
+  id: first-run.demo.workflow
+  name: First-Run Demo Workflow
+  version: 0.1.0
+  description: Runs a two-step local workflow that produces inspectable status, events, and artifact metadata.
+  goal: Demonstrate that Team Orchestrator can instantiate, execute, and inspect a canonical workflow DAG run locally.
+  context:
+    audience: first-run-operator
+    evidence: deterministic-local-json
+  inputs:
+    demoName:
+      type: string
+      label: Demo Name
+      required: false
+      default: First-Run Demo
+  tasks:
+    - id: prepare
+      title: Prepare demo evidence
+      description: Creates the initial deterministic evidence record for the local demo.
+      capabilityRequirements:
+        - demo.prepare
+        - artifacts.produce
+      assignedAgentId: first-run.demo.local
+      assignedAgentVersion: 0.1.0
+      inputs:
+        demoName: "{{demoName}}"
+        stepPurpose: Prepare the first-run demo evidence package.
+    - id: verify
+      title: Verify demo evidence
+      description: Confirms the demo evidence path can complete after its dependency.
+      capabilityRequirements:
+        - demo.verify
+        - artifacts.produce
+      assignedAgentId: first-run.demo.local
+      assignedAgentVersion: 0.1.0
+      dependsOn:
+        - prepare
+      inputs:
+        demoName: "{{demoName}}"
+        stepPurpose: Verify the first-run demo evidence package.
+  ui:
+    icon: route
+    color: "#2a9d8f"
+    tags:
+      - sample
+      - first-run
+      - workflow

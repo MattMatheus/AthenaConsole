@@ -41,7 +41,7 @@ describe("loadConfig", () => {
       expect(config.history?.maxEntries).toBe(200);
       expect(config.memory?.enabled).toBe(false);
       expect(config.memory?.includeTranscripts).toBe(false);
-      expect(config.plugins?.searchPaths).toEqual([".athena/plugins"]);
+      expect(config.plugins?.searchPaths).toEqual(["sample-plugins", ".athena/plugins"]);
       expect(config.plugins?.systemPluginPaths).toEqual([]);
       expect(config.context?.strategy).toBe("raw");
       expect(config.context?.maxChars).toBe(32000);

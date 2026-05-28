@@ -3,7 +3,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validatePluginPackage } from "../src/control-plane/manifests/index.js";
 
-const examplesRoot = resolve(
+const manifestRoots = [
+  resolve(
   dirname(fileURLToPath(import.meta.url)),
   "..",
   "schemas",
@@ -11,25 +12,30 @@ const examplesRoot = resolve(
   "manifests",
   "v1",
   "examples"
-);
-const exampleNames = readdirSync(examplesRoot, { withFileTypes: true })
-  .filter((entry) => entry.isDirectory())
-  .map((entry) => entry.name)
-  .sort();
+  ),
+  resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "sample-plugins")
+];
 
 let failed = false;
-for (const exampleName of exampleNames) {
-  const exampleRoot = resolve(examplesRoot, exampleName);
-  const result = validatePluginPackage(exampleRoot);
-  if (result.ok) {
-    console.log(`ok ${exampleName}`);
-    continue;
-  }
+for (const manifestRoot of manifestRoots) {
+  const exampleNames = readdirSync(manifestRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
 
-  failed = true;
-  console.error(`failed ${exampleName}`);
-  for (const issue of result.issues) {
-    console.error(`  ${issue.file ?? "manifest"} ${issue.path}: ${issue.message}`);
+  for (const exampleName of exampleNames) {
+    const exampleRoot = resolve(manifestRoot, exampleName);
+    const result = validatePluginPackage(exampleRoot);
+    if (result.ok) {
+      console.log(`ok ${exampleName}`);
+      continue;
+    }
+
+    failed = true;
+    console.error(`failed ${exampleName}`);
+    for (const issue of result.issues) {
+      console.error(`  ${issue.file ?? "manifest"} ${issue.path}: ${issue.message}`);
+    }
   }
 }
 

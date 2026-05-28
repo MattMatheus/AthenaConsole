@@ -128,6 +128,18 @@ describe("api schemas", () => {
     ).not.toThrow();
 
     expect(() =>
+      assertApiResponseSchema("executeWorkflowRun", {
+        runId: "workflow-run-demo",
+        status: "completed",
+        executedStepIds: ["prepare", "verify"],
+        snapshot: {
+          run: { id: "workflow-run-demo", status: "completed" },
+          steps: []
+        }
+      })
+    ).not.toThrow();
+
+    expect(() =>
       assertApiResponseSchema("getFleetSummary", {
         total: 4,
         running: 1
