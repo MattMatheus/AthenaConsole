@@ -1,0 +1,82 @@
+---
+kind: bug
+id: BUG-20260528-production-compose-auth-posture
+status: intake
+priority: P0
+reported_by: Code Quality Audit
+source_story: docs/product/audits/2026-05-28-code-quality-audit.md#cr-1-production-like-stack-exposes-unauthenticated-control-apis
+impact_metric: Production-like API startup refuses externally bound unauthenticated control APIs unless an explicit local-dev override is set.
+ready: false
+---
+
+# Bug: Production-Like Compose Can Expose Unauthenticated Control APIs
+
+## Metadata
+- `id`: BUG-20260528-production-compose-auth-posture
+- `priority`: P0
+- `reported_by`: Code Quality Audit
+- `source_story`: docs/product/audits/2026-05-28-code-quality-audit.md#cr-1-production-like-stack-exposes-unauthenticated-control-apis
+- `status`: intake
+- `decision_refs`: [ADR-0013]
+- `impact_metric`: Production-like API startup refuses externally bound unauthenticated control APIs unless an explicit local-dev override is set.
+
+## Priority Definitions
+- `P0`: release-blocking, data loss/corruption, or security-critical
+- `P1`: major functional regression or blocked acceptance criteria
+- `P2`: moderate defect with workaround
+- `P3`: minor defect, polish issue, or low-impact inconsistency
+
+## Summary
+The production-like Docker stack binds the API to `0.0.0.0` and publishes port `8787`, while core auth and authz default to disabled or allow. The console password gate is client-only and the API client does not add server-verifiable identity or auth headers.
+
+## Expected Behavior
+- Production-like API modes require explicit server-side auth posture.
+- Startup fails when the API binds externally with auth disabled unless an explicit local-dev override is present.
+- Console-to-API requests use a server-verifiable auth/identity mechanism for protected modes.
+
+## Actual Behavior
+- `docker-compose.prod.yml` exposes the API port.
+- `auth.enabled` defaults to `false`.
+- `authz.mode` defaults to `off` and `authz.defaultDecision` defaults to `allow`.
+- Console password gating is client-side only.
+
+## Reproduction Steps
+1. Review `docker-compose.prod.yml` for API host and port binding.
+2. Review `packages/core/src/shared/config.ts` auth/authz defaults.
+3. Review console API client calls for missing auth/identity headers.
+
+## Evidence
+- Audit finding CR-1 in `docs/product/audits/2026-05-28-code-quality-audit.md`.
+- `docker-compose.prod.yml` publishes `8787:8787`.
+- `packages/core/src/shared/config.ts` defaults auth disabled and authz allow/off.
+- `apps/console/src/services/apiClient.ts` fetches API routes without auth headers.
+
+## Constraints
+- Preserve an explicit local-only developer mode.
+- Avoid relying on client-only password gates for API protection.
+- Do not silently change security posture without docs and tests.
+
+## Risks
+- Breaking existing local compose workflows if modes are not named and documented.
+- Partial auth implementation could create a false sense of protection.
+
+## Suggested Fix Direction
+- Define local-only, LAN, and production-like security modes.
+- Add server-side API auth enforcement for protected modes.
+- Add startup guardrails for externally bound unauthenticated APIs.
+- Update compose docs and smoke tests for the selected modes.
+
+## Next Step
+PM refinement should split this into one implementation story or confirm whether an architecture decision is needed for the auth mechanism.
+
+## Engineering Handoff
+- `change_summary`:
+- `validation_evidence`:
+- `qa_focus`:
+- `open_risks`:
+
+## QA Verdict
+- `verdict`:
+- `evidence_quality`:
+- `defects`:
+- `state_transition`:

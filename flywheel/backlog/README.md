@@ -6,23 +6,24 @@ This is the operational view of current and future work.
 
 Work currently being implemented:
 
-- `engineering/active/STORY-20260528-workflow-state-store-resumption.md`
+No active engineering or architecture work.
 
 ## Next
 
-Refined work ready to activate after the current story completes:
+Refined work ready to activate:
 
-- `engineering/ready/STORY-20260528-workflow-status-api.md`
+No ready engineering or architecture work.
 
 ## Later
 
 Candidate work that needs PM refinement before activation:
 
-- `engineering/intake/STORY-20260528-run-templates.md`
-- `engineering/intake/STORY-20260528-verification-evidence-model.md`
-- `engineering/intake/STORY-20260528-runtime-isolation-policy-packs.md`
-- `engineering/intake/STORY-20260528-a2a-observability-reframe.md`
-- `engineering/intake/BUG-20260528-glob10-deprecation-warning.md`
+- `engineering/intake/BUG-20260528-production-compose-auth-posture.md`
+- `architecture/intake/ARCH-20260528-canonical-orchestration-state-model.md`
+- `engineering/intake/STORY-20260528-stale-run-recovery.md`
+- `engineering/intake/STORY-20260528-app-state-list-query-bounds.md`
+- `engineering/intake/BUG-20260528-product-direction-backlog-sync.md`
+- `architecture/intake/ARCH-20260528-service-decomposition-plan.md`
 
 ## Rule
 
