@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { AppStateDatabase, RunRecord } from "../app-state/index.js";
+import { LocalWorkflowStateService } from "./workflow-state.js";
 
 export const STALE_RUNNING_RUN_CODE = "STALE_RUNNING_RUN";
 export const STALE_RUNNING_RUN_EVENT_TYPE = "run.recovered_stale";
@@ -8,6 +9,11 @@ export interface StaleRunRecoveryResult {
   taskRunsRecovered: number;
   missionRunsRecovered: number;
   recoveredRunIds: string[];
+}
+
+export interface StaleWorkflowDagRunRecoveryResult {
+  workflowDagRunsRecovered: number;
+  recoveredWorkflowDagRunIds: string[];
 }
 
 export function recoverStaleTaskAndMissionRuns(appState: AppStateDatabase, now: Date = new Date()): StaleRunRecoveryResult {
@@ -94,5 +100,29 @@ export function recoverStaleTaskAndMissionRuns(appState: AppStateDatabase, now: 
     taskRunsRecovered,
     missionRunsRecovered,
     recoveredRunIds
+  };
+}
+
+export function recoverStaleWorkflowDagRuns(appState: AppStateDatabase, now: Date = new Date()): StaleWorkflowDagRunRecoveryResult {
+  const workflowState = new LocalWorkflowStateService(appState);
+  let workflowDagRunsRecovered = 0;
+  const recoveredWorkflowDagRunIds: string[] = [];
+
+  while (true) {
+    const runningRuns = appState.workflowDagRuns.list({ status: "running", limit: 1000 });
+    const staleRuns = runningRuns.filter((run) => appState.workflowDagRuns.listSteps(run.id).some((step) => step.status === "running"));
+    if (staleRuns.length === 0) {
+      break;
+    }
+    for (const run of staleRuns) {
+      workflowState.recoverStaleRunningSteps(run.id, now);
+      workflowDagRunsRecovered += 1;
+      recoveredWorkflowDagRunIds.push(run.id);
+    }
+  }
+
+  return {
+    workflowDagRunsRecovered,
+    recoveredWorkflowDagRunIds
   };
 }

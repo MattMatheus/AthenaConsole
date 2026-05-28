@@ -59,6 +59,16 @@ export class LocalWorkflowDagExecutorService {
     });
   }
 
+  async resume(runId: string): Promise<WorkflowDagExecutionResult> {
+    return this.withAppStateAsync(async (appState) => {
+      const workflowState = new LocalWorkflowStateService(appState);
+      workflowState.recoverStaleRunningSteps(runId);
+      const resumable = workflowState.resumeFromFirstFailedStep(runId);
+      resetProjectedTasksForPendingSteps(appState, resumable);
+      return this.execute(runId);
+    });
+  }
+
   private async withAppStateAsync<T>(access: (appState: AppStateDatabase) => Promise<T>): Promise<T> {
     if (this.options.appState) {
       return access(this.options.appState);
@@ -69,6 +79,19 @@ export class LocalWorkflowDagExecutorService {
     } finally {
       appState.close();
     }
+  }
+}
+
+function resetProjectedTasksForPendingSteps(appState: AppStateDatabase, snapshot: WorkflowDagRunSnapshot): void {
+  for (const step of snapshot.steps) {
+    if (step.status !== "pending") {
+      continue;
+    }
+    const task = appState.tasks.findByWorkflowDagStep(snapshot.run.id, step.stepId);
+    if (!task || task.status === "ready" || task.status === "completed" || task.status === "archived") {
+      continue;
+    }
+    appState.tasks.update(task.id, { status: "ready" });
   }
 }
 

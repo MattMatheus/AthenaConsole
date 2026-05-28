@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -140,6 +140,87 @@ process.stdin.on("end", () => {
           blockingStepIds: ["plan"]
         });
         expect(appState.tasks.get("executor-fail-review")).toMatchObject({ status: "ready" });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("resumes failed workflow DAG runs without re-running completed dependencies", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-workflow-dag-executor-resume-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "fail-review-once.js"),
+        `
+const { appendFileSync, existsSync, writeFileSync } = require("node:fs");
+const { join } = require("node:path");
+let raw = "";
+process.stdin.on("data", (chunk) => { raw += chunk; });
+process.stdin.on("end", () => {
+  const envelope = JSON.parse(raw);
+  const step = envelope.task.provenance.workflowDagStepId;
+  appendFileSync(join(__dirname, "attempts.log"), step + "\\n");
+  const marker = join(__dirname, "review-failed-once");
+  if (step === "review" && !existsSync(marker)) {
+    writeFileSync(marker, "failed");
+    process.stderr.write("review failed once");
+    process.exit(7);
+  }
+  process.stdout.write(JSON.stringify({
+    output: { taskId: envelope.task.id, step },
+    artifacts: []
+  }));
+});
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedExecutableWorkflowTemplate(appState, pluginDir, "fail-review-once.js", {
+          workflowTemplateId: "executor.resume.workflow",
+          agentId: "executor.resume.agent"
+        });
+        const templateCatalog = new LocalWorkflowTemplateCatalogService(config, { appState });
+        const instantiation = await templateCatalog.instantiate("executor.resume.workflow", {
+          missionId: "mission-executor-resume",
+          taskIdPrefix: "executor-resume"
+        });
+        const executor = new LocalWorkflowDagExecutorService(config, { appState });
+        const statusService = new LocalWorkflowStatusService(config, { appState });
+
+        const failed = await executor.execute(instantiation.workflowDagRun.id);
+        const resumed = await executor.resume(instantiation.workflowDagRun.id);
+        const status = await statusService.getStatus(instantiation.workflowDagRun.id);
+        const attempts = readFileSync(join(pluginDir, "attempts.log"), "utf8").trim().split("\n");
+
+        expect(failed).toMatchObject({
+          status: "failed",
+          executedStepIds: ["plan", "review"]
+        });
+        expect(resumed).toMatchObject({
+          status: "completed",
+          executedStepIds: ["review"]
+        });
+        expect(attempts).toEqual(["plan", "review", "review"]);
+        expect(status.progress).toMatchObject({
+          completedSteps: 2,
+          failedSteps: 0,
+          percentComplete: 100
+        });
+        expect(status.events.map((event) => event.type)).toContain("workflow.resume.prepared");
+        expect(status.nodes.find((node) => node.id === "plan")).toMatchObject({
+          status: "completed",
+          attempt: 1
+        });
+        expect(status.nodes.find((node) => node.id === "review")).toMatchObject({
+          status: "completed",
+          attempt: 2
+        });
       } finally {
         appState.close();
       }

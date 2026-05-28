@@ -6,9 +6,11 @@ import { openAppStateDatabase } from "../src/control-plane/app-state/index.js";
 import { createLocalControlPlaneServices } from "../src/control-plane/services.js";
 import {
   recoverStaleTaskAndMissionRuns,
+  recoverStaleWorkflowDagRuns,
   STALE_RUNNING_RUN_CODE,
   STALE_RUNNING_RUN_EVENT_TYPE
 } from "../src/control-plane/services/stale-run-recovery.js";
+import { LocalWorkflowStateService } from "../src/control-plane/services/workflow-state.js";
 import { loadConfig } from "../src/shared/config.js";
 
 describe("stale task and mission run recovery", () => {
@@ -132,6 +134,84 @@ describe("stale task and mission run recovery", () => {
         expect(appState.runs.require("run-task-stale")).toMatchObject({
           status: "failed",
           endedAt: "2026-05-28T11:00:00.000Z"
+        });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("recovers stale running workflow DAG steps during startup", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-stale-workflow-dag-recovery-startup-"));
+    try {
+      const config = loadConfig(dir);
+      let appState = openAppStateDatabase(config);
+      try {
+        const workflowState = new LocalWorkflowStateService(appState);
+        workflowState.createRun({
+          runId: "workflow-run-startup-stale",
+          workflowTemplateId: "startup.stale.workflow",
+          tasks: [{ id: "plan" }, { id: "review", dependsOn: ["plan"] }]
+        });
+        workflowState.startStep("workflow-run-startup-stale", "plan", new Date("2026-05-28T10:00:00.000Z"));
+      } finally {
+        appState.close();
+      }
+
+      const services = createLocalControlPlaneServices({ config });
+      await services.shutdown?.();
+
+      appState = openAppStateDatabase(config);
+      try {
+        const snapshot = appState.workflowDagRuns.requireSnapshot("workflow-run-startup-stale");
+        expect(snapshot.run).toMatchObject({
+          status: "resumable",
+          failure: {
+            code: "STALE_RUNNING_STEPS",
+            stepIds: ["plan"]
+          }
+        });
+        expect(snapshot.steps.find((step) => step.stepId === "plan")).toMatchObject({
+          status: "failed",
+          failure: {
+            code: "STALE_RUNNING_STEP"
+          }
+        });
+        expect(snapshot.events.map((event) => event.type)).toContain("workflow.recovered_stale_steps");
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("recovers stale workflow DAG runs idempotently", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-stale-workflow-dag-recovery-"));
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        const workflowState = new LocalWorkflowStateService(appState);
+        workflowState.createRun({
+          runId: "workflow-run-stale-direct",
+          workflowTemplateId: "direct.stale.workflow",
+          tasks: [{ id: "plan" }]
+        });
+        workflowState.startStep("workflow-run-stale-direct", "plan", new Date("2026-05-28T10:00:00.000Z"));
+
+        const first = recoverStaleWorkflowDagRuns(appState, new Date("2026-05-28T11:00:00.000Z"));
+        const second = recoverStaleWorkflowDagRuns(appState, new Date("2026-05-28T12:00:00.000Z"));
+
+        expect(first).toEqual({
+          workflowDagRunsRecovered: 1,
+          recoveredWorkflowDagRunIds: ["workflow-run-stale-direct"]
+        });
+        expect(second).toEqual({
+          workflowDagRunsRecovered: 0,
+          recoveredWorkflowDagRunIds: []
         });
       } finally {
         appState.close();

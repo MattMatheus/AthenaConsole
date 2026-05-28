@@ -66,7 +66,7 @@ import { LocalRunService } from "./services/run-service.js";
 import { LocalWorkflowService } from "./services/workflow-service.js";
 import { LocalWorkflowStatusService } from "./services/workflow-status.js";
 import { LocalWorkflowTemplateCatalogService } from "./services/workflow-template-catalog.js";
-import { recoverStaleTaskAndMissionRuns } from "./services/stale-run-recovery.js";
+import { recoverStaleTaskAndMissionRuns, recoverStaleWorkflowDagRuns } from "./services/stale-run-recovery.js";
 import type {
   A2aDlqService,
   A2aFlowService,
@@ -181,6 +181,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
   const appState = openAppStateDatabase(options.config);
   try {
     recoverStaleTaskAndMissionRuns(appState);
+    recoverStaleWorkflowDagRuns(appState);
   } finally {
     appState.close();
   }

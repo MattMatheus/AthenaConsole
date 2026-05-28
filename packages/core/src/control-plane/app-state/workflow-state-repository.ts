@@ -106,6 +106,11 @@ export interface CreateWorkflowDagRunInput {
   now?: Date;
 }
 
+export interface ListWorkflowDagRunsOptions {
+  status?: WorkflowDagRunStatus;
+  limit?: number;
+}
+
 export interface UpdateWorkflowDagRunInput {
   status?: WorkflowDagRunStatus;
   failure?: unknown;
@@ -345,6 +350,22 @@ export class WorkflowDagRunRepository {
       .map((row) => mapWorkflowDagRunRow(row as WorkflowDagRunRow));
   }
 
+  list(options: ListWorkflowDagRunsOptions = {}): WorkflowDagRunRecord[] {
+    const clauses: string[] = [];
+    const params: Record<string, unknown> = {
+      limit: clampWorkflowDagRunListLimit(options.limit)
+    };
+    if (options.status) {
+      clauses.push("status = @status");
+      params.status = options.status;
+    }
+    const where = clauses.length > 0 ? `where ${clauses.join(" and ")}` : "";
+    return this.db
+      .prepare(workflowDagRunSelectSql(`${where} order by updated_at desc, created_at desc limit @limit`))
+      .all(params)
+      .map((row) => mapWorkflowDagRunRow(row as WorkflowDagRunRow));
+  }
+
   listSteps(runId: string): WorkflowDagStepRecord[] {
     return this.listStepsStatement.all(runId).map((row) => mapWorkflowDagStepRow(row as WorkflowDagRunStepRow));
   }
@@ -486,4 +507,11 @@ function mapWorkflowDagRunEventRow(row: WorkflowDagRunEventRow): WorkflowDagRunE
 
 function jsonOrNull(value: unknown): string | null {
   return value === undefined ? null : JSON.stringify(value);
+}
+
+function clampWorkflowDagRunListLimit(limit: number | undefined): number {
+  if (limit === undefined || !Number.isFinite(limit)) {
+    return 500;
+  }
+  return Math.max(1, Math.min(Math.trunc(limit), 1000));
 }
