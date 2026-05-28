@@ -20,7 +20,7 @@ const navItems: NavItem[] = [
   { path: "/sessions", label: "Sessions", match: /^\/sessions/ },
   { path: "/workflows", label: "Workflows", match: /^\/workflows/ },
   { path: "/run-templates", label: "Run Templates", match: /^\/run-templates/ },
-  { path: "/dlq", label: "DLQ Console", match: /^\/dlq/ },
+  { path: "/dlq", label: "Legacy A2A DLQ", match: /^\/dlq/ },
   { path: "/resources", label: "Resources", match: /^\/resources/ },
   { path: "/rbac", label: "RBAC", match: /^\/rbac/ },
   { path: "/audit-trail", label: "Audit Trail", match: /^\/audit-trail/ },

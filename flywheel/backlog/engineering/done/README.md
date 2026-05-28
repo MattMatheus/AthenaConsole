@@ -13,3 +13,4 @@ Engineering work accepted by QA.
 7. `STORY-20260528-runtime-isolation-policy-packs.md`
 8. `STORY-20260528-runtime-policy-pack-resolver.md`
 9. `STORY-20260528-a2a-observability-reframe.md`
+10. `STORY-20260528-legacy-a2a-surface-labeling.md`

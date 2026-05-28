@@ -1,7 +1,7 @@
 ---
 kind: story
 id: STORY-20260528-legacy-a2a-surface-labeling
-status: ready
+status: done
 owner_role: Engineer
 source: pm
 success_metric: Operators can tell that existing A2A/DLQ console surfaces are legacy compatibility surfaces, not primary Team Orchestrator workflows.
@@ -14,7 +14,7 @@ ready: true
 ## Metadata
 - `id`: STORY-20260528-legacy-a2a-surface-labeling
 - `owner_role`: Engineer
-- `status`: ready
+- `status`: done
 - `source`: pm
 - `decision_refs`: [ADR-0012, docs/product/epics/refinement/2026.21.00-epic-a2a-observability-reframe.md]
 - `success_metric`: Operators can tell that existing A2A/DLQ console surfaces are legacy compatibility surfaces, not primary Team Orchestrator workflows.
@@ -64,13 +64,18 @@ The console still exposes a `DLQ Console` tied to legacy A2A routes. Without con
 Engineering implementation.
 
 ## Engineering Handoff
-- `change_summary`:
-- `validation_evidence`:
-- `qa_focus`:
-- `open_risks`:
+- `change_summary`: Updated the console navigation label from `DLQ Console` to `Legacy A2A DLQ`, changed the DLQ page heading/lead copy to describe legacy A2A delivery failures, and added compatibility copy pointing operators back to current run/event/artifact-centered observability.
+- `validation_evidence`: `npm --workspace @athena/console run typecheck`; `npm --workspace @athena/console run lint`; `npm --workspace @athena/console run test`; browser QA at `/dlq` with screenshot `/tmp/legacy-a2a-dlq-labeling-qa.png`; `git diff --check`; `./flywheel/tools/validate_workflow_state.sh --format json`.
+- `qa_focus`: Confirm visible copy labels the surface as legacy A2A compatibility and no DLQ behavior/routes were changed.
+- `open_risks`: The legacy A2A API and DLQ page still exist; future cleanup may hide, rename, or remove them.
 
 ## QA Verdict
-- `verdict`:
-- `evidence_quality`:
-- `defects`:
-- `state_transition`:
+- `verdict`: pass
+- `evidence_quality`: Console typecheck, lint, and tests passed. Browser QA confirmed visible navigation, page heading, and compatibility copy use `Legacy A2A DLQ` and describe the surface as compatibility-oriented. No API client or mutation behavior was changed.
+- `defects`: none
+- `state_transition`: move to `done`
+
+## Transition History
+- `2026-05-28T15:33:59Z`: `ready` -> `active` by `Codex`; Engineering started
+- `2026-05-28T15:35:40Z`: `active` -> `qa` by `Codex`; Engineering handoff complete
+- `2026-05-28T15:35:49Z`: `qa` -> `done` by `Codex`; QA passed

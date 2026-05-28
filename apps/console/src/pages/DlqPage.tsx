@@ -130,8 +130,13 @@ export function DlqPage() {
 
   return (
     <section className={styles.page}>
-      <h2>DLQ Console</h2>
-      <p className={styles.lead}>Inspect failed A2A deliveries, re-queue recoverable messages, and discard with auditable notes.</p>
+      <h2>Legacy A2A DLQ</h2>
+      <p className={styles.lead}>
+        Inspect legacy A2A delivery failures, re-queue recoverable messages, and discard with auditable notes.
+      </p>
+      <p className={styles.settingsMuted}>
+        Compatibility surface: current Team Orchestrator observability is centered on task and workflow runs, events, and artifacts.
+      </p>
       {readDenied ? <p>DLQ visibility is restricted to authorized Viewer, Operator, or Admin identities.</p> : null}
       {writeDenied ? <p>DLQ write operations require Operator or Admin privileges.</p> : null}
 
