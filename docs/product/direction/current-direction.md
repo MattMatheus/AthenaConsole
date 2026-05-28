@@ -110,6 +110,21 @@ Source epic:
 
 - `docs/product/epics/refinement/2026.22.00-epic-state-ownership-and-sqlite-migration.md`
 
+### 2026.23 Operator Readiness And First-Run Experience
+
+Goal: make Team Orchestrator understandable and useful to a new local operator within the first few minutes after clone/startup.
+
+Next refinement sequence:
+
+- `flywheel/backlog/engineering/intake/STORY-20260528-first-run-health-readiness.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-sample-plugin-workflow-demo.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-console-empty-states-onboarding.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-quickstart-demo-docs-alignment.md`
+
+Source epic:
+
+- `docs/product/epics/refinement/2026.23.00-epic-operator-readiness-first-run.md`
+
 ### Current Flywheel Priorities
 
 Flywheel lanes are the operational source of truth. No engineering or architecture items are active right now.
@@ -144,7 +159,10 @@ Recently completed tracks now live in Flywheel done history:
 
 Deferred implementation candidates that need PM refinement:
 
-No deferred implementation candidates remain in the current state ownership sequence.
+- `flywheel/backlog/engineering/intake/STORY-20260528-first-run-health-readiness.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-sample-plugin-workflow-demo.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-console-empty-states-onboarding.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-quickstart-demo-docs-alignment.md`
 
 ## Promotion Rule
 

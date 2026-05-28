@@ -22,7 +22,10 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-No candidate engineering or architecture intake items.
+- `engineering/intake/STORY-20260528-first-run-health-readiness.md`
+- `engineering/intake/STORY-20260528-sample-plugin-workflow-demo.md`
+- `engineering/intake/STORY-20260528-console-empty-states-onboarding.md`
+- `engineering/intake/STORY-20260528-quickstart-demo-docs-alignment.md`
 
 ## Rule
 
