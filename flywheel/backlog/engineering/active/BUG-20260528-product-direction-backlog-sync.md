@@ -1,12 +1,12 @@
 ---
 kind: bug
 id: BUG-20260528-product-direction-backlog-sync
-status: intake
+status: active
 priority: P2
 reported_by: Code Quality Audit
 source_story: docs/product/audits/2026-05-28-code-quality-audit.md#m-2-product-direction-and-flywheel-queue-docs-are-stale-after-completed-work
 impact_metric: Product direction and root backlog summaries no longer point at moved or completed active/ready work.
-ready: false
+ready: true
 ---
 
 # Bug: Product Direction And Backlog Summaries Are Stale
@@ -16,7 +16,7 @@ ready: false
 - `priority`: P2
 - `reported_by`: Code Quality Audit
 - `source_story`: docs/product/audits/2026-05-28-code-quality-audit.md#m-2-product-direction-and-flywheel-queue-docs-are-stale-after-completed-work
-- `status`: intake
+- `status`: active
 - `decision_refs`: []
 - `impact_metric`: Product direction and root backlog summaries no longer point at moved or completed active/ready work.
 
@@ -54,10 +54,10 @@ Product direction and the root Flywheel backlog summary still reference active/r
 
 ## Suggested Fix Direction
 - Refresh current direction and root backlog summary.
-- Add a docs consistency check for moved/non-existent active and ready references.
+- Add a docs consistency check for moved/non-existent active and ready references, scoped to references in current direction and root backlog summary.
 
 ## Next Step
-PM refinement should decide whether this is a quick docs bug or a tooling story for consistency checks.
+Promote to engineering active after the P0 auth posture bug, or pull earlier only if the team wants a small docs/tooling cleanup before architecture work completes.
 
 ## Engineering Handoff
 - `change_summary`:
@@ -70,3 +70,6 @@ PM refinement should decide whether this is a quick docs bug or a tooling story 
 - `evidence_quality`:
 - `defects`:
 - `state_transition`:
+
+## Transition History
+- `2026-05-28T16:23:39Z`: `intake` -> `active` by `Codex`; PM refined and queued for engineering

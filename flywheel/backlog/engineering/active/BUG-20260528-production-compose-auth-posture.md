@@ -1,12 +1,12 @@
 ---
 kind: bug
 id: BUG-20260528-production-compose-auth-posture
-status: intake
+status: active
 priority: P0
 reported_by: Code Quality Audit
 source_story: docs/product/audits/2026-05-28-code-quality-audit.md#cr-1-production-like-stack-exposes-unauthenticated-control-apis
 impact_metric: Production-like API startup refuses externally bound unauthenticated control APIs unless an explicit local-dev override is set.
-ready: false
+ready: true
 ---
 
 # Bug: Production-Like Compose Can Expose Unauthenticated Control APIs
@@ -16,7 +16,7 @@ ready: false
 - `priority`: P0
 - `reported_by`: Code Quality Audit
 - `source_story`: docs/product/audits/2026-05-28-code-quality-audit.md#cr-1-production-like-stack-exposes-unauthenticated-control-apis
-- `status`: intake
+- `status`: active
 - `decision_refs`: [ADR-0013]
 - `impact_metric`: Production-like API startup refuses externally bound unauthenticated control APIs unless an explicit local-dev override is set.
 
@@ -61,13 +61,13 @@ The production-like Docker stack binds the API to `0.0.0.0` and publishes port `
 - Partial auth implementation could create a false sense of protection.
 
 ## Suggested Fix Direction
-- Define local-only, LAN, and production-like security modes.
-- Add server-side API auth enforcement for protected modes.
-- Add startup guardrails for externally bound unauthenticated APIs.
-- Update compose docs and smoke tests for the selected modes.
+- Define explicit local-only and production-like security modes in config and docs.
+- Add server-side API auth enforcement for production-like mode using the smallest repo-native mechanism available.
+- Add startup guardrails that reject externally bound unauthenticated API startup unless an explicit local-dev override is set.
+- Update compose docs and smoke/API tests for protected and local modes.
 
 ## Next Step
-PM refinement should split this into one implementation story or confirm whether an architecture decision is needed for the auth mechanism.
+Promote to engineering active first. Keep the first implementation bounded to server-side enforcement, startup guardrails, compose posture, and validation; defer broader identity/RBAC UX beyond the minimum required to close the exposure.
 
 ## Engineering Handoff
 - `change_summary`:
@@ -80,3 +80,6 @@ PM refinement should split this into one implementation story or confirm whether
 - `evidence_quality`:
 - `defects`:
 - `state_transition`:
+
+## Transition History
+- `2026-05-28T16:23:39Z`: `intake` -> `active` by `Codex`; PM refined and queued first for engineering

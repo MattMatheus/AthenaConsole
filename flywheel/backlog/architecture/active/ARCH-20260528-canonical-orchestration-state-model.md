@@ -1,12 +1,12 @@
 ---
 kind: architecture_story
 id: ARCH-20260528-canonical-orchestration-state-model
-status: intake
+status: active
 owner_role: Software Architect
 source: planning
 decision_owner: Software Architect
 success_metric: Workflow templates, missions, tasks, schedules, runs, and workflow DAG status have one documented canonical state ownership model.
-ready: false
+ready: true
 ---
 
 # Architecture Story: Canonical Orchestration State Model
@@ -14,7 +14,7 @@ ready: false
 ## Metadata
 - `id`: ARCH-20260528-canonical-orchestration-state-model
 - `owner_role`: Software Architect
-- `status`: intake
+- `status`: active
 - `source`: planning
 - `decision_refs`: [ADR-0009, ADR-0010, ADR-0012, ADR-0014]
 - `decision_owner`: Software Architect
@@ -32,7 +32,7 @@ The product direction says SQLite app state is the v1 durable store, but live or
 - Constraints: avoid feature expansion that deepens parallel state ownership; preserve migration paths for existing local state where needed.
 
 ## Outputs Required
-- Decision updates: ADR or architecture note naming the canonical state model and migration posture.
+- Decision updates: ADR or architecture note naming the canonical state model, migration posture, and first implementation sequence.
 - Architecture artifacts: state ownership map for workflow templates, missions, tasks, schedules, runs, events, artifacts, directives, harness profiles, run templates, and legacy workflows.
 - Risks and tradeoffs: compatibility, migration, restart recovery, console API shape, and schedule behavior.
 
@@ -50,23 +50,27 @@ The decision will set the target for follow-on implementation stories, including
 2. Workflow-template instantiation and schedule execution have an explicit target model.
 3. Legacy file-backed state is either migration-targeted or explicitly labeled as legacy.
 4. Follow-on engineering stories are listed in priority order.
+5. `STORY-20260528-stale-run-recovery` has clear status/recovery semantics to implement.
 
 ## Review Focus
 Confirm the decision removes ambiguity rather than adding another parallel abstraction.
 
 ## Next Step
-Architect should refine this before workflow DAG or state migration implementation continues.
+Promote to architecture active as the first architecture item. Engineering should use the resulting decision before starting stale run recovery.
 
 ## Intake Promotion Checklist
-- [ ] Decision scope is explicit and bounded.
-- [ ] Problem statement explains why the decision is needed now.
-- [ ] Inputs are listed and available.
-- [ ] Outputs are concrete and reviewable.
-- [ ] Alternatives and operational impact are explicit.
-- [ ] Follow-on implementation work is split out when needed.
+- [x] Decision scope is explicit and bounded.
+- [x] Problem statement explains why the decision is needed now.
+- [x] Inputs are listed and available.
+- [x] Outputs are concrete and reviewable.
+- [x] Alternatives and operational impact are explicit.
+- [x] Follow-on implementation work is split out when needed.
 
 ## Architecture Handoff
 - `decision_summary`:
 - `alternatives_considered`:
 - `operational_impact`:
 - `follow_on_work`:
+
+## Transition History
+- `2026-05-28T16:23:43Z`: `intake` -> `active` by `Codex`; PM refined and queued first for architecture

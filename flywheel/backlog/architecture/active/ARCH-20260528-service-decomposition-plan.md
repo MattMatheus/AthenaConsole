@@ -1,12 +1,12 @@
 ---
 kind: architecture_story
 id: ARCH-20260528-service-decomposition-plan
-status: intake
+status: active
 owner_role: Software Architect
 source: planning
 decision_owner: Software Architect
 success_metric: Large core service files have a bounded decomposition plan with first extraction candidates and validation scope.
-ready: false
+ready: true
 ---
 
 # Architecture Story: Core Service Decomposition Plan
@@ -14,7 +14,7 @@ ready: false
 ## Metadata
 - `id`: ARCH-20260528-service-decomposition-plan
 - `owner_role`: Software Architect
-- `status`: intake
+- `status`: active
 - `source`: planning
 - `decision_refs`: []
 - `decision_owner`: Software Architect
@@ -49,23 +49,27 @@ Follow-on implementation stories should reduce review risk without changing runt
 2. First extraction candidate is bounded to a no-behavior-change story.
 3. Validation expectations are listed per extracted module.
 4. Optional import-boundary rules are deferred until one extraction proves the pattern.
+5. The plan explicitly defers implementation until security and canonical state work are not blocked by the decomposition effort.
 
 ## Review Focus
 Confirm the plan reduces future change risk without creating premature abstractions.
 
 ## Next Step
-Architect should refine this after security and canonical orchestration state work are queued.
+Promote to architecture active after `ARCH-20260528-canonical-orchestration-state-model`; keep it behind security/state work in practical execution priority.
 
 ## Intake Promotion Checklist
-- [ ] Decision scope is explicit and bounded.
-- [ ] Problem statement explains why the decision is needed now.
-- [ ] Inputs are listed and available.
-- [ ] Outputs are concrete and reviewable.
-- [ ] Alternatives and operational impact are explicit.
-- [ ] Follow-on implementation work is split out when needed.
+- [x] Decision scope is explicit and bounded.
+- [x] Problem statement explains why the decision is needed now.
+- [x] Inputs are listed and available.
+- [x] Outputs are concrete and reviewable.
+- [x] Alternatives and operational impact are explicit.
+- [x] Follow-on implementation work is split out when needed.
 
 ## Architecture Handoff
 - `decision_summary`:
 - `alternatives_considered`:
 - `operational_impact`:
 - `follow_on_work`:
+
+## Transition History
+- `2026-05-28T16:23:43Z`: `intake` -> `active` by `Codex`; PM refined and queued after canonical state model

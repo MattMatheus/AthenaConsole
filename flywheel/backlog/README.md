@@ -6,7 +6,12 @@ This is the operational view of current and future work.
 
 Work currently being implemented:
 
-No active engineering or architecture work.
+- `engineering/active/BUG-20260528-production-compose-auth-posture.md`
+- `engineering/active/BUG-20260528-product-direction-backlog-sync.md`
+- `architecture/active/ARCH-20260528-canonical-orchestration-state-model.md`
+- `engineering/active/STORY-20260528-stale-run-recovery.md`
+- `engineering/active/STORY-20260528-app-state-list-query-bounds.md`
+- `architecture/active/ARCH-20260528-service-decomposition-plan.md`
 
 ## Next
 
@@ -18,12 +23,7 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-- `engineering/intake/BUG-20260528-production-compose-auth-posture.md`
-- `architecture/intake/ARCH-20260528-canonical-orchestration-state-model.md`
-- `engineering/intake/STORY-20260528-stale-run-recovery.md`
-- `engineering/intake/STORY-20260528-app-state-list-query-bounds.md`
-- `engineering/intake/BUG-20260528-product-direction-backlog-sync.md`
-- `architecture/intake/ARCH-20260528-service-decomposition-plan.md`
+No candidate engineering or architecture intake items.
 
 ## Rule
 
