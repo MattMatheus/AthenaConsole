@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
 import type {
+  Directive,
+  DirectiveCreateRequest,
   HarnessEgressRule,
   HarnessProfile,
   HarnessProfileConfig,
@@ -76,6 +78,14 @@ interface HarnessProfileRow {
   policies_json: string;
   allowed_egress_json: string;
   verification_policies_json: string;
+  created_at: string;
+}
+
+interface DirectiveRow {
+  id: string;
+  input: string;
+  context_refs_json: string;
+  metadata_json: string;
   created_at: string;
 }
 
@@ -678,6 +688,84 @@ export class HarnessProfileRepository {
       policies: JSON.parse(row.policies_json) as HarnessProfilePolicies,
       ...(allowedEgress.length > 0 ? { allowedEgress } : {}),
       ...(verificationPolicies.length > 0 ? { verificationPolicies } : {}),
+      createdAt: row.created_at
+    };
+  }
+}
+
+export class DirectiveRepository {
+  private readonly listStatement: Database.Statement;
+  private readonly getStatement: Database.Statement;
+  private readonly insertStatement: Database.Statement;
+
+  constructor(private readonly db: Database.Database) {
+    this.listStatement = db.prepare(
+      "select id, input, context_refs_json, metadata_json, created_at from directives order by created_at desc, id asc"
+    );
+    this.getStatement = db.prepare("select id, input, context_refs_json, metadata_json, created_at from directives where id = ?");
+    this.insertStatement = db.prepare(`
+      insert into directives (
+        id,
+        input,
+        context_refs_json,
+        metadata_json,
+        created_at
+      )
+      values (
+        @id,
+        @input,
+        @contextRefsJson,
+        @metadataJson,
+        @createdAt
+      )
+    `);
+  }
+
+  list(): Directive[] {
+    return this.listStatement.all().map((row) => this.mapRow(row as DirectiveRow));
+  }
+
+  get(id: string): Directive | undefined {
+    const row = this.getStatement.get(id) as DirectiveRow | undefined;
+    return row ? this.mapRow(row) : undefined;
+  }
+
+  create(request: DirectiveCreateRequest, now: Date = new Date()): Directive {
+    const directive: Directive = {
+      id: this.allocateId(),
+      input: request.input,
+      ...(request.contextRefs ? { contextRefs: [...request.contextRefs] } : {}),
+      ...(request.metadata ? { metadata: { ...request.metadata } } : {}),
+      createdAt: now.toISOString()
+    };
+    this.insertStatement.run({
+      id: directive.id,
+      input: directive.input,
+      contextRefsJson: JSON.stringify(directive.contextRefs ?? []),
+      metadataJson: JSON.stringify(directive.metadata ?? {}),
+      createdAt: directive.createdAt
+    });
+    return directive;
+  }
+
+  private allocateId(): string {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const id = randomUUID();
+      if (!this.get(id)) {
+        return id;
+      }
+    }
+    throw new Error("Unable to allocate unique directive ID.");
+  }
+
+  private mapRow(row: DirectiveRow): Directive {
+    const contextRefs = JSON.parse(row.context_refs_json) as string[];
+    const metadata = JSON.parse(row.metadata_json) as Record<string, string>;
+    return {
+      id: row.id,
+      input: row.input,
+      ...(contextRefs.length > 0 ? { contextRefs } : {}),
+      ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
       createdAt: row.created_at
     };
   }

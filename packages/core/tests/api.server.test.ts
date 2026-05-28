@@ -480,6 +480,11 @@ describe("api server", () => {
             path: join(dir, ".athena", "team-orchestrator.sqlite")
           }),
           expect.objectContaining({
+            id: "directives",
+            category: "sqlite-app-state",
+            path: join(dir, ".athena", "team-orchestrator.sqlite")
+          }),
+          expect.objectContaining({
             id: "legacy-workflow-runs",
             category: "deprecated-file-backed-state",
             path: join(dir, ".athena", "workflow-runs")
@@ -637,6 +642,22 @@ describe("api server", () => {
       expect(createDirectiveEnvelope.data.input).toBe("audit this request");
       expect(createDirectiveEnvelope.data.contextRefs).toEqual(["MEMORY.md"]);
       expect(createDirectiveEnvelope.data.metadata).toEqual({ origin: "api-test" });
+      expect(existsSync(join(dir, ".athena", "directives", `${createDirectiveEnvelope.data.id}.json`))).toBe(false);
+
+      mkdirSync(join(dir, ".athena", "directives"), { recursive: true });
+      writeFileSync(
+        join(dir, ".athena", "directives", "old-file-directive.json"),
+        JSON.stringify(
+          {
+            id: "old-file-directive",
+            input: "old file directive",
+            createdAt: new Date().toISOString()
+          },
+          null,
+          2
+        ),
+        "utf8"
+      );
 
       const listDirectivesResponse = await fetch(`${base}/api/v1/directives?limit=10`);
       expect(listDirectivesResponse.status).toBe(200);
@@ -649,6 +670,7 @@ describe("api server", () => {
       expect(listDirectivesEnvelope.ok).toBe(true);
       expect(listDirectivesEnvelope.data.items.length).toBeGreaterThan(0);
       expect(listDirectivesEnvelope.data.items[0]?.id).toBe(createDirectiveEnvelope.data.id);
+      expect(listDirectivesEnvelope.data.items.map((item) => item.id)).not.toContain("old-file-directive");
 
       const createHarnessProfileResponse = await fetch(`${base}/api/v1/harness-profiles`, {
         method: "POST",

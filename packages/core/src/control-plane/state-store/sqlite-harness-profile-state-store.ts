@@ -1,5 +1,6 @@
 import type { AthenaConfig } from "../../shared/config.js";
 import type {
+  Directive,
   DirectiveCreateRequest,
   HarnessProfile,
   HarnessProfileCreateRequest,
@@ -31,12 +32,22 @@ export class SqliteHarnessProfileStateStore implements StateStore {
     return this.delegate.getTranscript(sessionId, options);
   }
 
-  listDirectives(): ReturnType<StateStore["listDirectives"]> {
-    return this.delegate.listDirectives();
+  async listDirectives(): Promise<Directive[]> {
+    const appState = openAppStateDatabase(this.config);
+    try {
+      return appState.directives.list();
+    } finally {
+      appState.close();
+    }
   }
 
-  createDirective(request: DirectiveCreateRequest): ReturnType<StateStore["createDirective"]> {
-    return this.delegate.createDirective(request);
+  async createDirective(request: DirectiveCreateRequest): Promise<Directive> {
+    const appState = openAppStateDatabase(this.config);
+    try {
+      return appState.directives.create(request);
+    } finally {
+      appState.close();
+    }
   }
 
   listRunTemplates(): ReturnType<StateStore["listRunTemplates"]> {

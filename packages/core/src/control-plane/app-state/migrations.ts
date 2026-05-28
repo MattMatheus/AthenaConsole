@@ -360,6 +360,22 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
       create index if not exists idx_harness_profiles_created
         on harness_profiles(created_at desc);
     `
+  },
+  {
+    version: 10,
+    name: "add-directives",
+    sql: `
+      create table if not exists directives (
+        id text primary key,
+        input text not null,
+        context_refs_json text not null default '[]',
+        metadata_json text not null default '{}',
+        created_at text not null
+      );
+
+      create index if not exists idx_directives_created
+        on directives(created_at desc);
+    `
   }
 ];
 

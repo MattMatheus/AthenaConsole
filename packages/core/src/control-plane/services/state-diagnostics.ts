@@ -93,8 +93,8 @@ export function buildStateStoreDiagnostics(config: AthenaConfig, stateStore: Sta
       {
         id: "directives",
         label: "Directive records",
-        category: "migration-candidate",
-        path: resolve(stateRoot, "directives")
+        category: "sqlite-app-state",
+        path: sqliteAppStatePath
       },
       {
         id: "harness-profiles",
