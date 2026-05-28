@@ -32,6 +32,9 @@ export type RunVerificationStatus = "passed" | "verification-failed";
 
 export type RunEventLevel = "debug" | "info" | "warning" | "error";
 
+const DEFAULT_APP_STATE_LIST_LIMIT = 500;
+const MAX_APP_STATE_LIST_LIMIT = 1000;
+
 interface TaskRow {
   id: string;
   title: string;
@@ -205,17 +208,16 @@ export interface ListTasksOptions {
   includeArchived?: boolean;
   status?: TaskStatus;
   missionId?: string;
+  limit?: number;
 }
 
 export class TaskRepository {
   private readonly getStatement: Database.Statement;
-  private readonly listStatement: Database.Statement;
   private readonly insertStatement: Database.Statement;
   private readonly updateStatement: Database.Statement;
 
   constructor(private readonly db: Database.Database) {
     this.getStatement = db.prepare(taskSelectSql("where id = ?"));
-    this.listStatement = db.prepare(taskSelectSql("order by updated_at desc, created_at desc"));
     this.insertStatement = db.prepare(`
       insert into tasks (
         id,
@@ -313,12 +315,26 @@ export class TaskRepository {
   }
 
   list(options: ListTasksOptions = {}): TaskRecord[] {
-    return this.listStatement
-      .all()
-      .map((row) => mapTaskRow(row as TaskRow))
-      .filter((task) => (options.includeArchived ? true : task.status !== "archived"))
-      .filter((task) => (options.status ? task.status === options.status : true))
-      .filter((task) => (options.missionId ? task.missionId === options.missionId : true));
+    const clauses: string[] = [];
+    const params: Record<string, unknown> = {
+      limit: clampAppStateListLimit(options.limit)
+    };
+    if (!options.includeArchived) {
+      clauses.push("status != 'archived'");
+    }
+    if (options.status) {
+      clauses.push("status = @status");
+      params.status = options.status;
+    }
+    if (options.missionId) {
+      clauses.push("mission_id = @missionId");
+      params.missionId = options.missionId;
+    }
+    const where = clauses.length > 0 ? `where ${clauses.join(" and ")}` : "";
+    return this.db
+      .prepare(taskSelectSql(`${where} order by updated_at desc, created_at desc limit @limit`))
+      .all(params)
+      .map((row) => mapTaskRow(row as TaskRow));
   }
 
   update(id: string, input: UpdateTaskInput): TaskRecord {
@@ -515,14 +531,14 @@ export interface UpdateScheduleInput {
 
 export class ScheduleRepository {
   private readonly getStatement: Database.Statement;
-  private readonly listStatement: Database.Statement;
+  private readonly countStatement: Database.Statement;
   private readonly insertStatement: Database.Statement;
   private readonly updateStatement: Database.Statement;
   private readonly deleteStatement: Database.Statement;
 
   constructor(private readonly db: Database.Database) {
     this.getStatement = db.prepare(scheduleSelectSql("where id = ?"));
-    this.listStatement = db.prepare(scheduleSelectSql("order by updated_at desc, created_at desc"));
+    this.countStatement = db.prepare("select count(*) as count from schedules");
     this.insertStatement = db.prepare(`
       insert into schedules (
         id,
@@ -606,8 +622,30 @@ export class ScheduleRepository {
     return schedule;
   }
 
-  list(): ScheduleRecord[] {
-    return this.listStatement.all().map((row) => mapScheduleRow(row as ScheduleRow));
+  list(options: { status?: AppStateScheduleStatus; dueAt?: Date; limit?: number } = {}): ScheduleRecord[] {
+    const clauses: string[] = [];
+    const params: Record<string, unknown> = {
+      limit: clampAppStateListLimit(options.limit)
+    };
+    if (options.status) {
+      clauses.push("status = @status");
+      params.status = options.status;
+    }
+    if (options.dueAt) {
+      clauses.push("next_run_at is not null");
+      clauses.push("next_run_at <= @dueAt");
+      params.dueAt = options.dueAt.toISOString();
+    }
+    const where = clauses.length > 0 ? `where ${clauses.join(" and ")}` : "";
+    return this.db
+      .prepare(scheduleSelectSql(`${where} order by updated_at desc, created_at desc limit @limit`))
+      .all(params)
+      .map((row) => mapScheduleRow(row as ScheduleRow));
+  }
+
+  count(): number {
+    const row = this.countStatement.get() as { count: number };
+    return row.count;
   }
 
   upsert(input: CreateScheduleInput): ScheduleRecord {
@@ -813,15 +851,20 @@ export interface UpdateRunInput {
   now?: Date;
 }
 
+export interface ListRunsOptions {
+  targetType?: RunTargetType;
+  targetId?: string;
+  status?: RunStatus;
+  limit?: number;
+}
+
 export class RunRepository {
   private readonly getStatement: Database.Statement;
-  private readonly listStatement: Database.Statement;
   private readonly insertStatement: Database.Statement;
   private readonly updateStatement: Database.Statement;
 
   constructor(private readonly db: Database.Database) {
     this.getStatement = db.prepare(runSelectSql("where id = ?"));
-    this.listStatement = db.prepare(runSelectSql("order by created_at desc"));
     this.insertStatement = db.prepare(`
       insert into runs (
         id,
@@ -914,12 +957,28 @@ export class RunRepository {
     return run;
   }
 
-  list(options: { targetType?: RunTargetType; targetId?: string } = {}): RunRecord[] {
-    return this.listStatement
-      .all()
-      .map((row) => mapRunRow(row as RunRow))
-      .filter((run) => (options.targetType ? run.targetType === options.targetType : true))
-      .filter((run) => (options.targetId ? run.targetId === options.targetId : true));
+  list(options: ListRunsOptions = {}): RunRecord[] {
+    const clauses: string[] = [];
+    const params: Record<string, unknown> = {
+      limit: clampAppStateListLimit(options.limit)
+    };
+    if (options.targetType) {
+      clauses.push("target_type = @targetType");
+      params.targetType = options.targetType;
+    }
+    if (options.targetId) {
+      clauses.push("target_id = @targetId");
+      params.targetId = options.targetId;
+    }
+    if (options.status) {
+      clauses.push("status = @status");
+      params.status = options.status;
+    }
+    const where = clauses.length > 0 ? `where ${clauses.join(" and ")}` : "";
+    return this.db
+      .prepare(runSelectSql(`${where} order by created_at desc limit @limit`))
+      .all(params)
+      .map((row) => mapRunRow(row as RunRow));
   }
 
   update(id: string, input: UpdateRunInput): RunRecord {
@@ -1169,6 +1228,16 @@ function assertTaskReadyAssignment(status: TaskStatus, assignedAgentId: string |
   if (status === "ready" && !assignedAgentId) {
     throw new Error("ready tasks require assignedAgentId");
   }
+}
+
+function clampAppStateListLimit(limit: number | undefined): number {
+  if (limit === undefined) {
+    return DEFAULT_APP_STATE_LIST_LIMIT;
+  }
+  if (!Number.isFinite(limit)) {
+    return DEFAULT_APP_STATE_LIST_LIMIT;
+  }
+  return Math.max(1, Math.min(Math.trunc(limit), MAX_APP_STATE_LIST_LIMIT));
 }
 
 function taskSelectSql(suffix: string): string {

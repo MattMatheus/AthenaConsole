@@ -12,10 +12,6 @@ export interface StaleRunRecoveryResult {
 
 export function recoverStaleTaskAndMissionRuns(appState: AppStateDatabase, now: Date = new Date()): StaleRunRecoveryResult {
   const recoveredAt = now.toISOString();
-  const runningRuns = appState.runs
-    .list()
-    .filter((run) => run.status === "running" && (run.targetType === "task" || run.targetType === "mission"));
-
   let taskRunsRecovered = 0;
   let missionRunsRecovered = 0;
   const recoveredRunIds: string[] = [];
@@ -85,7 +81,14 @@ export function recoverStaleTaskAndMissionRuns(appState: AppStateDatabase, now: 
     }
   });
 
-  recover(runningRuns);
+  while (true) {
+    const runningRuns = appState.runs.list({ status: "running", limit: 1000 });
+    const recoverableRuns = runningRuns.filter((run) => run.targetType === "task" || run.targetType === "mission");
+    if (recoverableRuns.length === 0) {
+      break;
+    }
+    recover(recoverableRuns);
+  }
 
   return {
     taskRunsRecovered,

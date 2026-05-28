@@ -1,7 +1,7 @@
 ---
 kind: story
 id: STORY-20260528-app-state-list-query-bounds
-status: active
+status: done
 owner_role: Software Engineer
 source: planning
 success_metric: Task, run, and schedule list APIs use bounded SQL queries for common console filters.
@@ -14,7 +14,7 @@ ready: true
 ## Metadata
 - `id`: STORY-20260528-app-state-list-query-bounds
 - `owner_role`: Software Engineer
-- `status`: active
+- `status`: done
 - `source`: planning
 - `decision_refs`: [ADR-0010]
 - `success_metric`: Task, run, and schedule list APIs use bounded SQL queries for common console filters.
@@ -52,19 +52,21 @@ Several SQLite app-state repositories read whole tables and filter in memory. Th
 - Should cursor pagination become a later public API story after query bounding lands?
 
 ## Next Step
-Promote to engineering active after stale run recovery unless the team needs a lower-risk implementation item while architecture is in progress.
+Continue with the next active backlog item.
 
 ## Engineering Handoff
-- `change_summary`:
-- `validation_evidence`:
-- `qa_focus`:
-- `open_risks`:
+- `change_summary`: Moved task and run repository filtering into SQL with bounded list limits; added SQL-backed schedule status/due filtering and schedule counts for due execution; updated stale run recovery to page through bounded running-run queries; added seeded repository/service regression tests for task, run, schedule, service response, and stale recovery interactions.
+- `validation_evidence`: `npm --workspace @athena/core run test:unit -- tests/control-plane.domain-repositories.test.ts tests/control-plane.task-workbench.test.ts tests/control-plane.task-schedules.test.ts tests/control-plane.stale-run-recovery.test.ts`; `npm --workspace @athena/core run typecheck`; `npm --workspace @athena/core run test:unit`.
+- `qa_focus`: Verify query-level filters preserve archived/status/mission behavior, target type/id run behavior, schedule due behavior, default bounds, service response shapes, and stale recovery across more than one bounded run-list page.
+- `open_risks`: Public list APIs still do not expose cursor pagination; this story applies conservative internal caps and leaves API pagination as a later contract story.
 
 ## QA Verdict
-- `verdict`:
-- `evidence_quality`:
-- `defects`:
-- `state_transition`:
+- `verdict`: Pass.
+- `evidence_quality`: Focused tests cover SQL-backed task status/mission/archive behavior, default task caps, run target/status filters, schedule status/due filters, task service response shape, and stale recovery across more than one bounded run-list page. Full core unit suite and typecheck passed.
+- `defects`: None found.
+- `state_transition`: Ready for engineering done.
 
 ## Transition History
 - `2026-05-28T16:23:39Z`: `intake` -> `active` by `Codex`; PM refined and queued for engineering
+- `2026-05-28T17:26:33Z`: `active` -> `qa` by `Codex`; Engineering handoff complete
+- `2026-05-28T17:27:11Z`: `qa` -> `done` by `Codex`; QA passed

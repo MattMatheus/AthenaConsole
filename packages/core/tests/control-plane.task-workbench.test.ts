@@ -118,6 +118,40 @@ describe("task workbench service", () => {
     }
   });
 
+  it("returns bounded task lists through the service without changing response shape", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-list-bounds-"));
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        const service = new LocalTaskWorkbenchService(config, { appState });
+        for (let index = 0; index < 520; index += 1) {
+          appState.tasks.create({
+            id: `task-service-${index.toString().padStart(3, "0")}`,
+            title: `Service task ${index}`,
+            status: index % 2 === 0 ? "completed" : "draft",
+            now: new Date(`2026-01-01T00:${Math.floor(index / 60)
+              .toString()
+              .padStart(2, "0")}:${(index % 60).toString().padStart(2, "0")}.000Z`)
+          });
+        }
+
+        const result = await service.list({ status: "completed" });
+
+        expect(result).toMatchObject({
+          total: 260,
+          filters: { status: "completed" }
+        });
+        expect(result.tasks).toHaveLength(260);
+        expect(result.tasks.every((task) => task.status === "completed")).toBe(true);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("runs a ready local-command task and persists events, output, artifacts, and status transitions", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-run-"));
     try {

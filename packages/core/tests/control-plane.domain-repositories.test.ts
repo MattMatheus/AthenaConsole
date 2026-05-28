@@ -128,6 +128,75 @@ describe("task, mission, and run repositories", () => {
     }
   });
 
+  it("bounds and filters task lists in repository order", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-domain-task-list-bounds-"));
+    try {
+      const appState = openAppStateDatabase(loadConfig(dir));
+      try {
+        appState.missions.create({
+          id: "mission-even",
+          title: "Even mission"
+        });
+        appState.missions.create({
+          id: "mission-other",
+          title: "Other mission"
+        });
+        for (let index = 0; index < 550; index += 1) {
+          appState.tasks.create({
+            id: `task-bulk-${index.toString().padStart(3, "0")}`,
+            title: `Bulk task ${index}`,
+            status: index % 10 === 0 ? "archived" : index % 2 === 0 ? "completed" : "draft",
+            missionId: index % 3 === 0 ? "mission-even" : "mission-other",
+            now: new Date(`2026-01-01T00:${Math.floor(index / 60)
+              .toString()
+              .padStart(2, "0")}:${(index % 60).toString().padStart(2, "0")}.000Z`)
+          });
+        }
+
+        const visible = appState.tasks.list();
+        expect(visible).toHaveLength(495);
+        expect(visible.map((task) => task.id)).not.toContain("task-bulk-000");
+        expect(visible[0]?.id).toBe("task-bulk-549");
+
+        const completedMissionTasks = appState.tasks.list({ status: "completed", missionId: "mission-even" });
+        expect(completedMissionTasks).toHaveLength(73);
+        expect(completedMissionTasks.every((task) => task.status === "completed" && task.missionId === "mission-even")).toBe(true);
+
+        expect(appState.tasks.list({ status: "archived" })).toEqual([]);
+        expect(appState.tasks.list({ status: "archived", includeArchived: true })).toHaveLength(55);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("applies the default task list cap in SQL-backed list calls", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-domain-task-list-cap-"));
+    try {
+      const appState = openAppStateDatabase(loadConfig(dir));
+      try {
+        for (let index = 0; index < 520; index += 1) {
+          appState.tasks.create({
+            id: `task-cap-${index.toString().padStart(3, "0")}`,
+            title: `Capped task ${index}`,
+            now: new Date(`2026-01-01T00:${Math.floor(index / 60)
+              .toString()
+              .padStart(2, "0")}:${(index % 60).toString().padStart(2, "0")}.000Z`)
+          });
+        }
+
+        expect(appState.tasks.list()).toHaveLength(500);
+        expect(appState.tasks.list({ limit: 25 })).toHaveLength(25);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("creates proposed follow-up tasks with source run and provenance", () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-domain-followup-"));
     try {
@@ -264,6 +333,75 @@ describe("task, mission, and run repositories", () => {
           status: "completed",
           output: { summary: "Done" }
         });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("bounds and filters run lists in repository order", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-domain-run-list-bounds-"));
+    try {
+      const appState = openAppStateDatabase(loadConfig(dir));
+      try {
+        for (let index = 0; index < 530; index += 1) {
+          appState.runs.create({
+            id: `run-bulk-${index.toString().padStart(3, "0")}`,
+            targetType: index % 2 === 0 ? "task" : "mission",
+            targetId: index % 4 === 0 ? "target-a" : "target-b",
+            status: index % 5 === 0 ? "failed" : "completed",
+            now: new Date(`2026-01-01T00:${Math.floor(index / 60)
+              .toString()
+              .padStart(2, "0")}:${(index % 60).toString().padStart(2, "0")}.000Z`)
+          });
+        }
+
+        expect(appState.runs.list()).toHaveLength(500);
+        expect(appState.runs.list()[0]?.id).toBe("run-bulk-529");
+
+        const targetTaskRuns = appState.runs.list({ targetType: "task", targetId: "target-a" });
+        expect(targetTaskRuns).toHaveLength(133);
+        expect(targetTaskRuns.every((run) => run.targetType === "task" && run.targetId === "target-a")).toBe(true);
+        expect(appState.runs.list({ status: "failed" })).toHaveLength(106);
+        expect(appState.runs.list({ targetType: "mission", limit: 20 })).toHaveLength(20);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("queries and bounds schedule lists by status and due time", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-domain-schedule-list-bounds-"));
+    try {
+      const appState = openAppStateDatabase(loadConfig(dir));
+      try {
+        for (let index = 0; index < 515; index += 1) {
+          const due = index % 5 === 0;
+          appState.schedules.create({
+            id: `schedule-bulk-${index.toString().padStart(3, "0")}`,
+            name: `Schedule ${index}`,
+            targetType: "task",
+            targetId: `task-${index}`,
+            timezone: "UTC",
+            status: index % 7 === 0 ? "paused" : "active",
+            nextRunAt: due ? "2026-01-01T00:00:00.000Z" : "2026-01-02T00:00:00.000Z",
+            now: new Date(`2026-01-01T00:${Math.floor(index / 60)
+              .toString()
+              .padStart(2, "0")}:${(index % 60).toString().padStart(2, "0")}.000Z`)
+          });
+        }
+
+        expect(appState.schedules.list()).toHaveLength(500);
+        expect(appState.schedules.count()).toBe(515);
+
+        const dueActive = appState.schedules.list({ status: "active", dueAt: new Date("2026-01-01T12:00:00.000Z") });
+        expect(dueActive).toHaveLength(88);
+        expect(dueActive.every((schedule) => schedule.status === "active" && schedule.nextRunAt === "2026-01-01T00:00:00.000Z")).toBe(true);
+        expect(appState.schedules.list({ status: "paused", limit: 10 })).toHaveLength(10);
       } finally {
         appState.close();
       }

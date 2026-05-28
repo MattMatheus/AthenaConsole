@@ -48,6 +48,7 @@ The reset implementation has delivered:
 - Durable workflow DAG run state, resumable stale-step recovery, and visualizer-friendly workflow status APIs.
 - Run templates, verification evidence, runtime policy packs, and A2A observability reframing migrated into the current Team Orchestrator model.
 - Startup recovery for stale task and mission runs left `running` after API/service restart.
+- SQL-backed bounded task, run, and schedule list queries for current app-state console/API surfaces.
 
 ## Current Roadmap
 
@@ -74,7 +75,6 @@ Source epic:
 
 Flywheel lanes are the operational source of truth. Current non-DAG priorities include:
 
-- `flywheel/backlog/engineering/active/STORY-20260528-app-state-list-query-bounds.md`
 - `flywheel/backlog/architecture/active/ARCH-20260528-service-decomposition-plan.md`
 
 Recently completed tracks now live in Flywheel done history:
@@ -87,6 +87,7 @@ Recently completed tracks now live in Flywheel done history:
 - `flywheel/backlog/engineering/done/STORY-20260528-runtime-isolation-policy-packs.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-a2a-observability-reframe.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-legacy-a2a-surface-labeling.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-app-state-list-query-bounds.md`
 
 ## Promotion Rule
 

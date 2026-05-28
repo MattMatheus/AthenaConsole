@@ -140,6 +140,45 @@ describe("stale task and mission run recovery", () => {
     }
   });
 
+  it("recovers more than one bounded run-list page", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-stale-run-recovery-pages-"));
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        for (let index = 0; index < 1005; index += 1) {
+          const taskId = `task-stale-${index.toString().padStart(4, "0")}`;
+          appState.tasks.create({
+            id: taskId,
+            title: `Stale task ${index}`,
+            status: "running"
+          });
+          appState.runs.create({
+            id: `run-stale-${index.toString().padStart(4, "0")}`,
+            targetType: "task",
+            targetId: taskId,
+            status: "running",
+            startedAt: "2026-05-28T10:00:00.000Z"
+          });
+        }
+
+        const result = recoverStaleTaskAndMissionRuns(appState, new Date("2026-05-28T11:00:00.000Z"));
+
+        expect(result.taskRunsRecovered).toBe(1005);
+        expect(appState.runs.list({ status: "running", limit: 1000 })).toEqual([]);
+        expect(appState.runs.list({ status: "failed", limit: 1000 })).toHaveLength(1000);
+        expect(appState.runs.require("run-stale-1004")).toMatchObject({
+          status: "failed",
+          failure: { code: STALE_RUNNING_RUN_CODE }
+        });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("runs during local control-plane service startup", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-stale-run-recovery-startup-"));
     try {

@@ -1123,8 +1123,10 @@ export class LocalScheduleService implements ScheduleService {
     at: Date,
     options: { provider?: string; model?: string } = {}
   ): Promise<{ run: RunScheduleResult[]; skipped: number }> {
-    const schedules = this.withAppState((appState) => appState.schedules.list());
-    const due = schedules.filter((schedule) => schedule.status === "active" && isDueSchedule(schedule, at));
+    const { due, total } = this.withAppState((appState) => ({
+      due: appState.schedules.list({ status: "active", dueAt: at }),
+      total: appState.schedules.count()
+    }));
     const run: RunScheduleResult[] = [];
 
     for (const schedule of due) {
@@ -1133,7 +1135,7 @@ export class LocalScheduleService implements ScheduleService {
 
     return {
       run,
-      skipped: schedules.length - due.length
+      skipped: Math.max(0, total - due.length)
     };
   }
 
@@ -1490,10 +1492,6 @@ function nextRunFromRRule(rrule: string | undefined): string | undefined {
     throw new AthenaError("CONFIG_ERROR", "schedules.create.rrule must allow at least one run.");
   }
   return new Date().toISOString();
-}
-
-function isDueSchedule(schedule: ScheduleRecord, at: Date): boolean {
-  return Boolean(schedule.nextRunAt && schedule.nextRunAt <= at.toISOString());
 }
 
 function nextRunAfterScheduleAttempt(schedule: ScheduleRecord, at: Date): string | undefined {

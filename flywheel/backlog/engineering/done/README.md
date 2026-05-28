@@ -18,3 +18,4 @@ Engineering work accepted by QA.
 12. `BUG-20260528-production-compose-auth-posture.md`
 13. `STORY-20260528-stale-run-recovery.md`
 14. `BUG-20260528-product-direction-backlog-sync.md`
+15. `STORY-20260528-app-state-list-query-bounds.md`
