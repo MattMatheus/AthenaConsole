@@ -1,4 +1,5 @@
 import type { IncomingMessage } from "node:http";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { createIdentityRoleResolver, type RequestAuthContext, type ScopeSet } from "../../control-plane/auth.js";
 import { AthenaError } from "../../runtime/errors.js";
 import type { AthenaConfig } from "../../shared/config.js";
@@ -21,6 +22,9 @@ export function createIdentityExtractionMiddleware(config: AthenaConfig): Identi
   const headerName = authConfig.identityHeader.toLowerCase();
   return {
     extract(req: IncomingMessage): RequestAuthContext {
+      if (authConfig.apiToken) {
+        assertValidApiToken(req, authConfig.apiToken);
+      }
       const headerValue = req.headers[headerName];
       const subject = parseIdentityHeaderValue(headerValue);
       if (!subject) {
@@ -33,6 +37,26 @@ export function createIdentityExtractionMiddleware(config: AthenaConfig): Identi
       };
     }
   };
+}
+
+function assertValidApiToken(req: IncomingMessage, expectedToken: string): void {
+  const authorization = parseIdentityHeaderValue(req.headers.authorization);
+  const bearerToken = authorization?.toLowerCase().startsWith("bearer ")
+    ? authorization.slice("bearer ".length).trim()
+    : undefined;
+  const token = bearerToken ?? parseIdentityHeaderValue(req.headers["x-athena-api-token"]);
+  if (!token) {
+    throw new AthenaError("AUTH_TOKEN_MISSING", "Missing required API bearer token.");
+  }
+  if (!constantTimeEquals(token, expectedToken)) {
+    throw new AthenaError("AUTH_TOKEN_INVALID", "Invalid API bearer token.");
+  }
+}
+
+function constantTimeEquals(left: string, right: string): boolean {
+  const leftHash = createHash("sha256").update(left).digest();
+  const rightHash = createHash("sha256").update(right).digest();
+  return timingSafeEqual(leftHash, rightHash) && left.length === right.length;
 }
 
 function parseIdentityHeaderValue(headerValue: string | string[] | undefined): string | undefined {

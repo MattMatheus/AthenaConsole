@@ -1,5 +1,7 @@
 export type ApiClientOptions = {
   baseUrl?: string;
+  apiToken?: string;
+  identity?: string;
 };
 
 type ApiEnvelope<TData> =
@@ -20,13 +22,19 @@ export class ApiClientError extends Error {
 
 export class ApiClient {
   private readonly baseUrl: string;
+  private readonly apiToken: string | undefined;
+  private readonly identity: string | undefined;
 
   constructor(options: ApiClientOptions = {}) {
     this.baseUrl = options.baseUrl ?? "/api";
+    this.apiToken = options.apiToken ?? readOptionalEnv("VITE_ATHENA_API_TOKEN");
+    this.identity = options.identity ?? readOptionalEnv("VITE_ATHENA_IDENTITY");
   }
 
   async get<TResponse>(path: string): Promise<TResponse> {
-    const response = await fetch(`${this.baseUrl}${path}`);
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      headers: this.authHeaders()
+    });
     if (!response.ok) {
       throw await this.toApiClientError(response, `GET ${path}`);
     }
@@ -67,8 +75,9 @@ export class ApiClient {
       method: "PUT",
       headers: {
         "content-type": "application/json",
+        ...this.authHeaders()
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload)
     });
     if (!response.ok) {
       throw await this.toApiClientError(response, `PUT ${path}`);
@@ -92,8 +101,9 @@ export class ApiClient {
       method: "POST",
       headers: {
         "content-type": "application/json",
+        ...this.authHeaders()
       },
-      ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
+      ...(payload === undefined ? {} : { body: JSON.stringify(payload) })
     });
     if (!response.ok) {
       throw await this.toApiClientError(response, `POST ${path}`);
@@ -113,7 +123,9 @@ export class ApiClient {
   }
 
   async getText(path: string): Promise<string> {
-    const response = await fetch(`${this.baseUrl}${path}`);
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      headers: this.authHeaders()
+    });
     if (!response.ok) {
       throw await this.toApiClientError(response, `GET ${path}`);
     }
@@ -122,7 +134,8 @@ export class ApiClient {
 
   async delete<TResponse>(path: string): Promise<TResponse> {
     const response = await fetch(`${this.baseUrl}${path}`, {
-      method: "DELETE"
+      method: "DELETE",
+      headers: this.authHeaders()
     });
     if (!response.ok) {
       throw await this.toApiClientError(response, `DELETE ${path}`);
@@ -158,6 +171,18 @@ export class ApiClient {
     }
     return new ApiClientError(message, { status: response.status, ...(code ? { code } : {}) });
   }
+
+  private authHeaders(): Record<string, string> {
+    return {
+      ...(this.apiToken ? { Authorization: `Bearer ${this.apiToken}` } : {}),
+      ...(this.identity ? { "x-athena-identity": this.identity } : {})
+    };
+  }
 }
 
 export const apiClient = new ApiClient();
+
+function readOptionalEnv(name: "VITE_ATHENA_API_TOKEN" | "VITE_ATHENA_IDENTITY"): string | undefined {
+  const value = import.meta.env[name]?.trim();
+  return value ? value : undefined;
+}

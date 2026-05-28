@@ -8,6 +8,111 @@ import { createLocalControlPlaneServices } from "../src/control-plane/services.j
 import { loadConfig } from "../src/shared/config.js";
 
 describe("api identity extraction middleware", () => {
+  it("rejects requests when API bearer token is missing in token-protected mode", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-auth-token-"));
+    writeFileSync(
+      join(dir, ".env"),
+      [
+        "ATHENA_AUTH_ENABLED=true",
+        "ATHENA_AUTHZ_MODE=enforce",
+        "ATHENA_AUTH_API_TOKEN=0123456789abcdef",
+        "ATHENA_AUTH_IDENTITY_ROLE_MAP=alice:Admin"
+      ].join("\n"),
+      "utf8"
+    );
+    const config = loadConfig(dir);
+    const server = createApiServer({ config, host: "127.0.0.1", port: 0 });
+    let bound: { host: string; port: number } | undefined;
+    let started = false;
+    try {
+      bound = await server.start();
+      started = true;
+      const response = await fetch(`http://${bound.host}:${bound.port}/api/v1/capabilities`, {
+        headers: {
+          "x-athena-identity": "alice"
+        }
+      });
+      expect(response.status).toBe(401);
+      const payload = (await response.json()) as { error: { code: string } };
+      expect(payload.error.code).toBe("AUTH_TOKEN_MISSING");
+    } finally {
+      if (started) {
+        await server.stop();
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects requests when API bearer token is invalid", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-auth-token-"));
+    writeFileSync(
+      join(dir, ".env"),
+      [
+        "ATHENA_AUTH_ENABLED=true",
+        "ATHENA_AUTHZ_MODE=enforce",
+        "ATHENA_AUTH_API_TOKEN=0123456789abcdef",
+        "ATHENA_AUTH_IDENTITY_ROLE_MAP=alice:Admin"
+      ].join("\n"),
+      "utf8"
+    );
+    const config = loadConfig(dir);
+    const server = createApiServer({ config, host: "127.0.0.1", port: 0 });
+    let bound: { host: string; port: number } | undefined;
+    let started = false;
+    try {
+      bound = await server.start();
+      started = true;
+      const response = await fetch(`http://${bound.host}:${bound.port}/api/v1/capabilities`, {
+        headers: {
+          authorization: "Bearer wrong-token-value",
+          "x-athena-identity": "alice"
+        }
+      });
+      expect(response.status).toBe(401);
+      const payload = (await response.json()) as { error: { code: string } };
+      expect(payload.error.code).toBe("AUTH_TOKEN_INVALID");
+    } finally {
+      if (started) {
+        await server.stop();
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("accepts valid API bearer token and identity header together", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-auth-token-"));
+    writeFileSync(
+      join(dir, ".env"),
+      [
+        "ATHENA_AUTH_ENABLED=true",
+        "ATHENA_AUTHZ_MODE=enforce",
+        "ATHENA_AUTH_API_TOKEN=0123456789abcdef",
+        "ATHENA_AUTH_IDENTITY_ROLE_MAP=alice:Admin"
+      ].join("\n"),
+      "utf8"
+    );
+    const config = loadConfig(dir);
+    const server = createApiServer({ config, host: "127.0.0.1", port: 0 });
+    let bound: { host: string; port: number } | undefined;
+    let started = false;
+    try {
+      bound = await server.start();
+      started = true;
+      const response = await fetch(`http://${bound.host}:${bound.port}/api/v1/capabilities`, {
+        headers: {
+          authorization: "Bearer 0123456789abcdef",
+          "x-athena-identity": "alice"
+        }
+      });
+      expect(response.status).toBe(200);
+    } finally {
+      if (started) {
+        await server.stop();
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("rejects requests when identity header is missing in enforce mode", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-api-auth-"));
     writeFileSync(join(dir, ".env"), "ATHENA_AUTH_ENABLED=true\nATHENA_AUTHZ_MODE=enforce", "utf8");

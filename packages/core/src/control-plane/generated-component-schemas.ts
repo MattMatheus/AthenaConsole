@@ -2747,6 +2747,8 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
         "enum": [
           "CONFIG_ERROR",
           "AUTH_IDENTITY_MISSING",
+          "AUTH_TOKEN_MISSING",
+          "AUTH_TOKEN_INVALID",
           "AUTHZ_DENIED",
           "POLICY_CONCURRENCY_LIMIT_EXCEEDED",
           "PAYLOAD_TOO_LARGE",

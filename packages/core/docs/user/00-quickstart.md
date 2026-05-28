@@ -26,6 +26,9 @@ npm run build
 podman compose -f docker-compose.local.yml up --build
 ```
 
+The local compose stack binds the API for container access and sets
+`ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED=true` explicitly. Do not use that override for LAN or production-like runs.
+
 ## Run A Turn
 
 ```bash

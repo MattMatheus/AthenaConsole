@@ -8,10 +8,9 @@ This lane shows what is being implemented now.
 
 ## Active Sequence
 
-1. `BUG-20260528-production-compose-auth-posture.md`
-2. `BUG-20260528-product-direction-backlog-sync.md`
-3. `STORY-20260528-stale-run-recovery.md`
-4. `STORY-20260528-app-state-list-query-bounds.md`
+1. `BUG-20260528-product-direction-backlog-sync.md`
+2. `STORY-20260528-stale-run-recovery.md`
+3. `STORY-20260528-app-state-list-query-bounds.md`
 
 ## Next Up
 

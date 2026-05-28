@@ -76,6 +76,8 @@ describe("loadConfig", () => {
       expect(config.telemetry?.appInsights?.trackDependencies).toBe(true);
       expect(config.auth?.enabled).toBe(false);
       expect(config.auth?.identityHeader).toBe("x-athena-identity");
+      expect(config.auth?.apiToken).toBeUndefined();
+      expect(config.auth?.allowExternalUnauthenticated).toBe(false);
       expect(config.auth?.defaultRole).toBe("Viewer");
       expect(config.auth?.identityRoleMap).toEqual({});
       expect(config.authz?.mode).toBe("off");
@@ -170,6 +172,8 @@ describe("loadConfig", () => {
           "ATHENA_AUTHZ_MODE=soft_enforce",
           "ATHENA_AUTHZ_DEFAULT_DECISION=deny",
           "ATHENA_AUTH_IDENTITY_HEADER=X-Athena-Subject",
+          "ATHENA_AUTH_API_TOKEN=0123456789abcdef",
+          "ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED=true",
           "ATHENA_AUTH_DEFAULT_ROLE=operator",
           "ATHENA_AUTH_IDENTITY_ROLE_MAP=alice:Admin,bob:Viewer,*:Operator"
         ].join("\n"),
@@ -255,6 +259,8 @@ describe("loadConfig", () => {
       expect(config.telemetry?.appInsights?.trackDependencies).toBe(false);
       expect(config.auth?.enabled).toBe(true);
       expect(config.auth?.identityHeader).toBe("x-athena-subject");
+      expect(config.auth?.apiToken).toBe("0123456789abcdef");
+      expect(config.auth?.allowExternalUnauthenticated).toBe(true);
       expect(config.auth?.defaultRole).toBe("Operator");
       expect(config.auth?.identityRoleMap).toEqual({
         alice: "Admin",
@@ -396,6 +402,17 @@ describe("loadConfig", () => {
       writeFileSync(join(dir, ".env"), "ATHENA_AUTH_IDENTITY_HEADER=X_Identity", "utf8");
       expect(() => loadConfig(dir)).toThrow(AthenaError);
       expect(() => loadConfig(dir)).toThrow("ATHENA_AUTH_IDENTITY_HEADER");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("throws structured config errors for too-short API tokens", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-config-"));
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_AUTH_API_TOKEN=short", "utf8");
+      expect(() => loadConfig(dir)).toThrow(AthenaError);
+      expect(() => loadConfig(dir)).toThrow("ATHENA_AUTH_API_TOKEN");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

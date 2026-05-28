@@ -1,0 +1,144 @@
+{
+  "cycle_id": "20260528-production-compose-auth-posture",
+  "generated_at_utc": "2026-05-28T16:35:30Z",
+  "branch": "main",
+  "story_path": "flywheel/backlog/engineering/done/BUG-20260528-production-compose-auth-posture.md",
+  "actor": "Codex",
+  "stage_trace": [],
+  "diff_inventory": [
+    "A\tapps/console/src/services/apiClient.test.ts",
+    "A\tflywheel/backlog/engineering/done/BUG-20260528-production-compose-auth-posture.md",
+    "D\tflywheel/backlog/engineering/active/BUG-20260528-production-compose-auth-posture.md",
+    "M\tapps/console/src/services/apiClient.ts",
+    "M\tdocker-compose.local.yml",
+    "M\tdocker-compose.prod.yml",
+    "M\tflywheel/backlog/README.md",
+    "M\tflywheel/backlog/engineering/active/README.md",
+    "M\tflywheel/backlog/engineering/done/README.md",
+    "M\tpackages/core/docs/user/00-quickstart.md",
+    "M\tpackages/core/docs/user/04-api-server.md",
+    "M\tpackages/core/docs/user/05-advanced-usage.md",
+    "M\tpackages/core/infrastructure/docker/console.prod.Dockerfile",
+    "M\tpackages/core/src/api/middleware/auth.ts",
+    "M\tpackages/core/src/api/server.ts",
+    "M\tpackages/core/src/control-plane/api-contracts.ts",
+    "M\tpackages/core/src/control-plane/generated-component-schemas.ts",
+    "M\tpackages/core/src/shared/config.ts",
+    "M\tpackages/core/src/shared/contracts/base.ts",
+    "M\tpackages/core/tests/api.auth-middleware.test.ts",
+    "M\tpackages/core/tests/api.server.test.ts",
+    "M\tpackages/core/tests/config.test.ts"
+  ],
+  "objective": {
+    "intended_outcome": "Close the production-like compose auth exposure by requiring server-verified API token auth or an explicit local-dev override for externally bound API startup.",
+    "scope_boundary": "Server-side API token guardrails, compose posture, console API client headers, docs, and tests; no broader identity/RBAC UX redesign."
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [
+      "flywheel/backlog/engineering/active/BUG-20260528-production-compose-auth-posture.md",
+      "docs/product/audits/2026-05-28-code-quality-audit.md",
+      "API auth/config/server code",
+      "compose files",
+      "console API client",
+      "user docs"
+    ],
+    "tools_used": [
+      "npm --workspace @athena/core run test:unit",
+      "npm --workspace @athena/core run typecheck",
+      "npm --workspace @athena/core run check:schemas",
+      "npm --workspace @athena/core run build",
+      "npm --workspace @athena/console run test",
+      "npm --workspace @athena/console run typecheck",
+      "npm --workspace @athena/console run build",
+      "docker-compose -f ... config",
+      "validate_workflow_state.sh",
+      "flywheel_doctor.sh",
+      "git diff --check"
+    ],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [
+      "packages/core/src/api/middleware/auth.ts",
+      "packages/core/src/api/server.ts",
+      "packages/core/src/shared/config.ts",
+      "packages/core/src/shared/contracts/base.ts",
+      "packages/core/src/control-plane/api-contracts.ts",
+      "packages/core/src/control-plane/generated-component-schemas.ts",
+      "apps/console/src/services/apiClient.ts",
+      "compose files",
+      "console Dockerfile",
+      "docs",
+      "tests",
+      "backlog item/README files"
+    ],
+    "state_transitions": [
+      "engineering/active -> engineering/qa",
+      "engineering/qa -> engineering/done"
+    ],
+    "non_file_actions": [
+      "generated component schemas",
+      "validated prod/local compose configuration",
+      "closed QA verdict"
+    ]
+  },
+  "validation": {
+    "checks_run": [
+      "npm --workspace @athena/core run test:unit -- tests/config.test.ts tests/api.auth-middleware.test.ts tests/api.server.test.ts",
+      "npm --workspace @athena/core run test:unit",
+      "npm --workspace @athena/core run typecheck",
+      "npm --workspace @athena/core run check:schemas",
+      "npm --workspace @athena/core run build",
+      "npm --workspace @athena/console run test",
+      "npm --workspace @athena/console run typecheck",
+      "npm --workspace @athena/console run build",
+      "ATHENA_AUTH_API_TOKEN=0123456789abcdef ATHENA_CONSOLE_PASSWORD=local-password docker-compose -f docker-compose.prod.yml config",
+      "docker-compose -f docker-compose.local.yml config",
+      "./flywheel/tools/validate_workflow_state.sh --format json",
+      "./flywheel/tools/flywheel_doctor.sh --format json",
+      "git diff --check"
+    ],
+    "results": [
+      "focused core tests passed with 40 tests",
+      "full core unit suite passed with 83 files and 398 tests",
+      "core typecheck/schema/build passed",
+      "console tests passed with 8 files and 25 tests",
+      "console typecheck/build passed",
+      "prod compose config showed token auth env/build args",
+      "local compose config showed explicit unauthenticated override",
+      "workflow validation/doctor/diff check passed"
+    ],
+    "checks_not_run": [
+      "Podman container startup smoke: Podman socket was unavailable in this environment."
+    ]
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": true,
+    "prompts_updated_if_stage_behavior_changed": true,
+    "process_docs_updated_if_contracts_or_gates_changed": true,
+    "queue_order_and_state_synchronized": true
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [
+      "The console production build receives the API token as a Vite build-time value; this is a minimal server-verified gate for the current compose exposure, not a complete user/session auth system."
+    ],
+    "assumptions_carried": [],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "security posture hardening",
+    "approval_required": "no",
+    "approval_reference": "n/a"
+  },
+  "next_step": {
+    "recommended_next_state": "done",
+    "follow_up_work": [
+      "Proceed to the next planned item: product direction/backlog sync, then canonical orchestration state architecture."
+    ],
+    "durable_promotions": []
+  },
+  "release_impact": {
+    "release_scope": "Production-like compose and externally bound API security posture.",
+    "additional_release_actions": []
+  }
+}

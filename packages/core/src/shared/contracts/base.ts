@@ -3,6 +3,8 @@ export type ContextStrategy = "raw" | "summary" | "distill" | "symbolic-signatur
 export type AthenaErrorCode =
   | "CONFIG_ERROR"
   | "AUTH_IDENTITY_MISSING"
+  | "AUTH_TOKEN_MISSING"
+  | "AUTH_TOKEN_INVALID"
   | "AUTHZ_DENIED"
   | "POLICY_CONCURRENCY_LIMIT_EXCEEDED"
   | "PAYLOAD_TOO_LARGE"

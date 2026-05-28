@@ -2,6 +2,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { URL } from "node:url";
 import { randomUUID } from "node:crypto";
 import { withRequestAuthContext } from "../control-plane/auth.js";
+import { AthenaError } from "../runtime/errors.js";
 import type { AthenaConfig } from "../shared/config.js";
 import { createLocalControlPlaneServices, type ControlPlaneServices } from "../control-plane/services.js";
 import { mapErrorToHttp } from "../control-plane/api-contracts.js";
@@ -194,6 +195,7 @@ export function createApiServer(options: ApiServerOptions): ApiServerHandle {
 
   return {
     async start() {
+      assertApiBindAuthPosture(host, options.config);
       await listen(server, host, port);
       await emitAuthzModeStartupEvent(services, options.config);
       const address = server.address();
@@ -210,6 +212,29 @@ export function createApiServer(options: ApiServerOptions): ApiServerHandle {
       }
     }
   };
+}
+
+function assertApiBindAuthPosture(host: string, config: AthenaConfig): void {
+  if (!isExternallyReachableHost(host)) {
+    return;
+  }
+  if (config.auth?.enabled && config.auth.apiToken) {
+    return;
+  }
+  if (config.auth?.allowExternalUnauthenticated) {
+    return;
+  }
+  throw new AthenaError(
+    "CONFIG_ERROR",
+    "Refusing to start externally bound API without server-side API token auth. " +
+      "Enable ATHENA_AUTH_ENABLED=true with ATHENA_AUTH_API_TOKEN, or set " +
+      "ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED=true for explicit local development only."
+  );
+}
+
+function isExternallyReachableHost(host: string): boolean {
+  const normalized = host.trim().toLowerCase();
+  return normalized === "0.0.0.0" || normalized === "::" || normalized === "" || normalized === "*";
 }
 
 function listen(server: Server, host: string, port: number): Promise<void> {

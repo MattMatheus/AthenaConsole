@@ -6,7 +6,6 @@ This is the operational view of current and future work.
 
 Work currently being implemented:
 
-- `engineering/active/BUG-20260528-production-compose-auth-posture.md`
 - `engineering/active/BUG-20260528-product-direction-backlog-sync.md`
 - `architecture/active/ARCH-20260528-canonical-orchestration-state-model.md`
 - `engineering/active/STORY-20260528-stale-run-recovery.md`

@@ -16,13 +16,36 @@ By default, Athena listens on `127.0.0.1:8787`.
 - `local`: run control-plane services in-process.
 - `auto`: try API first, fall back to local.
 
+## API Security Modes
+
+For local-only development, keep the API bound to `127.0.0.1`. If you intentionally bind the API to `0.0.0.0`
+without auth, set `ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED=true`; this is a local development escape hatch only.
+
+For production-like or LAN-accessible runs, enable server-side token auth:
+
+- `ATHENA_AUTH_ENABLED=true`
+- `ATHENA_AUTH_API_TOKEN=<secret value with at least 16 characters>`
+- `ATHENA_AUTHZ_MODE=enforce`
+- `ATHENA_AUTHZ_DEFAULT_DECISION=deny`
+- `ATHENA_AUTH_IDENTITY_ROLE_MAP=console:Admin,*:Viewer`
+
+When the API is bound externally, startup is refused unless token auth is configured or the explicit local-dev
+override is set.
+
+Clients must send:
+
+- `Authorization: Bearer <ATHENA_AUTH_API_TOKEN>`
+- the configured identity header, defaulting to `x-athena-identity`
+
 ## Authentication and RBAC (Trusted Header Mode)
 
-Athena supports trusted-header identity extraction for API requests.
+Athena supports trusted-header identity extraction for API requests. In production-like modes, pair this with
+`ATHENA_AUTH_API_TOKEN`; identity headers alone are only appropriate behind a trusted proxy or on loopback.
 
 Required configuration:
 
 - `ATHENA_AUTH_ENABLED=true`
+- `ATHENA_AUTH_API_TOKEN` for production-like or externally reachable modes
 - `ATHENA_AUTH_IDENTITY_HEADER` (default: `x-athena-identity`)
 - `ATHENA_AUTH_DEFAULT_ROLE` (`Viewer`, `Operator`, `Admin`)
 - `ATHENA_AUTH_IDENTITY_ROLE_MAP` (for example: `alice:Admin,bob:Operator,*:Viewer`)
@@ -30,6 +53,7 @@ Required configuration:
 Behavior:
 
 - If auth is enabled and the configured identity header is missing, Athena returns `AUTH_IDENTITY_MISSING`.
+- If `ATHENA_AUTH_API_TOKEN` is configured and the bearer token is missing or invalid, Athena returns `AUTH_TOKEN_MISSING` or `AUTH_TOKEN_INVALID`.
 - Service-layer authorization returns `AUTHZ_DENIED` on forbidden operations.
 - Current enforced write controls are on policy update, run cancellation, and schedule mutations.
 
@@ -137,4 +161,13 @@ Paginated responses return `data.items` and optional `data.nextCursor`.
 
 ```bash
 curl http://127.0.0.1:8787/api/v1/capabilities
+```
+
+With token auth enabled:
+
+```bash
+curl \
+  -H "Authorization: Bearer $ATHENA_AUTH_API_TOKEN" \
+  -H "x-athena-identity: console" \
+  http://127.0.0.1:8787/api/v1/capabilities
 ```

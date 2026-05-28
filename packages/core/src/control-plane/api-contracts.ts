@@ -208,6 +208,8 @@ function toHttpStatus(code: AthenaErrorCode): number {
     case "CONFIG_ERROR":
       return 400;
     case "AUTH_IDENTITY_MISSING":
+    case "AUTH_TOKEN_MISSING":
+    case "AUTH_TOKEN_INVALID":
       return 401;
     case "AUTHZ_DENIED":
       return 403;

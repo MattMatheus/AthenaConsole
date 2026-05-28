@@ -1,7 +1,7 @@
 ---
 kind: bug
 id: BUG-20260528-production-compose-auth-posture
-status: active
+status: done
 priority: P0
 reported_by: Code Quality Audit
 source_story: docs/product/audits/2026-05-28-code-quality-audit.md#cr-1-production-like-stack-exposes-unauthenticated-control-apis
@@ -16,7 +16,7 @@ ready: true
 - `priority`: P0
 - `reported_by`: Code Quality Audit
 - `source_story`: docs/product/audits/2026-05-28-code-quality-audit.md#cr-1-production-like-stack-exposes-unauthenticated-control-apis
-- `status`: active
+- `status`: done
 - `decision_refs`: [ADR-0013]
 - `impact_metric`: Production-like API startup refuses externally bound unauthenticated control APIs unless an explicit local-dev override is set.
 
@@ -70,16 +70,18 @@ The production-like Docker stack binds the API to `0.0.0.0` and publishes port `
 Promote to engineering active first. Keep the first implementation bounded to server-side enforcement, startup guardrails, compose posture, and validation; defer broader identity/RBAC UX beyond the minimum required to close the exposure.
 
 ## Engineering Handoff
-- `change_summary`:
-- `validation_evidence`:
-- `qa_focus`:
-- `open_risks`:
+- `change_summary`: Added server-verified API bearer token support to the API auth middleware, required token-backed auth or an explicit local-dev override for externally bound API startup, configured production-like compose with token auth/RBAC/default-deny posture, configured local compose with the explicit unauthenticated override, and taught the console API client/build to send configured token and identity headers. Updated docs for local-only, local compose, and production-like security modes.
+- `validation_evidence`: `npm --workspace @athena/core run test:unit -- tests/config.test.ts tests/api.auth-middleware.test.ts tests/api.server.test.ts` passed with 40 tests. `npm --workspace @athena/core run test:unit` passed with 83 files and 398 tests. `npm --workspace @athena/core run typecheck` passed. `npm --workspace @athena/core run check:schemas` passed after regenerating component schemas for new auth token error codes. `npm --workspace @athena/core run build` passed. `npm --workspace @athena/console run test` passed with 8 files and 25 tests. `npm --workspace @athena/console run typecheck` passed. `npm --workspace @athena/console run build` passed. `ATHENA_AUTH_API_TOKEN=0123456789abcdef ATHENA_CONSOLE_PASSWORD=local-password docker-compose -f docker-compose.prod.yml config` passed and showed token auth env/build args. `docker-compose -f docker-compose.local.yml config` passed and showed `ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED: "true"`. `git diff --check` and `validate_workflow_state` passed.
+- `qa_focus`: Verify externally bound startup refuses missing token auth, protected requests reject missing/invalid bearer tokens, valid token+identity requests still reach RBAC context, production compose requires API/console secrets, and local compose remains explicit about unauthenticated dev mode.
+- `open_risks`: Podman runtime was unavailable in this environment, so compose containers were not started end-to-end; validation used `docker-compose config`, unit/integration server tests, and build/test coverage.
 
 ## QA Verdict
-- `verdict`:
-- `evidence_quality`:
-- `defects`:
-- `state_transition`:
+- `verdict`: Pass. The production-like external API posture now requires token-backed auth and default-deny authz, local unauthenticated external binding is explicit, and the server refuses externally bound unauthenticated startup by default.
+- `evidence_quality`: Strong. Coverage included focused auth/config/server tests, full core unit suite, core typecheck/build/schema checks, console test/typecheck/build, compose config smoke checks, workflow validation, and whitespace diff check.
+- `defects`: None blocking. Podman runtime was unavailable, so no end-to-end container startup smoke was run.
+- `state_transition`: Move to `done`.
 
 ## Transition History
 - `2026-05-28T16:23:39Z`: `intake` -> `active` by `Codex`; PM refined and queued first for engineering
+- `2026-05-28T16:34:52Z`: `active` -> `qa` by `Codex`; Engineering handoff complete
+- `2026-05-28T16:35:04Z`: `qa` -> `done` by `Codex`; QA passed

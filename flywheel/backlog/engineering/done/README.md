@@ -15,3 +15,4 @@ Engineering work accepted by QA.
 9. `STORY-20260528-a2a-observability-reframe.md`
 10. `STORY-20260528-legacy-a2a-surface-labeling.md`
 11. `BUG-20260528-glob10-deprecation-warning.md`
+12. `BUG-20260528-production-compose-auth-posture.md`

@@ -102,6 +102,93 @@ describe("api server", () => {
     }
   });
 
+  it("refuses externally bound API startup without token auth or explicit local-dev override", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-server-auth-posture-"));
+    const config = loadConfig(dir);
+    const server = createApiServer({
+      config,
+      host: "0.0.0.0",
+      port: 0
+    });
+    try {
+      await expect(server.start()).rejects.toMatchObject({
+        code: "CONFIG_ERROR"
+      });
+    } finally {
+      await server.stop().catch(() => undefined);
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("allows externally bound API startup with explicit local-dev override", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-server-auth-posture-"));
+    writeFileSync(join(dir, ".env"), "ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED=true", "utf8");
+    const config = loadConfig(dir);
+    const server = createApiServer({
+      config,
+      host: "0.0.0.0",
+      port: 0
+    });
+    let started = false;
+    try {
+      try {
+        await server.start();
+        started = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("EPERM")) {
+          return;
+        }
+        throw error;
+      }
+      expect(started).toBe(true);
+    } finally {
+      if (started) {
+        await server.stop();
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("allows externally bound API startup when token-protected auth is enabled", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-server-auth-posture-"));
+    writeFileSync(
+      join(dir, ".env"),
+      [
+        "ATHENA_AUTH_ENABLED=true",
+        "ATHENA_AUTH_API_TOKEN=0123456789abcdef",
+        "ATHENA_AUTHZ_MODE=enforce",
+        "ATHENA_AUTH_IDENTITY_ROLE_MAP=console:Admin"
+      ].join("\n"),
+      "utf8"
+    );
+    const config = loadConfig(dir);
+    const server = createApiServer({
+      config,
+      host: "0.0.0.0",
+      port: 0
+    });
+    let started = false;
+    try {
+      try {
+        await server.start();
+        started = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("EPERM")) {
+          return;
+        }
+        throw error;
+      }
+      expect(started).toBe(true);
+    } finally {
+      if (started) {
+        await server.stop();
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("invokes control-plane shutdown hooks when stopping the API server", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-api-server-stop-"));
     const config = loadConfig(dir);

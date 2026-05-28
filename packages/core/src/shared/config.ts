@@ -127,6 +127,8 @@ export interface AthenaConfig {
   auth?: {
     enabled: boolean;
     identityHeader: string;
+    apiToken?: string;
+    allowExternalUnauthenticated: boolean;
     defaultRole: AthenaRbacRole;
     identityRoleMap: Record<string, AthenaRbacRole>;
   };
@@ -234,6 +236,7 @@ const DEFAULT_CONFIG: AthenaConfig = {
   auth: {
     enabled: false,
     identityHeader: "x-athena-identity",
+    allowExternalUnauthenticated: false,
     defaultRole: "Viewer",
     identityRoleMap: {}
   },
@@ -464,6 +467,20 @@ function parseIdentityHeader(input: string | undefined, defaultValue: string): s
   return normalized;
 }
 
+function parseSecret(input: string | undefined, fieldName: string): string | undefined {
+  if (input === undefined) {
+    return undefined;
+  }
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  if (trimmed.length < 16) {
+    throw new AthenaError("CONFIG_ERROR", `${fieldName} must be at least 16 characters when configured.`);
+  }
+  return trimmed;
+}
+
 function parseIdentityRoleMap(input: string | undefined): Record<string, AthenaRbacRole> {
   if (!input) {
     return {};
@@ -677,6 +694,15 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
   const authIdentityHeader = parseIdentityHeader(
     env.ATHENA_AUTH_IDENTITY_HEADER ?? process.env.ATHENA_AUTH_IDENTITY_HEADER,
     DEFAULT_CONFIG.auth!.identityHeader
+  );
+  const authApiToken = parseSecret(
+    env.ATHENA_AUTH_API_TOKEN ?? process.env.ATHENA_AUTH_API_TOKEN,
+    "ATHENA_AUTH_API_TOKEN"
+  );
+  const allowExternalUnauthenticated = parseBooleanStrict(
+    env.ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED ?? process.env.ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED,
+    "ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED",
+    DEFAULT_CONFIG.auth!.allowExternalUnauthenticated
   );
   const authDefaultRole = parseAuthRole(
     env.ATHENA_AUTH_DEFAULT_ROLE ?? process.env.ATHENA_AUTH_DEFAULT_ROLE,
@@ -949,6 +975,8 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
     auth: {
       enabled: authEnabled,
       identityHeader: authIdentityHeader,
+      ...(authApiToken ? { apiToken: authApiToken } : {}),
+      allowExternalUnauthenticated,
       defaultRole: authDefaultRole,
       identityRoleMap: authIdentityRoleMap
     },

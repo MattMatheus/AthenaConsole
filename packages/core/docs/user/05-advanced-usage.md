@@ -107,7 +107,12 @@ Rejections are visible through:
 Enable API identity middleware for production gateways or trusted internal ingress:
 
 - `ATHENA_AUTH_ENABLED=true`
+- `ATHENA_AUTH_API_TOKEN=<secret value with at least 16 characters>` when the API is externally reachable
 - `ATHENA_AUTH_IDENTITY_HEADER=x-athena-identity`
 - `ATHENA_AUTH_IDENTITY_ROLE_MAP=alice:Admin,bob:Operator,*:Viewer`
+- `ATHENA_AUTHZ_MODE=enforce`
+- `ATHENA_AUTHZ_DEFAULT_DECISION=deny`
 
-Current deny paths are enforced in service wrappers and return structured `AUTHZ_DENIED` errors.
+Externally bound API startup is refused unless token auth is configured or
+`ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED=true` is set for explicit local development. Current deny paths are enforced in
+service wrappers and return structured `AUTHZ_DENIED` errors.

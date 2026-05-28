@@ -6,6 +6,11 @@ services:
     environment:
       ATHENA_DEV_API_HOST: 0.0.0.0
       ATHENA_DEV_API_PORT: 8787
+      ATHENA_AUTH_ENABLED: "true"
+      ATHENA_AUTH_API_TOKEN: ${ATHENA_AUTH_API_TOKEN:?Set ATHENA_AUTH_API_TOKEN to a production API token of at least 16 characters}
+      ATHENA_AUTH_IDENTITY_ROLE_MAP: console:Admin,healthcheck:Viewer,*:Viewer
+      ATHENA_AUTHZ_MODE: enforce
+      ATHENA_AUTHZ_DEFAULT_DECISION: deny
       ATHENA_LOCK_PROVIDER_DEFAULT: local
       ATHENA_DISTRIBUTED_LOCK_PROVIDER: local
       ATHENA_EXECUTION_PROVIDER_DEFAULT: docker
@@ -19,7 +24,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "node -e \"fetch('http://127.0.0.1:8787/api/v1/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\"",
+          "node -e \"fetch('http://127.0.0.1:8787/api/v1/health',{headers:{authorization:'Bearer '+process.env.ATHENA_AUTH_API_TOKEN,'x-athena-identity':'healthcheck'}}).then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\"",
         ]
       interval: 10s
       timeout: 5s
@@ -30,6 +35,10 @@ services:
     build:
       context: .
       dockerfile: packages/core/infrastructure/docker/console.prod.Dockerfile
+      args:
+        VITE_ATHENA_API_TOKEN: ${ATHENA_AUTH_API_TOKEN:?Set ATHENA_AUTH_API_TOKEN to a production API token of at least 16 characters}
+        VITE_ATHENA_IDENTITY: console
+        VITE_CONSOLE_PASSWORD: ${ATHENA_CONSOLE_PASSWORD:?Set ATHENA_CONSOLE_PASSWORD for production-like console access}
     depends_on:
       api:
         condition: service_healthy
