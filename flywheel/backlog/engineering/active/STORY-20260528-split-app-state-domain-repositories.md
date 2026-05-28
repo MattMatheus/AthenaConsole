@@ -1,12 +1,12 @@
 ---
 kind: story
 id: STORY-20260528-split-app-state-domain-repositories
-status: intake
+status: active
 owner_role: Software Engineer
 source: architecture
 success_metric: App-state domain repositories are split by aggregate without behavior or import-surface changes.
 release_scope: deferred
-ready: false
+ready: true
 ---
 
 # Story: Split App-State Domain Repositories By Aggregate
@@ -14,7 +14,7 @@ ready: false
 ## Metadata
 - `id`: STORY-20260528-split-app-state-domain-repositories
 - `owner_role`: Software Engineer
-- `status`: intake
+- `status`: active
 - `source`: architecture
 - `decision_refs`: [ADR-0016]
 - `success_metric`: App-state domain repositories are split by aggregate without behavior or import-surface changes.
@@ -26,8 +26,8 @@ ready: false
 
 ## Scope
 
-- In: mechanical file split by repository aggregate, stable public exports, import cleanup, focused tests.
-- Out: schema changes, query behavior changes, new pagination contracts, service behavior changes, lint/import-boundary rules.
+- In: mechanical file split by repository aggregate, stable public exports through `packages/core/src/control-plane/app-state/index.ts`, a compatibility barrel when useful, import cleanup, focused tests.
+- Out: schema changes, query behavior changes, new pagination contracts, service behavior changes, generated schema changes, lint/import-boundary rules.
 
 ## Acceptance Criteria
 
@@ -36,6 +36,7 @@ ready: false
 3. Shared JSON/limit helpers are placed in a small shared module without creating import cycles.
 4. The diff is mechanical and does not include opportunistic behavior changes.
 5. Existing app-state, task workbench, mission workbench, schedule, workflow-template, stale-recovery, and API tests pass.
+6. `domain-repositories.ts` either remains as a compatibility barrel or is replaced by an equivalent directory barrel without breaking existing imports.
 
 ## Validation
 
@@ -54,11 +55,11 @@ ready: false
 
 ## Open Questions
 
-- Should `domain-repositories.ts` remain as a compatibility barrel for one release, or should imports move directly to a directory barrel in the same slice?
+- Resolved: preserve the existing public import surface. Keep `domain-repositories.ts` as a compatibility barrel for this slice unless engineering proves an equivalent directory barrel is purely mechanical and import-compatible.
 
 ## Next Step
 
-PM refinement should confirm whether this runs before or after the workflow-template DAG run envelope story.
+Engineering should execute this as the next active no-behavior-change refactor story. The workflow-template DAG run envelope story is already complete.
 
 ## Engineering Handoff
 - `change_summary`:
@@ -71,3 +72,6 @@ PM refinement should confirm whether this runs before or after the workflow-temp
 - `evidence_quality`:
 - `defects`:
 - `state_transition`:
+
+## Transition History
+- `2026-05-28T17:51:41Z`: `intake` -> `active`; PM refined as next mechanical architecture follow-on refactor

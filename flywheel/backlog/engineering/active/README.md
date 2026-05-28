@@ -8,7 +8,7 @@ This lane shows what is being implemented now.
 
 ## Active Sequence
 
-No active engineering stories.
+1. `STORY-20260528-split-app-state-domain-repositories.md`
 
 ## Next Up
 

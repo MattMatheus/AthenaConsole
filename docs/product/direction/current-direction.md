@@ -77,7 +77,9 @@ Source epic:
 
 ### Current Flywheel Priorities
 
-Flywheel lanes are the operational source of truth. No non-DAG implementation or architecture items are active right now.
+Flywheel lanes are the operational source of truth. The active engineering story is:
+
+- `flywheel/backlog/engineering/active/STORY-20260528-split-app-state-domain-repositories.md`
 
 Recently completed tracks now live in Flywheel done history:
 
@@ -95,7 +97,7 @@ Recently completed tracks now live in Flywheel done history:
 
 Deferred implementation candidates that need PM refinement:
 
-- `flywheel/backlog/engineering/intake/STORY-20260528-split-app-state-domain-repositories.md`
+- None currently queued.
 
 ## Promotion Rule
 

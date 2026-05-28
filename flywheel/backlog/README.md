@@ -6,7 +6,7 @@ This is the operational view of current and future work.
 
 Work currently being implemented:
 
-No active engineering or architecture work.
+- `engineering/active/STORY-20260528-split-app-state-domain-repositories.md`
 
 ## Next
 
@@ -18,7 +18,7 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-- `engineering/intake/STORY-20260528-split-app-state-domain-repositories.md`
+No candidate engineering or architecture intake items.
 
 ## Rule
 
