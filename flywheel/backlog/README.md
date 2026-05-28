@@ -6,7 +6,7 @@ This is the operational view of current and future work.
 
 Work currently being implemented:
 
-- `engineering/active/STORY-20260528-split-app-state-domain-repositories.md`
+No active engineering or architecture work.
 
 ## Next
 

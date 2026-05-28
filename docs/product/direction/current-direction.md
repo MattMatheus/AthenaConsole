@@ -52,6 +52,7 @@ The reset implementation has delivered:
 - Startup recovery for stale task and mission runs left `running` after API/service restart.
 - SQL-backed bounded task, run, and schedule list queries for current app-state console/API surfaces.
 - A core service decomposition plan that starts with a no-behavior-change app-state repository split.
+- App-state domain repositories split by aggregate while preserving the public app-state export surface.
 
 ## Current Roadmap
 
@@ -77,9 +78,7 @@ Source epic:
 
 ### Current Flywheel Priorities
 
-Flywheel lanes are the operational source of truth. The active engineering story is:
-
-- `flywheel/backlog/engineering/active/STORY-20260528-split-app-state-domain-repositories.md`
+Flywheel lanes are the operational source of truth. No engineering or architecture items are active right now.
 
 Recently completed tracks now live in Flywheel done history:
 
@@ -93,6 +92,7 @@ Recently completed tracks now live in Flywheel done history:
 - `flywheel/backlog/engineering/done/STORY-20260528-legacy-a2a-surface-labeling.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-app-state-list-query-bounds.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-workflow-template-dag-run-envelope.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-split-app-state-domain-repositories.md`
 - `flywheel/backlog/architecture/done/ARCH-20260528-service-decomposition-plan.md`
 
 Deferred implementation candidates that need PM refinement:

@@ -20,3 +20,4 @@ Engineering work accepted by QA.
 14. `BUG-20260528-product-direction-backlog-sync.md`
 15. `STORY-20260528-app-state-list-query-bounds.md`
 16. `STORY-20260528-workflow-template-dag-run-envelope.md`
+17. `STORY-20260528-split-app-state-domain-repositories.md`
