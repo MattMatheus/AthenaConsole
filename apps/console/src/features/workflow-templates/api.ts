@@ -188,6 +188,9 @@ export async function instantiateWorkflowTemplate(
       pluginVersion: typeof payload.template.pluginVersion === "string" ? payload.template.pluginVersion : request.pluginVersion ?? "",
       name: typeof payload.template.name === "string" ? payload.template.name : templateId,
     },
+    ...(isRecord(payload.workflowDagRun) && typeof payload.workflowDagRun.id === "string"
+      ? { workflowDagRun: { id: payload.workflowDagRun.id } }
+      : {}),
     mission: parseMission(payload.mission),
     tasks: payload.tasks.map(parseTask),
     inputValues: isRecord(payload.inputValues) ? payload.inputValues : {},

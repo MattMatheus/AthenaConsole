@@ -25,3 +25,4 @@ Engineering work accepted by QA.
 19. `STORY-20260528-workflow-dag-executor-service.md`
 20. `STORY-20260528-workflow-dag-restart-resume.md`
 21. `STORY-20260528-workflow-template-schedule-dag-execution.md`
+22. `STORY-20260528-workflow-run-graph-console.md`

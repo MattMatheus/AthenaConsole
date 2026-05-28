@@ -97,6 +97,9 @@ export type WorkflowTemplateInstantiationResult = {
     pluginVersion: string;
     name: string;
   };
+  workflowDagRun?: {
+    id: string;
+  };
   mission: WorkflowTemplateMission;
   tasks: Array<TaskWorkbenchTask & { status: TaskWorkbenchTaskStatus }>;
   inputValues: Record<string, unknown>;

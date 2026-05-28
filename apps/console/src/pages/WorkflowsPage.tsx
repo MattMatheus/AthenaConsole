@@ -375,11 +375,25 @@ export function WorkflowsPage() {
                   <Link className={styles.inlineLink} to={`/missions?missionId=${encodeURIComponent(instantiateMutation.data.mission.id)}`}>
                     Open mission
                   </Link>
+                  {instantiateMutation.data.workflowDagRun ? (
+                    <Link
+                      className={styles.inlineLink}
+                      to={`/workflows/runs/${encodeURIComponent(instantiateMutation.data.workflowDagRun.id)}`}
+                    >
+                      Open workflow run
+                    </Link>
+                  ) : null}
                   <dl className={styles.kvList}>
                     <div>
                       <dt>Template</dt>
                       <dd>{instantiateMutation.data.template.name}</dd>
                     </div>
+                    {instantiateMutation.data.workflowDagRun ? (
+                      <div>
+                        <dt>Workflow run</dt>
+                        <dd>{instantiateMutation.data.workflowDagRun.id}</dd>
+                      </div>
+                    ) : null}
                     <div>
                       <dt>Tasks</dt>
                       <dd>{instantiateMutation.data.tasks.length}</dd>

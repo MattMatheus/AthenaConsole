@@ -18,7 +18,6 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-- `engineering/intake/STORY-20260528-workflow-run-graph-console.md`
 - `engineering/intake/STORY-20260528-legacy-workflow-dag-alignment.md`
 
 ## Rule

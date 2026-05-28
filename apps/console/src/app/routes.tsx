@@ -15,6 +15,7 @@ import { SessionsPage } from "../pages/SessionsPage";
 import { SettingsPage } from "../pages/SettingsPage";
 import { TaskCreatePage } from "../pages/TaskCreatePage";
 import { TaskRunDetailPage } from "../pages/TaskRunDetailPage";
+import { WorkflowRunDetailPage } from "../pages/WorkflowRunDetailPage";
 import { WorkflowsPage } from "../pages/WorkflowsPage";
 
 export const router = createBrowserRouter([
@@ -61,6 +62,10 @@ export const router = createBrowserRouter([
       {
         path: "workflows",
         element: <WorkflowsPage />,
+      },
+      {
+        path: "workflows/runs/:runId",
+        element: <WorkflowRunDetailPage />,
       },
       {
         path: "run-templates",

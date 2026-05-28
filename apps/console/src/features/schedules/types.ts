@@ -42,6 +42,7 @@ export type ScheduleRunResult = {
   targetType?: ScheduleTargetType;
   targetId?: string;
   runId?: string;
+  workflowDagRunId?: string;
   missionId?: string;
   taskIds?: string[];
   nextRunAt?: string;

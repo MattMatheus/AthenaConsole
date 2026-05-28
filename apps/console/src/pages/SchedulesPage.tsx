@@ -340,6 +340,11 @@ export function SchedulesPage() {
                     {result.status}
                   </span>
                   <span>{summarizeScheduleRunResult(result)}</span>
+                  {result.workflowDagRunId ? (
+                    <Link className={styles.inlineLink} to={`/workflows/runs/${encodeURIComponent(result.workflowDagRunId)}`}>
+                      {result.workflowDagRunId}
+                    </Link>
+                  ) : null}
                   {result.missionId ? (
                     <Link className={styles.inlineLink} to={`/missions?missionId=${encodeURIComponent(result.missionId)}`}>
                       {result.missionId}
@@ -526,6 +531,11 @@ export function SchedulesPage() {
                     {log.missionId ? (
                       <Link className={styles.inlineLink} to={`/missions?missionId=${encodeURIComponent(log.missionId)}`}>
                         {log.missionId}
+                      </Link>
+                    ) : null}
+                    {log.workflowDagRunId ? (
+                      <Link className={styles.inlineLink} to={`/workflows/runs/${encodeURIComponent(log.workflowDagRunId)}`}>
+                        {log.workflowDagRunId}
                       </Link>
                     ) : null}
                     {log.runId ? (

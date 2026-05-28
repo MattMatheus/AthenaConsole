@@ -146,9 +146,10 @@ export function summarizeScheduleRunResult(result: ScheduleRunResult): string {
     return `${result.id} failed${result.error ? `: ${result.error}` : result.reason ? `: ${result.reason}` : "."}`;
   }
   const created = result.missionId ? ` Created mission ${result.missionId}.` : "";
+  const workflow = result.workflowDagRunId ? ` Workflow run ${result.workflowDagRunId}.` : "";
   const next = result.nextRunAt ? ` Next: ${formatScheduleDate(result.nextRunAt)}.` : "";
   const missed = result.missedRunAt ? ` Missed: ${formatScheduleDate(result.missedRunAt)}.` : "";
-  return `${result.id} ran successfully.${created}${missed}${next}`;
+  return `${result.id} ran successfully.${created}${workflow}${missed}${next}`;
 }
 
 export function summarizeScheduleRunLog(log: ScheduleRunLog): string {
@@ -159,10 +160,11 @@ export function summarizeScheduleRunLog(log: ScheduleRunLog): string {
     return `${log.scheduleId} failed${log.error ? `: ${log.error}` : log.reason ? `: ${log.reason}` : "."}`;
   }
   const created = log.missionId ? ` Created mission ${log.missionId}.` : "";
+  const workflow = log.workflowDagRunId ? ` Workflow run ${log.workflowDagRunId}.` : "";
   const run = log.runId ? ` Task run ${log.runId}.` : "";
   const next = log.nextRunAt ? ` Next: ${formatScheduleDate(log.nextRunAt)}.` : "";
   const missed = log.missedRunAt ? ` Missed: ${formatScheduleDate(log.missedRunAt)}.` : "";
-  return `${log.scheduleId} ran successfully.${created}${run}${missed}${next}`;
+  return `${log.scheduleId} ran successfully.${created}${workflow}${run}${missed}${next}`;
 }
 
 function toIsoFromLocalDateTime(value: string): string | undefined {

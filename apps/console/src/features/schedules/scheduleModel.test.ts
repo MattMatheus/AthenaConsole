@@ -123,8 +123,19 @@ describe("schedule model", () => {
         status: "ok",
         startedAt: "2026-06-01T09:00:00.000Z",
         missionId: "mission-1",
+        workflowDagRunId: "workflow-dag-run-1",
       }),
     ).toContain("Created mission mission-1.");
+    expect(
+      summarizeScheduleRunResult({
+        id: "workflow-schedule",
+        sessionId: "mission-1",
+        status: "ok",
+        startedAt: "2026-06-01T09:00:00.000Z",
+        finishedAt: "2026-06-01T09:00:01.000Z",
+        workflowDagRunId: "workflow-dag-run-1",
+      }),
+    ).toContain("Workflow run workflow-dag-run-1.");
   });
 });
 

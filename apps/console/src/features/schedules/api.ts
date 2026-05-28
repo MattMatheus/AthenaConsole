@@ -75,6 +75,7 @@ function parseScheduleRunResult(value: unknown): ScheduleRunResult {
     ...(targetType ? { targetType } : {}),
     ...(typeof value.targetId === "string" ? { targetId: value.targetId } : {}),
     ...(typeof value.runId === "string" ? { runId: value.runId } : {}),
+    ...(typeof value.workflowDagRunId === "string" ? { workflowDagRunId: value.workflowDagRunId } : {}),
     ...(typeof value.missionId === "string" ? { missionId: value.missionId } : {}),
     ...(Array.isArray(value.taskIds) ? { taskIds: value.taskIds.filter((item): item is string => typeof item === "string") } : {}),
     ...(typeof value.nextRunAt === "string" ? { nextRunAt: value.nextRunAt } : {}),
