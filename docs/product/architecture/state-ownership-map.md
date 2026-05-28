@@ -19,6 +19,14 @@ SQLite is the canonical local app-state store for operator-facing control-plane 
 
 Deprecated file-backed control-plane state should be migrated forward or removed. Do not add read bridges, file-store fallbacks, or long-term compatibility shims for deprecated control-plane state.
 
+State classifications mean:
+
+- SQLite app-state: durable operator-facing records whose source of truth is the app-state database.
+- SQLite app-state index: queryable metadata stored in SQLite while large or source-of-truth payload files remain on disk.
+- Intentional file artifact: payload bytes, transcripts, generated reports, evidence files, and other inspectable outputs that should remain filesystem-owned.
+- Intentional file support state: local runtime support files that are not product control-plane records.
+- Deprecated file-backed state to remove: old control-plane state that must not gain compatibility bridges or new read paths.
+
 ## Current Domains
 
 | Domain | Current owner | Classification | Next action |
@@ -32,7 +40,7 @@ Deprecated file-backed control-plane state should be migrated forward or removed
 | Missions | SQLite, `missions` | SQLite app-state | Keep in SQLite. |
 | Task and mission runs | SQLite, `runs` | SQLite app-state | Keep in SQLite. |
 | Run events | SQLite, `run_events` | SQLite app-state | Keep in SQLite. |
-| Artifact metadata | SQLite, `artifact_metadata` | SQLite app-state index | Keep metadata in SQLite; payload bytes remain filesystem-owned. |
+| Artifact metadata | SQLite, `artifact_metadata` | SQLite app-state index | Keep metadata in SQLite; payload bytes remain filesystem-owned. Add indexes only for console/API query needs. |
 | Approvals and safety decisions | SQLite, `approvals` | SQLite app-state | Keep in SQLite. |
 | Schedules | SQLite, `schedules` | SQLite app-state | Keep in SQLite. |
 | Schedule history | SQLite, `schedule_run_history` | SQLite app-state | Keep in SQLite, including workflow DAG run correlation. |
@@ -43,11 +51,11 @@ Deprecated file-backed control-plane state should be migrated forward or removed
 | Harness profiles | SQLite, `harness_profiles` | SQLite app-state | Runtime list/create/resolve paths use SQLite. Old `.athena/harness-profiles` files are not read by normal runtime paths. |
 | Run templates | SQLite, `run_templates` | SQLite app-state | Runtime list/create/run paths use SQLite. Old `.athena/run-templates` files are not read by normal runtime paths. |
 | Legacy workflows | `FileStateStore`, `.athena/workflows` and `.athena/workflow-runs` | Deprecated file-backed state to remove | Remove or disable after canonical workflow DAG route coverage is confirmed. |
-| Sessions | `SessionStore`, `.athena/sessions` | Intentional file artifact/support state | Keep file-backed. Consider a future SQLite index only if console search requires it. |
-| Transcripts | `SessionStore`, transcript JSONL files | Intentional file artifact/support state | Keep file-backed payloads. |
+| Sessions | `SessionStore`, `.athena/sessions` | Intentional file support state | Keep file-backed runtime support records under run-history retention. Consider a future SQLite index only if console search requires it. |
+| Transcripts | `SessionStore`, `.athena/transcripts/*.jsonl` | Intentional file artifact | Keep file-backed append-only payloads under session retention; do not store transcript bodies in SQLite. |
 | Work queues | `WorkManager`, per-session files | Intentional file support state | Keep file-backed unless work queues become operator-facing durable app-state. |
-| Run evidence payloads | `FileStateStore`, `.athena/run-evidence` | Intentional file artifact payload | Keep file-backed payloads; avoid storing payload bytes in SQLite. |
-| Specialist artifacts | Specialist artifact directories | Intentional file artifact payload | Keep file-backed payloads; index later only if needed for console query. |
+| Run evidence payloads | `FileStateStore`, `.athena/run-evidence` | Intentional file artifact | Keep file-backed payloads; avoid storing payload bytes in SQLite. Use SQLite metadata only if evidence needs list/search beyond current run verification. |
+| Specialist artifacts | `.athena/specialist-runs` and legacy `.athena/persona-runs` | Intentional file artifact | Keep result/report/evidence payloads file-backed. Preserve `specialist-runs` as the primary root; treat `persona-runs` as legacy artifact compatibility until a separate cleanup story scopes removal. Index later only if needed for console query. |
 | Plugin and agent source files | Configured plugin directories | Intentional source files | Keep filesystem-owned; SQLite stores app-facing index data. |
 | Workflow template source files | Plugin workflow manifests | Intentional source files | Keep filesystem-owned; SQLite stores catalog/index data. |
 | Logs | Filesystem or process output | Intentional file artifact/support state | Keep file-backed where streaming files are more practical. |
@@ -75,3 +83,9 @@ Deprecated file-backed control-plane state should be migrated forward or removed
 Startup and diagnostics should make the active SQLite database path visible to maintainers. They should also list intentional file artifact roots and any deprecated file-backed roots that still need removal.
 
 Diagnostics may include local filesystem paths for local operator troubleshooting, but they must not include secret values, payload contents, transcript contents, directive contents, or artifact bytes.
+
+## Artifact Retention And Indexing
+
+Session records and transcripts follow the configured run-history retention sweep. When a session record is stale and not locked, its transcript is removed with it.
+
+Artifact payload roots are intentionally inspectable filesystem outputs. SQLite may index payload metadata such as artifact id, run id, label, format, and storage URI, but raw transcript, evidence, result, report, and binary payload bodies should remain outside app-state unless a future ADR explicitly changes the ownership model.

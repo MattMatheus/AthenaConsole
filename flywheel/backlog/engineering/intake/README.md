@@ -4,8 +4,7 @@ Raw engineering work enters here before PM refinement.
 
 ## Candidate Sequence
 
-1. `STORY-20260528-session-artifact-state-classification.md`
-2. `STORY-20260528-remove-legacy-workflow-file-state.md`
+1. `STORY-20260528-remove-legacy-workflow-file-state.md`
 
 ## Refinement Rule
 
