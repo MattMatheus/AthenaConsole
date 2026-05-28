@@ -305,7 +305,7 @@ process.stdin.on("end", () => {
       );
       const appState = openAppStateDatabase(config);
       try {
-        seedContainerRunnableCatalog(appState, pluginDir, "container-success.js");
+        seedContainerRunnableCatalog(appState, pluginDir, "container-success.js", { policyPackId: "container-isolated" });
         appState.tasks.create({
           id: "task-run-container",
           title: "Run container",
@@ -329,9 +329,14 @@ process.stdin.on("end", () => {
           }
         });
         expect(appState.tasks.get("task-run-container")).toMatchObject({ status: "completed" });
-        expect(appState.runEvents.listForRun("run-container").map((event) => event.type)).toEqual(
+        const events = appState.runEvents.listForRun("run-container");
+        expect(events.map((event) => event.type)).toEqual(
           expect.arrayContaining(["run.validated", "run.started", "run.log", "artifact.created", "run.completed"])
         );
+        expect(events.find((event) => event.type === "run.safety.limits")?.payload).toMatchObject({
+          policyPackId: "container-isolated",
+          approvalRequiredFor: ["container-control"]
+        });
         expect(appState.artifacts.listForRun("run-container")).toEqual([
           expect.objectContaining({
             id: "container-artifact",
@@ -980,6 +985,7 @@ process.stdin.on("end", () => {
 
         expect(run).toMatchObject({ status: "completed", backend: "local-process", output: { ok: true } });
         expect(limitsEvent?.payload).toMatchObject({
+          policyPackId: "standard-local",
           limits: {
             maxRuntimeSeconds: 900,
             maxToolCalls: 80,
@@ -996,6 +1002,106 @@ process.stdin.on("end", () => {
         appState.close();
       }
     } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("resolves runtime policy packs into stricter limits and approval unions", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-policy-pack-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(join(pluginDir, "success.js"), "process.stdout.write(JSON.stringify({ output: '', artifacts: [] }));", "utf8");
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "success.js", {
+          policyPackId: "cautious-local",
+          limits: {
+            maxRuntimeSeconds: 600,
+            maxToolCalls: 100,
+            maxRepeatedActions: 3,
+            maxRetries: 4,
+            maxFollowUpTasks: 3,
+            maxOutputBytes: 4,
+            maxArtifacts: 10
+          },
+          approvalRequiredFor: ["network-write", "shell-command"]
+        });
+        appState.tasks.create({
+          id: "task-run-policy-pack",
+          title: "Run policy pack",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: { taskBrief: "Resolve policy pack" }
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+
+        await service.runTask("task-run-policy-pack", { runId: "run-policy-pack" });
+
+        const events = appState.runEvents.listForRun("run-policy-pack");
+        const limitsEvent = events.find((event) => event.type === "run.safety.limits");
+        const approvalEvents = events.filter((event) => event.type === "run.approval.required");
+
+        expect(limitsEvent?.payload).toMatchObject({
+          policyPackId: "cautious-local",
+          limits: {
+            maxRuntimeSeconds: 300,
+            maxToolCalls: 40,
+            maxRepeatedActions: 2,
+            maxRetries: 1,
+            maxFollowUpTasks: 2,
+            maxOutputBytes: 4,
+            maxArtifacts: 5
+          },
+          approvalRequiredFor: ["credential-access", "network-write", "shell-command"]
+        });
+        expect(approvalEvents.map((event) => event.payload)).toEqual([
+          expect.objectContaining({ action: "task.run", riskClass: "credential-access", decision: "pending" }),
+          expect.objectContaining({ action: "task.run", riskClass: "network-write", decision: "pending" }),
+          expect.objectContaining({ action: "task.run", riskClass: "shell-command", decision: "pending" })
+        ]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects runs when a runtime policy pack disallows the resolved backend", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-policy-pack-backend-"));
+    const server = await startHttpApiServer((_request, _body, response) => {
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify({ output: { ok: true } }));
+    });
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        seedHttpApiCatalog(appState, server.url, { policyPackId: "cautious-local" });
+        appState.tasks.create({
+          id: "task-run-policy-pack-backend",
+          title: "Run policy pack backend",
+          status: "ready",
+          assignedAgentId: "software.http.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: { taskBrief: "Reject backend" }
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+
+        await expect(service.runTask("task-run-policy-pack-backend")).rejects.toThrow(
+          "Runtime policy pack cautious-local does not allow http-api backend."
+        );
+        expect(appState.runs.list({ targetType: "task", targetId: "task-run-policy-pack-backend" })).toEqual([]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      await server.close();
       rmSync(dir, { recursive: true, force: true });
     }
   });
@@ -1122,7 +1228,7 @@ function seedRunnableCatalog(
   appState: ReturnType<typeof openAppStateDatabase>,
   pluginDir: string,
   scriptName: string,
-  options: { limits?: Record<string, unknown>; approvalRequiredFor?: string[] } = {}
+  options: { limits?: Record<string, unknown>; approvalRequiredFor?: string[]; policyPackId?: string } = {}
 ): void {
   appState.plugins.upsert({
     id: "team-orchestrator.test.runnable",
@@ -1165,7 +1271,8 @@ function seedRunnableCatalog(
         },
         runtime: {
           preferredBackend: "local-process",
-          workingDirectory: "."
+          workingDirectory: ".",
+          ...(options.policyPackId ? { policyPackId: options.policyPackId } : {})
         },
         ...(options.limits ? { limits: options.limits } : {}),
         ...(options.approvalRequiredFor ? { permissions: { approvalRequiredFor: options.approvalRequiredFor } } : {})
@@ -1178,7 +1285,7 @@ function seedContainerRunnableCatalog(
   appState: ReturnType<typeof openAppStateDatabase>,
   pluginDir: string,
   scriptName: string,
-  options: { workingDirectory?: string; limits?: Record<string, unknown>; approvalRequiredFor?: string[] } = {}
+  options: { workingDirectory?: string; limits?: Record<string, unknown>; approvalRequiredFor?: string[]; policyPackId?: string } = {}
 ): void {
   appState.plugins.upsert({
     id: "team-orchestrator.test.container",
@@ -1219,6 +1326,7 @@ function seedContainerRunnableCatalog(
         runtime: {
           preferredBackend: "container-command",
           workingDirectory: options.workingDirectory ?? ".",
+          ...(options.policyPackId ? { policyPackId: options.policyPackId } : {}),
           environment: {
             CONTAINER_TEST: "true"
           }
@@ -1244,6 +1352,7 @@ function seedHttpApiCatalog(
     preferredBackend?: string;
     limits?: Record<string, unknown>;
     approvalRequiredFor?: string[];
+    policyPackId?: string;
   } = {}
 ): void {
   appState.plugins.upsert({
@@ -1284,6 +1393,7 @@ function seedHttpApiCatalog(
         },
         runtime: {
           preferredBackend: options.preferredBackend ?? "http-api",
+          ...(options.policyPackId ? { policyPackId: options.policyPackId } : {}),
           environment: options.environment ?? {
             HTTP_TOKEN: "test-token"
           }

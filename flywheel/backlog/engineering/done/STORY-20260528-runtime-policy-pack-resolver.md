@@ -1,7 +1,7 @@
 ---
 kind: story
 id: STORY-20260528-runtime-policy-pack-resolver
-status: ready
+status: done
 owner_role: Engineer
 source: pm
 success_metric: Task runs resolve named runtime policy packs into deterministic backend, limit, and approval guardrails.
@@ -14,7 +14,7 @@ ready: true
 ## Metadata
 - `id`: STORY-20260528-runtime-policy-pack-resolver
 - `owner_role`: Engineer
-- `status`: ready
+- `status`: done
 - `source`: pm
 - `decision_refs`: [ADR-0011, ADR-0013, docs/product/epics/refinement/2026.20.00-epic-runtime-policy-packs.md]
 - `success_metric`: Task runs resolve named runtime policy packs into deterministic backend, limit, and approval guardrails.
@@ -69,13 +69,18 @@ Runtime limits and approval requirements are currently resolved directly from ag
 Engineering implementation.
 
 ## Engineering Handoff
-- `change_summary`:
-- `validation_evidence`:
-- `qa_focus`:
-- `open_risks`:
+- `change_summary`: Added built-in runtime policy packs (`standard-local`, `cautious-local`, `container-isolated`) to task workbench run setup, resolved optional `agent.runtime.policyPackId`, rejected pack-disallowed backends before run creation, composed pack maximums with manifest/default limits, unioned pack and manifest approval requirements, and recorded the resolved pack/effective safety settings in the `run.safety.limits` event.
+- `validation_evidence`: `npm --workspace @athena/core run typecheck`; `npm --workspace @athena/core run test:unit -- control-plane.task-workbench`; `npm --workspace @athena/core run validate:manifests`; `git diff --check`; `./flywheel/tools/validate_workflow_state.sh --format json`.
+- `qa_focus`: Confirm default runs still report `standard-local`, cautious-local disallows HTTP/API and tightens limits/approval events, and container-isolated supports container-command without overstating isolation.
+- `open_risks`: Policy packs are internal built-ins only; no persisted/custom packs or console authoring exists yet.
 
 ## QA Verdict
-- `verdict`:
-- `evidence_quality`:
-- `defects`:
-- `state_transition`:
+- `verdict`: pass
+- `evidence_quality`: Core tests cover the implicit `standard-local` default, `cautious-local` limit/approval composition, `container-isolated` event behavior on container-command runs, and rejection before run creation when `cautious-local` is paired with an HTTP/API backend. Typecheck, manifest validation, diff check, and Flywheel workflow validation passed.
+- `defects`: none
+- `state_transition`: move to `done`
+
+## Transition History
+- `2026-05-28T03:50:28Z`: `ready` -> `active` by `Codex`; Engineering started
+- `2026-05-28T03:53:52Z`: `active` -> `qa` by `Codex`; Engineering handoff complete
+- `2026-05-28T03:54:09Z`: `qa` -> `done` by `Codex`; QA passed

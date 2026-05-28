@@ -11,3 +11,4 @@ Engineering work accepted by QA.
 5. `STORY-20260528-verification-evidence-model.md`
 6. `STORY-20260528-run-verification-inspection.md`
 7. `STORY-20260528-runtime-isolation-policy-packs.md`
+8. `STORY-20260528-runtime-policy-pack-resolver.md`

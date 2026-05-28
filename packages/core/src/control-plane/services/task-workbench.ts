@@ -47,6 +47,7 @@ interface ActiveTaskRun {
 }
 
 type TaskExecutionBackend = "local-process" | "container-command" | "http-api";
+type RuntimePolicyPackId = "standard-local" | "cautious-local" | "container-isolated";
 
 const DEFAULT_TASK_RUN_LIMITS = {
   maxRuntimeSeconds: 900,
@@ -55,6 +56,33 @@ const DEFAULT_TASK_RUN_LIMITS = {
   maxRetries: 2,
   maxFollowUpTasks: 5
 } as const;
+
+const RUNTIME_POLICY_PACKS: Record<RuntimePolicyPackId, RuntimePolicyPack> = {
+  "standard-local": {
+    id: "standard-local",
+    allowedBackends: ["local-process", "container-command", "http-api"],
+    requiredApprovals: []
+  },
+  "cautious-local": {
+    id: "cautious-local",
+    allowedBackends: ["local-process", "container-command"],
+    limitMaximums: {
+      maxRuntimeSeconds: 300,
+      maxToolCalls: 40,
+      maxRepeatedActions: 2,
+      maxRetries: 1,
+      maxFollowUpTasks: 2,
+      maxOutputBytes: 65536,
+      maxArtifacts: 5
+    },
+    requiredApprovals: ["shell-command", "network-write", "credential-access"]
+  },
+  "container-isolated": {
+    id: "container-isolated",
+    allowedBackends: ["container-command"],
+    requiredApprovals: ["container-control"]
+  }
+};
 
 interface AgentManifestDocument {
   agent?: {
@@ -76,6 +104,7 @@ interface AgentManifestDocument {
       backendPreferences?: unknown[];
       workingDirectory?: string;
       environment?: Record<string, unknown>;
+      policyPackId?: unknown;
     };
     permissions?: {
       containers?: string;
@@ -111,7 +140,15 @@ interface ResolvedHttpApiRequest {
 
 type ResolvedTaskExecution = ResolvedTaskCommand | ResolvedHttpApiRequest;
 
+interface RuntimePolicyPack {
+  id: RuntimePolicyPackId;
+  allowedBackends: TaskExecutionBackend[];
+  limitMaximums?: Partial<ResolvedTaskRunSafety["limits"]>;
+  requiredApprovals: string[];
+}
+
 interface ResolvedTaskRunSafety {
+  policyPackId: RuntimePolicyPackId;
   limits: {
     maxRuntimeSeconds: number;
     maxToolCalls: number;
@@ -266,7 +303,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       const manifest = normalizeAgentManifest(agent.manifest);
       validateTaskInputs(manifest.agent?.inputs, task.inputs);
       const execution = resolveTaskExecution(manifest, plugin);
-      const safety = resolveTaskRunSafety(manifest);
+      const safety = resolveTaskRunSafety(manifest, execution.backend);
       const runId = request.runId ?? `run-${randomUUID()}`;
       const startedAt = new Date().toISOString();
       let run = appState.runs.create({
@@ -284,7 +321,9 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         inputKeys: Object.keys(isRecord(task.inputs) ? task.inputs : {})
       });
       appendRunEvent(appState, run.id, task, agent.id, "run.safety.limits", "Task run safety limits resolved.", {
-        limits: safety.limits
+        policyPackId: safety.policyPackId,
+        limits: safety.limits,
+        approvalRequiredFor: safety.approvalRequiredFor
       });
       appendApprovalRequiredEvents(appState, run, task, agent.id, execution.backend, safety);
       appendRunEvent(appState, run.id, task, agent.id, "run.started", `${backendLabel(execution.backend)} task run started.`, {
@@ -705,34 +744,95 @@ function normalizeAgentManifest(manifest: unknown): AgentManifestDocument {
   return isRecord(manifest) ? (manifest as AgentManifestDocument) : {};
 }
 
-function resolveTaskRunSafety(manifest: AgentManifestDocument): ResolvedTaskRunSafety {
+function resolveTaskRunSafety(manifest: AgentManifestDocument, backend: TaskExecutionBackend): ResolvedTaskRunSafety {
+  const policyPack = resolveRuntimePolicyPack(manifest);
+  if (!policyPack.allowedBackends.includes(backend)) {
+    throw new AthenaError("CONFIG_ERROR", `Runtime policy pack ${policyPack.id} does not allow ${backend} backend.`);
+  }
   const limits = manifest.agent?.limits ?? {};
-  return {
-    limits: {
-      maxRuntimeSeconds: normalizePositiveIntegerLimit(
-        limits.maxRuntimeSeconds,
-        "limits.maxRuntimeSeconds",
-        DEFAULT_TASK_RUN_LIMITS.maxRuntimeSeconds
-      ),
-      maxToolCalls: normalizeNonNegativeIntegerLimit(limits.maxToolCalls, "limits.maxToolCalls", DEFAULT_TASK_RUN_LIMITS.maxToolCalls),
-      maxRepeatedActions: normalizePositiveIntegerLimit(
-        limits.maxRepeatedActions,
-        "limits.maxRepeatedActions",
-        DEFAULT_TASK_RUN_LIMITS.maxRepeatedActions
-      ),
-      maxRetries: normalizeNonNegativeIntegerLimit(limits.maxRetries, "limits.maxRetries", DEFAULT_TASK_RUN_LIMITS.maxRetries),
-      maxFollowUpTasks: normalizeNonNegativeIntegerLimit(
-        limits.maxFollowUpTasks,
-        "limits.maxFollowUpTasks",
-        DEFAULT_TASK_RUN_LIMITS.maxFollowUpTasks
-      ),
-      ...(limits.maxOutputBytes !== undefined
-        ? { maxOutputBytes: normalizePositiveIntegerLimit(limits.maxOutputBytes, "limits.maxOutputBytes") }
-        : {}),
-      ...(limits.maxArtifacts !== undefined ? { maxArtifacts: normalizeNonNegativeIntegerLimit(limits.maxArtifacts, "limits.maxArtifacts") } : {})
-    },
-    approvalRequiredFor: normalizeStringArray(manifest.agent?.permissions?.approvalRequiredFor, "permissions.approvalRequiredFor")
+  const manifestLimits = {
+    maxRuntimeSeconds: normalizePositiveIntegerLimit(
+      limits.maxRuntimeSeconds,
+      "limits.maxRuntimeSeconds",
+      DEFAULT_TASK_RUN_LIMITS.maxRuntimeSeconds
+    ),
+    maxToolCalls: normalizeNonNegativeIntegerLimit(limits.maxToolCalls, "limits.maxToolCalls", DEFAULT_TASK_RUN_LIMITS.maxToolCalls),
+    maxRepeatedActions: normalizePositiveIntegerLimit(
+      limits.maxRepeatedActions,
+      "limits.maxRepeatedActions",
+      DEFAULT_TASK_RUN_LIMITS.maxRepeatedActions
+    ),
+    maxRetries: normalizeNonNegativeIntegerLimit(limits.maxRetries, "limits.maxRetries", DEFAULT_TASK_RUN_LIMITS.maxRetries),
+    maxFollowUpTasks: normalizeNonNegativeIntegerLimit(
+      limits.maxFollowUpTasks,
+      "limits.maxFollowUpTasks",
+      DEFAULT_TASK_RUN_LIMITS.maxFollowUpTasks
+    ),
+    ...(limits.maxOutputBytes !== undefined
+      ? { maxOutputBytes: normalizePositiveIntegerLimit(limits.maxOutputBytes, "limits.maxOutputBytes") }
+      : {}),
+    ...(limits.maxArtifacts !== undefined ? { maxArtifacts: normalizeNonNegativeIntegerLimit(limits.maxArtifacts, "limits.maxArtifacts") } : {})
   };
+  return {
+    policyPackId: policyPack.id,
+    limits: composePolicyPackLimits(manifestLimits, policyPack.limitMaximums),
+    approvalRequiredFor: uniqueSortedStrings([
+      ...normalizeStringArray(manifest.agent?.permissions?.approvalRequiredFor, "permissions.approvalRequiredFor"),
+      ...policyPack.requiredApprovals
+    ])
+  };
+}
+
+function resolveRuntimePolicyPack(manifest: AgentManifestDocument): RuntimePolicyPack {
+  const rawPolicyPackId = manifest.agent?.runtime?.policyPackId ?? "standard-local";
+  if (rawPolicyPackId === "standard-local" || rawPolicyPackId === "cautious-local" || rawPolicyPackId === "container-isolated") {
+    return RUNTIME_POLICY_PACKS[rawPolicyPackId];
+  }
+  if (typeof rawPolicyPackId === "string") {
+    throw new AthenaError("CONFIG_ERROR", `Unknown runtime policy pack: ${rawPolicyPackId}`);
+  }
+  throw new AthenaError("CONFIG_ERROR", "runtime.policyPackId must be a string.");
+}
+
+function composePolicyPackLimits(
+  manifestLimits: ResolvedTaskRunSafety["limits"],
+  packMaximums: Partial<ResolvedTaskRunSafety["limits"]> | undefined
+): ResolvedTaskRunSafety["limits"] {
+  if (!packMaximums) {
+    return manifestLimits;
+  }
+  return {
+    maxRuntimeSeconds: stricterRequiredLimit(manifestLimits.maxRuntimeSeconds, packMaximums.maxRuntimeSeconds),
+    maxToolCalls: stricterRequiredLimit(manifestLimits.maxToolCalls, packMaximums.maxToolCalls),
+    maxRepeatedActions: stricterRequiredLimit(manifestLimits.maxRepeatedActions, packMaximums.maxRepeatedActions),
+    maxRetries: stricterRequiredLimit(manifestLimits.maxRetries, packMaximums.maxRetries),
+    maxFollowUpTasks: stricterRequiredLimit(manifestLimits.maxFollowUpTasks, packMaximums.maxFollowUpTasks),
+    ...composeOptionalLimit("maxOutputBytes", manifestLimits, packMaximums),
+    ...composeOptionalLimit("maxArtifacts", manifestLimits, packMaximums)
+  };
+}
+
+function stricterRequiredLimit(manifestValue: number, packMaximum: number | undefined): number {
+  return packMaximum === undefined ? manifestValue : Math.min(manifestValue, packMaximum);
+}
+
+function composeOptionalLimit<TLimit extends "maxOutputBytes" | "maxArtifacts">(
+  limit: TLimit,
+  manifestLimits: ResolvedTaskRunSafety["limits"],
+  packMaximums: Partial<ResolvedTaskRunSafety["limits"]>
+): Pick<ResolvedTaskRunSafety["limits"], TLimit> | Record<string, never> {
+  const manifestValue = manifestLimits[limit];
+  const packValue = packMaximums[limit];
+  if (manifestValue === undefined && packValue === undefined) {
+    return {};
+  }
+  return {
+    [limit]: manifestValue === undefined ? packValue : stricterRequiredLimit(manifestValue, packValue)
+  } as Pick<ResolvedTaskRunSafety["limits"], TLimit>;
+}
+
+function uniqueSortedStrings(values: string[]): string[] {
+  return Array.from(new Set(values)).sort((left, right) => left.localeCompare(right));
 }
 
 function normalizePositiveIntegerLimit(value: unknown, path: string, fallback?: number): number {
