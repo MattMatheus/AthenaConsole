@@ -21,6 +21,9 @@ export interface ApiRouteDefinition {
   operationId: string;
   stream?: "sse";
   queryMode?: "cursor-page" | "tail";
+  lifecycle?: "stable" | "deprecated";
+  surface?: "canonical" | "legacy-file-backed-workflow";
+  canonicalPath?: string;
 }
 
 export interface CursorPageQuery {
@@ -107,11 +110,46 @@ export const API_V1_ROUTES: ApiRouteDefinition[] = [
   { method: "POST", path: `${API_V1_PREFIX}/templates/:id/run`, operationId: "runTemplate" },
   { method: "GET", path: `${API_V1_PREFIX}/workflow-templates`, operationId: "listWorkflowTemplates" },
   { method: "POST", path: `${API_V1_PREFIX}/workflow-templates/:id/instantiate`, operationId: "instantiateWorkflowTemplate" },
-  { method: "GET", path: `${API_V1_PREFIX}/workflows`, operationId: "listWorkflows", queryMode: "cursor-page" },
-  { method: "POST", path: `${API_V1_PREFIX}/workflows`, operationId: "createWorkflow" },
-  { method: "GET", path: `${API_V1_PREFIX}/workflows/run/:id`, operationId: "getWorkflowRun" },
-  { method: "POST", path: `${API_V1_PREFIX}/workflows/run/:id/resume`, operationId: "resumeWorkflow" },
-  { method: "GET", path: `${API_V1_PREFIX}/workflow-runs/:runId/status`, operationId: "getWorkflowRunStatus" },
+  {
+    method: "GET",
+    path: `${API_V1_PREFIX}/workflows`,
+    operationId: "listWorkflows",
+    queryMode: "cursor-page",
+    lifecycle: "deprecated",
+    surface: "legacy-file-backed-workflow",
+    canonicalPath: `${API_V1_PREFIX}/workflow-runs/:runId/status`
+  },
+  {
+    method: "POST",
+    path: `${API_V1_PREFIX}/workflows`,
+    operationId: "createWorkflow",
+    lifecycle: "deprecated",
+    surface: "legacy-file-backed-workflow",
+    canonicalPath: `${API_V1_PREFIX}/workflow-runs/:runId/status`
+  },
+  {
+    method: "GET",
+    path: `${API_V1_PREFIX}/workflows/run/:id`,
+    operationId: "getWorkflowRun",
+    lifecycle: "deprecated",
+    surface: "legacy-file-backed-workflow",
+    canonicalPath: `${API_V1_PREFIX}/workflow-runs/:runId/status`
+  },
+  {
+    method: "POST",
+    path: `${API_V1_PREFIX}/workflows/run/:id/resume`,
+    operationId: "resumeWorkflow",
+    lifecycle: "deprecated",
+    surface: "legacy-file-backed-workflow",
+    canonicalPath: `${API_V1_PREFIX}/workflow-runs/:runId/status`
+  },
+  {
+    method: "GET",
+    path: `${API_V1_PREFIX}/workflow-runs/:runId/status`,
+    operationId: "getWorkflowRunStatus",
+    lifecycle: "stable",
+    surface: "canonical"
+  },
   { method: "GET", path: `${API_V1_PREFIX}/memory/search`, operationId: "searchMemory" },
   { method: "POST", path: `${API_V1_PREFIX}/memory/get`, operationId: "getMemory" },
   { method: "POST", path: `${API_V1_PREFIX}/work/enqueue`, operationId: "enqueueWork" },

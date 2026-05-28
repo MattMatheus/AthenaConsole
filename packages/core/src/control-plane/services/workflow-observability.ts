@@ -23,7 +23,13 @@ export function buildWorkflowRunObservabilitySnapshot(
     nodes,
     progress,
     artifactRefs,
-    eta
+    eta,
+    compatibility: {
+      surface: "legacy-file-backed-workflow",
+      lifecycle: "deprecated",
+      canonicalWorkflowDagStatusPath: "/api/v1/workflow-runs/{runId}/status",
+      note: "This endpoint reports the legacy file-backed workflow runner. Workflow-template execution uses canonical SQLite workflow DAG runs; inspect those runs with the canonical workflow DAG status endpoint."
+    }
   };
 }
 

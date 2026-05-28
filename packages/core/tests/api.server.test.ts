@@ -807,6 +807,11 @@ describe("api server", () => {
           run: { id: string; status: "pending" | "running" | "ok" | "failed" };
           progress: { totalSteps: number; completedSteps: number };
           artifactRefs: Array<{ stepId: string; artifactRef: string }>;
+          compatibility: {
+            surface: "legacy-file-backed-workflow";
+            lifecycle: "deprecated";
+            canonicalWorkflowDagStatusPath: string;
+          };
         };
       };
       expect(workflowStatusEnvelope.ok).toBe(true);
@@ -816,6 +821,11 @@ describe("api server", () => {
       expect(workflowStatusEnvelope.data.progress.totalSteps).toBe(2);
       expect(workflowStatusEnvelope.data.progress.completedSteps).toBe(2);
       expect(workflowStatusEnvelope.data.artifactRefs.some((entry) => entry.stepId === "seed")).toBe(true);
+      expect(workflowStatusEnvelope.data.compatibility).toMatchObject({
+        surface: "legacy-file-backed-workflow",
+        lifecycle: "deprecated",
+        canonicalWorkflowDagStatusPath: "/api/v1/workflow-runs/{runId}/status"
+      });
 
       const memorySearchResponse = await fetch(`${base}/api/v1/memory/search?query=athena&maxResults=3`);
       expect(memorySearchResponse.status).toBe(200);

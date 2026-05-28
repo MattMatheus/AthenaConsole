@@ -26,6 +26,14 @@ describe("control-plane api artifact", () => {
     expect(artifact.openapi.paths["/api/v1/workflows"]?.post?.operationId).toBe("createWorkflow");
     expect(artifact.openapi.paths["/api/v1/workflows/run/{id}"]?.get?.operationId).toBe("getWorkflowRun");
     expect(artifact.openapi.paths["/api/v1/workflows/run/{id}/resume"]?.post?.operationId).toBe("resumeWorkflow");
+    expect(artifact.openapi.paths["/api/v1/workflows/run/{id}"]?.get?.deprecated).toBe(true);
+    expect(artifact.openapi.paths["/api/v1/workflows/run/{id}"]?.get?.["x-athena-surface"]).toBe(
+      "legacy-file-backed-workflow"
+    );
+    expect(artifact.openapi.paths["/api/v1/workflows/run/{id}"]?.get?.["x-athena-canonicalPath"]).toBe(
+      "/api/v1/workflow-runs/:runId/status"
+    );
+    expect(artifact.openapi.paths["/api/v1/workflow-runs/{runId}/status"]?.get?.["x-athena-surface"]).toBe("canonical");
     expect(artifact.openapi.paths["/api/v1/work/observability"]?.get?.operationId).toBe("getA2aObservability");
     expect(artifact.openapi.paths["/api/v1/work/observability/alerts"]?.get?.operationId).toBe("listA2aObservabilityAlerts");
     expect(artifact.openapi.paths["/api/v1/work/observability/alerts/export.csv"]?.get?.operationId).toBe(

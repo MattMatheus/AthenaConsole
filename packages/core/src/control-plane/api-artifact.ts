@@ -12,6 +12,7 @@ export interface OpenApiParameterArtifact {
 
 export interface OpenApiOperationArtifact {
   operationId: string;
+  deprecated?: boolean;
   parameters?: OpenApiParameterArtifact[];
   requestBody?: {
     required: boolean;
@@ -24,6 +25,9 @@ export interface OpenApiOperationArtifact {
   responses: Record<string, unknown>;
   "x-athena-stream"?: "sse";
   "x-athena-queryMode"?: "cursor-page" | "tail";
+  "x-athena-lifecycle"?: "stable" | "deprecated";
+  "x-athena-surface"?: "canonical" | "legacy-file-backed-workflow";
+  "x-athena-canonicalPath"?: string;
 }
 
 export interface ApiContractArtifact {
@@ -63,8 +67,12 @@ export function buildApiContractArtifact(now = new Date()): ApiContractArtifact 
     const operation: OpenApiOperationArtifact = {
       operationId: route.operationId,
       responses: buildOperationResponses(operationSchema.responseSchema, Boolean(route.stream)),
+      ...(route.lifecycle === "deprecated" ? { deprecated: true } : {}),
       ...(route.stream ? { "x-athena-stream": route.stream } : {}),
-      ...(route.queryMode ? { "x-athena-queryMode": route.queryMode } : {})
+      ...(route.queryMode ? { "x-athena-queryMode": route.queryMode } : {}),
+      ...(route.lifecycle ? { "x-athena-lifecycle": route.lifecycle } : {}),
+      ...(route.surface ? { "x-athena-surface": route.surface } : {}),
+      ...(route.canonicalPath ? { "x-athena-canonicalPath": route.canonicalPath } : {})
     };
 
     const queryParameters = buildParameters(operationSchema.querySchema, "query");

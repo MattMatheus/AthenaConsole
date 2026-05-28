@@ -53,6 +53,7 @@ The reset implementation has delivered:
 - Canonical workflow DAG startup recovery and service-level resume can recover stale steps and continue without re-running completed dependencies.
 - Due workflow-template schedules now execute through canonical workflow DAG runs and record terminal DAG outcomes.
 - Console workflow-template instantiation and schedule history now link to workflow DAG run inspection with dependency, readiness, progress, failure, recovery, and event detail.
+- Legacy file-backed `/api/v1/workflows*` APIs remain available as deprecated compatibility surfaces and point operators to canonical workflow DAG status at `/api/v1/workflow-runs/:runId/status`.
 - Run templates, verification evidence, runtime policy packs, and A2A observability reframing migrated into the current Team Orchestrator model.
 - Startup recovery for stale task and mission runs left `running` after API/service restart.
 - SQL-backed bounded task, run, and schedule list queries for current app-state console/API surfaces.
@@ -76,11 +77,12 @@ Completed foundation:
 - `flywheel/backlog/engineering/done/STORY-20260528-workflow-dag-restart-resume.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-workflow-template-schedule-dag-execution.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-workflow-run-graph-console.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-legacy-workflow-dag-alignment.md`
 - `flywheel/backlog/architecture/done/ARCH-20260528-canonical-orchestration-state-model.md`
 
 Next implementation refinement:
 
-- `flywheel/backlog/engineering/intake/STORY-20260528-legacy-workflow-dag-alignment.md`
+No workflow DAG implementation candidates remain in refinement.
 
 Source epic:
 
@@ -107,12 +109,13 @@ Recently completed tracks now live in Flywheel done history:
 - `flywheel/backlog/engineering/done/STORY-20260528-workflow-dag-restart-resume.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-workflow-template-schedule-dag-execution.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-workflow-run-graph-console.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-legacy-workflow-dag-alignment.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-split-app-state-domain-repositories.md`
 - `flywheel/backlog/architecture/done/ARCH-20260528-service-decomposition-plan.md`
 
 Deferred implementation candidates that need PM refinement:
 
-- `flywheel/backlog/engineering/intake/STORY-20260528-legacy-workflow-dag-alignment.md`
+No deferred implementation candidates currently need PM refinement.
 
 ## Promotion Rule
 

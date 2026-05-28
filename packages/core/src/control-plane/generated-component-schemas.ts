@@ -2426,6 +2426,39 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
           "source",
           "historicalSampleSize"
         ]
+      },
+      "compatibility": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "surface": {
+            "type": "string",
+            "enum": [
+              "legacy-file-backed-workflow"
+            ]
+          },
+          "lifecycle": {
+            "type": "string",
+            "enum": [
+              "deprecated"
+            ]
+          },
+          "canonicalWorkflowDagStatusPath": {
+            "type": "string",
+            "enum": [
+              "/api/v1/workflow-runs/{runId}/status"
+            ]
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "surface",
+          "lifecycle",
+          "canonicalWorkflowDagStatusPath",
+          "note"
+        ]
       }
     },
     "required": [
@@ -2434,7 +2467,8 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
       "nodes",
       "progress",
       "artifactRefs",
-      "eta"
+      "eta",
+      "compatibility"
     ]
   },
   "TranscriptEntry": {

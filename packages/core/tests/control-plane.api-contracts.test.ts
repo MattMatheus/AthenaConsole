@@ -69,6 +69,18 @@ describe("control-plane api contracts", () => {
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/workflow-runs/:runId/status")).toBe(
       true
     );
+    expect(
+      API_V1_ROUTES.filter((route) => route.path.startsWith("/api/v1/workflows")).every(
+        (route) =>
+          route.lifecycle === "deprecated" &&
+          route.surface === "legacy-file-backed-workflow" &&
+          route.canonicalPath === "/api/v1/workflow-runs/:runId/status"
+      )
+    ).toBe(true);
+    expect(API_V1_ROUTES.find((route) => route.path === "/api/v1/workflow-runs/:runId/status")).toMatchObject({
+      lifecycle: "stable",
+      surface: "canonical"
+    });
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/specialists/run")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/personas/run")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "DELETE" && route.path === "/api/v1/schedules/:id")).toBe(true);

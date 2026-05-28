@@ -110,6 +110,13 @@ export interface WorkflowRunEta {
   estimatedCompletionAt?: string;
 }
 
+export interface WorkflowRunCompatibilityMetadata {
+  surface: "legacy-file-backed-workflow";
+  lifecycle: "deprecated";
+  canonicalWorkflowDagStatusPath: "/api/v1/workflow-runs/{runId}/status";
+  note: string;
+}
+
 export interface WorkflowRunArtifactReference {
   stepId: string;
   artifactRef: string;
@@ -127,6 +134,7 @@ export interface WorkflowRunObservability {
   progress: WorkflowRunProgressMetadata;
   artifactRefs: WorkflowRunArtifactReference[];
   eta: WorkflowRunEta;
+  compatibility: WorkflowRunCompatibilityMetadata;
 }
 
 export interface WorkflowCreateRequest {
