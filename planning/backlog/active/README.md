@@ -4,7 +4,9 @@
 
 The active queue has resumed after completing the Team Orchestrator foundation reset implementation.
 
-Every story in this queue is derived from the accepted reset ADRs:
+Every story in this queue is derived from the current direction and accepted reset ADRs:
+
+- `planning/vision/current-direction.md`
 
 - `planning/architecture/0006-team-orchestrator-direction-and-agent-model.md`
 - `planning/architecture/0007-agent-manifest-and-lifecycle-contract.md`
@@ -50,6 +52,10 @@ Completed stories were moved to:
 1. `planning/backlog/active/2026.17.02-implement-workflow-state-store-and-resumption-logic.md`
 
 The next slice adds durable workflow run state and resumption logic on top of the parsed workflow-template DAG foundation.
+
+## Promotion Rule
+
+Do not create the next active story from archived or pre-reset records directly. Promote only from a reset-aligned `2026.xx.00` epic or accepted ADR, and update this README plus `planning/prompts/active/next-agent-seed-prompt.md` in the same change.
 
 ## Archived Previous Queue
 

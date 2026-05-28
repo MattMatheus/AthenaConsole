@@ -4,31 +4,27 @@
 
 Use this checklist at the end of every development cycle.
 
-## Content and Documentation
+## Story Closure
 
 - [ ] Story scope is completed and acceptance criteria are met.
-- [ ] Lifecycle state of changed docs/blog content is clear (Draft, In Review, Published, Archived).
-- [ ] Canonical operational docs remain linked from onboarding and docs index pages.
-- [ ] Frontmatter metadata matches content templates for all changed docs/blog files.
-- [ ] File names and tag naming follow kebab-case conventions.
-- [ ] Summary quality is validated (`description` is specific and non-generic).
-- [ ] Heading structure is clean (single H1 from title, logical H2/H3 hierarchy).
-- [ ] Internal and external links are validated.
+- [ ] The active story's engineering handoff and QA/verdict sections are updated.
+- [ ] Any new source decision, ADR, or refinement dependency is linked from the story.
+- [ ] Follow-up work is written as a candidate story or explicitly deferred.
 
 ## Validation
 
-- [ ] Build passes locally: `npm run build`.
-- [ ] Static smoke checks pass: `npm run check:static` (or `npm run validate:deploy`).
-- [ ] URL paths remain stable for existing docs/blog routes.
-- [ ] New/updated routes resolve correctly under `/docs/*` or `/blog/*`.
-- [ ] Rollback anchor is recorded for content releases (see `planning/developer/content-backup-and-rollback.md`).
+- [ ] Run the narrowest meaningful package validation for the changed surface.
+- [ ] For core backend work, prefer `npm --workspace @athena/core run typecheck`, `npm --workspace @athena/core run test:unit`, and `npm --workspace @athena/core run validate:manifests`.
+- [ ] For console work, inspect package scripts and run the focused UI validation available for the touched area.
+- [ ] Run `git diff --check`.
 
 ## Handoff Operations (Mandatory)
 
-- [ ] Add a new top snapshot to `planning/archive/handoff.md`.
+- [ ] Truncate and rewrite `planning/vision/handoff.md` with delivered changes, validation status, and next-story context.
 - [ ] Move completed story files from `planning/backlog/active/` to `planning/backlog/completed/`.
 - [ ] Update `planning/backlog/active/README.md` with next story order.
 - [ ] Refresh `planning/prompts/active/next-agent-seed-prompt.md` for the next cycle.
+- [ ] If needed, promote the next active story only from a reset-aligned refinement epic or accepted ADR.
 
 ## Reporting
 

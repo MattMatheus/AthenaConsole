@@ -21,5 +21,5 @@
 ## Next Work
 
 - Execute `planning/backlog/active/2026.17.02-implement-workflow-state-store-and-resumption-logic.md`.
-- Start from the new workflow-template DAG parser output plus existing app-state run/event repositories.
+- Start from `planning/vision/current-direction.md`, `planning/backlog/refinement/2026.17.00-epic-workflow-dag-engine.md`, the new workflow-template DAG parser output, and existing app-state run/event repositories.
 - Preserve current mission run and workflow-template instantiation behavior while adding durable workflow step state and restart-safe resumption helpers.

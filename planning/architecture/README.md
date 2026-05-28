@@ -8,7 +8,7 @@ Architecture notes and decisions for Team Orchestrator.
 
 - [ADR 0006: Team Orchestrator Direction and Formal Agent Model](0006-team-orchestrator-direction-and-agent-model.md)
 
-## Reset ADR Drafts
+## Reset ADRs
 
 - [ADR 0007: Agent Manifest and Lifecycle Contract](0007-agent-manifest-and-lifecycle-contract.md) - Accepted
 - [ADR 0008: Plugin Package Format](0008-plugin-package-format.md) - Accepted
@@ -19,11 +19,8 @@ Architecture notes and decisions for Team Orchestrator.
 - [ADR 0013: Safety, Approval, and Loop Limit Model](0013-safety-approval-and-loop-limit-model.md) - Accepted
 - [ADR 0014: Scheduling Model](0014-scheduling-model.md) - Accepted
 
-## Ingestion Contracts
+## Archived Records
 
-- ProjectAthena docs ingestion manifest:
-  `planning/architecture/projectathena-docs-ingestion-manifest.json`
-- Manifest schema:
-  `planning/architecture/projectathena-docs-ingestion-manifest.schema.json`
-- Ownership map and slug lock policy:
-  `planning/architecture/projectathena-docs-ingestion-ownership-map.md`
+Pre-reset architecture notes, Foundry-first records, ProjectAthena docs-ingestion contracts, and older UI/RBAC design records were moved to:
+
+- `planning/archive/2026-planning-cleanup-stale-records/architecture/`

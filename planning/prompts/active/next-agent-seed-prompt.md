@@ -14,7 +14,8 @@ Read the active story, then review its source decisions:
 - `planning/architecture/0009-task-mission-run-domain-model.md`
 - `planning/architecture/0011-runtime-backend-interface.md`
 - `planning/architecture/0012-event-artifact-observability-model.md`
-- `planning/backlog/refinement/26.00-epic-workflow-dag-engine.md`
+- `planning/vision/current-direction.md`
+- `planning/backlog/refinement/2026.17.00-epic-workflow-dag-engine.md`
 - `planning/backlog/refinement/2026.14.00-epic-missions-workflow-templates.md`
 - `planning/backlog/completed/2026.17.01-implement-workflow-dag-definition-parser.md`
 

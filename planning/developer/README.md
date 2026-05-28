@@ -7,10 +7,14 @@ Developer-oriented guides for setup, contribution, and implementation standards.
 ## Core Operating Documents
 
 - Onboarding: `planning/developer/00-onboarding.md`
-- Docs-as-code workflow: `planning/developer/docs-as-code-workflow.md`
 - Cycle checklist: `planning/developer/cycle-checklist.md`
-- Docs search index schema: `planning/developer/docs-search-index-schema.md`
-- Analytics event model: `planning/developer/analytics-event-model.md`
-- Deployment smoke checks: `planning/developer/deployment-smoke-checks.md`
-- Content backup and rollback runbook: `planning/developer/content-backup-and-rollback.md`
-- ProjectAthena docs sync guide: `planning/developer/projectathena-docs-sync.md`
+- Architecture guide: `planning/developer/01-architecture.md`
+- Setup guide: `planning/developer/02-setup.md`
+- Contribution guide: `planning/developer/03-contributing.md`
+- Extension guide: `planning/developer/04-extending.md`
+- Standards: `planning/developer/05-standards.md`
+- CLI reference: `planning/developer/06-cli-reference.md`
+
+Pre-reset docs/content, analytics, deployment, GitHub Actions, AppInsights, and ProjectAthena docs-sync records were moved to:
+
+- `planning/archive/2026-planning-cleanup-stale-records/developer/`

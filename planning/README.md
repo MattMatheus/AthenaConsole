@@ -4,6 +4,8 @@
 
 This directory is the internal system of record for planning, architecture, delivery workflow, and agent-cycle execution.
 
+Start with `planning/vision/current-direction.md` for the current product direction and roadmap. Older records in `planning/archive/` are historical context only.
+
 ## Canonical Ownership
 
 - `planning/backlog/` owner: Product + Engineering leads.
@@ -57,10 +59,11 @@ A cycle is incomplete until all six steps are done.
 
 ## Directory Guide
 
+- [**Current Direction**](vision/current-direction.md) - Product direction, delivered baseline, and roadmap.
 - [**Backlog**](backlog/active/README.md) - Prioritized implementation queue.
-- [**Architecture Decisions**](architecture/rbac-foundation-and-permission-model.md) - ADRs and design records.
+- [**Architecture Decisions**](architecture/0006-team-orchestrator-direction-and-agent-model.md) - ADRs and design records.
 - [**Developer Guides**](developer/01-architecture.md) - Engineering workflows and technical standards.
-- [**Research**](research/active/README.md) - Active investigations and experiments.
+- [**Research**](research/README.md) - Research queue status and retained investigations.
 - [**Archive**](archive/README.md) - Historical records and retained legacy artifacts.
 - [**Prompts**](prompts/active/next-agent-seed-prompt.md) - Agent-cycle directives.
 

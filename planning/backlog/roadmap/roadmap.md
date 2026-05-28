@@ -2,7 +2,11 @@
 
 # Team Orchestrator Roadmap
 
-The roadmap is being rebuilt during the 2026 product-direction reset.
+This roadmap tracks the reset-aligned Team Orchestrator product direction.
+
+Current concise direction:
+
+- `planning/vision/current-direction.md`
 
 ## Current Baseline
 
@@ -23,7 +27,7 @@ Accepted architecture set:
 - `planning/architecture/0013-safety-approval-and-loop-limit-model.md`
 - `planning/architecture/0014-scheduling-model.md`
 
-## Product Milestones
+## Delivered Milestones
 
 ### Milestone 1: Foundation Reset
 
@@ -91,6 +95,28 @@ Goal: Make repeatable workflows run later or recurringly.
 - Show schedule history, next run, last run, pause/resume/delete.
 - Define missed-run behavior.
 
+### Milestone 7: Workflow Template Operations
+
+Goal: Make workflow templates practical to instantiate, run, schedule, and inspect.
+
+- Completed stories: `planning/backlog/completed/2026.16.01-instantiate-workflow-templates.md` through `planning/backlog/completed/2026.16.06-add-durable-schedule-run-history.md`
+- Instantiate workflow templates into executable missions.
+- Add console flows for workflow-template instantiation and mission workbench operation.
+- Persist mission run history.
+- Schedule workflow templates.
+- Record durable schedule run history.
+
+## Current Milestone
+
+### Milestone 8: Workflow DAG Engine
+
+Goal: evolve workflow templates from sequential mission creation into restart-safe, DAG-capable workflow execution.
+
+- Refinement epic: `planning/backlog/refinement/2026.17.00-epic-workflow-dag-engine.md`
+- Completed: `planning/backlog/completed/2026.17.01-implement-workflow-dag-definition-parser.md`
+- Active: `planning/backlog/active/2026.17.02-implement-workflow-state-store-and-resumption-logic.md`
+- Candidate next: visualizer-friendly workflow status API.
+
 ## Deferred
 
 - Enterprise fleet governance.
@@ -98,6 +124,7 @@ Goal: Make repeatable workflows run later or recurringly.
 - Remote plugin registry.
 - Natural-language task planning as the primary workflow.
 - Autonomous multi-agent proposal systems.
+- Run templates, verification/evidence, and A2A observability until each is rewritten against the current task/mission/run/event model.
 
 ## Archived Snapshot
 
