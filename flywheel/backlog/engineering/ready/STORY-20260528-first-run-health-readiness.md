@@ -1,12 +1,12 @@
 ---
 kind: story
 id: STORY-20260528-first-run-health-readiness
-status: intake
+status: ready
 owner_role: Software Engineer
 source: epic
 success_metric: A new local operator can tell whether Team Orchestrator is ready to run useful work and what to fix when it is not.
 release_scope: follow-up
-ready: false
+ready: true
 ---
 
 # Story: First-Run Health And Readiness
@@ -14,12 +14,13 @@ ready: false
 ## Metadata
 - `id`: STORY-20260528-first-run-health-readiness
 - `owner_role`: Software Engineer
-- `status`: intake
+- `status`: ready
 - `source`: epic
 - `decision_refs`: [ADR-0006, ADR-0010, ADR-0012, ADR-0013]
 - `epic`: docs/product/epics/refinement/2026.23.00-epic-operator-readiness-first-run.md
 - `success_metric`: A new local operator can tell whether Team Orchestrator is ready to run useful work and what to fix when it is not.
 - `release_scope`: follow-up
+- `pm_refinement`: Build an API-first readiness contract with tests and documentation hooks. Console rendering belongs to the later onboarding story unless engineering finds an existing health surface that needs a small label/link update.
 
 ## Problem Statement
 
@@ -27,19 +28,20 @@ The product has health and diagnostics pieces, but a first-run operator still ha
 
 ## Scope
 
-- In: readiness status contract, safe diagnostic categories, actionable missing/failing checks, tests.
-- Out: hosted onboarding, account setup, broad console redesign.
+- In: readiness service/API contract, safe diagnostic categories, actionable missing/failing checks, expected local outputs, focused tests, docs hook for quickstart follow-up.
+- Out: hosted onboarding, account setup, broad console redesign, new runtime backends, sample workflow implementation.
 
 ## Acceptance Criteria
 
-1. Readiness reports API status, SQLite app-state path/migration health, plugin index status, runtime/provider posture, and sample/demo availability.
+1. A stable readiness response reports API status, SQLite app-state path/migration health, plugin index status, runtime/provider posture, and sample/demo availability.
 2. Readiness output avoids secrets and payload contents.
-3. Failure states include concise operator next steps.
-4. Existing health/admin diagnostics continue to work.
+3. Each degraded or failing category includes a concise operator-facing next step.
+4. Readiness distinguishes required blockers from optional/demo-only gaps.
+5. Existing health/admin diagnostics continue to work.
 
 ## Validation
 
-- Required checks: core typecheck; focused readiness/API tests; docs consistency review; `./flywheel/tools/validate_workflow_state.sh`.
+- Required checks: core typecheck; focused readiness service/API tests; existing diagnostics regression coverage; docs consistency review for surfaced command/URL; `./flywheel/tools/validate_workflow_state.sh`.
 
 ## Dependencies
 
@@ -51,7 +53,7 @@ The product has health and diagnostics pieces, but a first-run operator still ha
 
 ## Next Step
 
-PM refinement should decide whether readiness is API-only first or API plus console surface in the same story.
+Engineering should keep this API-first and only touch console UI if an existing health/admin route already exposes the readiness result.
 
 ## Engineering Handoff
 - `change_summary`:
@@ -64,3 +66,6 @@ PM refinement should decide whether readiness is API-only first or API plus cons
 - `evidence_quality`:
 - `defects`:
 - `state_transition`:
+
+## Transition History
+- `2026-05-28T22:38:02Z`: `intake` -> `ready`; PM refinement complete for first-run readiness

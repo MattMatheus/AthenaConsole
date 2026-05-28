@@ -114,12 +114,12 @@ Source epic:
 
 Goal: make Team Orchestrator understandable and useful to a new local operator within the first few minutes after clone/startup.
 
-Next refinement sequence:
+Ready engineering sequence:
 
-- `flywheel/backlog/engineering/intake/STORY-20260528-first-run-health-readiness.md`
-- `flywheel/backlog/engineering/intake/STORY-20260528-sample-plugin-workflow-demo.md`
-- `flywheel/backlog/engineering/intake/STORY-20260528-console-empty-states-onboarding.md`
-- `flywheel/backlog/engineering/intake/STORY-20260528-quickstart-demo-docs-alignment.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-first-run-health-readiness.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-sample-plugin-workflow-demo.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-console-empty-states-onboarding.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-quickstart-demo-docs-alignment.md`
 
 Source epic:
 
@@ -157,12 +157,12 @@ Recently completed tracks now live in Flywheel done history:
 - `flywheel/backlog/engineering/done/STORY-20260528-split-app-state-domain-repositories.md`
 - `flywheel/backlog/architecture/done/ARCH-20260528-service-decomposition-plan.md`
 
-Deferred implementation candidates that need PM refinement:
+Ready implementation sequence:
 
-- `flywheel/backlog/engineering/intake/STORY-20260528-first-run-health-readiness.md`
-- `flywheel/backlog/engineering/intake/STORY-20260528-sample-plugin-workflow-demo.md`
-- `flywheel/backlog/engineering/intake/STORY-20260528-console-empty-states-onboarding.md`
-- `flywheel/backlog/engineering/intake/STORY-20260528-quickstart-demo-docs-alignment.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-first-run-health-readiness.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-sample-plugin-workflow-demo.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-console-empty-states-onboarding.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-quickstart-demo-docs-alignment.md`
 
 ## Promotion Rule
 
