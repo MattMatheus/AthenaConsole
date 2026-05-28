@@ -16,3 +16,7 @@ Do not promote refinement items into active execution until they are written aga
 Pre-reset refinement records were moved to:
 
 - `docs/product/archive/2026-planning-cleanup-stale-records/backlog/refinement-pre-reset/`
+
+## Active Refinement Tracks
+
+- `docs/product/epics/refinement/2026.22.00-epic-state-ownership-and-sqlite-migration.md`

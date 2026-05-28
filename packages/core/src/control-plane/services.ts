@@ -63,6 +63,7 @@ import {
 import { LocalLspService, type LocalLspServiceOptions } from "./services/lsp.js";
 import { LocalPolicyService, PolicyAwareExecutionBackend } from "./services/policy.js";
 import { LocalRunService } from "./services/run-service.js";
+import { LocalStateDiagnosticsService } from "./services/state-diagnostics.js";
 import { LocalWorkflowService } from "./services/workflow-service.js";
 import { LocalWorkflowStatusService } from "./services/workflow-status.js";
 import { LocalWorkflowTemplateCatalogService } from "./services/workflow-template-catalog.js";
@@ -89,6 +90,7 @@ import type {
   RunService,
   ScheduleService,
   SessionService,
+  StateDiagnosticsService,
   TaskWorkbenchService,
   WorkflowService,
   WorkflowStatusService,
@@ -142,6 +144,7 @@ export interface ControlPlaneServices {
   governanceAuditService: GovernanceAuditService;
   identityService: IdentityService;
   capabilityService: CapabilityService;
+  stateDiagnosticsService: StateDiagnosticsService;
   agentCatalogService: AgentCatalogService;
   missionWorkbenchService: MissionWorkbenchService;
   taskWorkbenchService: TaskWorkbenchService;
@@ -278,6 +281,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
       authorizer
     ),
     capabilityService: new LocalCapabilityService(executionBackend, fleetMetricsProvider, sandboxExecutionBackend),
+    stateDiagnosticsService: new LocalStateDiagnosticsService(options.config, stateStore),
     agentCatalogService: new LocalAgentCatalogService(options.config),
     missionWorkbenchService: new LocalMissionWorkbenchService(options.config),
     taskWorkbenchService: new LocalTaskWorkbenchService(options.config),

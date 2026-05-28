@@ -198,6 +198,7 @@ export function createApiServer(options: ApiServerOptions): ApiServerHandle {
       assertApiBindAuthPosture(host, options.config);
       await listen(server, host, port);
       await emitAuthzModeStartupEvent(services, options.config);
+      await emitStateStoreDiagnosticsStartupEvent(services);
       const address = server.address();
       if (!address || typeof address === "string") {
         return { host, port };
@@ -257,6 +258,17 @@ async function emitAuthzModeStartupEvent(services: ControlPlaneServices, config:
     });
   } catch {
     // Startup telemetry must not block API availability.
+  }
+}
+
+async function emitStateStoreDiagnosticsStartupEvent(services: ControlPlaneServices): Promise<void> {
+  try {
+    await services.eventService.emit({
+      type: "STATE_STORES_ACTIVE",
+      payload: services.stateDiagnosticsService.getDiagnostics()
+    });
+  } catch {
+    // Startup diagnostics must not block API availability.
   }
 }
 

@@ -40,6 +40,27 @@ describe("api schemas", () => {
     ).toThrow(AthenaError);
 
     expect(() =>
+      assertApiResponseSchema("getAdminHealth", {
+        status: "ok",
+        now: "2026-02-21T00:00:00.000Z",
+        stateStores: {
+          ownershipMap: "docs/product/architecture/state-ownership-map.md",
+          sqlite: {
+            appStatePath: "/workspace/.athena/team-orchestrator.sqlite"
+          },
+          stores: [
+            {
+              id: "sqlite-app-state",
+              label: "SQLite app-state database",
+              category: "sqlite-app-state",
+              path: "/workspace/.athena/team-orchestrator.sqlite"
+            }
+          ]
+        }
+      })
+    ).not.toThrow();
+
+    expect(() =>
       assertApiResponseSchema("getFleetSummary", {
         total: 4,
         running: 1,

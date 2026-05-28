@@ -1392,9 +1392,48 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       additionalProperties: false,
       properties: {
         status: { type: "string", enum: ["ok"] },
-        now: { type: "string", format: "date-time" }
+        now: { type: "string", format: "date-time" },
+        stateStores: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            ownershipMap: { type: "string", minLength: 1 },
+            sqlite: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                appStatePath: { type: "string", minLength: 1 }
+              },
+              required: ["appStatePath"]
+            },
+            stores: {
+              type: "array",
+              items: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  id: { type: "string", minLength: 1 },
+                  label: { type: "string", minLength: 1 },
+                  category: {
+                    type: "string",
+                    enum: [
+                      "sqlite-app-state",
+                      "intentional-file-artifact",
+                      "intentional-file-support-state",
+                      "migration-candidate",
+                      "deprecated-file-backed-state"
+                    ]
+                  },
+                  path: { type: "string", minLength: 1 }
+                },
+                required: ["id", "label", "category", "path"]
+              }
+            }
+          },
+          required: ["ownershipMap", "sqlite", "stores"]
+        }
       },
-      required: ["status", "now"]
+      required: ["status", "now", "stateStores"]
     }
   },
   listAgentCatalogPlugins: {

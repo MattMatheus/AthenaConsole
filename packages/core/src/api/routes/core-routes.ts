@@ -12,7 +12,10 @@ async function handleGetCapabilitiesRoute(context: ApiRouteContext): Promise<voi
 }
 
 async function handleGetAdminHealthRoute(context: ApiRouteContext): Promise<void> {
-  writeSuccess(context.res, "getAdminHealth", 200, buildHealthResponse());
+  writeSuccess(context.res, "getAdminHealth", 200, {
+    ...buildHealthResponse(),
+    stateStores: context.services.stateDiagnosticsService.getDiagnostics()
+  });
 }
 
 async function handleGetHealthRoute(context: ApiRouteContext): Promise<void> {

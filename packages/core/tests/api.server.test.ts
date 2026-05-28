@@ -94,6 +94,28 @@ describe("api server", () => {
       expect(events.events[0]?.payload).toMatchObject({
         mode: "soft-enforce"
       });
+
+      const stateStoreEvents = await services.eventService.list({
+        types: ["STATE_STORES_ACTIVE"],
+        limit: 5
+      });
+      expect(stateStoreEvents.events.length).toBe(1);
+      expect(stateStoreEvents.events[0]?.payload).toMatchObject({
+        ownershipMap: "docs/product/architecture/state-ownership-map.md",
+        sqlite: {
+          appStatePath: join(dir, ".athena", "team-orchestrator.sqlite")
+        },
+        stores: expect.arrayContaining([
+          expect.objectContaining({
+            id: "sqlite-app-state",
+            category: "sqlite-app-state"
+          }),
+          expect.objectContaining({
+            id: "legacy-workflows",
+            category: "deprecated-file-backed-state"
+          })
+        ])
+      });
     } finally {
       if (started) {
         await server.stop();
@@ -418,6 +440,53 @@ describe("api server", () => {
       expect(healthEnvelope.ok).toBe(true);
       expect(healthEnvelope.data.status).toBe("ok");
       expect(healthEnvelope.data.now).toEqual(expect.any(String));
+
+      const adminHealthResponse = await fetch(`${base}/api/v1/admin/health`);
+      expect(adminHealthResponse.status).toBe(200);
+      const adminHealthEnvelope = (await adminHealthResponse.json()) as {
+        ok: boolean;
+        data: {
+          status: string;
+          now: string;
+          stateStores: {
+            ownershipMap: string;
+            sqlite: { appStatePath: string };
+            stores: Array<{ id: string; category: string; path: string }>;
+          };
+        };
+      };
+      expect(adminHealthEnvelope.ok).toBe(true);
+      expect(adminHealthEnvelope.data.stateStores).toMatchObject({
+        ownershipMap: "docs/product/architecture/state-ownership-map.md",
+        sqlite: {
+          appStatePath: join(dir, ".athena", "team-orchestrator.sqlite")
+        }
+      });
+      expect(adminHealthEnvelope.data.stateStores.stores).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "sqlite-app-state",
+            category: "sqlite-app-state",
+            path: join(dir, ".athena", "team-orchestrator.sqlite")
+          }),
+          expect.objectContaining({
+            id: "run-evidence",
+            category: "intentional-file-artifact",
+            path: join(dir, ".athena", "run-evidence")
+          }),
+          expect.objectContaining({
+            id: "harness-profiles",
+            category: "migration-candidate",
+            path: join(dir, ".athena", "harness-profiles")
+          }),
+          expect.objectContaining({
+            id: "legacy-workflow-runs",
+            category: "deprecated-file-backed-state",
+            path: join(dir, ".athena", "workflow-runs")
+          })
+        ])
+      );
+      expect(JSON.stringify(adminHealthEnvelope.data.stateStores)).not.toContain("ATHENA_");
 
       const capabilitiesResponse = await fetch(`${base}/api/v1/capabilities`);
       expect(capabilitiesResponse.status).toBe(200);

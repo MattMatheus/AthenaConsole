@@ -282,6 +282,26 @@ export interface CapabilityService {
   getCapabilities(): Promise<CapabilitySet>;
 }
 
+export interface StateDiagnosticsService {
+  getDiagnostics(): {
+    ownershipMap: string;
+    sqlite: {
+      appStatePath: string;
+    };
+    stores: Array<{
+      id: string;
+      label: string;
+      category:
+        | "sqlite-app-state"
+        | "intentional-file-artifact"
+        | "intentional-file-support-state"
+        | "migration-candidate"
+        | "deprecated-file-backed-state";
+      path: string;
+    }>;
+  };
+}
+
 export interface AgentCatalogService {
   listPlugins(): Promise<AgentCatalogPluginListResult>;
   listAgents(query?: AgentCatalogAgentListQuery): Promise<AgentCatalogAgentListResult>;

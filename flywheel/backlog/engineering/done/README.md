@@ -27,3 +27,4 @@ Engineering work accepted by QA.
 21. `STORY-20260528-workflow-template-schedule-dag-execution.md`
 22. `STORY-20260528-workflow-run-graph-console.md`
 23. `STORY-20260528-legacy-workflow-dag-alignment.md`
+24. `STORY-20260528-state-store-startup-diagnostics.md`

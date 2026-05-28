@@ -53,7 +53,7 @@ The reset implementation has delivered:
 - Canonical workflow DAG startup recovery and service-level resume can recover stale steps and continue without re-running completed dependencies.
 - Due workflow-template schedules now execute through canonical workflow DAG runs and record terminal DAG outcomes.
 - Console workflow-template instantiation and schedule history now link to workflow DAG run inspection with dependency, readiness, progress, failure, recovery, and event detail.
-- Legacy file-backed `/api/v1/workflows*` APIs remain available as deprecated compatibility surfaces and point operators to canonical workflow DAG status at `/api/v1/workflow-runs/:runId/status`.
+- Deprecated file-backed `/api/v1/workflows*` APIs point operators to canonical workflow DAG status at `/api/v1/workflow-runs/:runId/status` and are slated for removal rather than long-term compatibility.
 - Run templates, verification evidence, runtime policy packs, and A2A observability reframing migrated into the current Team Orchestrator model.
 - Startup recovery for stale task and mission runs left `running` after API/service restart.
 - SQL-backed bounded task, run, and schedule list queries for current app-state console/API surfaces.
@@ -88,12 +88,36 @@ Source epic:
 
 - `docs/product/epics/refinement/2026.17.00-epic-workflow-dag-engine.md`
 
+### 2026.22 State Ownership and SQLite Migration
+
+Goal: make local durable state ownership explicit, reduce split-brain persistence risk, and migrate operator-facing control-plane resources toward SQLite app-state one domain at a time.
+
+Architecture map:
+
+- `docs/product/architecture/state-ownership-map.md`
+
+Next refinement sequence:
+
+- `flywheel/backlog/architecture/done/ARCH-20260528-state-ownership-map.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-state-store-startup-diagnostics.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-harness-profiles-sqlite-migration.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-directives-sqlite-migration.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-run-templates-sqlite-migration.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-session-artifact-state-classification.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-remove-legacy-workflow-file-state.md`
+
+Source epic:
+
+- `docs/product/epics/refinement/2026.22.00-epic-state-ownership-and-sqlite-migration.md`
+
 ### Current Flywheel Priorities
 
 Flywheel lanes are the operational source of truth. No engineering or architecture items are active right now.
 
 Recently completed tracks now live in Flywheel done history:
 
+- `flywheel/backlog/architecture/done/ARCH-20260528-state-ownership-map.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-state-store-startup-diagnostics.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-run-templates.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-run-template-console.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-verification-evidence-model.md`
@@ -115,7 +139,11 @@ Recently completed tracks now live in Flywheel done history:
 
 Deferred implementation candidates that need PM refinement:
 
-No deferred implementation candidates currently need PM refinement.
+- `flywheel/backlog/engineering/intake/STORY-20260528-harness-profiles-sqlite-migration.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-directives-sqlite-migration.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-run-templates-sqlite-migration.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-session-artifact-state-classification.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-remove-legacy-workflow-file-state.md`
 
 ## Promotion Rule
 
