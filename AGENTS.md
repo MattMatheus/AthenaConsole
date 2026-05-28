@@ -47,6 +47,7 @@ Canonical decisions:
 - `docs/product/architecture/decisions/0013-safety-approval-and-loop-limit-model.md`
 - `docs/product/architecture/decisions/0014-scheduling-model.md`
 - `docs/product/architecture/decisions/0015-canonical-orchestration-state-model.md`
+- `docs/product/architecture/decisions/0016-core-service-decomposition-plan.md`
 
 ## Current State
 

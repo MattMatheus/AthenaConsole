@@ -1,7 +1,7 @@
 ---
 kind: architecture_story
 id: ARCH-20260528-service-decomposition-plan
-status: active
+status: done
 owner_role: Software Architect
 source: planning
 decision_owner: Software Architect
@@ -14,9 +14,9 @@ ready: true
 ## Metadata
 - `id`: ARCH-20260528-service-decomposition-plan
 - `owner_role`: Software Architect
-- `status`: active
+- `status`: done
 - `source`: planning
-- `decision_refs`: []
+- `decision_refs`: [ADR-0016]
 - `decision_owner`: Software Architect
 - `success_metric`: Large core service files have a bounded decomposition plan with first extraction candidates and validation scope.
 
@@ -55,7 +55,7 @@ Follow-on implementation stories should reduce review risk without changing runt
 Confirm the plan reduces future change risk without creating premature abstractions.
 
 ## Next Step
-Promote to architecture active after `ARCH-20260528-canonical-orchestration-state-model`; keep it behind security/state work in practical execution priority.
+Move to architecture done after review.
 
 ## Intake Promotion Checklist
 - [x] Decision scope is explicit and bounded.
@@ -66,10 +66,18 @@ Promote to architecture active after `ARCH-20260528-canonical-orchestration-stat
 - [x] Follow-on implementation work is split out when needed.
 
 ## Architecture Handoff
-- `decision_summary`:
-- `alternatives_considered`:
-- `operational_impact`:
-- `follow_on_work`:
+- `decision_summary`: Accepted ADR 0016, which ranks the oversized hand-maintained core files, excludes generated schema files from the first refactor target, and chooses a no-behavior-change split of app-state domain repositories as the first proof extraction.
+- `alternatives_considered`: Leaving files as-is; splitting by aggregate/repository class; splitting service files by responsibility first. The accepted first move is aggregate/repository splitting because it has clearer boundaries and lower regression risk than task-workbench or policy-service extraction.
+- `operational_impact`: Follow-on work should reduce review risk without runtime behavior changes. Import-boundary rules remain deferred until one extraction proves the module shape. Validation must focus on existing repository/service behavior and typecheck rather than new product behavior.
+- `follow_on_work`: Added `flywheel/backlog/engineering/intake/STORY-20260528-split-app-state-domain-repositories.md` as the first decomposition implementation candidate. Existing `flywheel/backlog/engineering/intake/STORY-20260528-workflow-template-dag-run-envelope.md` remains higher product-state priority unless PM chooses to run the mechanical refactor first.
+
+## Architecture Review
+- `verdict`: Pass.
+- `evidence_quality`: ADR 0016 ranks oversized hand-maintained core files, selects a first no-behavior-change extraction, documents target module boundaries, defers import-boundary rules, and includes a validation matrix for each extraction target.
+- `defects`: None found.
+- `state_transition`: Ready for architecture done.
 
 ## Transition History
 - `2026-05-28T16:23:43Z`: `intake` -> `active` by `Codex`; PM refined and queued after canonical state model
+- `2026-05-28T17:36:27Z`: `active` -> `qa` by `Codex`; Architecture handoff complete for ADR 0016
+- `2026-05-28T17:37:10Z`: `qa` -> `done` by `Codex`; Architecture review passed

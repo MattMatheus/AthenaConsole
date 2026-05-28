@@ -19,6 +19,7 @@ Architecture notes and decisions for Team Orchestrator.
 - [ADR 0013: Safety, Approval, and Loop Limit Model](0013-safety-approval-and-loop-limit-model.md) - Accepted
 - [ADR 0014: Scheduling Model](0014-scheduling-model.md) - Accepted
 - [ADR 0015: Canonical Orchestration State Model](0015-canonical-orchestration-state-model.md) - Accepted
+- [ADR 0016: Core Service Decomposition Plan](0016-core-service-decomposition-plan.md) - Accepted
 
 ## Archived Records
 

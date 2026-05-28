@@ -5,6 +5,7 @@ Raw engineering work enters here before PM refinement.
 ## Candidate Sequence
 
 1. `STORY-20260528-workflow-template-dag-run-envelope.md`
+2. `STORY-20260528-split-app-state-domain-repositories.md`
 
 ## Refinement Rule
 
