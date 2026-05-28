@@ -66,6 +66,7 @@ import { LocalRunService } from "./services/run-service.js";
 import { LocalWorkflowService } from "./services/workflow-service.js";
 import { LocalWorkflowStatusService } from "./services/workflow-status.js";
 import { LocalWorkflowTemplateCatalogService } from "./services/workflow-template-catalog.js";
+import { recoverStaleTaskAndMissionRuns } from "./services/stale-run-recovery.js";
 import type {
   A2aDlqService,
   A2aFlowService,
@@ -95,6 +96,7 @@ import type {
   WorkService
 } from "./interfaces.js";
 import { FileStateStore, type StateStore } from "./state-store.js";
+import { openAppStateDatabase } from "./app-state/index.js";
 
 interface LocalControlPlaneOptions {
   config: AthenaConfig;
@@ -176,6 +178,13 @@ function createDistributedLock(options: LocalControlPlaneOptions): IDistributedL
 }
 
 export function createLocalControlPlaneServices(options: LocalControlPlaneOptions): ControlPlaneServices {
+  const appState = openAppStateDatabase(options.config);
+  try {
+    recoverStaleTaskAndMissionRuns(appState);
+  } finally {
+    appState.close();
+  }
+
   const baseExecutionBackend = options.executionBackend ?? new LocalExecutionBackend({ config: options.config });
   const sandboxExecutionBackend = options.sandboxExecutionBackend ?? createSandboxExecutionBackend(options);
   const stateStore = options.stateStore ?? new FileStateStore(options.config);

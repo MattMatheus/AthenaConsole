@@ -1,7 +1,7 @@
 ---
 kind: story
 id: STORY-20260528-stale-run-recovery
-status: active
+status: done
 owner_role: Software Engineer
 source: planning
 success_metric: Stale `running` task and mission runs are reconciled on startup with operator-visible recovery events.
@@ -14,7 +14,7 @@ ready: true
 ## Metadata
 - `id`: STORY-20260528-stale-run-recovery
 - `owner_role`: Software Engineer
-- `status`: active
+- `status`: done
 - `source`: planning
 - `decision_refs`: [ADR-0009, ADR-0010, ADR-0012, ADR-0015]
 - `success_metric`: Stale `running` task and mission runs are reconciled on startup with operator-visible recovery events.
@@ -60,19 +60,21 @@ Task and mission runs can persist as `running` if the API process dies mid-run. 
 - What event type string should be standardized if existing run event conventions suggest a better name than `run.recovered_stale`?
 
 ## Next Step
-Promote to engineering active after the production auth bug and canonical orchestration state architecture decision.
+Continue with the next active backlog item.
 
 ## Engineering Handoff
-- `change_summary`:
-- `validation_evidence`:
-- `qa_focus`:
-- `open_risks`:
+- `change_summary`: Added startup recovery for stale SQLite task and mission runs through `recoverStaleTaskAndMissionRuns`, wired it into `createLocalControlPlaneServices`, and covered task, mission, idempotence, startup, and schedule-regression behavior in focused tests.
+- `validation_evidence`: `npm --workspace @athena/core run test:unit -- tests/control-plane.stale-run-recovery.test.ts`; `npm --workspace @athena/core run typecheck`; `npm --workspace @athena/core run test:unit`.
+- `qa_focus`: Confirm stale `running` task and mission runs become failed with `STALE_RUNNING_RUN` metadata, warning events are visible through run event history, repeated recovery does not duplicate events, and schedules are not treated as already running after startup recovery.
+- `open_risks`: Startup-only recovery can still fail a genuinely live external process if it survives the API process; ADR 0015 leaves heartbeat leases as future work. Current workflow DAG state does not yet link task/mission run ids to DAG steps, so DAG-step resumability remains part of the workflow-template DAG run envelope follow-up.
 
 ## QA Verdict
-- `verdict`:
-- `evidence_quality`:
-- `defects`:
-- `state_transition`:
+- `verdict`: Pass.
+- `evidence_quality`: Focused recovery tests cover task and mission stale-run failure, `STALE_RUNNING_RUN` metadata, warning events, startup wiring, schedule behavior after recovery, and idempotence. Full core unit suite and typecheck passed.
+- `defects`: None found.
+- `state_transition`: Ready for engineering done.
 
 ## Transition History
 - `2026-05-28T16:23:39Z`: `intake` -> `active` by `Codex`; PM refined and queued after canonical state decision
+- `2026-05-28T16:58:21Z`: `active` -> `qa` by `Codex`; Engineering handoff complete
+- `2026-05-28T16:58:57Z`: `qa` -> `done` by `Codex`; QA passed
