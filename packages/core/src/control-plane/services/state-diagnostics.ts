@@ -99,8 +99,8 @@ export function buildStateStoreDiagnostics(config: AthenaConfig, stateStore: Sta
       {
         id: "harness-profiles",
         label: "Harness profile records",
-        category: "migration-candidate",
-        path: resolve(stateRoot, "harness-profiles")
+        category: "sqlite-app-state",
+        path: sqliteAppStatePath
       },
       {
         id: "run-templates",

@@ -1,4 +1,4 @@
-import { appendFileSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -476,8 +476,8 @@ describe("api server", () => {
           }),
           expect.objectContaining({
             id: "harness-profiles",
-            category: "migration-candidate",
-            path: join(dir, ".athena", "harness-profiles")
+            category: "sqlite-app-state",
+            path: join(dir, ".athena", "team-orchestrator.sqlite")
           }),
           expect.objectContaining({
             id: "legacy-workflow-runs",
@@ -685,6 +685,35 @@ describe("api server", () => {
       expect(createHarnessProfileEnvelope.data.version).toBe("v1");
       expect(createHarnessProfileEnvelope.data.config.provider).toBe("mock");
       expect(createHarnessProfileEnvelope.data.config.model).toBe("mock-model");
+      expect(
+        existsSync(join(dir, ".athena", "harness-profiles", `${createHarnessProfileEnvelope.data.id}.json`))
+      ).toBe(false);
+
+      mkdirSync(join(dir, ".athena", "harness-profiles"), { recursive: true });
+      writeFileSync(
+        join(dir, ".athena", "harness-profiles", "old-file-profile.json"),
+        JSON.stringify(
+          {
+            id: "old-file-profile",
+            displayName: "Old File Profile",
+            version: "v1",
+            config: {
+              provider: "mock",
+              model: "mock-model",
+              tools: ["legacy"]
+            },
+            policies: {
+              timeoutMs: 1,
+              retryLimit: 0,
+              budgetUsd: 0
+            },
+            createdAt: new Date().toISOString()
+          },
+          null,
+          2
+        ),
+        "utf8"
+      );
 
       const listHarnessProfilesResponse = await fetch(`${base}/api/v1/harness-profiles?limit=10`);
       expect(listHarnessProfilesResponse.status).toBe(200);
@@ -697,6 +726,7 @@ describe("api server", () => {
       expect(listHarnessProfilesEnvelope.ok).toBe(true);
       expect(listHarnessProfilesEnvelope.data.items.length).toBeGreaterThan(0);
       expect(listHarnessProfilesEnvelope.data.items[0]?.id).toBe(createHarnessProfileEnvelope.data.id);
+      expect(listHarnessProfilesEnvelope.data.items.map((item) => item.id)).not.toContain("old-file-profile");
 
       const createRunTemplateResponse = await fetch(`${base}/api/v1/run-templates`, {
         method: "POST",

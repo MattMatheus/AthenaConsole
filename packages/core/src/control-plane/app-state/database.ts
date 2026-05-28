@@ -16,6 +16,7 @@ import {
   AgentIndexRepository,
   AppSettingsRepository,
   AppStateMigrationRepository,
+  HarnessProfileRepository,
   PluginIndexRepository,
   WorkflowTemplateIndexRepository
 } from "./repositories.js";
@@ -36,6 +37,7 @@ export interface AppStateDatabase {
   readonly agents: AgentIndexRepository;
   readonly workflowTemplates: WorkflowTemplateIndexRepository;
   readonly workflowDagRuns: WorkflowDagRunRepository;
+  readonly harnessProfiles: HarnessProfileRepository;
   readonly tasks: TaskRepository;
   readonly missions: MissionRepository;
   readonly runs: RunRepository;
@@ -75,6 +77,7 @@ export function openAppStateDatabase(config: AthenaConfig, options: AppStateData
     agents: new AgentIndexRepository(db),
     workflowTemplates: new WorkflowTemplateIndexRepository(db),
     workflowDagRuns: new WorkflowDagRunRepository(db),
+    harnessProfiles: new HarnessProfileRepository(db),
     tasks: new TaskRepository(db),
     missions: new MissionRepository(db),
     runs: new RunRepository(db),

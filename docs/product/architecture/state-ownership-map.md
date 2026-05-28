@@ -40,7 +40,7 @@ Deprecated file-backed control-plane state should be migrated forward or removed
 | Workflow DAG steps | SQLite, `workflow_dag_run_steps` | SQLite app-state | Keep in SQLite. |
 | Workflow DAG events | SQLite, `workflow_dag_run_events` | SQLite app-state | Keep in SQLite. |
 | Directives | `FileStateStore`, `.athena/directives` | Migration candidate | Migrate to SQLite after harness profiles. Remove normal runtime file reads. |
-| Harness profiles | `FileStateStore`, `.athena/harness-profiles` | Migration candidate | Migrate to SQLite first among remaining control-plane records. Remove normal runtime file reads. |
+| Harness profiles | SQLite, `harness_profiles` | SQLite app-state | Runtime list/create/resolve paths use SQLite. Old `.athena/harness-profiles` files are not read by normal runtime paths. |
 | Run templates | `FileStateStore`, `.athena/run-templates` | Migration candidate | Migrate to SQLite after harness profiles and directives. Remove normal runtime file reads. |
 | Legacy workflows | `FileStateStore`, `.athena/workflows` and `.athena/workflow-runs` | Deprecated file-backed state to remove | Remove or disable after canonical workflow DAG route coverage is confirmed. |
 | Sessions | `SessionStore`, `.athena/sessions` | Intentional file artifact/support state | Keep file-backed. Consider a future SQLite index only if console search requires it. |
@@ -56,11 +56,10 @@ Deprecated file-backed control-plane state should be migrated forward or removed
 ## Migration Order
 
 1. Add diagnostics for active state stores and ownership categories.
-2. Migrate harness profiles to SQLite.
-3. Migrate directives to SQLite.
-4. Migrate run templates to SQLite.
-5. Classify sessions, transcripts, run evidence, and specialist artifacts in docs/tests so artifact payloads do not get pulled into app-state by accident.
-6. Remove or disable deprecated file-backed legacy workflow runtime/storage paths after canonical workflow DAG route coverage is confirmed.
+2. Migrate directives to SQLite.
+3. Migrate run templates to SQLite.
+4. Classify sessions, transcripts, run evidence, and specialist artifacts in docs/tests so artifact payloads do not get pulled into app-state by accident.
+5. Remove or disable deprecated file-backed legacy workflow runtime/storage paths after canonical workflow DAG route coverage is confirmed.
 
 ## Validation Expectations
 

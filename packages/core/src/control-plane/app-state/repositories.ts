@@ -1,4 +1,13 @@
+import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
+import type {
+  HarnessEgressRule,
+  HarnessProfile,
+  HarnessProfileConfig,
+  HarnessProfileCreateRequest,
+  HarnessProfilePolicies,
+  HarnessVerificationPolicy
+} from "../../shared/contracts.js";
 
 export interface AppStateMigrationRecord {
   version: number;
@@ -57,6 +66,17 @@ interface WorkflowTemplateIndexRow {
   validation_errors_json: string;
   created_at: string;
   updated_at: string;
+}
+
+interface HarnessProfileRow {
+  id: string;
+  display_name: string;
+  version: string;
+  config_json: string;
+  policies_json: string;
+  allowed_egress_json: string;
+  verification_policies_json: string;
+  created_at: string;
 }
 
 export class AppStateMigrationRepository {
@@ -544,6 +564,121 @@ export class WorkflowTemplateIndexRepository {
       validationErrors: JSON.parse(row.validation_errors_json) as unknown[],
       createdAt: row.created_at,
       updatedAt: row.updated_at
+    };
+  }
+}
+
+export class HarnessProfileRepository {
+  private readonly listStatement: Database.Statement;
+  private readonly getStatement: Database.Statement;
+  private readonly insertStatement: Database.Statement;
+
+  constructor(private readonly db: Database.Database) {
+    this.listStatement = db.prepare(
+      "select id, display_name, version, config_json, policies_json, allowed_egress_json, verification_policies_json, created_at from harness_profiles order by created_at desc, id asc"
+    );
+    this.getStatement = db.prepare(
+      "select id, display_name, version, config_json, policies_json, allowed_egress_json, verification_policies_json, created_at from harness_profiles where id = ?"
+    );
+    this.insertStatement = db.prepare(`
+      insert into harness_profiles (
+        id,
+        display_name,
+        version,
+        config_json,
+        policies_json,
+        allowed_egress_json,
+        verification_policies_json,
+        created_at
+      )
+      values (
+        @id,
+        @displayName,
+        @version,
+        @configJson,
+        @policiesJson,
+        @allowedEgressJson,
+        @verificationPoliciesJson,
+        @createdAt
+      )
+    `);
+  }
+
+  list(): HarnessProfile[] {
+    return this.listStatement.all().map((row) => this.mapRow(row as HarnessProfileRow));
+  }
+
+  get(id: string): HarnessProfile | undefined {
+    const row = this.getStatement.get(id) as HarnessProfileRow | undefined;
+    return row ? this.mapRow(row) : undefined;
+  }
+
+  create(request: HarnessProfileCreateRequest, now: Date = new Date()): HarnessProfile {
+    const createdAt = now.toISOString();
+    const profile: HarnessProfile = {
+      id: this.allocateId(),
+      displayName: request.displayName,
+      version: request.version,
+      config: {
+        provider: request.config.provider,
+        model: request.config.model,
+        tools: [...request.config.tools]
+      },
+      policies: {
+        timeoutMs: request.policies.timeoutMs,
+        retryLimit: request.policies.retryLimit,
+        budgetUsd: request.policies.budgetUsd
+      },
+      ...(request.allowedEgress
+        ? {
+            allowedEgress: request.allowedEgress.map((rule) => ({
+              host: rule.host,
+              ...(rule.port !== undefined ? { port: rule.port } : {})
+            }))
+          }
+        : {}),
+      ...(request.verificationPolicies
+        ? {
+            verificationPolicies: request.verificationPolicies.map((policy) => ({ ...policy }))
+          }
+        : {}),
+      createdAt
+    };
+    this.insertStatement.run({
+      id: profile.id,
+      displayName: profile.displayName,
+      version: profile.version,
+      configJson: JSON.stringify(profile.config),
+      policiesJson: JSON.stringify(profile.policies),
+      allowedEgressJson: JSON.stringify(profile.allowedEgress ?? []),
+      verificationPoliciesJson: JSON.stringify(profile.verificationPolicies ?? []),
+      createdAt
+    });
+    return profile;
+  }
+
+  private allocateId(): string {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const id = randomUUID();
+      if (!this.get(id)) {
+        return id;
+      }
+    }
+    throw new Error("Unable to allocate unique harness profile ID.");
+  }
+
+  private mapRow(row: HarnessProfileRow): HarnessProfile {
+    const allowedEgress = JSON.parse(row.allowed_egress_json) as HarnessEgressRule[];
+    const verificationPolicies = JSON.parse(row.verification_policies_json) as HarnessVerificationPolicy[];
+    return {
+      id: row.id,
+      displayName: row.display_name,
+      version: row.version === "v2" ? "v2" : "v1",
+      config: JSON.parse(row.config_json) as HarnessProfileConfig,
+      policies: JSON.parse(row.policies_json) as HarnessProfilePolicies,
+      ...(allowedEgress.length > 0 ? { allowedEgress } : {}),
+      ...(verificationPolicies.length > 0 ? { verificationPolicies } : {}),
+      createdAt: row.created_at
     };
   }
 }

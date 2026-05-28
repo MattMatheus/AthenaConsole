@@ -28,3 +28,4 @@ Engineering work accepted by QA.
 22. `STORY-20260528-workflow-run-graph-console.md`
 23. `STORY-20260528-legacy-workflow-dag-alignment.md`
 24. `STORY-20260528-state-store-startup-diagnostics.md`
+25. `STORY-20260528-harness-profiles-sqlite-migration.md`

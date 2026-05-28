@@ -99,6 +99,7 @@ import type {
 } from "./interfaces.js";
 import { FileStateStore, type StateStore } from "./state-store.js";
 import { openAppStateDatabase } from "./app-state/index.js";
+import { SqliteHarnessProfileStateStore } from "./state-store/sqlite-harness-profile-state-store.js";
 
 interface LocalControlPlaneOptions {
   config: AthenaConfig;
@@ -191,7 +192,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
 
   const baseExecutionBackend = options.executionBackend ?? new LocalExecutionBackend({ config: options.config });
   const sandboxExecutionBackend = options.sandboxExecutionBackend ?? createSandboxExecutionBackend(options);
-  const stateStore = options.stateStore ?? new FileStateStore(options.config);
+  const stateStore = options.stateStore ?? new SqliteHarnessProfileStateStore(new FileStateStore(options.config), options.config);
   const policyService = new LocalPolicyService(options.config, {
     ...(options.rejectionEventStore ? { rejectionEventStore: options.rejectionEventStore } : {}),
     ...(options.rejectionEventMaxRecords !== undefined

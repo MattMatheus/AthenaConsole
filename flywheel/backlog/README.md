@@ -18,7 +18,6 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-- `engineering/intake/STORY-20260528-harness-profiles-sqlite-migration.md`
 - `engineering/intake/STORY-20260528-directives-sqlite-migration.md`
 - `engineering/intake/STORY-20260528-run-templates-sqlite-migration.md`
 - `engineering/intake/STORY-20260528-session-artifact-state-classification.md`

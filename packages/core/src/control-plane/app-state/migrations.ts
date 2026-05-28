@@ -341,6 +341,25 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
     sql: `
       alter table schedule_run_history add column workflow_dag_run_id text;
     `
+  },
+  {
+    version: 9,
+    name: "add-harness-profiles",
+    sql: `
+      create table if not exists harness_profiles (
+        id text primary key,
+        display_name text not null,
+        version text not null,
+        config_json text not null,
+        policies_json text not null,
+        allowed_egress_json text not null default '[]',
+        verification_policies_json text not null default '[]',
+        created_at text not null
+      );
+
+      create index if not exists idx_harness_profiles_created
+        on harness_profiles(created_at desc);
+    `
   }
 ];
 
