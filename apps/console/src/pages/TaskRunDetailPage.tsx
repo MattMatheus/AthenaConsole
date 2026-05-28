@@ -1,13 +1,17 @@
-import { ArrowLeft, Box, Clock3, FileText, RefreshCw, TerminalSquare } from "lucide-react";
+import { ArrowLeft, Box, Clock3, FileText, RefreshCw, ShieldCheck, TerminalSquare } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import {
   classifyRunEvent,
   formatBytes,
   formatUnknown,
+  formatVerificationFailureDetails,
   runStatusTone,
+  verificationStatusLabel,
+  verificationStatusTone,
   useTaskRunDetailQuery,
   type TaskWorkbenchRunEvent,
   type TaskWorkbenchRunStatus,
+  type TaskWorkbenchVerificationStatus,
 } from "../features/task-workbench";
 import styles from "./TaskRunDetailPage.module.css";
 
@@ -59,6 +63,17 @@ function eventClass(event: TaskWorkbenchRunEvent): string {
     return styles.eventError ?? "";
   }
   return styles.eventLifecycle ?? "";
+}
+
+function verificationClass(status: TaskWorkbenchVerificationStatus | undefined): string {
+  const tone = verificationStatusTone(status);
+  if (tone === "success") {
+    return styles.badgeSuccess ?? "";
+  }
+  if (tone === "danger") {
+    return styles.badgeDanger ?? "";
+  }
+  return styles.badge ?? "";
 }
 
 export function TaskRunDetailPage() {
@@ -168,6 +183,39 @@ export function TaskRunDetailPage() {
               )}
             </section>
           </div>
+
+          <section className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.panelTitle}>Verification</p>
+                <p className={styles.panelMeta}>Policy evaluation</p>
+              </div>
+              <span className={verificationClass(detail.run.verificationStatus)}>
+                <ShieldCheck size={14} />
+                {verificationStatusLabel(detail.run.verificationStatus)}
+              </span>
+            </div>
+            {detail.run.verificationStatus === "verification-failed" && detail.run.verificationFailures?.length ? (
+              <div className={styles.verificationFailureList}>
+                {detail.run.verificationFailures.map((failure) => (
+                  <article key={`${failure.policyId}-${failure.message}`} className={styles.verificationFailure}>
+                    <div className={styles.artifactHeader}>
+                      <p className={styles.artifactTitle}>{failure.policyId}</p>
+                      <span className={styles.badgeDanger}>{failure.kind}</span>
+                    </div>
+                    <p className={styles.eventMessage}>{failure.message}</p>
+                    <pre className={styles.failureDetails}>{formatVerificationFailureDetails(failure)}</pre>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className={styles.description}>
+                {detail.run.verificationStatus === "passed"
+                  ? "Required evidence policies passed for this run."
+                  : "No verification result is recorded for this run."}
+              </p>
+            )}
+          </section>
 
           {detail.run.failure !== undefined || detail.run.safetyStop !== undefined ? (
             <section className={styles.panel}>

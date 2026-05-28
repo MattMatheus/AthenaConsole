@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
+import type { VerificationPolicyFailure } from "../../shared/contracts/harness.js";
 import type { ScheduleRunLog } from "../../shared/contracts/schedule.js";
 
 export type TaskStatus =
@@ -27,6 +28,7 @@ export type RunStatus =
   | "failed"
   | "cancelled"
   | "stopped-by-limit";
+export type RunVerificationStatus = "passed" | "verification-failed";
 
 export type RunEventLevel = "debug" | "info" | "warning" | "error";
 
@@ -74,6 +76,8 @@ interface RunRow {
   output_json: string | null;
   failure_json: string | null;
   safety_stop_json: string | null;
+  verification_status: RunVerificationStatus | null;
+  verification_failures_json: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -770,6 +774,8 @@ export interface RunRecord {
   output?: unknown;
   failure?: unknown;
   safetyStop?: unknown;
+  verificationStatus?: RunVerificationStatus;
+  verificationFailures?: VerificationPolicyFailure[];
   createdAt: string;
   updatedAt: string;
 }
@@ -787,6 +793,8 @@ export interface CreateRunInput {
   output?: unknown;
   failure?: unknown;
   safetyStop?: unknown;
+  verificationStatus?: RunVerificationStatus;
+  verificationFailures?: VerificationPolicyFailure[];
   now?: Date;
 }
 
@@ -800,6 +808,8 @@ export interface UpdateRunInput {
   output?: unknown;
   failure?: unknown;
   safetyStop?: unknown;
+  verificationStatus?: RunVerificationStatus;
+  verificationFailures?: VerificationPolicyFailure[];
   now?: Date;
 }
 
@@ -826,6 +836,8 @@ export class RunRepository {
         output_json,
         failure_json,
         safety_stop_json,
+        verification_status,
+        verification_failures_json,
         created_at,
         updated_at
       )
@@ -842,6 +854,8 @@ export class RunRepository {
         @outputJson,
         @failureJson,
         @safetyStopJson,
+        @verificationStatus,
+        @verificationFailuresJson,
         @createdAt,
         @updatedAt
       )
@@ -857,6 +871,8 @@ export class RunRepository {
         output_json = @outputJson,
         failure_json = @failureJson,
         safety_stop_json = @safetyStopJson,
+        verification_status = @verificationStatus,
+        verification_failures_json = @verificationFailuresJson,
         updated_at = @updatedAt
       where id = @id
     `);
@@ -877,6 +893,8 @@ export class RunRepository {
       outputJson: jsonOrNull(input.output),
       failureJson: jsonOrNull(input.failure),
       safetyStopJson: jsonOrNull(input.safetyStop),
+      verificationStatus: input.verificationStatus ?? null,
+      verificationFailuresJson: jsonOrNull(input.verificationFailures),
       createdAt: now,
       updatedAt: now
     });
@@ -918,6 +936,9 @@ export class RunRepository {
       outputJson: input.output === undefined ? jsonOrNull(existing.output) : jsonOrNull(input.output),
       failureJson: input.failure === undefined ? jsonOrNull(existing.failure) : jsonOrNull(input.failure),
       safetyStopJson: input.safetyStop === undefined ? jsonOrNull(existing.safetyStop) : jsonOrNull(input.safetyStop),
+      verificationStatus: input.verificationStatus ?? existing.verificationStatus ?? null,
+      verificationFailuresJson:
+        input.verificationFailures === undefined ? jsonOrNull(existing.verificationFailures) : jsonOrNull(input.verificationFailures),
       updatedAt
     });
     return this.require(id);
@@ -1167,7 +1188,7 @@ function scheduleRunHistorySelectSql(suffix: string): string {
 }
 
 function runSelectSql(suffix: string): string {
-  return `select id, target_type, target_id, status, backend, agent_id, agent_version, started_at, ended_at, output_json, failure_json, safety_stop_json, created_at, updated_at from runs ${suffix}`;
+  return `select id, target_type, target_id, status, backend, agent_id, agent_version, started_at, ended_at, output_json, failure_json, safety_stop_json, verification_status, verification_failures_json, created_at, updated_at from runs ${suffix}`;
 }
 
 function mapTaskRow(row: TaskRow): TaskRecord {
@@ -1261,6 +1282,10 @@ function mapRunRow(row: RunRow): RunRecord {
     ...(row.output_json ? { output: JSON.parse(row.output_json) as unknown } : {}),
     ...(row.failure_json ? { failure: JSON.parse(row.failure_json) as unknown } : {}),
     ...(row.safety_stop_json ? { safetyStop: JSON.parse(row.safety_stop_json) as unknown } : {}),
+    ...(row.verification_status ? { verificationStatus: row.verification_status } : {}),
+    ...(row.verification_failures_json
+      ? { verificationFailures: JSON.parse(row.verification_failures_json) as VerificationPolicyFailure[] }
+      : {}),
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };

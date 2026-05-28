@@ -1,7 +1,7 @@
 ---
 kind: story
 id: STORY-20260528-run-verification-inspection
-status: ready
+status: done
 owner_role: Engineer
 source: pm
 success_metric: Operators can see whether a run passed evidence verification and why it failed from the run inspection page.
@@ -14,7 +14,7 @@ ready: true
 ## Metadata
 - `id`: STORY-20260528-run-verification-inspection
 - `owner_role`: Engineer
-- `status`: ready
+- `status`: done
 - `source`: pm
 - `decision_refs`: [ADR-0012, ADR-0013, docs/product/epics/refinement/2026.19.00-epic-verification-evidence-model.md]
 - `success_metric`: Operators can see whether a run passed evidence verification and why it failed from the run inspection page.
@@ -64,13 +64,18 @@ Run results can already carry `verificationStatus` and `verificationFailures`, b
 Engineering implementation.
 
 ## Engineering Handoff
-- `change_summary`:
-- `validation_evidence`:
-- `qa_focus`:
-- `open_risks`:
+- `change_summary`: Added optional run verification persistence to app-state runs, exposed `verificationStatus` and `verificationFailures` through task workbench contracts/API schemas, preserved verification fields from task run envelopes, parsed them in the console client, and rendered a dedicated Verification panel on task run inspection.
+- `validation_evidence`: `npm --workspace @athena/core run typecheck`; `npm --workspace @athena/core run test:unit -- control-plane.task-workbench api.task-workbench control-plane.api-contracts`; `npm --workspace @athena/core run validate:manifests`; `npm --workspace @athena/console run typecheck`; `npm --workspace @athena/console run lint`; `npm --workspace @athena/console run test`; `npm --workspace @athena/console run build`; `git diff --check`; `./flywheel/tools/validate_workflow_state.sh --format json`.
+- `qa_focus`: Verify a completed run with `verificationStatus: verification-failed` is visually distinct from runtime failure, lists policy id/kind/message/details, and runs without verification fields still show not evaluated.
+- `open_risks`: The v1 detail view surfaces verification result/failures only; it does not yet list underlying evidence records or aggregate mission/workflow verification.
 
 ## QA Verdict
-- `verdict`:
-- `evidence_quality`:
-- `defects`:
-- `state_transition`:
+- `verdict`: Pass.
+- `evidence_quality`: Automated coverage validates core persistence/API mapping and console verification formatting helpers. Browser QA used a seeded completed run with `verificationStatus: verification-failed` and confirmed the Verification panel displays the failed badge, policy id, `require-evidence` kind, message, and `label`/`evidenceType` details while no runtime Terminal State appears.
+- `defects`: None found.
+- `state_transition`: Move to done.
+
+## Transition History
+- `2026-05-28T03:35:24Z`: `ready` -> `active` by `Codex`; Engineering started
+- `2026-05-28T03:43:39Z`: `active` -> `qa` by `Codex`; Engineering handoff complete
+- `2026-05-28T03:43:51Z`: `qa` -> `done` by `Codex`; QA passed

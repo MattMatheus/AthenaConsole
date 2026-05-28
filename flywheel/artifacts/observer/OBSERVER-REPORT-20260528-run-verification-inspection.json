@@ -1,0 +1,115 @@
+{
+  "cycle_id": "20260528-run-verification-inspection",
+  "generated_at_utc": "2026-05-28T03:43:58Z",
+  "branch": "main",
+  "story_path": "flywheel/backlog/engineering/done/STORY-20260528-run-verification-inspection.md",
+  "actor": "Codex",
+  "stage_trace": [],
+  "diff_inventory": [
+    "A\tflywheel/backlog/engineering/done/STORY-20260528-run-verification-inspection.md",
+    "D\tflywheel/backlog/engineering/ready/STORY-20260528-run-verification-inspection.md",
+    "M\tapps/console/src/features/task-workbench/api.ts",
+    "M\tapps/console/src/features/task-workbench/runInspectionModel.test.ts",
+    "M\tapps/console/src/features/task-workbench/runInspectionModel.ts",
+    "M\tapps/console/src/features/task-workbench/types.ts",
+    "M\tapps/console/src/pages/TaskRunDetailPage.module.css",
+    "M\tapps/console/src/pages/TaskRunDetailPage.tsx",
+    "M\tflywheel/backlog/engineering/done/README.md",
+    "M\tflywheel/backlog/engineering/ready/README.md",
+    "M\tpackages/core/src/control-plane/api-schemas.ts",
+    "M\tpackages/core/src/control-plane/app-state/domain-repositories.ts",
+    "M\tpackages/core/src/control-plane/app-state/migrations.ts",
+    "M\tpackages/core/src/control-plane/services/task-workbench.ts",
+    "M\tpackages/core/src/shared/contracts/task-workbench.ts",
+    "M\tpackages/core/tests/control-plane.task-workbench.test.ts"
+  ],
+  "objective": {
+    "intended_outcome": "Operators can inspect task runs and see evidence verification status/failures separately from runtime completion/failure.",
+    "scope_boundary": "Surface existing verification result/failure fields only; no new policy kinds, policy authoring UI, evidence record listing, or mission/workflow aggregate verification."
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [
+      "flywheel/backlog/engineering/done/STORY-20260528-run-verification-inspection.md",
+      "/tmp/task-run-verification-qa.png"
+    ],
+    "tools_used": [
+      "npm",
+      "vitest",
+      "tsc",
+      "eslint",
+      "vite",
+      "Browser QA",
+      "flywheel_state",
+      "validate_workflow_state",
+      "flywheel_doctor"
+    ],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [
+      "core app-state run repository/migration",
+      "task workbench contracts/API schemas/service mapping",
+      "console task workbench parser/types/model helpers",
+      "TaskRunDetailPage UI/CSS",
+      "task workbench tests",
+      "Flywheel story/lane READMEs"
+    ],
+    "state_transitions": [
+      "ready -> active",
+      "active -> qa",
+      "qa -> done"
+    ],
+    "non_file_actions": [
+      "Browser QA against seeded run detail at http://127.0.0.1:5174/tasks/runs/qa-verification-run"
+    ]
+  },
+  "validation": {
+    "checks_run": [
+      "npm --workspace @athena/core run typecheck",
+      "npm --workspace @athena/core run test:unit -- control-plane.task-workbench api.task-workbench control-plane.api-contracts",
+      "npm --workspace @athena/core run validate:manifests",
+      "npm --workspace @athena/console run typecheck",
+      "npm --workspace @athena/console run lint",
+      "npm --workspace @athena/console run test",
+      "npm --workspace @athena/console run build",
+      "git diff --check",
+      "./flywheel/tools/validate_workflow_state.sh --format json",
+      "./flywheel/tools/flywheel_doctor.sh --format json"
+    ],
+    "results": [
+      "pass"
+    ],
+    "checks_not_run": []
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": true,
+    "prompts_updated_if_stage_behavior_changed": true,
+    "process_docs_updated_if_contracts_or_gates_changed": true,
+    "queue_order_and_state_synchronized": true
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [
+      "Underlying evidence records are not listed in v1 run inspection."
+    ],
+    "assumptions_carried": [
+      "require-evidence remains the only v1 verification policy kind."
+    ],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "local code/test/browser QA",
+    "approval_required": "no",
+    "approval_reference": "none"
+  },
+  "next_step": {
+    "recommended_next_state": "done",
+    "follow_up_work": [
+      "Consider evidence record listing in a later story."
+    ],
+    "durable_promotions": []
+  },
+  "release_impact": {
+    "release_scope": "deferred",
+    "additional_release_actions": []
+  }
+}

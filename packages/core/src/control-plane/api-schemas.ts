@@ -484,6 +484,24 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       output: JSON_VALUE_SCHEMA,
       failure: JSON_VALUE_SCHEMA,
       safetyStop: JSON_VALUE_SCHEMA,
+      verificationStatus: { type: "string", enum: ["passed", "verification-failed"] },
+      verificationFailures: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            policyId: { type: "string", minLength: 1 },
+            kind: { type: "string", enum: ["require-evidence"] },
+            message: { type: "string", minLength: 1 },
+            details: {
+              type: "object",
+              additionalProperties: { type: "string" }
+            }
+          },
+          required: ["policyId", "kind", "message"]
+        }
+      },
       createdAt: { type: "string", format: "date-time" },
       updatedAt: { type: "string", format: "date-time" }
     },

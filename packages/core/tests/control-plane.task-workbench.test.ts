@@ -133,6 +133,15 @@ process.stdin.on("end", () => {
   const envelope = JSON.parse(raw);
   process.stdout.write(JSON.stringify({
     output: { summary: envelope.task.inputs.taskBrief, taskId: envelope.task.id },
+    verificationStatus: "verification-failed",
+    verificationFailures: [
+      {
+        policyId: "require-test-report",
+        kind: "require-evidence",
+        message: "Missing required evidence: test-report.",
+        details: { label: "test-report", evidenceType: "json" }
+      }
+    ],
     artifacts: [
       {
         id: "artifact-summary",
@@ -179,9 +188,28 @@ process.stdin.on("end", () => {
           output: {
             summary: "Patch the API",
             taskId: "task-run-success"
-          }
+          },
+          verificationStatus: "verification-failed",
+          verificationFailures: [
+            {
+              policyId: "require-test-report",
+              kind: "require-evidence",
+              message: "Missing required evidence: test-report.",
+              details: { label: "test-report", evidenceType: "json" }
+            }
+          ]
         });
-        expect(detail.run).toMatchObject({ id: "run-success", status: "completed" });
+        expect(detail.run).toMatchObject({
+          id: "run-success",
+          status: "completed",
+          verificationStatus: "verification-failed",
+          verificationFailures: [
+            expect.objectContaining({
+              policyId: "require-test-report",
+              details: { label: "test-report", evidenceType: "json" }
+            })
+          ]
+        });
         expect(detail.task).toMatchObject({ id: "task-run-success", status: "completed" });
         expect(detail.events.map((event) => event.type)).toEqual(
           expect.arrayContaining(["run.validated", "run.started", "run.log", "artifact.created", "run.completed"])

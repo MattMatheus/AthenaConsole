@@ -326,6 +326,14 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
       create index if not exists idx_workflow_dag_run_events_run_timestamp
         on workflow_dag_run_events(run_id, timestamp);
     `
+  },
+  {
+    version: 7,
+    name: "add-run-verification-results",
+    sql: `
+      alter table runs add column verification_status text;
+      alter table runs add column verification_failures_json text;
+    `
   }
 ];
 

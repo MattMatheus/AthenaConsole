@@ -9,3 +9,4 @@ Engineering work accepted by QA.
 3. `STORY-20260528-run-templates.md`
 4. `STORY-20260528-run-template-console.md`
 5. `STORY-20260528-verification-evidence-model.md`
+6. `STORY-20260528-run-verification-inspection.md`

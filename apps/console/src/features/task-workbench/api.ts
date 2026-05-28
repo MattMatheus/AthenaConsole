@@ -11,6 +11,8 @@ import type {
   TaskWorkbenchTaskRun,
   TaskWorkbenchTaskRunDetail,
   TaskWorkbenchTaskStatus,
+  TaskWorkbenchVerificationFailure,
+  TaskWorkbenchVerificationStatus,
 } from "./types";
 
 type RecordValue = Record<string, unknown>;
@@ -31,6 +33,36 @@ function parseStatus(value: unknown): TaskWorkbenchTaskStatus {
 
 function parseRunStatus(value: unknown): TaskWorkbenchRunStatus {
   return typeof value === "string" ? (value as TaskWorkbenchRunStatus) : "queued";
+}
+
+function parseVerificationStatus(value: unknown): TaskWorkbenchVerificationStatus | undefined {
+  return value === "passed" || value === "verification-failed" ? value : undefined;
+}
+
+function parseStringRecord(value: unknown): Record<string, string> | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  const entries = Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === "string");
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
+function parseVerificationFailure(value: unknown): TaskWorkbenchVerificationFailure | undefined {
+  if (
+    !isRecord(value) ||
+    typeof value.policyId !== "string" ||
+    value.kind !== "require-evidence" ||
+    typeof value.message !== "string"
+  ) {
+    return undefined;
+  }
+  const details = parseStringRecord(value.details);
+  return {
+    policyId: value.policyId,
+    kind: value.kind,
+    message: value.message,
+    ...(details ? { details } : {}),
+  };
 }
 
 function parseTask(value: unknown): TaskWorkbenchTask {
@@ -61,6 +93,7 @@ function parseRun(value: unknown): TaskWorkbenchTaskRun {
   if (!isRecord(value) || typeof value.id !== "string" || typeof value.targetId !== "string") {
     throw new Error("Task run payload is invalid.");
   }
+  const verificationStatus = parseVerificationStatus(value.verificationStatus);
   return {
     id: value.id,
     targetType: "task",
@@ -74,6 +107,14 @@ function parseRun(value: unknown): TaskWorkbenchTaskRun {
     ...(value.output !== undefined ? { output: value.output } : {}),
     ...(value.failure !== undefined ? { failure: value.failure } : {}),
     ...(value.safetyStop !== undefined ? { safetyStop: value.safetyStop } : {}),
+    ...(verificationStatus ? { verificationStatus } : {}),
+    ...(Array.isArray(value.verificationFailures)
+      ? {
+          verificationFailures: value.verificationFailures
+            .map(parseVerificationFailure)
+            .filter((failure): failure is TaskWorkbenchVerificationFailure => failure !== undefined),
+        }
+      : {}),
     createdAt: typeof value.createdAt === "string" ? value.createdAt : new Date(0).toISOString(),
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : new Date(0).toISOString(),
   };

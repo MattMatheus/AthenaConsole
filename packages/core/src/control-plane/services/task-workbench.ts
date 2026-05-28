@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { isAbsolute, resolve } from "node:path";
 import { AthenaError } from "../../runtime/errors.js";
 import type { AthenaConfig } from "../../shared/config.js";
+import type { VerificationPolicyFailure } from "../../shared/contracts/harness.js";
 import type {
   TaskWorkbenchMetadata,
   TaskWorkbenchArtifactMetadata,
@@ -24,6 +25,7 @@ import type {
   AppStateDatabase,
   ArtifactMetadataRecord,
   PluginIndexRecord,
+  RunVerificationStatus,
   RunEventLevel,
   RunEventRecord,
   RunRecord,
@@ -133,6 +135,8 @@ interface TaskRunSafetyStop {
 interface AgentRunEnvelope {
   output: unknown;
   artifacts: AgentRunArtifact[];
+  verificationStatus?: RunVerificationStatus;
+  verificationFailures?: VerificationPolicyFailure[];
 }
 
 interface AgentRunArtifact {
@@ -410,7 +414,9 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         run = appState.runs.update(run.id, {
           status: "completed",
           endedAt,
-          output: envelope.output
+          output: envelope.output,
+          ...(envelope.verificationStatus ? { verificationStatus: envelope.verificationStatus } : {}),
+          ...(envelope.verificationFailures ? { verificationFailures: envelope.verificationFailures } : {})
         });
         appendRunEvent(appState, run.id, task, agent.id, "run.completed", `${backendLabel(command.backend)} task run completed.`, {
           artifactCount: envelope.artifacts.length
@@ -555,7 +561,9 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
     run = appState.runs.update(run.id, {
       status: "completed",
       endedAt,
-      output: envelope.output
+      output: envelope.output,
+      ...(envelope.verificationStatus ? { verificationStatus: envelope.verificationStatus } : {}),
+      ...(envelope.verificationFailures ? { verificationFailures: envelope.verificationFailures } : {})
     });
     appendRunEvent(appState, run.id, task, agent.id, "run.completed", "HTTP/API task run completed.", {
       artifactCount: envelope.artifacts.length
@@ -1078,13 +1086,46 @@ function parseAgentRunEnvelope(stdout: string): AgentRunEnvelope {
   if (isRecord(parsed)) {
     return {
       output: "output" in parsed ? parsed.output : parsed,
-      artifacts: Array.isArray(parsed.artifacts) ? parsed.artifacts.map(parseAgentRunArtifact) : []
+      artifacts: Array.isArray(parsed.artifacts) ? parsed.artifacts.map(parseAgentRunArtifact) : [],
+      ...(isRunVerificationStatus(parsed.verificationStatus) ? { verificationStatus: parsed.verificationStatus } : {}),
+      ...(Array.isArray(parsed.verificationFailures)
+        ? {
+            verificationFailures: parsed.verificationFailures
+              .map(parseVerificationPolicyFailure)
+              .filter((failure): failure is VerificationPolicyFailure => failure !== undefined)
+          }
+        : {})
     };
   }
   return {
     output: parsed,
     artifacts: []
   };
+}
+
+function isRunVerificationStatus(value: unknown): value is RunVerificationStatus {
+  return value === "passed" || value === "verification-failed";
+}
+
+function parseVerificationPolicyFailure(value: unknown): VerificationPolicyFailure | undefined {
+  if (
+    !isRecord(value) ||
+    typeof value.policyId !== "string" ||
+    value.kind !== "require-evidence" ||
+    typeof value.message !== "string"
+  ) {
+    return undefined;
+  }
+  return {
+    policyId: value.policyId,
+    kind: value.kind,
+    message: value.message,
+    ...(isStringRecord(value.details) ? { details: value.details } : {})
+  };
+}
+
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return isRecord(value) && Object.values(value).every((item) => typeof item === "string");
 }
 
 function parseAgentRunArtifact(value: unknown): AgentRunArtifact {
@@ -1241,6 +1282,8 @@ function mapRunRecord(record: RunRecord): TaskWorkbenchTaskRun {
     ...(record.output !== undefined ? { output: record.output } : {}),
     ...(record.failure !== undefined ? { failure: record.failure } : {}),
     ...(record.safetyStop !== undefined ? { safetyStop: record.safetyStop } : {}),
+    ...(record.verificationStatus ? { verificationStatus: record.verificationStatus } : {}),
+    ...(record.verificationFailures ? { verificationFailures: record.verificationFailures } : {}),
     createdAt: record.createdAt,
     updatedAt: record.updatedAt
   };

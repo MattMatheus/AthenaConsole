@@ -1,3 +1,5 @@
+import type { VerificationPolicyFailure } from "./harness.js";
+
 export type TaskWorkbenchTaskStatus =
   | "draft"
   | "proposed"
@@ -98,6 +100,7 @@ export type TaskWorkbenchRunStatus =
   | "failed"
   | "cancelled"
   | "stopped-by-limit";
+export type TaskWorkbenchVerificationStatus = "passed" | "verification-failed";
 
 export interface TaskWorkbenchTaskRun {
   id: string;
@@ -112,6 +115,8 @@ export interface TaskWorkbenchTaskRun {
   output?: unknown;
   failure?: unknown;
   safetyStop?: unknown;
+  verificationStatus?: TaskWorkbenchVerificationStatus;
+  verificationFailures?: VerificationPolicyFailure[];
   createdAt: string;
   updatedAt: string;
 }

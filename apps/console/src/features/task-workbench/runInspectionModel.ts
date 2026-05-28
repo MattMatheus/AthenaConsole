@@ -1,7 +1,13 @@
-import type { TaskWorkbenchRunEvent, TaskWorkbenchRunStatus } from "./types";
+import type {
+  TaskWorkbenchRunEvent,
+  TaskWorkbenchRunStatus,
+  TaskWorkbenchVerificationFailure,
+  TaskWorkbenchVerificationStatus,
+} from "./types";
 
 export type RunEventKind = "log" | "artifact" | "lifecycle";
 export type RunStatusTone = "neutral" | "running" | "success" | "danger" | "warning";
+export type VerificationStatusTone = "neutral" | "success" | "danger";
 
 export function classifyRunEvent(event: Pick<TaskWorkbenchRunEvent, "type">): RunEventKind {
   if (event.type === "run.log") {
@@ -27,6 +33,35 @@ export function runStatusTone(status: TaskWorkbenchRunStatus): RunStatusTone {
     return "running";
   }
   return "neutral";
+}
+
+export function verificationStatusLabel(status: TaskWorkbenchVerificationStatus | undefined): string {
+  if (status === "passed") {
+    return "passed";
+  }
+  if (status === "verification-failed") {
+    return "verification failed";
+  }
+  return "not evaluated";
+}
+
+export function verificationStatusTone(status: TaskWorkbenchVerificationStatus | undefined): VerificationStatusTone {
+  if (status === "passed") {
+    return "success";
+  }
+  if (status === "verification-failed") {
+    return "danger";
+  }
+  return "neutral";
+}
+
+export function formatVerificationFailureDetails(failure: Pick<TaskWorkbenchVerificationFailure, "details">): string {
+  if (!failure.details || Object.keys(failure.details).length === 0) {
+    return "No details recorded.";
+  }
+  return Object.entries(failure.details)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join("\n");
 }
 
 export function formatUnknown(value: unknown): string {

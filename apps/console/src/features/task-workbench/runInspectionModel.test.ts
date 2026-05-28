@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { classifyRunEvent, formatBytes, formatUnknown, runStatusTone } from "./runInspectionModel";
+import {
+  classifyRunEvent,
+  formatBytes,
+  formatUnknown,
+  formatVerificationFailureDetails,
+  runStatusTone,
+  verificationStatusLabel,
+  verificationStatusTone,
+} from "./runInspectionModel";
 
 describe("task run inspection model", () => {
   it("classifies lifecycle, log, and artifact events", () => {
@@ -24,5 +32,23 @@ describe("task run inspection model", () => {
     expect(formatBytes(undefined)).toBe("not recorded");
     expect(formatBytes(42)).toBe("42 B");
     expect(formatBytes(2048)).toBe("2.0 KB");
+  });
+
+  it("formats verification status and failure details for inspection", () => {
+    expect(verificationStatusLabel("passed")).toBe("passed");
+    expect(verificationStatusLabel("verification-failed")).toBe("verification failed");
+    expect(verificationStatusLabel(undefined)).toBe("not evaluated");
+    expect(verificationStatusTone("passed")).toBe("success");
+    expect(verificationStatusTone("verification-failed")).toBe("danger");
+    expect(verificationStatusTone(undefined)).toBe("neutral");
+    expect(
+      formatVerificationFailureDetails({
+        details: {
+          label: "test-report",
+          evidenceType: "json",
+        },
+      })
+    ).toBe("label: test-report\nevidenceType: json");
+    expect(formatVerificationFailureDetails({})).toBe("No details recorded.");
   });
 });

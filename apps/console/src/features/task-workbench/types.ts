@@ -55,6 +55,14 @@ export type TaskWorkbenchRunStatus =
   | "failed"
   | "cancelled"
   | "stopped-by-limit";
+export type TaskWorkbenchVerificationStatus = "passed" | "verification-failed";
+
+export type TaskWorkbenchVerificationFailure = {
+  policyId: string;
+  kind: "require-evidence";
+  message: string;
+  details?: Record<string, string>;
+};
 
 export type TaskWorkbenchTaskRun = {
   id: string;
@@ -69,6 +77,8 @@ export type TaskWorkbenchTaskRun = {
   output?: unknown;
   failure?: unknown;
   safetyStop?: unknown;
+  verificationStatus?: TaskWorkbenchVerificationStatus;
+  verificationFailures?: TaskWorkbenchVerificationFailure[];
   createdAt: string;
   updatedAt: string;
 };
