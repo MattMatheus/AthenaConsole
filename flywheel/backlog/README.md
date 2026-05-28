@@ -16,7 +16,7 @@ No engineering or architecture work awaiting QA.
 
 Refined work ready to activate:
 
-- `engineering/ready/STORY-20260528-quickstart-demo-docs-alignment.md`
+No ready engineering or architecture work.
 
 ## Later
 

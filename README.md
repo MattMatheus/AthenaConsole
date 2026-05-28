@@ -4,20 +4,20 @@ Team Orchestrator is a local-first agent orchestration workbench for running, in
 
 The project is being built around a simple idea: agent systems should be inspectable while they run. Operators should be able to see which agent is doing what, what state was persisted, what artifacts were produced, and why a run succeeded, failed, paused, or required approval.
 
-Team Orchestrator currently focuses on local development and local operations. It uses manifest-backed agents and plugins, durable SQLite app state, workflow templates, task and mission runs, runtime safety policies, and a console-first operator experience.
+Team Orchestrator currently focuses on local development and local operations. It uses manifest-backed agents and plugins, durable SQLite app state, workflow templates, task and mission runs, runtime safety policies, and a console-first operator experience. It also ships with a deterministic first-run demo plugin, so you can validate the product without external model credentials.
 
 ## What It Does
 
 Team Orchestrator provides:
 
 - A web console for creating, running, and inspecting agent work.
-- A local API server for tasks, missions, runs, schedules, workflow templates, events, artifacts, diagnostics, and safety controls.
+- A local API server for agents, tasks, missions, runs, schedules, workflow templates, readiness, events, artifacts, diagnostics, and safety controls.
 - Manifest-backed plugins and agents.
 - Durable SQLite app-state for operator-facing control-plane records.
 - File-backed artifact payloads for transcripts, run evidence, specialist reports, and other inspectable outputs.
 - Workflow-template DAG execution with restart-safe run state and status inspection.
 - Runtime safety defaults, loop limits, approval hooks, and pluggable execution backends.
-- A Flywheel delivery harness for keeping planning, engineering, QA, observer reports, and cycle commits reviewable.
+- A checked-in first-run sample plugin at `sample-plugins/first-run-demo`.
 
 ## Current Status
 
@@ -26,7 +26,7 @@ This repository is an active product build, not a polished stable release.
 The current foundation includes:
 
 - SQLite-backed app state for plugins, agents, tasks, missions, runs, events, artifact metadata, schedules, workflow templates, workflow DAG runs, directives, harness profiles, and run templates.
-- A React console for the main operator workflows.
+- A React console for the main operator workflows and first-run onboarding.
 - A Node/TypeScript API and core orchestration package.
 - Local and production-like Docker Compose workflows.
 - Product direction and architecture records under `docs/product/`.
@@ -35,46 +35,19 @@ The project intentionally does not maintain legacy compatibility shims for depre
 
 ## Quickstart
 
-Prerequisites:
+Start here:
 
-- Node.js 20+
-- npm 11+
-- Podman or Docker with Compose support
+- [GETTING_STARTED.md](GETTING_STARTED.md)
 
-Install dependencies:
+The quickstart covers one supported local path:
 
-```bash
-npm install
-```
+1. Start the API and console with `docker-compose.local.yml`.
+2. Check health and readiness at `/api/v1/health` and `/api/v1/readiness`.
+3. Open the console at `http://127.0.0.1:5173`.
+4. Instantiate and execute the checked-in first-run demo workflow.
+5. Inspect workflow status, step outputs, and sample artifact metadata.
 
-Copy the example environment file:
-
-```bash
-cp packages/core/.env.example .env
-```
-
-At minimum, configure either an OpenAI-compatible key or Azure AI Foundry settings in `.env`.
-
-Start the local container stack:
-
-```bash
-podman compose -f docker-compose.local.yml up --build
-```
-
-Production-like local validation is also available:
-
-```bash
-podman compose -f docker-compose.prod.yml up --build
-```
-
-Useful health checks:
-
-```bash
-curl http://127.0.0.1:8787/api/v1/health
-curl http://127.0.0.1:5173/api/v1/health
-```
-
-For a more detailed setup walkthrough, see [GETTING_STARTED.md](GETTING_STARTED.md).
+The first-run demo uses the local sample plugin in `sample-plugins/first-run-demo` and the default mock provider, so no OpenAI or Azure setup is required for the initial validation loop.
 
 ## Local Development
 
@@ -115,7 +88,7 @@ packages/
   pdk/          Persona/plugin development contracts
 
 docs/product/  Product direction, architecture decisions, audits, roadmap
-flywheel/      Local staged delivery harness and backlog
+sample-plugins/ First-run and local sample plugin assets
 specialists/   Example specialist manifests and local agent assets
 ```
 
@@ -135,35 +108,20 @@ The current product direction lives in:
 
 - [docs/product/direction/current-direction.md](docs/product/direction/current-direction.md)
 
-## Delivery Workflow
-
-This repository uses Flywheel as its local human-and-agent delivery harness. Flywheel keeps the backlog, stage handoffs, QA verdicts, observer reports, and cycle commits visible in the repo.
-
-Start with:
-
-- [flywheel/DEVELOPMENT_CYCLE.md](flywheel/DEVELOPMENT_CYCLE.md)
-- [flywheel/backlog/README.md](flywheel/backlog/README.md)
-
-Useful Flywheel commands:
-
-```bash
-./flywheel/tools/launch_stage.sh engineering --format json
-./flywheel/tools/validate_workflow_state.sh
-./flywheel/tools/run_observer_cycle.sh --cycle-id <cycle-id>
-```
-
 ## Documentation
 
 Key docs:
 
-- [GETTING_STARTED.md](GETTING_STARTED.md)
-- [docs/product/direction/current-direction.md](docs/product/direction/current-direction.md)
-- [docs/product/architecture/state-ownership-map.md](docs/product/architecture/state-ownership-map.md)
-- [docs/product/roadmap/flight-path.md](docs/product/roadmap/flight-path.md)
+- [Getting Started](GETTING_STARTED.md)
+- [Product Direction](docs/product/direction/current-direction.md)
+- [Roadmap Flight Path](docs/product/roadmap/flight-path.md)
+- [Developer Guides](docs/developer/product-dev-guides/README.md)
 
 Architecture decision records are under:
 
 - [docs/product/architecture/decisions/](docs/product/architecture/decisions/)
+
+For production-like local validation, use the `docker-compose.prod.yml` workflow documented in [GETTING_STARTED.md](GETTING_STARTED.md).
 
 ## Project Notes
 

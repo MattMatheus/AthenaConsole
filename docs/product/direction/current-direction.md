@@ -119,7 +119,7 @@ Engineering sequence:
 - `flywheel/backlog/engineering/done/STORY-20260528-first-run-health-readiness.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-sample-plugin-workflow-demo.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-console-empty-states-onboarding.md`
-- `flywheel/backlog/engineering/ready/STORY-20260528-quickstart-demo-docs-alignment.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-quickstart-demo-docs-alignment.md`
 
 Source epic:
 
@@ -127,7 +127,7 @@ Source epic:
 
 ### Current Flywheel Priorities
 
-Flywheel lanes are the operational source of truth. No engineering or architecture items are active right now.
+Flywheel lanes are the operational source of truth. No engineering or architecture items are active or awaiting QA right now.
 
 Recently completed tracks now live in Flywheel done history:
 
@@ -159,10 +159,11 @@ Recently completed tracks now live in Flywheel done history:
 - `flywheel/backlog/engineering/done/STORY-20260528-first-run-health-readiness.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-sample-plugin-workflow-demo.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-console-empty-states-onboarding.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-quickstart-demo-docs-alignment.md`
 
 Ready implementation sequence:
 
-- `flywheel/backlog/engineering/ready/STORY-20260528-quickstart-demo-docs-alignment.md`
+- No refined engineering or architecture work is waiting.
 
 ## Promotion Rule
 

@@ -55,7 +55,7 @@ Source epic:
 
 ### 2026.23 Operator Readiness And First-Run Experience
 
-Status: Ready for engineering.
+Status: Complete.
 
 Goal: make the product understandable and useful to a new local operator within the first few minutes after clone/startup.
 
@@ -78,7 +78,7 @@ Ready story sequence:
 1. `flywheel/backlog/engineering/done/STORY-20260528-first-run-health-readiness.md`
 2. `flywheel/backlog/engineering/done/STORY-20260528-sample-plugin-workflow-demo.md`
 3. `flywheel/backlog/engineering/done/STORY-20260528-console-empty-states-onboarding.md`
-4. `flywheel/backlog/engineering/ready/STORY-20260528-quickstart-demo-docs-alignment.md`
+4. `flywheel/backlog/engineering/done/STORY-20260528-quickstart-demo-docs-alignment.md`
 
 ## Near-Term Principles
 
