@@ -8,8 +8,7 @@ This lane shows what is being implemented now.
 
 ## Active Sequence
 
-1. `BUG-20260528-product-direction-backlog-sync.md`
-2. `STORY-20260528-app-state-list-query-bounds.md`
+1. `STORY-20260528-app-state-list-query-bounds.md`
 
 ## Next Up
 

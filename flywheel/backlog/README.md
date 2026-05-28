@@ -6,7 +6,6 @@ This is the operational view of current and future work.
 
 Work currently being implemented:
 
-- `engineering/active/BUG-20260528-product-direction-backlog-sync.md`
 - `engineering/active/STORY-20260528-app-state-list-query-bounds.md`
 - `architecture/active/ARCH-20260528-service-decomposition-plan.md`
 

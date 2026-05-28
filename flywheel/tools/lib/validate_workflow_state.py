@@ -14,6 +14,13 @@ from flywheel_config import DOMAINS, LANES, load_config, path, rel, repo_root
 METADATA_RE = re.compile(r"^\s*-\s*`(?P<key>[^`]+)`:\s*(?P<value>.*)$")
 QUEUE_ITEM_RE = re.compile(r"^\s*\d+\.\s*`([^`]+)`.*$")
 FRONTMATTER_RE = re.compile(r"^---\n(?P<body>.*?)\n---\n", re.DOTALL)
+BACKLOG_REF_RE = re.compile(r"`(?P<path>(?:flywheel/backlog/)?(?P<domain>engineering|architecture)/(?P<lane>active|ready|intake)/[^`]+\.md)`")
+ROOT_BACKLOG_ITEM_RE = re.compile(r"^\s*-\s*`(?P<path>(?:flywheel/backlog/)?(?P<domain>engineering|architecture)/(?P<lane>active|ready|intake)/[^`]+\.md)`\s*$")
+ROOT_BACKLOG_SECTIONS = {
+    "## Now": ("active", "No active engineering or architecture work."),
+    "## Next": ("ready", "No ready engineering or architecture work."),
+    "## Later": ("intake", "No candidate engineering or architecture intake items."),
+}
 
 
 class ValidationResult:
@@ -219,6 +226,95 @@ def validate_active_queue(result: ValidationResult, root: Path, domain: str, act
             result.warn(f"{domain} active item is not listed in Active Sequence ({rel_path})")
 
 
+def item_paths_for_lane(root: Path, config: dict, lane: str) -> set[str]:
+    paths: set[str] = set()
+    for domain in DOMAINS:
+        lane_dir = path(root, config, f"paths.{domain}.{lane}")
+        for item in sorted(lane_dir.glob("*.md")):
+            if item.name != "README.md" and item.is_file():
+                paths.add(rel(root, item))
+    return paths
+
+
+def markdown_backlog_refs(file_path: Path) -> list[tuple[str, str, str]]:
+    try:
+        text = file_path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return []
+    return [(normalize_backlog_ref(match.group("path")), match.group("domain"), match.group("lane")) for match in BACKLOG_REF_RE.finditer(text)]
+
+
+def normalize_backlog_ref(backlog_ref: str) -> str:
+    return backlog_ref if backlog_ref.startswith("flywheel/backlog/") else f"flywheel/backlog/{backlog_ref}"
+
+
+def validate_backlog_references(result: ValidationResult, root: Path, config: dict) -> None:
+    reference_sources = [
+        root / "docs/product/direction/current-direction.md",
+        root / "flywheel/backlog/README.md",
+    ]
+    for source in reference_sources:
+        if not source.is_file():
+            continue
+        for referenced_path, _domain, lane in markdown_backlog_refs(source):
+            absolute_path = root / referenced_path
+            if not absolute_path.is_file():
+                result.fail(f"{rel(root, source)} references missing backlog item ({referenced_path})")
+                continue
+            values = metadata(absolute_path)
+            status = values.get("status", "")
+            if status and status != lane:
+                result.fail(f"{rel(root, source)} references {lane} backlog item with status '{status}' ({referenced_path})")
+
+
+def section_lines(lines: list[str], heading: str) -> list[str]:
+    for index, line in enumerate(lines):
+        if line.strip() != heading:
+            continue
+        end = len(lines)
+        for next_index in range(index + 1, len(lines)):
+            if lines[next_index].startswith("## "):
+                end = next_index
+                break
+        return lines[index + 1 : end]
+    return []
+
+
+def root_backlog_section_items(lines: list[str], heading: str, expected_lane: str) -> set[str]:
+    items: set[str] = set()
+    for line in section_lines(lines, heading):
+        match = ROOT_BACKLOG_ITEM_RE.match(line)
+        if not match:
+            continue
+        lane = match.group("lane")
+        if lane == expected_lane:
+            items.add(normalize_backlog_ref(match.group("path")))
+    return items
+
+
+def validate_root_backlog_summary(result: ValidationResult, root: Path, config: dict) -> None:
+    readme = root / "flywheel/backlog/README.md"
+    if not readme.is_file():
+        return
+    try:
+        lines = readme.read_text(encoding="utf-8").splitlines()
+    except UnicodeDecodeError:
+        result.fail("root backlog README is not valid UTF-8 markdown (flywheel/backlog/README.md)")
+        return
+
+    for heading, (lane, empty_message) in ROOT_BACKLOG_SECTIONS.items():
+        expected = item_paths_for_lane(root, config, lane)
+        actual = root_backlog_section_items(lines, heading, lane)
+        section = "\n".join(section_lines(lines, heading))
+        if expected != actual:
+            result.fail(
+                f"root backlog {heading} summary is out of sync for {lane}: "
+                f"expected {sorted(expected)}, found {sorted(actual)}"
+            )
+        if not expected and empty_message not in section:
+            result.fail(f"root backlog {heading} summary should say '{empty_message}'")
+
+
 def validate(root: Path) -> ValidationResult:
     config = load_config(root)
     result = ValidationResult()
@@ -248,6 +344,9 @@ def validate(root: Path) -> ValidationResult:
             continue
         if active_dir.is_dir():
             validate_active_queue(result, root, domain, active_dir)
+
+    validate_backlog_references(result, root, config)
+    validate_root_backlog_summary(result, root, config)
 
     return result
 

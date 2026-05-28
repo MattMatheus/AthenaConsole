@@ -46,6 +46,7 @@ Canonical decisions:
 - `docs/product/architecture/decisions/0012-event-artifact-observability-model.md`
 - `docs/product/architecture/decisions/0013-safety-approval-and-loop-limit-model.md`
 - `docs/product/architecture/decisions/0014-scheduling-model.md`
+- `docs/product/architecture/decisions/0015-canonical-orchestration-state-model.md`
 
 ## Current State
 

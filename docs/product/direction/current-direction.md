@@ -29,6 +29,7 @@ Current product direction starts from the accepted reset ADRs:
 - `docs/product/architecture/decisions/0012-event-artifact-observability-model.md`
 - `docs/product/architecture/decisions/0013-safety-approval-and-loop-limit-model.md`
 - `docs/product/architecture/decisions/0014-scheduling-model.md`
+- `docs/product/architecture/decisions/0015-canonical-orchestration-state-model.md`
 
 Pre-reset ProjectAthena, Foundry-first, fleet-governance, persona-kit, and A2A-observability records are archived historical context unless rewritten against this direction.
 
@@ -44,6 +45,9 @@ The reset implementation has delivered:
 - Workflow-template indexing, instantiation, and schedule support.
 - Schedule creation, due execution, workflow-template schedules, and durable schedule run history.
 - Workflow-template DAG parsing/validation for dependency-safe future execution.
+- Durable workflow DAG run state, resumable stale-step recovery, and visualizer-friendly workflow status APIs.
+- Run templates, verification evidence, runtime policy packs, and A2A observability reframing migrated into the current Team Orchestrator model.
+- Startup recovery for stale task and mission runs left `running` after API/service restart.
 
 ## Current Roadmap
 
@@ -51,24 +55,38 @@ The reset implementation has delivered:
 
 Goal: evolve workflow templates from sequential mission creation into restart-safe DAG-capable workflow execution.
 
-Stories:
+Completed foundation:
 
 - `docs/product/history/completed-stories/2026.17.01-implement-workflow-dag-definition-parser.md`
-- `flywheel/backlog/engineering/active/STORY-20260528-workflow-state-store-resumption.md`
-- Candidate next: visualizer-friendly workflow status API.
+- `flywheel/backlog/engineering/done/STORY-20260528-workflow-state-store-resumption.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-workflow-status-api.md`
+- `flywheel/backlog/architecture/done/ARCH-20260528-canonical-orchestration-state-model.md`
+
+Next implementation refinement:
+
+- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-template-dag-run-envelope.md`
 
 Source epic:
 
 - `docs/product/epics/refinement/2026.17.00-epic-workflow-dag-engine.md`
 
-### Later Candidate Tracks
+### Current Flywheel Priorities
 
-These need PM refinement before activation:
+Flywheel lanes are the operational source of truth. Current non-DAG priorities include:
 
-- Run templates for repeatable operator-triggered jobs. Refined track: `docs/product/epics/refinement/2026.18.00-epic-run-templates.md`.
-- Verification/evidence model for output quality gates. Refined track: `docs/product/epics/refinement/2026.19.00-epic-verification-evidence-model.md`.
-- Richer runtime isolation and policy packs. Refined track: `docs/product/epics/refinement/2026.20.00-epic-runtime-policy-packs.md`.
-- A2A observability is deferred as a standalone track. Refined track: `docs/product/epics/refinement/2026.21.00-epic-a2a-observability-reframe.md`.
+- `flywheel/backlog/engineering/active/STORY-20260528-app-state-list-query-bounds.md`
+- `flywheel/backlog/architecture/active/ARCH-20260528-service-decomposition-plan.md`
+
+Recently completed tracks now live in Flywheel done history:
+
+- `flywheel/backlog/engineering/done/STORY-20260528-run-templates.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-run-template-console.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-verification-evidence-model.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-run-verification-inspection.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-runtime-policy-pack-resolver.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-runtime-isolation-policy-packs.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-a2a-observability-reframe.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-legacy-a2a-surface-labeling.md`
 
 ## Promotion Rule
 

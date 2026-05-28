@@ -1,7 +1,7 @@
 ---
 kind: bug
 id: BUG-20260528-product-direction-backlog-sync
-status: active
+status: done
 priority: P2
 reported_by: Code Quality Audit
 source_story: docs/product/audits/2026-05-28-code-quality-audit.md#m-2-product-direction-and-flywheel-queue-docs-are-stale-after-completed-work
@@ -16,7 +16,7 @@ ready: true
 - `priority`: P2
 - `reported_by`: Code Quality Audit
 - `source_story`: docs/product/audits/2026-05-28-code-quality-audit.md#m-2-product-direction-and-flywheel-queue-docs-are-stale-after-completed-work
-- `status`: active
+- `status`: done
 - `decision_refs`: []
 - `impact_metric`: Product direction and root backlog summaries no longer point at moved or completed active/ready work.
 
@@ -57,19 +57,21 @@ Product direction and the root Flywheel backlog summary still reference active/r
 - Add a docs consistency check for moved/non-existent active and ready references, scoped to references in current direction and root backlog summary.
 
 ## Next Step
-Promote to engineering active after the P0 auth posture bug, or pull earlier only if the team wants a small docs/tooling cleanup before architecture work completes.
+Continue with the next active backlog item.
 
 ## Engineering Handoff
-- `change_summary`:
-- `validation_evidence`:
-- `qa_focus`:
-- `open_risks`:
+- `change_summary`: Refreshed `docs/product/direction/current-direction.md` and `AGENTS.md` for ADR 0015, completed DAG/status/stale-run work, current active priorities, and the DAG run envelope intake. Extended `validate_workflow_state.py` to catch stale active/ready/intake references in current direction and root backlog summary, and to verify the root backlog Now/Next/Later sections match Flywheel lane contents.
+- `validation_evidence`: `./flywheel/tools/validate_workflow_state.sh`; `python3 flywheel/tools/lib/validate_workflow_state.py --format json`; `python3 -m py_compile flywheel/tools/lib/validate_workflow_state.py`; `./flywheel/tools/flywheel_doctor.sh`; `git diff --check`.
+- `qa_focus`: Confirm direction docs no longer point to moved/completed active work, root backlog summary matches lane READMEs, and the validator fails future stale references rather than relying on manual memory.
+- `open_risks`: Root backlog summary is still manually maintained, but validation now fails when it drifts from lane contents.
 
 ## QA Verdict
-- `verdict`:
-- `evidence_quality`:
-- `defects`:
-- `state_transition`:
+- `verdict`: Pass.
+- `evidence_quality`: Direction and root backlog references were reviewed in the post-QA lane state. Workflow validation now passes and includes checks for stale current-direction/root-backlog active, ready, and intake references plus root backlog Now/Next/Later lane synchronization.
+- `defects`: None found.
+- `state_transition`: Ready for engineering done.
 
 ## Transition History
 - `2026-05-28T16:23:39Z`: `intake` -> `active` by `Codex`; PM refined and queued for engineering
+- `2026-05-28T17:13:20Z`: `active` -> `qa` by `Codex`; Engineering handoff complete
+- `2026-05-28T17:13:45Z`: `qa` -> `done` by `Codex`; QA passed
