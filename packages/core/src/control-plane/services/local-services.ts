@@ -71,6 +71,7 @@ import { openAppStateDatabase } from "../app-state/index.js";
 import type { StateStore } from "../state-store.js";
 import { clampLimit, decodeOffsetCursor, encodeOffsetCursor } from "./pagination.js";
 import { LocalTaskWorkbenchService } from "./task-workbench.js";
+import { LocalWorkflowDagExecutorService } from "./workflow-dag-executor.js";
 import { LocalWorkflowTemplateCatalogService } from "./workflow-template-catalog.js";
 
 export class LocalSessionService implements SessionService {
@@ -1288,19 +1289,26 @@ export class LocalScheduleService implements ScheduleService {
         ...workflowTemplateInstantiationRequestFromSchedule(schedule.inputBindings),
         createdBy: `schedule:${schedule.id}`
       });
+      const executor = new LocalWorkflowDagExecutorService(this.config, { appState });
+      const execution = await executor.execute(instantiation.workflowDagRun.id);
       const finishedAt = new Date().toISOString();
       const nextRunAt = nextRunAfterScheduleAttempt(schedule, at);
       const taskIds = instantiation.tasks.map((task) => task.id);
+      const runSucceeded = execution.status === "completed";
+      const resultStatus: RunScheduleResult["status"] = runSucceeded ? "ok" : "failed";
+      const workflowFailure = execution.snapshot.run.failure;
       const failurePolicy = updateScheduleFailurePolicy(schedule.failurePolicy, {
-        status: "ok",
+        status: resultStatus,
         missionId: instantiation.mission.id,
         workflowDagRunId: instantiation.workflowDagRun.id,
         taskIds,
+        workflowStatus: execution.status,
         attemptedAt: startedAt,
-        template: instantiation.template
+        template: instantiation.template,
+        ...(workflowFailure !== undefined ? { workflowFailure } : {})
       });
       const updated = appState.schedules.update(schedule.id, {
-        status: nextRunAt ? "active" : "disabled",
+        status: runSucceeded ? (nextRunAt ? "active" : "disabled") : "error",
         nextRunAt: nextRunAt ?? null,
         failurePolicy,
         now: new Date(finishedAt)
@@ -1308,7 +1316,7 @@ export class LocalScheduleService implements ScheduleService {
       const result: RunScheduleResult = {
         id: schedule.id,
         sessionId: instantiation.mission.id,
-        status: "ok",
+        status: resultStatus,
         startedAt,
         finishedAt,
         targetType: schedule.targetType,
@@ -1317,7 +1325,8 @@ export class LocalScheduleService implements ScheduleService {
         missionId: instantiation.mission.id,
         taskIds,
         ...(updated.nextRunAt ? { nextRunAt: updated.nextRunAt } : {}),
-        ...(missedRunAt ? { missedRunAt } : {})
+        ...(missedRunAt ? { missedRunAt } : {}),
+        ...(resultStatus === "failed" ? { reason: `workflow-dag-${execution.status}` } : {})
       };
       this.recordAppStateScheduleRun(appState, result);
       return result;

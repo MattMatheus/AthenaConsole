@@ -322,10 +322,11 @@ describe("task schedule service", () => {
         expect(appState.workflowDagRuns.requireSnapshot(run?.workflowDagRunId ?? "").run).toMatchObject({
           id: run?.workflowDagRunId,
           workflowTemplateId: "templates.release.workflow",
-          status: "pending"
+          status: "completed"
         });
         expect(appState.tasks.require(run?.taskIds?.[0] ?? "")).toMatchObject({
           missionId: run?.missionId,
+          status: "completed",
           inputs: { release: "v2.0.0" },
           createdBy: "schedule:schedule-release-workflow"
         });
@@ -334,7 +335,8 @@ describe("task schedule service", () => {
             status: "ok",
             missionId: run?.missionId,
             workflowDagRunId: run?.workflowDagRunId,
-            taskIds: run?.taskIds
+            taskIds: run?.taskIds,
+            workflowStatus: "completed"
           }
         });
         await expect(service.logs("schedule-release-workflow")).resolves.toEqual([
@@ -356,6 +358,80 @@ describe("task schedule service", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("records failed workflow DAG execution for workflow-template schedules", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-workflow-template-schedule-fail-"));
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        seedWorkflowTemplateScheduleTarget(appState, {
+          script: "process.stderr.write('scheduled DAG failed'); process.exit(4);"
+        });
+        const service = new LocalScheduleService(config, noopBackend, noopPolicyService, { appState });
+
+        await service.upsert({
+          id: "schedule-release-workflow-fail",
+          name: "Release workflow fail",
+          targetType: "workflow-template",
+          targetId: "templates.release.workflow",
+          inputBindings: {
+            inputs: { releaseName: "v2.1.0" }
+          },
+          runAt: "2026-06-01T09:00:00.000Z",
+          timezone: "UTC"
+        });
+
+        const result = await service.runDue(new Date("2026-06-01T09:00:00.000Z"));
+        const run = result.run[0];
+        const updatedSchedule = appState.schedules.require("schedule-release-workflow-fail");
+
+        expect(run).toMatchObject({
+          id: "schedule-release-workflow-fail",
+          status: "failed",
+          reason: "workflow-dag-failed",
+          workflowDagRunId: expect.stringMatching(/^workflow-run-mission-/),
+          missionId: expect.stringMatching(/^mission-/),
+          taskIds: expect.any(Array)
+        });
+        expect(updatedSchedule.status).toBe("error");
+        const workflowStatus = appState.workflowDagRuns.requireSnapshot(run?.workflowDagRunId ?? "");
+        expect(workflowStatus.run).toMatchObject({
+          status: "failed"
+        });
+        expect(workflowStatus.steps[0]).toMatchObject({
+          status: "failed",
+          failure: {
+            failure: {
+              code: 4,
+              stderr: "scheduled DAG failed"
+            }
+          }
+        });
+        expect(updatedSchedule.failurePolicy).toMatchObject({
+          lastAttempt: {
+            status: "failed",
+            workflowDagRunId: run?.workflowDagRunId,
+            workflowStatus: "failed"
+          }
+        });
+        await expect(service.logs("schedule-release-workflow-fail")).resolves.toEqual([
+          expect.objectContaining({
+            status: "failed",
+            reason: "workflow-dag-failed",
+            workflowDagRunId: run?.workflowDagRunId,
+            missionId: run?.missionId,
+            taskIds: run?.taskIds
+          })
+        ]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
 
   it("validates scheduled task targets", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-task-schedule-invalid-"));
@@ -507,11 +583,14 @@ function seedRunnableTask(
   });
 }
 
-function seedWorkflowTemplateScheduleTarget(appState: ReturnType<typeof openAppStateDatabase>): void {
+function seedWorkflowTemplateScheduleTarget(
+  appState: ReturnType<typeof openAppStateDatabase>,
+  options: { script?: string } = {}
+): void {
   appState.plugins.upsert({
     id: "team-orchestrator.test.scheduler-templates",
     version: "0.1.0",
-    path: "/tmp/team-orchestrator-scheduler-template-plugin",
+    path: process.cwd(),
     enabled: true,
     sourceType: "local",
     status: "loaded",
@@ -525,7 +604,19 @@ function seedWorkflowTemplateScheduleTarget(appState: ReturnType<typeof openAppS
     pluginVersion: "0.1.0",
     name: "Scheduler Template Agent",
     capabilities: ["release.plan"],
-    manifest: {},
+    manifest: {
+      agent: {
+        implementation: {
+          type: "local-command",
+          command: process.execPath,
+          args: ["-e", options.script ?? "process.stdout.write(JSON.stringify({ output: { scheduled: true }, artifacts: [] }));"]
+        },
+        runtime: {
+          preferredBackend: "local-process",
+          workingDirectory: "."
+        }
+      }
+    },
     status: "loaded"
   });
   appState.workflowTemplates.upsert({

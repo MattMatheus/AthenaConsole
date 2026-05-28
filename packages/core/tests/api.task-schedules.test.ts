@@ -298,6 +298,14 @@ describe("task schedule api", () => {
         }
       });
       expect(ticked.data.run[0]?.taskIds?.[0]).toMatch(/^mission-.*-plan$/);
+      const stateAfterTick = openAppStateDatabase(config);
+      try {
+        expect(stateAfterTick.workflowDagRuns.requireSnapshot(ticked.data.run[0]?.workflowDagRunId ?? "").run).toMatchObject({
+          status: "completed"
+        });
+      } finally {
+        stateAfterTick.close();
+      }
 
       const logsResponse = await fetch(`${base}/api/v1/schedules/api-workflow-template-schedule/logs`);
       expect(logsResponse.status).toBe(200);
@@ -405,7 +413,7 @@ function seedWorkflowTemplateScheduleTarget(appState: ReturnType<typeof openAppS
   appState.plugins.upsert({
     id: "team-orchestrator.test.api-scheduler-templates",
     version: "0.1.0",
-    path: "/tmp/team-orchestrator-api-scheduler-template-plugin",
+    path: process.cwd(),
     enabled: true,
     sourceType: "local",
     status: "loaded",
@@ -419,7 +427,19 @@ function seedWorkflowTemplateScheduleTarget(appState: ReturnType<typeof openAppS
     pluginVersion: "0.1.0",
     name: "API Scheduler Template Agent",
     capabilities: ["release.plan"],
-    manifest: {},
+    manifest: {
+      agent: {
+        implementation: {
+          type: "local-command",
+          command: process.execPath,
+          args: ["-e", "process.stdout.write(JSON.stringify({ output: { scheduled: true }, artifacts: [] }));"]
+        },
+        runtime: {
+          preferredBackend: "local-process",
+          workingDirectory: "."
+        }
+      }
+    },
     status: "loaded"
   });
   appState.workflowTemplates.upsert({
