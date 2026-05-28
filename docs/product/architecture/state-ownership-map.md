@@ -41,7 +41,7 @@ Deprecated file-backed control-plane state should be migrated forward or removed
 | Workflow DAG events | SQLite, `workflow_dag_run_events` | SQLite app-state | Keep in SQLite. |
 | Directives | SQLite, `directives` | SQLite app-state | Runtime list/create/resolve paths use SQLite. Old `.athena/directives` files are not read by normal runtime paths. |
 | Harness profiles | SQLite, `harness_profiles` | SQLite app-state | Runtime list/create/resolve paths use SQLite. Old `.athena/harness-profiles` files are not read by normal runtime paths. |
-| Run templates | `FileStateStore`, `.athena/run-templates` | Migration candidate | Migrate to SQLite after harness profiles and directives. Remove normal runtime file reads. |
+| Run templates | SQLite, `run_templates` | SQLite app-state | Runtime list/create/run paths use SQLite. Old `.athena/run-templates` files are not read by normal runtime paths. |
 | Legacy workflows | `FileStateStore`, `.athena/workflows` and `.athena/workflow-runs` | Deprecated file-backed state to remove | Remove or disable after canonical workflow DAG route coverage is confirmed. |
 | Sessions | `SessionStore`, `.athena/sessions` | Intentional file artifact/support state | Keep file-backed. Consider a future SQLite index only if console search requires it. |
 | Transcripts | `SessionStore`, transcript JSONL files | Intentional file artifact/support state | Keep file-backed payloads. |
@@ -56,9 +56,8 @@ Deprecated file-backed control-plane state should be migrated forward or removed
 ## Migration Order
 
 1. Add diagnostics for active state stores and ownership categories.
-2. Migrate run templates to SQLite.
-3. Classify sessions, transcripts, run evidence, and specialist artifacts in docs/tests so artifact payloads do not get pulled into app-state by accident.
-4. Remove or disable deprecated file-backed legacy workflow runtime/storage paths after canonical workflow DAG route coverage is confirmed.
+2. Classify sessions, transcripts, run evidence, and specialist artifacts in docs/tests so artifact payloads do not get pulled into app-state by accident.
+3. Remove or disable deprecated file-backed legacy workflow runtime/storage paths after canonical workflow DAG route coverage is confirmed.
 
 ## Validation Expectations
 

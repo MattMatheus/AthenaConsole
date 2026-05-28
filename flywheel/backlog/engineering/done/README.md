@@ -30,3 +30,4 @@ Engineering work accepted by QA.
 24. `STORY-20260528-state-store-startup-diagnostics.md`
 25. `STORY-20260528-harness-profiles-sqlite-migration.md`
 26. `STORY-20260528-directives-sqlite-migration.md`
+27. `STORY-20260528-run-templates-sqlite-migration.md`

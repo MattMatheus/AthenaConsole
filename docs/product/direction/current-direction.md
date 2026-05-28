@@ -102,7 +102,7 @@ Next refinement sequence:
 - `flywheel/backlog/engineering/done/STORY-20260528-state-store-startup-diagnostics.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-harness-profiles-sqlite-migration.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-directives-sqlite-migration.md`
-- `flywheel/backlog/engineering/intake/STORY-20260528-run-templates-sqlite-migration.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-run-templates-sqlite-migration.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-session-artifact-state-classification.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-remove-legacy-workflow-file-state.md`
 
@@ -120,6 +120,7 @@ Recently completed tracks now live in Flywheel done history:
 - `flywheel/backlog/engineering/done/STORY-20260528-state-store-startup-diagnostics.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-harness-profiles-sqlite-migration.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-directives-sqlite-migration.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-run-templates-sqlite-migration.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-run-templates.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-run-template-console.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-verification-evidence-model.md`
@@ -141,7 +142,6 @@ Recently completed tracks now live in Flywheel done history:
 
 Deferred implementation candidates that need PM refinement:
 
-- `flywheel/backlog/engineering/intake/STORY-20260528-run-templates-sqlite-migration.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-session-artifact-state-classification.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-remove-legacy-workflow-file-state.md`
 

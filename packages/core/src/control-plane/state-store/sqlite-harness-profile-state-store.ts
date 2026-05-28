@@ -4,6 +4,7 @@ import type {
   DirectiveCreateRequest,
   HarnessProfile,
   HarnessProfileCreateRequest,
+  RunTemplate,
   RunTemplateCreateRequest,
   WorkflowCreateRequest
 } from "../../shared/contracts.js";
@@ -50,12 +51,22 @@ export class SqliteHarnessProfileStateStore implements StateStore {
     }
   }
 
-  listRunTemplates(): ReturnType<StateStore["listRunTemplates"]> {
-    return this.delegate.listRunTemplates();
+  async listRunTemplates(): Promise<RunTemplate[]> {
+    const appState = openAppStateDatabase(this.config);
+    try {
+      return appState.runTemplates.list();
+    } finally {
+      appState.close();
+    }
   }
 
-  createRunTemplate(request: RunTemplateCreateRequest): ReturnType<StateStore["createRunTemplate"]> {
-    return this.delegate.createRunTemplate(request);
+  async createRunTemplate(request: RunTemplateCreateRequest): Promise<RunTemplate> {
+    const appState = openAppStateDatabase(this.config);
+    try {
+      return appState.runTemplates.create(request);
+    } finally {
+      appState.close();
+    }
   }
 
   listWorkflows(): ReturnType<StateStore["listWorkflows"]> {

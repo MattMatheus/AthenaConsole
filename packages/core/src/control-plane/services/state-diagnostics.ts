@@ -105,8 +105,8 @@ export function buildStateStoreDiagnostics(config: AthenaConfig, stateStore: Sta
       {
         id: "run-templates",
         label: "Run template records",
-        category: "migration-candidate",
-        path: resolve(stateRoot, "run-templates")
+        category: "sqlite-app-state",
+        path: sqliteAppStatePath
       },
       ...(stateStore.kind === "file"
         ? [

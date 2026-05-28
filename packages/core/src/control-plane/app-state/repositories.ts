@@ -8,7 +8,9 @@ import type {
   HarnessProfileConfig,
   HarnessProfileCreateRequest,
   HarnessProfilePolicies,
-  HarnessVerificationPolicy
+  HarnessVerificationPolicy,
+  RunTemplate,
+  RunTemplateCreateRequest
 } from "../../shared/contracts.js";
 
 export interface AppStateMigrationRecord {
@@ -86,6 +88,14 @@ interface DirectiveRow {
   input: string;
   context_refs_json: string;
   metadata_json: string;
+  created_at: string;
+}
+
+interface RunTemplateRow {
+  id: string;
+  harness_profile_id: string;
+  directive_template: string;
+  default_params_json: string;
   created_at: string;
 }
 
@@ -766,6 +776,84 @@ export class DirectiveRepository {
       input: row.input,
       ...(contextRefs.length > 0 ? { contextRefs } : {}),
       ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
+      createdAt: row.created_at
+    };
+  }
+}
+
+export class RunTemplateRepository {
+  private readonly listStatement: Database.Statement;
+  private readonly getStatement: Database.Statement;
+  private readonly insertStatement: Database.Statement;
+
+  constructor(private readonly db: Database.Database) {
+    this.listStatement = db.prepare(
+      "select id, harness_profile_id, directive_template, default_params_json, created_at from run_templates order by created_at desc, id asc"
+    );
+    this.getStatement = db.prepare(
+      "select id, harness_profile_id, directive_template, default_params_json, created_at from run_templates where id = ?"
+    );
+    this.insertStatement = db.prepare(`
+      insert into run_templates (
+        id,
+        harness_profile_id,
+        directive_template,
+        default_params_json,
+        created_at
+      )
+      values (
+        @id,
+        @harnessProfileId,
+        @directiveTemplate,
+        @defaultParamsJson,
+        @createdAt
+      )
+    `);
+  }
+
+  list(): RunTemplate[] {
+    return this.listStatement.all().map((row) => this.mapRow(row as RunTemplateRow));
+  }
+
+  get(id: string): RunTemplate | undefined {
+    const row = this.getStatement.get(id) as RunTemplateRow | undefined;
+    return row ? this.mapRow(row) : undefined;
+  }
+
+  create(request: RunTemplateCreateRequest, now: Date = new Date()): RunTemplate {
+    const template: RunTemplate = {
+      id: this.allocateId(),
+      harnessProfileId: request.harnessProfileId,
+      directiveTemplate: request.directiveTemplate,
+      defaultParams: { ...request.defaultParams },
+      createdAt: now.toISOString()
+    };
+    this.insertStatement.run({
+      id: template.id,
+      harnessProfileId: template.harnessProfileId,
+      directiveTemplate: template.directiveTemplate,
+      defaultParamsJson: JSON.stringify(template.defaultParams),
+      createdAt: template.createdAt
+    });
+    return template;
+  }
+
+  private allocateId(): string {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const id = randomUUID();
+      if (!this.get(id)) {
+        return id;
+      }
+    }
+    throw new Error("Unable to allocate unique run template ID.");
+  }
+
+  private mapRow(row: RunTemplateRow): RunTemplate {
+    return {
+      id: row.id,
+      harnessProfileId: row.harness_profile_id,
+      directiveTemplate: row.directive_template,
+      defaultParams: JSON.parse(row.default_params_json) as Record<string, string>,
       createdAt: row.created_at
     };
   }

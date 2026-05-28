@@ -19,6 +19,7 @@ import {
   DirectiveRepository,
   HarnessProfileRepository,
   PluginIndexRepository,
+  RunTemplateRepository,
   WorkflowTemplateIndexRepository
 } from "./repositories.js";
 import { WorkflowDagRunRepository } from "./workflow-state-repository.js";
@@ -40,6 +41,7 @@ export interface AppStateDatabase {
   readonly workflowDagRuns: WorkflowDagRunRepository;
   readonly directives: DirectiveRepository;
   readonly harnessProfiles: HarnessProfileRepository;
+  readonly runTemplates: RunTemplateRepository;
   readonly tasks: TaskRepository;
   readonly missions: MissionRepository;
   readonly runs: RunRepository;
@@ -81,6 +83,7 @@ export function openAppStateDatabase(config: AthenaConfig, options: AppStateData
     workflowDagRuns: new WorkflowDagRunRepository(db),
     directives: new DirectiveRepository(db),
     harnessProfiles: new HarnessProfileRepository(db),
+    runTemplates: new RunTemplateRepository(db),
     tasks: new TaskRepository(db),
     missions: new MissionRepository(db),
     runs: new RunRepository(db),

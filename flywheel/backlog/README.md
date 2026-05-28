@@ -8,6 +8,10 @@ Work currently being implemented:
 
 No active engineering or architecture work.
 
+Work currently awaiting QA:
+
+No engineering or architecture work awaiting QA.
+
 ## Next
 
 Refined work ready to activate:
@@ -18,7 +22,6 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-- `engineering/intake/STORY-20260528-run-templates-sqlite-migration.md`
 - `engineering/intake/STORY-20260528-session-artifact-state-classification.md`
 - `engineering/intake/STORY-20260528-remove-legacy-workflow-file-state.md`
 

@@ -485,6 +485,11 @@ describe("api server", () => {
             path: join(dir, ".athena", "team-orchestrator.sqlite")
           }),
           expect.objectContaining({
+            id: "run-templates",
+            category: "sqlite-app-state",
+            path: join(dir, ".athena", "team-orchestrator.sqlite")
+          }),
+          expect.objectContaining({
             id: "legacy-workflow-runs",
             category: "deprecated-file-backed-state",
             path: join(dir, ".athena", "workflow-runs")
@@ -781,6 +786,26 @@ describe("api server", () => {
         HEAD_REF: "main",
         BASE_REF: "origin/main"
       });
+      expect(existsSync(join(dir, ".athena", "run-templates", `${createRunTemplateEnvelope.data.id}.json`))).toBe(false);
+
+      mkdirSync(join(dir, ".athena", "run-templates"), { recursive: true });
+      writeFileSync(
+        join(dir, ".athena", "run-templates", "old-file-template.json"),
+        JSON.stringify(
+          {
+            id: "old-file-template",
+            harnessProfileId: createHarnessProfileEnvelope.data.id,
+            directiveTemplate: "Old {{HEAD_REF}}",
+            defaultParams: {
+              HEAD_REF: "old"
+            },
+            createdAt: new Date().toISOString()
+          },
+          null,
+          2
+        ),
+        "utf8"
+      );
 
       const listRunTemplatesResponse = await fetch(`${base}/api/v1/run-templates?limit=10`);
       expect(listRunTemplatesResponse.status).toBe(200);
@@ -793,6 +818,7 @@ describe("api server", () => {
       expect(listRunTemplatesEnvelope.ok).toBe(true);
       expect(listRunTemplatesEnvelope.data.items.length).toBeGreaterThan(0);
       expect(listRunTemplatesEnvelope.data.items[0]?.id).toBe(createRunTemplateEnvelope.data.id);
+      expect(listRunTemplatesEnvelope.data.items.map((item) => item.id)).not.toContain("old-file-template");
 
       const runTemplateResponse = await fetch(
         `${base}/api/v1/templates/${encodeURIComponent(createRunTemplateEnvelope.data.id)}/run`,

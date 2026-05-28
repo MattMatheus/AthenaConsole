@@ -376,6 +376,25 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
       create index if not exists idx_directives_created
         on directives(created_at desc);
     `
+  },
+  {
+    version: 11,
+    name: "add-run-templates",
+    sql: `
+      create table if not exists run_templates (
+        id text primary key,
+        harness_profile_id text not null,
+        directive_template text not null,
+        default_params_json text not null default '{}',
+        created_at text not null,
+        foreign key (harness_profile_id) references harness_profiles(id) on delete restrict
+      );
+
+      create index if not exists idx_run_templates_created
+        on run_templates(created_at desc);
+      create index if not exists idx_run_templates_harness_profile
+        on run_templates(harness_profile_id);
+    `
   }
 ];
 
