@@ -19,6 +19,7 @@ const navItems: NavItem[] = [
   { path: "/mission-control", label: "Mission Control", match: /^\/mission-control/ },
   { path: "/sessions", label: "Sessions", match: /^\/sessions/ },
   { path: "/workflows", label: "Workflows", match: /^\/workflows/ },
+  { path: "/run-templates", label: "Run Templates", match: /^\/run-templates/ },
   { path: "/dlq", label: "DLQ Console", match: /^\/dlq/ },
   { path: "/resources", label: "Resources", match: /^\/resources/ },
   { path: "/rbac", label: "RBAC", match: /^\/rbac/ },

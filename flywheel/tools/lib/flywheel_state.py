@@ -167,21 +167,8 @@ def normalize_queue_section(lines: list[str], start: int, end: int, domain: str,
             del lines[index]
         return
 
-    if message_indices:
-        first = message_indices[0]
-        lines[first] = message
-        for index in reversed(message_indices[1:]):
-            del lines[index]
-        if first + 1 < len(lines) and lines[first + 1].strip():
-            lines.insert(first + 1, "")
-        return
-
-    insert_at = start + 1
-    while insert_at < len(lines) and lines[insert_at].strip() == "":
-        insert_at += 1
-    lines.insert(insert_at, message)
-    if insert_at + 1 < len(lines) and lines[insert_at + 1].strip():
-        lines.insert(insert_at + 1, "")
+    del lines[start + 1 : end]
+    lines[start + 1 : start + 1] = ["", message, ""]
 
 
 def remove_queue_item(lines: list[str], item_name: str) -> bool:

@@ -9,6 +9,7 @@ import { DlqPage } from "../pages/DlqPage";
 import { AuditTrailPage } from "../pages/AuditTrailPage";
 import { RbacPage } from "../pages/RbacPage";
 import { ResourcesPage } from "../pages/ResourcesPage";
+import { RunTemplatesPage } from "../pages/RunTemplatesPage";
 import { SchedulesPage } from "../pages/SchedulesPage";
 import { SessionsPage } from "../pages/SessionsPage";
 import { SettingsPage } from "../pages/SettingsPage";
@@ -60,6 +61,10 @@ export const router = createBrowserRouter([
       {
         path: "workflows",
         element: <WorkflowsPage />,
+      },
+      {
+        path: "run-templates",
+        element: <RunTemplatesPage />,
       },
       {
         path: "dlq",
