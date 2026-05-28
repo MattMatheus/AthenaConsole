@@ -1,0 +1,101 @@
+{
+  "cycle_id": "20260528-verification-evidence-model",
+  "generated_at_utc": "2026-05-28T03:31:43Z",
+  "branch": "main",
+  "story_path": "flywheel/backlog/engineering/done/STORY-20260528-verification-evidence-model.md",
+  "actor": "Codex",
+  "stage_trace": [],
+  "diff_inventory": [
+    "A\tdocs/product/epics/refinement/2026.19.00-epic-verification-evidence-model.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260528-verification-evidence-model.md",
+    "A\tflywheel/backlog/engineering/ready/STORY-20260528-run-verification-inspection.md",
+    "D\tflywheel/backlog/engineering/intake/STORY-20260528-verification-evidence-model.md",
+    "M\tdocs/product/direction/current-direction.md",
+    "M\tflywheel/backlog/engineering/done/README.md",
+    "M\tflywheel/backlog/engineering/intake/README.md",
+    "M\tflywheel/backlog/engineering/ready/README.md"
+  ],
+  "objective": {
+    "intended_outcome": "Refine the verification/evidence model against current run, event, artifact, and harness policy baselines.",
+    "scope_boundary": "PM refinement only; no runtime, API, or console behavior changes."
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [
+      "flywheel/backlog/engineering/intake/STORY-20260528-verification-evidence-model.md",
+      "ADR 0012",
+      "ADR 0013",
+      "run evidence source/tests"
+    ],
+    "tools_used": [
+      "flywheel_state.sh",
+      "validate_workflow_state.sh",
+      "flywheel_doctor.sh",
+      "vitest"
+    ],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [
+      "verification/evidence refinement epic",
+      "ready console inspection story",
+      "current direction",
+      "backlog item and lane READMEs"
+    ],
+    "state_transitions": [
+      "intake -> active",
+      "active -> qa",
+      "qa -> done"
+    ],
+    "non_file_actions": [
+      "focused validation of existing evidence and harness policy tests"
+    ]
+  },
+  "validation": {
+    "checks_run": [
+      "./flywheel/tools/validate_workflow_state.sh --format json",
+      "./flywheel/tools/flywheel_doctor.sh --format json",
+      "npm --workspace @athena/core run test:unit -- tests/control-plane.baseline.test.ts tests/api.request-parsers.test.ts",
+      "git diff --check"
+    ],
+    "results": [
+      "pass",
+      "pass",
+      "34 tests passed",
+      "pass"
+    ],
+    "checks_not_run": []
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": true,
+    "prompts_updated_if_stage_behavior_changed": true,
+    "process_docs_updated_if_contracts_or_gates_changed": true,
+    "queue_order_and_state_synchronized": true
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [
+      "Operator verdicts and aggregate mission/workflow verification remain deferred."
+    ],
+    "assumptions_carried": [
+      "ADR 0012 and ADR 0013 are sufficient for the first implementation slice."
+    ],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "local write",
+    "approval_required": "no",
+    "approval_reference": "n/a"
+  },
+  "next_step": {
+    "recommended_next_state": "Ready story can be promoted when the deferred verification-inspection track is selected.",
+    "follow_up_work": [
+      "flywheel/backlog/engineering/ready/STORY-20260528-run-verification-inspection.md"
+    ],
+    "durable_promotions": [
+      "Run verification inspection story is ready."
+    ]
+  },
+  "release_impact": {
+    "release_scope": "deferred",
+    "additional_release_actions": []
+  }
+}

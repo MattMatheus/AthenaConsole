@@ -8,3 +8,4 @@ Engineering work accepted by QA.
 2. `STORY-20260528-workflow-status-api.md`
 3. `STORY-20260528-run-templates.md`
 4. `STORY-20260528-run-template-console.md`
+5. `STORY-20260528-verification-evidence-model.md`
