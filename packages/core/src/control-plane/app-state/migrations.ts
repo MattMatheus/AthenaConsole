@@ -334,6 +334,13 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
       alter table runs add column verification_status text;
       alter table runs add column verification_failures_json text;
     `
+  },
+  {
+    version: 8,
+    name: "add-schedule-workflow-dag-run-correlation",
+    sql: `
+      alter table schedule_run_history add column workflow_dag_run_id text;
+    `
   }
 ];
 

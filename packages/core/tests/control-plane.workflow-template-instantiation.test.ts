@@ -48,6 +48,16 @@ describe("workflow template instantiation service", () => {
             }
           }
         });
+        expect(result.workflowDagRun).toEqual({ id: "workflow-run-mission-release" });
+        expect(appState.workflowDagRuns.requireSnapshot(result.workflowDagRun.id).run).toMatchObject({
+          id: "workflow-run-mission-release",
+          workflowTemplateId: "templates.release.workflow",
+          workflowTemplateVersion: "0.1.0",
+          pluginId: "team-orchestrator.test.templates",
+          pluginVersion: "0.1.0",
+          status: "pending",
+          stepOrder: ["plan", "review"]
+        });
         expect(result.tasks).toHaveLength(2);
         expect(result.tasks[0]).toMatchObject({
           id: "release-plan",
@@ -64,7 +74,9 @@ describe("workflow template instantiation service", () => {
           provenance: {
             source: "workflow-template",
             workflowTemplateId: "templates.release.workflow",
-            templateTaskId: "plan"
+            templateTaskId: "plan",
+            workflowDagRunId: "workflow-run-mission-release",
+            workflowDagStepId: "plan"
           },
           createdBy: "operator"
         });
@@ -123,6 +135,12 @@ describe("workflow template instantiation service", () => {
         });
 
         expect(result.mission.taskOrder).toEqual(["dag-plan", "dag-test", "dag-build", "dag-deploy"]);
+        expect(appState.workflowDagRuns.requireSnapshot(result.workflowDagRun.id).steps.map((step) => step.stepId)).toEqual([
+          "plan",
+          "test",
+          "build",
+          "deploy"
+        ]);
         expect(result.tasks.map((task) => task.id)).toEqual(["dag-plan", "dag-test", "dag-build", "dag-deploy"]);
         expect(result.tasks.map((task) => ({ id: task.id, dependsOn: task.dependsOn }))).toEqual([
           { id: "dag-plan", dependsOn: [] },

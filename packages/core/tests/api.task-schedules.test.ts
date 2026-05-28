@@ -279,7 +279,7 @@ describe("task schedule api", () => {
       expect(tickResponse.status).toBe(200);
       const ticked = (await tickResponse.json()) as {
         ok: boolean;
-        data: { run: Array<{ missionId?: string; taskIds?: string[] }> };
+        data: { run: Array<{ workflowDagRunId?: string; missionId?: string; taskIds?: string[] }> };
       };
       expect(ticked).toMatchObject({
         ok: true,
@@ -290,6 +290,7 @@ describe("task schedule api", () => {
               status: "ok",
               targetType: "workflow-template",
               targetId: "templates.release.workflow",
+              workflowDagRunId: expect.stringMatching(/^workflow-run-mission-/),
               missionId: expect.stringMatching(/^mission-/),
               taskIds: expect.any(Array)
             }
@@ -308,6 +309,7 @@ describe("task schedule api", () => {
             status: "ok",
             targetType: "workflow-template",
             targetId: "templates.release.workflow",
+            workflowDagRunId: ticked.data.run[0]?.workflowDagRunId,
             missionId: ticked.data.run[0]?.missionId,
             taskIds: ticked.data.run[0]?.taskIds
           }

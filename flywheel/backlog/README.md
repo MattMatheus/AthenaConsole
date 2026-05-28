@@ -18,7 +18,6 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-- `engineering/intake/STORY-20260528-workflow-template-dag-run-envelope.md`
 - `engineering/intake/STORY-20260528-split-app-state-domain-repositories.md`
 
 ## Rule

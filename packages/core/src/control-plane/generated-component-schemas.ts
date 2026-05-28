@@ -2721,6 +2721,9 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
       "runId": {
         "type": "string"
       },
+      "workflowDagRunId": {
+        "type": "string"
+      },
       "missionId": {
         "type": "string"
       },

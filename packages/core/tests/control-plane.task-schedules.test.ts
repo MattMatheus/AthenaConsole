@@ -309,6 +309,7 @@ describe("task schedule service", () => {
           status: "ok",
           targetType: "workflow-template",
           targetId: "templates.release.workflow",
+          workflowDagRunId: expect.stringMatching(/^workflow-run-mission-/),
           missionId: expect.stringMatching(/^mission-/),
           taskIds: expect.arrayContaining([expect.stringMatching(/^mission-.*-plan$/)])
         });
@@ -317,6 +318,11 @@ describe("task schedule service", () => {
         expect(appState.missions.require(run?.missionId ?? "")).toMatchObject({
           goal: "Prepare release v2.0.0.",
           status: "ready"
+        });
+        expect(appState.workflowDagRuns.requireSnapshot(run?.workflowDagRunId ?? "").run).toMatchObject({
+          id: run?.workflowDagRunId,
+          workflowTemplateId: "templates.release.workflow",
+          status: "pending"
         });
         expect(appState.tasks.require(run?.taskIds?.[0] ?? "")).toMatchObject({
           missionId: run?.missionId,
@@ -327,6 +333,7 @@ describe("task schedule service", () => {
           lastAttempt: {
             status: "ok",
             missionId: run?.missionId,
+            workflowDagRunId: run?.workflowDagRunId,
             taskIds: run?.taskIds
           }
         });
@@ -337,6 +344,7 @@ describe("task schedule service", () => {
             status: "ok",
             targetType: "workflow-template",
             targetId: "templates.release.workflow",
+            workflowDagRunId: run?.workflowDagRunId,
             missionId: run?.missionId,
             taskIds: run?.taskIds
           })

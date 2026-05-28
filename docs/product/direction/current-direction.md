@@ -47,6 +47,7 @@ The reset implementation has delivered:
 - Schedule creation, due execution, workflow-template schedules, and durable schedule run history.
 - Workflow-template DAG parsing/validation for dependency-safe future execution.
 - Durable workflow DAG run state, resumable stale-step recovery, and visualizer-friendly workflow status APIs.
+- Workflow-template instantiation and scheduled workflow-template execution now create and expose a canonical workflow DAG run envelope.
 - Run templates, verification evidence, runtime policy packs, and A2A observability reframing migrated into the current Team Orchestrator model.
 - Startup recovery for stale task and mission runs left `running` after API/service restart.
 - SQL-backed bounded task, run, and schedule list queries for current app-state console/API surfaces.
@@ -63,11 +64,12 @@ Completed foundation:
 - `docs/product/history/completed-stories/2026.17.01-implement-workflow-dag-definition-parser.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-workflow-state-store-resumption.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-workflow-status-api.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-workflow-template-dag-run-envelope.md`
 - `flywheel/backlog/architecture/done/ARCH-20260528-canonical-orchestration-state-model.md`
 
 Next implementation refinement:
 
-- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-template-dag-run-envelope.md`
+- No active DAG implementation story is queued; route the next DAG executor slice through PM refinement.
 
 Source epic:
 
@@ -88,6 +90,7 @@ Recently completed tracks now live in Flywheel done history:
 - `flywheel/backlog/engineering/done/STORY-20260528-a2a-observability-reframe.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-legacy-a2a-surface-labeling.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-app-state-list-query-bounds.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-workflow-template-dag-run-envelope.md`
 - `flywheel/backlog/architecture/done/ARCH-20260528-service-decomposition-plan.md`
 
 Deferred implementation candidates that need PM refinement:

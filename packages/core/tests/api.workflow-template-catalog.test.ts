@@ -163,6 +163,7 @@ describe("workflow template catalog api", () => {
       const envelope = (await response.json()) as {
         ok: boolean;
         data: {
+          workflowDagRun: { id: string };
           mission: { id: string; taskOrder: string[] };
           tasks: Array<{ id: string; title: string; dependsOn: string[]; provenance?: { workflowTemplateId?: string } }>;
           inputValues: Record<string, unknown>;
@@ -172,6 +173,9 @@ describe("workflow template catalog api", () => {
       expect(envelope).toMatchObject({
         ok: true,
         data: {
+          workflowDagRun: {
+            id: "workflow-run-mission-api-template"
+          },
           mission: {
             id: "mission-api-template",
             taskOrder: ["api-template-draft", "api-template-review"]
@@ -191,6 +195,21 @@ describe("workflow template catalog api", () => {
           inputValues: {
             topic: "schedules"
           }
+        }
+      });
+      const statusResponse = await fetch(`${base}/api/v1/workflow-runs/${envelope.data.workflowDagRun.id}/status`);
+      expect(statusResponse.status).toBe(200);
+      await expect(statusResponse.json()).resolves.toMatchObject({
+        ok: true,
+        data: {
+          run: {
+            id: "workflow-run-mission-api-template",
+            workflowTemplate: { id: "api.instantiate.workflow" }
+          },
+          nodes: [
+            { id: "draft", ready: true, dependencies: [] },
+            { id: "review", ready: false, dependencies: ["draft"] }
+          ]
         }
       });
     } finally {

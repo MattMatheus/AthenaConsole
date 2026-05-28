@@ -65,6 +65,9 @@ export interface WorkflowTemplateInstantiationResult {
     pluginVersion: string;
     name: string;
   };
+  workflowDagRun: {
+    id: string;
+  };
   mission: import("./mission-workbench.js").MissionWorkbenchMission;
   tasks: import("./task-workbench.js").TaskWorkbenchTask[];
   inputValues: Record<string, unknown>;

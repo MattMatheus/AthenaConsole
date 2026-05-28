@@ -16,6 +16,7 @@ import { openAppStateDatabase } from "../app-state/index.js";
 import type { WorkflowTemplateCatalogService } from "../interfaces.js";
 import { parseWorkflowTemplateDag } from "../workflow-template-dag.js";
 import { LocalTaskWorkbenchService } from "./task-workbench.js";
+import { LocalWorkflowStateService } from "./workflow-state.js";
 
 interface PluginManifestDocument {
   plugin?: {
@@ -106,6 +107,14 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
       const taskIdByTemplateId = new Map(taskTemplates.map((task) => [task.id, `${taskIdPrefix}-${task.id}`]));
       const taskOrder = dag.taskOrder.map((taskId) => requireMappedTaskId(taskIdByTemplateId, taskId));
       const allTasksReady = taskTemplates.every((task) => Boolean(task.assignedAgentId));
+      const workflowDagRun = new LocalWorkflowStateService(appState).createRun({
+        runId: `workflow-run-${missionId}`,
+        workflowTemplateId: template.id,
+        workflowTemplateVersion: template.version,
+        pluginId: template.pluginId,
+        pluginVersion: template.pluginVersion,
+        tasks: taskTemplates
+      });
 
       const mission = appState.missions.create({
         id: missionId,
@@ -116,8 +125,10 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
             id: template.id,
             version: template.version,
             pluginId: template.pluginId,
-            pluginVersion: template.pluginVersion
+            pluginVersion: template.pluginVersion,
+            workflowDagRunId: workflowDagRun.run.id
           },
+          workflowDagRunId: workflowDagRun.run.id,
           inputs: inputValues,
           value: renderTemplateValue(workflow.context ?? {}, inputValues, "workflow.context")
         },
@@ -158,7 +169,9 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
             workflowTemplateVersion: template.version,
             pluginId: template.pluginId,
             pluginVersion: template.pluginVersion,
-            templateTaskId: taskTemplate.id
+            templateTaskId: taskTemplate.id,
+            workflowDagRunId: workflowDagRun.run.id,
+            workflowDagStepId: taskTemplate.id
           },
           ...(request.createdBy ? { createdBy: request.createdBy } : {})
         });
@@ -172,6 +185,9 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
           pluginId: template.pluginId,
           pluginVersion: template.pluginVersion,
           name: template.name
+        },
+        workflowDagRun: {
+          id: workflowDagRun.run.id
         },
         mission: mapMissionRecord(mission),
         tasks,

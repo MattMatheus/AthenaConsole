@@ -1294,6 +1294,7 @@ export class LocalScheduleService implements ScheduleService {
       const failurePolicy = updateScheduleFailurePolicy(schedule.failurePolicy, {
         status: "ok",
         missionId: instantiation.mission.id,
+        workflowDagRunId: instantiation.workflowDagRun.id,
         taskIds,
         attemptedAt: startedAt,
         template: instantiation.template
@@ -1312,6 +1313,7 @@ export class LocalScheduleService implements ScheduleService {
         finishedAt,
         targetType: schedule.targetType,
         targetId: schedule.targetId,
+        workflowDagRunId: instantiation.workflowDagRun.id,
         missionId: instantiation.mission.id,
         taskIds,
         ...(updated.nextRunAt ? { nextRunAt: updated.nextRunAt } : {}),
@@ -1363,6 +1365,7 @@ export class LocalScheduleService implements ScheduleService {
       ...(result.targetType ? { targetType: result.targetType } : {}),
       ...(result.targetId ? { targetId: result.targetId } : {}),
       ...(result.runId ? { runId: result.runId } : {}),
+      ...(result.workflowDagRunId ? { workflowDagRunId: result.workflowDagRunId } : {}),
       ...(result.missionId ? { missionId: result.missionId } : {}),
       ...(result.taskIds ? { taskIds: result.taskIds } : {}),
       ...(result.nextRunAt ? { nextRunAt: result.nextRunAt } : {}),

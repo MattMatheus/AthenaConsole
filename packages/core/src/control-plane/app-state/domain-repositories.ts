@@ -109,6 +109,7 @@ interface ScheduleRunHistoryRow {
   target_type: AppStateScheduleTargetType | null;
   target_id: string | null;
   run_id: string | null;
+  workflow_dag_run_id: string | null;
   mission_id: string | null;
   task_ids_json: string;
   started_at: string;
@@ -713,6 +714,7 @@ export class ScheduleRunHistoryRepository {
         target_type,
         target_id,
         run_id,
+        workflow_dag_run_id,
         mission_id,
         task_ids_json,
         started_at,
@@ -732,6 +734,7 @@ export class ScheduleRunHistoryRepository {
         @targetType,
         @targetId,
         @runId,
+        @workflowDagRunId,
         @missionId,
         @taskIdsJson,
         @startedAt,
@@ -760,6 +763,7 @@ export class ScheduleRunHistoryRepository {
       targetType: input.targetType ?? null,
       targetId: input.targetId ?? null,
       runId: input.runId ?? null,
+      workflowDagRunId: input.workflowDagRunId ?? null,
       missionId: input.missionId ?? null,
       taskIdsJson: JSON.stringify(input.taskIds ?? []),
       startedAt: input.startedAt,
@@ -781,6 +785,7 @@ export class ScheduleRunHistoryRepository {
       ...(input.targetType ? { targetType: input.targetType } : {}),
       ...(input.targetId ? { targetId: input.targetId } : {}),
       ...(input.runId ? { runId: input.runId } : {}),
+      ...(input.workflowDagRunId ? { workflowDagRunId: input.workflowDagRunId } : {}),
       ...(input.missionId ? { missionId: input.missionId } : {}),
       ...(input.taskIds && input.taskIds.length > 0 ? { taskIds: input.taskIds } : {}),
       ...(input.nextRunAt ? { nextRunAt: input.nextRunAt } : {}),
@@ -1253,7 +1258,7 @@ function scheduleSelectSql(suffix: string): string {
 }
 
 function scheduleRunHistorySelectSql(suffix: string): string {
-  return `select id, schedule_id, session_id, status, target_type, target_id, run_id, mission_id, task_ids_json, started_at, finished_at, next_run_at, missed_run_at, reason, error, error_code, created_at from schedule_run_history ${suffix}`;
+  return `select id, schedule_id, session_id, status, target_type, target_id, run_id, workflow_dag_run_id, mission_id, task_ids_json, started_at, finished_at, next_run_at, missed_run_at, reason, error, error_code, created_at from schedule_run_history ${suffix}`;
 }
 
 function runSelectSql(suffix: string): string {
@@ -1325,6 +1330,7 @@ function mapScheduleRunHistoryRow(row: ScheduleRunHistoryRow): ScheduleRunLog {
     ...(row.target_type ? { targetType: row.target_type } : {}),
     ...(row.target_id ? { targetId: row.target_id } : {}),
     ...(row.run_id ? { runId: row.run_id } : {}),
+    ...(row.workflow_dag_run_id ? { workflowDagRunId: row.workflow_dag_run_id } : {}),
     ...(row.mission_id ? { missionId: row.mission_id } : {}),
     ...(Array.isArray(taskIds) && taskIds.length > 0
       ? { taskIds: taskIds.filter((item): item is string => typeof item === "string") }

@@ -354,6 +354,14 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
         },
         required: ["id", "version", "pluginId", "pluginVersion", "name"]
       },
+      workflowDagRun: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          id: { type: "string", minLength: 1 }
+        },
+        required: ["id"]
+      },
       mission: { $ref: "#/components/schemas/MissionWorkbenchMission" },
       tasks: {
         type: "array",
@@ -364,7 +372,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
         additionalProperties: true
       }
     },
-    required: ["template", "mission", "tasks", "inputValues"]
+    required: ["template", "workflowDagRun", "mission", "tasks", "inputValues"]
   },
   TaskWorkbenchTask: {
     type: "object",
@@ -682,6 +690,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       targetType: { type: "string", enum: ["task", "mission", "workflow-template"] },
       targetId: { type: "string", minLength: 1 },
       runId: { type: "string", minLength: 1 },
+      workflowDagRunId: { type: "string", minLength: 1 },
       missionId: { type: "string", minLength: 1 },
       taskIds: { type: "array", items: { type: "string", minLength: 1 } },
       nextRunAt: { type: "string", format: "date-time" },
@@ -1101,6 +1110,19 @@ const API_COMPONENT_SCHEMA_STRICTNESS_HINTS: Record<string, ApiSchema> = {
       startedAt: { type: "string", format: "date-time" },
       finishedAt: { type: "string", format: "date-time" },
       status: { type: "string", enum: ["ok", "failed", "already-running"] },
+      targetType: { type: "string", enum: ["task", "mission", "workflow-template"] },
+      targetId: { type: "string", minLength: 1 },
+      runId: { type: "string", minLength: 1 },
+      workflowDagRunId: { type: "string", minLength: 1 },
+      missionId: { type: "string", minLength: 1 },
+      taskIds: {
+        type: "array",
+        items: { type: "string", minLength: 1 }
+      },
+      nextRunAt: { type: "string", format: "date-time" },
+      missedRunAt: { type: "string", format: "date-time" },
+      reason: { type: "string" },
+      error: { type: "string" },
       errorCode: {
         type: "string",
         enum: [
