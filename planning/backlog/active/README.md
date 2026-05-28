@@ -43,12 +43,13 @@ Completed stories were moved to:
 - `planning/backlog/completed/2026.16.04-add-mission-run-history.md`
 - `planning/backlog/completed/2026.16.05-schedule-workflow-templates.md`
 - `planning/backlog/completed/2026.16.06-add-durable-schedule-run-history.md`
+- `planning/backlog/completed/2026.17.01-implement-workflow-dag-definition-parser.md`
 
 ## Active Queue
 
-1. `planning/backlog/active/2026.17.01-implement-workflow-dag-definition-parser.md`
+1. `planning/backlog/active/2026.17.02-implement-workflow-state-store-and-resumption-logic.md`
 
-The next slice starts the workflow DAG engine by parsing and validating workflow-template task dependencies while preserving existing sequential workflow behavior.
+The next slice adds durable workflow run state and resumption logic on top of the parsed workflow-template DAG foundation.
 
 ## Archived Previous Queue
 

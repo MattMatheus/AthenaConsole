@@ -69,6 +69,30 @@ describe("Team Orchestrator manifest schemas", () => {
     expect(result.issues.some((issue) => issue.message.includes("capabilities"))).toBe(true);
   });
 
+  it("rejects workflow manifests with invalid task dependency DAGs", () => {
+    const result = validateManifestDocument("workflow", {
+      schemaVersion: 1,
+      workflow: {
+        id: "invalid.workflow",
+        name: "Invalid Workflow",
+        version: "0.1.0",
+        goal: "Reject invalid dependencies.",
+        tasks: [
+          { id: "plan", title: "Plan", dependsOn: ["review"] },
+          { id: "review", title: "Review", dependsOn: ["plan"] }
+        ]
+      }
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        path: "$.workflow.tasks",
+        message: "Workflow task dependencies must not contain cycles: plan -> review -> plan."
+      })
+    ]);
+  });
+
   it("rejects plugin agent references that escape the plugin root", () => {
     const dir = join(tmpdir(), `athena-manifest-escape-${Date.now()}`);
     try {

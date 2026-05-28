@@ -106,6 +106,37 @@ describe("workflow template instantiation service", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("instantiates workflow templates in topological order when dependencies are explicit", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-workflow-template-instantiate-dag-"));
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        seedPluginAndAgent(appState);
+        seedDagWorkflowTemplate(appState);
+        const service = new LocalWorkflowTemplateCatalogService(config, { appState });
+
+        const result = await service.instantiate("templates.dag.workflow", {
+          missionId: "mission-dag",
+          taskIdPrefix: "dag"
+        });
+
+        expect(result.mission.taskOrder).toEqual(["dag-plan", "dag-test", "dag-build", "dag-deploy"]);
+        expect(result.tasks.map((task) => task.id)).toEqual(["dag-plan", "dag-test", "dag-build", "dag-deploy"]);
+        expect(result.tasks.map((task) => ({ id: task.id, dependsOn: task.dependsOn }))).toEqual([
+          { id: "dag-plan", dependsOn: [] },
+          { id: "dag-test", dependsOn: ["dag-plan"] },
+          { id: "dag-build", dependsOn: ["dag-plan", "dag-test"] },
+          { id: "dag-deploy", dependsOn: ["dag-build"] }
+        ]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 function seedPluginAndAgent(appState: ReturnType<typeof openAppStateDatabase>): void {
@@ -180,6 +211,58 @@ function seedWorkflowTemplate(appState: ReturnType<typeof openAppStateDatabase>)
             assignedAgentId: "template.agent",
             assignedAgentVersion: "1.0.0",
             dependsOn: ["plan"]
+          }
+        ]
+      }
+    },
+    status: "loaded",
+    validationErrors: []
+  });
+}
+
+function seedDagWorkflowTemplate(appState: ReturnType<typeof openAppStateDatabase>): void {
+  appState.workflowTemplates.upsert({
+    id: "templates.dag.workflow",
+    version: "0.1.0",
+    pluginId: "team-orchestrator.test.templates",
+    pluginVersion: "0.1.0",
+    name: "DAG Workflow",
+    description: "Exercise dependency ordering.",
+    taskCount: 4,
+    manifest: {
+      schemaVersion: 1,
+      workflow: {
+        id: "templates.dag.workflow",
+        name: "DAG Workflow",
+        version: "0.1.0",
+        goal: "Run a DAG.",
+        tasks: [
+          {
+            id: "deploy",
+            title: "Deploy",
+            dependsOn: ["build"],
+            assignedAgentId: "template.agent",
+            assignedAgentVersion: "1.0.0"
+          },
+          {
+            id: "plan",
+            title: "Plan",
+            assignedAgentId: "template.agent",
+            assignedAgentVersion: "1.0.0"
+          },
+          {
+            id: "test",
+            title: "Test",
+            dependsOn: ["plan"],
+            assignedAgentId: "template.agent",
+            assignedAgentVersion: "1.0.0"
+          },
+          {
+            id: "build",
+            title: "Build",
+            dependsOn: ["plan", "test"],
+            assignedAgentId: "template.agent",
+            assignedAgentVersion: "1.0.0"
           }
         ]
       }

@@ -14,6 +14,7 @@ import type {
 import type { AppStateDatabase, PluginIndexRecord, WorkflowTemplateIndexRecord } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
 import type { WorkflowTemplateCatalogService } from "../interfaces.js";
+import { parseWorkflowTemplateDag } from "../workflow-template-dag.js";
 import { LocalTaskWorkbenchService } from "./task-workbench.js";
 
 interface PluginManifestDocument {
@@ -99,8 +100,11 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
       const missionId = request.missionId ?? `mission-${randomUUID()}`;
       const taskIdPrefix = request.taskIdPrefix ?? missionId;
       const taskTemplates = normalizeTaskTemplates(workflow.tasks);
+      const dag = parseWorkflowTemplateDag(taskTemplates, { path: "workflow.tasks" });
+      const taskTemplateById = new Map(taskTemplates.map((task) => [task.id, task]));
+      const orderedTaskTemplates = dag.taskOrder.map((taskId) => requireTaskTemplate(taskTemplateById, taskId));
       const taskIdByTemplateId = new Map(taskTemplates.map((task) => [task.id, `${taskIdPrefix}-${task.id}`]));
-      const taskOrder = taskTemplates.map((task) => requireMappedTaskId(taskIdByTemplateId, task.id));
+      const taskOrder = dag.taskOrder.map((taskId) => requireMappedTaskId(taskIdByTemplateId, taskId));
       const allTasksReady = taskTemplates.every((task) => Boolean(task.assignedAgentId));
 
       const mission = appState.missions.create({
@@ -123,7 +127,7 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
 
       const taskWorkbench = new LocalTaskWorkbenchService(this.config, { appState });
       const tasks: TaskWorkbenchTask[] = [];
-      for (const taskTemplate of taskTemplates) {
+      for (const taskTemplate of orderedTaskTemplates) {
         const task = await taskWorkbench.create({
           id: requireMappedTaskId(taskIdByTemplateId, taskTemplate.id),
           title: renderTemplateText(taskTemplate.title, inputValues, `workflow.tasks.${taskTemplate.id}.title`),
@@ -144,7 +148,7 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
           ...(taskTemplate.assignedAgentId ? { assignedAgentId: taskTemplate.assignedAgentId } : {}),
           ...(taskTemplate.assignedAgentVersion ? { assignedAgentVersion: taskTemplate.assignedAgentVersion } : {}),
           inputs: renderTemplateValue(taskTemplate.inputs ?? {}, inputValues, `workflow.tasks.${taskTemplate.id}.inputs`),
-          dependsOn: normalizeStringArray(taskTemplate.dependsOn, `workflow.tasks.${taskTemplate.id}.dependsOn`).map((dependencyId) =>
+          dependsOn: (dag.dependenciesByTaskId[taskTemplate.id] ?? []).map((dependencyId) =>
             requireMappedTaskId(taskIdByTemplateId, dependencyId)
           ),
           missionId: mission.id,
@@ -256,10 +260,6 @@ function normalizeTaskTemplates(tasks: WorkflowTaskTemplate[] | undefined): Norm
       ...(task.dependsOn !== undefined ? { dependsOn: task.dependsOn } : {})
     };
   });
-  const duplicates = findDuplicates(normalized.map((task) => task.id));
-  if (duplicates.length > 0) {
-    throw new AthenaError("CONFIG_ERROR", `Workflow task ids must be unique: ${duplicates.join(", ")}`);
-  }
   return normalized;
 }
 
@@ -337,16 +337,15 @@ function requireMappedTaskId(taskIdByTemplateId: Map<string, string>, templateTa
   return taskId;
 }
 
-function findDuplicates(values: string[]): string[] {
-  const seen = new Set<string>();
-  const duplicates = new Set<string>();
-  for (const value of values) {
-    if (seen.has(value)) {
-      duplicates.add(value);
-    }
-    seen.add(value);
+function requireTaskTemplate(
+  taskTemplateById: Map<string, NormalizedTaskTemplate>,
+  templateTaskId: string
+): NormalizedTaskTemplate {
+  const taskTemplate = taskTemplateById.get(templateTaskId);
+  if (!taskTemplate) {
+    throw new AthenaError("CONFIG_ERROR", `Workflow task not found: ${templateTaskId}`);
   }
-  return [...duplicates].sort();
+  return taskTemplate;
 }
 
 function mapMissionRecord(record: {

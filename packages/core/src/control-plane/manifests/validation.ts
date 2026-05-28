@@ -3,6 +3,7 @@ import { dirname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import Ajv, { type ErrorObject, type ValidateFunction } from "ajv";
 import { load as loadYaml } from "js-yaml";
+import { validateWorkflowTemplateDag } from "../workflow-template-dag.js";
 
 export type TeamOrchestratorManifestKind = "plugin" | "agent" | "workflow";
 
@@ -50,6 +51,10 @@ interface WorkflowTemplateManifestDocument {
   workflow?: {
     id?: string;
     version?: string;
+    tasks?: Array<{
+      id?: unknown;
+      dependsOn?: unknown;
+    }>;
   };
 }
 
@@ -72,6 +77,13 @@ export function validateManifestDocument(
 ): ManifestValidationResult {
   const validate = getValidator(kind, options.schemaRoot);
   const ok = validate(document) as boolean;
+  if (ok && kind === "workflow") {
+    const issues = validateWorkflowTemplateManifestDag(document);
+    return {
+      ok: issues.length === 0,
+      issues
+    };
+  }
   return {
     ok,
     issues: ok ? [] : mapAjvErrors(validate.errors ?? [])
@@ -239,6 +251,11 @@ function mapAjvErrors(errors: ErrorObject[]): ManifestValidationIssue[] {
   }));
 }
 
+function validateWorkflowTemplateManifestDag(document: unknown): ManifestValidationIssue[] {
+  const workflowDocument = isRecord(document) ? (document as WorkflowTemplateManifestDocument) : {};
+  return validateWorkflowTemplateDag(workflowDocument.workflow?.tasks, { path: "$.workflow.tasks" });
+}
+
 function withFile(result: ManifestValidationResult, filePath: string): ManifestValidationResult {
   return {
     ok: result.ok,
@@ -247,6 +264,10 @@ function withFile(result: ManifestValidationResult, filePath: string): ManifestV
       file: issue.file ?? filePath
     }))
   };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function normalizeResourceReference(reference: string | PluginResourceReference): PluginResourceReference | undefined {

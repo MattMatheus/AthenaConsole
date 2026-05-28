@@ -272,6 +272,77 @@ describe("local plugin loader and indexer", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("captures workflow DAG validation errors during plugin indexing", () => {
+    const dir = mkdtemp("athena-plugin-invalid-workflow-dag-");
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_PLUGIN_PATHS=plugins\n", "utf8");
+      const pluginRoot = join(dir, "plugins", "broken-workflow-dag");
+      mkdirSync(join(pluginRoot, "agents"), { recursive: true });
+      mkdirSync(join(pluginRoot, "workflows"), { recursive: true });
+      writeFileSync(
+        join(pluginRoot, "plugin.yaml"),
+        [
+          "schemaVersion: 1",
+          "plugin:",
+          "  id: team-orchestrator.test.broken-workflow-dag",
+          "  name: Broken Workflow DAG Plugin",
+          "  version: 0.1.0",
+          "  agents:",
+          "    - path: agents/test.agent.yaml",
+          "      id: broken.workflow.dag.agent",
+          "      version: 0.1.0",
+          "  workflowTemplates:",
+          "    - path: workflows/broken.workflow.yaml",
+          "      id: broken.workflow.dag.template",
+          "      version: 0.1.0",
+          ""
+        ].join("\n"),
+        "utf8"
+      );
+      writeAgentManifest(join(pluginRoot, "agents", "test.agent.yaml"), {
+        id: "broken.workflow.dag.agent",
+        name: "Broken Workflow DAG Agent"
+      });
+      writeFileSync(
+        join(pluginRoot, "workflows", "broken.workflow.yaml"),
+        [
+          "schemaVersion: 1",
+          "workflow:",
+          "  id: broken.workflow.dag.template",
+          "  name: Broken Workflow DAG",
+          "  version: 0.1.0",
+          "  goal: Demonstrate invalid dependencies.",
+          "  tasks:",
+          "    - id: review",
+          "      title: Review",
+          "      dependsOn:",
+          "        - plan",
+          ""
+        ].join("\n"),
+        "utf8"
+      );
+
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        const result = indexConfiguredLocalPlugins(config, { appState });
+
+        expect(result.plugins[0]?.status).toBe("invalid");
+        expect(result.plugins[0]?.validationErrors).toEqual([
+          expect.objectContaining({
+            file: expect.stringContaining("broken.workflow.yaml"),
+            message: "Workflow task 'review' depends on missing task 'plan'."
+          })
+        ]);
+        expect(appState.workflowTemplates.list()).toEqual([]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 function mkdtemp(prefix: string): string {
