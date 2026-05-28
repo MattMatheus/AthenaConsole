@@ -4,8 +4,7 @@ Refined engineering work can wait here before activation if the host repo uses a
 
 ## Ready Sequence
 
-1. `STORY-20260528-console-empty-states-onboarding.md`
-2. `STORY-20260528-quickstart-demo-docs-alignment.md`
+1. `STORY-20260528-quickstart-demo-docs-alignment.md`
 
 ## Promotion Rule
 

@@ -187,7 +187,12 @@ export function MissionsPage() {
       {!missionsQuery.isLoading && !missionsQuery.error && missions.length === 0 ? (
         <div className={styles.state}>
           <p className={styles.stateTitle}>No Missions Found</p>
-          <p className={styles.description}>Instantiate a workflow template or create missions through the API to populate this workbench.</p>
+          <p className={styles.description}>Instantiate a workflow template to create the first mission for this workbench.</p>
+          <div className={styles.actionBar}>
+            <Link className={styles.inlineLink} to="/workflows">
+              Open workflow templates
+            </Link>
+          </div>
         </div>
       ) : null}
 

@@ -87,14 +87,17 @@ export function WorkflowRunDetailPage() {
       {!runId ? (
         <div className={styles.state}>
           <p className={styles.stateTitle}>Workflow Run Not Selected</p>
-          <p className={styles.description}>Open a workflow DAG run by id to inspect graph status.</p>
+          <p className={styles.description}>Open workflow templates, instantiate a workflow, then return here from the created run link.</p>
+          <Link className={styles.backLink} to="/workflows">
+            <ArrowLeft size={16} /> Workflow templates
+          </Link>
         </div>
       ) : null}
 
       {statusQuery.isLoading ? (
         <div className={styles.state}>
           <p className={styles.stateTitle}>Loading Workflow Run</p>
-          <p className={styles.description}>Reading DAG steps, dependency readiness, recovery state, and recent events.</p>
+          <p className={styles.description}>Reading workflow steps, dependency readiness, recovery state, and recent events.</p>
         </div>
       ) : null}
 
@@ -109,7 +112,7 @@ export function WorkflowRunDetailPage() {
         <>
           <div className={styles.titleRow}>
             <div>
-              <p className={styles.panelMeta}>Workflow DAG Run</p>
+              <p className={styles.panelMeta}>Workflow Run</p>
               <h2 className={styles.title}>{detail.run.id}</h2>
               <p className={styles.description}>
                 {detail.run.workflowTemplate.id}

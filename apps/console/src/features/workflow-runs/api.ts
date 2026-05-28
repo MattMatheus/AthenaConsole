@@ -1,5 +1,6 @@
 import { apiClient } from "../../services";
 import type {
+  WorkflowRunExecuteResult,
   WorkflowRunGraphEventLevel,
   WorkflowRunGraphRunStatus,
   WorkflowRunGraphStatus,
@@ -159,4 +160,21 @@ export function parseWorkflowRunStatus(payload: unknown): WorkflowRunGraphStatus
 
 export async function fetchWorkflowRunStatus(runId: string): Promise<WorkflowRunGraphStatus> {
   return parseWorkflowRunStatus(await apiClient.get<unknown>(`/v1/workflow-runs/${encodeURIComponent(runId)}/status`));
+}
+
+export function parseWorkflowRunExecuteResult(payload: unknown): WorkflowRunExecuteResult {
+  if (!isRecord(payload) || typeof payload.runId !== "string") {
+    throw new Error("Workflow run execution payload is invalid.");
+  }
+  const status = payload.status === "cancelled" ? "cancelled" : runStatus(payload.status);
+  return {
+    runId: payload.runId,
+    status,
+    executedStepIds: stringArray(payload.executedStepIds),
+    snapshot: isRecord(payload.snapshot) ? payload.snapshot : {},
+  };
+}
+
+export async function executeWorkflowRun(runId: string): Promise<WorkflowRunExecuteResult> {
+  return parseWorkflowRunExecuteResult(await apiClient.post<unknown>(`/v1/workflow-runs/${encodeURIComponent(runId)}/execute`));
 }

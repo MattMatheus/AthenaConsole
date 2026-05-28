@@ -2,6 +2,7 @@ import { CheckCircle2, Play, RefreshCw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { TaskInputField, TaskInputValues } from "../features/task-workbench";
+import { useExecuteWorkflowRunMutation } from "../features/workflow-runs";
 import {
   buildWorkflowTemplateInstantiateRequest,
   hasWorkflowTemplateInputErrors,
@@ -78,6 +79,7 @@ export function WorkflowsPage() {
   const [hasAttemptedInstantiate, setHasAttemptedInstantiate] = useState(false);
   const templatesQuery = useWorkflowTemplatesQuery({ includeUnavailable: true });
   const instantiateMutation = useInstantiateWorkflowTemplateMutation();
+  const executeWorkflowRunMutation = useExecuteWorkflowRunMutation();
   const templates = templatesQuery.data?.templates ?? EMPTY_TEMPLATES;
   const visibleTemplates = useMemo(
     () =>
@@ -220,7 +222,12 @@ export function WorkflowsPage() {
       {!templatesQuery.isLoading && !templatesQuery.error && templates.length === 0 ? (
         <div className={styles.state}>
           <p className={styles.stateTitle}>No Workflow Templates Indexed</p>
-          <p className={styles.description}>Install or configure plugins with workflow templates, then refresh the catalog.</p>
+          <p className={styles.description}>Open the agent catalog to confirm plugins are loaded, then refresh this page.</p>
+          <div className={styles.actionBarStart}>
+            <Link className={styles.inlineLink} to="/agents">
+              Check agents
+            </Link>
+          </div>
         </div>
       ) : null}
 
@@ -376,12 +383,30 @@ export function WorkflowsPage() {
                     Open mission
                   </Link>
                   {instantiateMutation.data.workflowDagRun ? (
-                    <Link
-                      className={styles.inlineLink}
-                      to={`/workflows/runs/${encodeURIComponent(instantiateMutation.data.workflowDagRun.id)}`}
-                    >
-                      Open workflow run
-                    </Link>
+                    <div className={styles.actionBarStart}>
+                      <button
+                        type="button"
+                        className={styles.primaryButton}
+                        onClick={() => executeWorkflowRunMutation.mutate(instantiateMutation.data.workflowDagRun!.id)}
+                        disabled={executeWorkflowRunMutation.isPending}
+                      >
+                        <Play size={16} /> Run workflow
+                      </button>
+                      <Link
+                        className={styles.inlineLink}
+                        to={`/workflows/runs/${encodeURIComponent(instantiateMutation.data.workflowDagRun.id)}`}
+                      >
+                        Open workflow run
+                      </Link>
+                    </div>
+                  ) : null}
+                  {executeWorkflowRunMutation.error instanceof Error ? (
+                    <p className={styles.errorText}>{executeWorkflowRunMutation.error.message}</p>
+                  ) : null}
+                  {executeWorkflowRunMutation.data ? (
+                    <p className={styles.description}>
+                      Executed {executeWorkflowRunMutation.data.executedStepIds.length} steps. Status: {executeWorkflowRunMutation.data.status}.
+                    </p>
                   ) : null}
                   <dl className={styles.kvList}>
                     <div>
@@ -413,7 +438,10 @@ export function WorkflowsPage() {
                   </div>
                 </section>
               ) : (
-                <p className={styles.description}>No workflow template instantiated in this session.</p>
+                <div className={styles.stateInline}>
+                  <p className={styles.stateTitle}>No Workflow Created Yet</p>
+                  <p className={styles.description}>Select an available template and instantiate it to create a mission and workflow run.</p>
+                </div>
               )}
             </div>
           </aside>

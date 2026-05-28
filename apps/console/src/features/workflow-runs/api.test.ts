@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseWorkflowRunStatus } from "./api";
+import { parseWorkflowRunExecuteResult, parseWorkflowRunStatus } from "./api";
 
 describe("workflow run status api parser", () => {
   it("parses graph-friendly workflow-template DAG run responses", () => {
@@ -87,5 +87,21 @@ describe("workflow run status api parser", () => {
     expect(status.nodes[1]?.dependencies).toEqual(["build"]);
     expect(status.edges).toEqual([{ from: "build", to: "verify" }]);
     expect(status.polling.recommendedIntervalMs).toBe(2500);
+  });
+
+  it("parses workflow run execution results", () => {
+    const result = parseWorkflowRunExecuteResult({
+      runId: "workflow-run-demo",
+      status: "completed",
+      executedStepIds: ["prepare", "verify"],
+      snapshot: { status: "completed" },
+    });
+
+    expect(result).toEqual({
+      runId: "workflow-run-demo",
+      status: "completed",
+      executedStepIds: ["prepare", "verify"],
+      snapshot: { status: "completed" },
+    });
   });
 });

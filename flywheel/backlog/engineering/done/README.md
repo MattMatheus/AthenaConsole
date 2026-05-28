@@ -35,3 +35,4 @@ Engineering work accepted by QA.
 29. `STORY-20260528-remove-legacy-workflow-file-state.md`
 30. `STORY-20260528-first-run-health-readiness.md`
 31. `STORY-20260528-sample-plugin-workflow-demo.md`
+32. `STORY-20260528-console-empty-states-onboarding.md`

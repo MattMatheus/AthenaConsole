@@ -16,7 +16,6 @@ No engineering or architecture work awaiting QA.
 
 Refined work ready to activate:
 
-- `engineering/ready/STORY-20260528-console-empty-states-onboarding.md`
 - `engineering/ready/STORY-20260528-quickstart-demo-docs-alignment.md`
 
 ## Later

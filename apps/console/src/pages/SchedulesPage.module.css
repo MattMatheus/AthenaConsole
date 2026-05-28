@@ -49,13 +49,11 @@
 .inputPanel,
 .historyPanel,
 .resultPanel,
-.state {
+.state,
+.stateInline {
   display: grid;
   gap: var(--space-4);
   min-width: 0;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface-elevated);
   padding: var(--space-4);
 }
 

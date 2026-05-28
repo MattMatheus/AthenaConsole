@@ -113,6 +113,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  min-width: 0;
 }
 
 .searchBox {
@@ -186,10 +187,15 @@
   }
 
   .searchBox {
-    min-width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .headerRight {
     width: 100%;
+  }
+
+  .iconButton {
+    flex: 0 0 auto;
   }
 }

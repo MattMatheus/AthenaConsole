@@ -264,7 +264,12 @@ export function AgentCatalogPage() {
       {!isLoading && !error && plugins.length === 0 && allAgents.length === 0 ? (
         <div className={styles.state}>
           <p className={styles.stateTitle}>No Agents Indexed</p>
-          <p className={styles.description}>Install or configure local plugins, then refresh the catalog.</p>
+          <p className={styles.description}>Refresh the catalog after local plugins load, then open workflow templates to start the demo.</p>
+          <div className={styles.actionBarStart}>
+            <Link className={styles.detailLink} to="/workflows">
+              Workflow templates
+            </Link>
+          </div>
         </div>
       ) : null}
 

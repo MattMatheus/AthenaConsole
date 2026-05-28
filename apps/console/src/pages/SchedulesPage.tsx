@@ -374,7 +374,18 @@ export function SchedulesPage() {
           {schedulesQuery.isLoading ? (
             <p className={styles.description}>Loading schedules.</p>
           ) : sortedSchedules.length === 0 ? (
-            <p className={styles.description}>No schedules configured.</p>
+            <div className={styles.stateInline}>
+              <p className={styles.stateTitle}>No Schedules Configured</p>
+              <p className={styles.description}>Create a schedule from a ready task or an available workflow template.</p>
+              <div className={styles.headerActions}>
+                <Link className={styles.inlineLink} to="/tasks">
+                  Ready tasks
+                </Link>
+                <Link className={styles.inlineLink} to="/workflows">
+                  Workflow templates
+                </Link>
+              </div>
+            </div>
           ) : (
             <div className={styles.scheduleTable}>
               <div className={styles.tableHeader}>

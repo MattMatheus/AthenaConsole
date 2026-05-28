@@ -118,7 +118,7 @@ Engineering sequence:
 
 - `flywheel/backlog/engineering/done/STORY-20260528-first-run-health-readiness.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-sample-plugin-workflow-demo.md`
-- `flywheel/backlog/engineering/ready/STORY-20260528-console-empty-states-onboarding.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-console-empty-states-onboarding.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-quickstart-demo-docs-alignment.md`
 
 Source epic:
@@ -156,10 +156,12 @@ Recently completed tracks now live in Flywheel done history:
 - `flywheel/backlog/engineering/done/STORY-20260528-legacy-workflow-dag-alignment.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-split-app-state-domain-repositories.md`
 - `flywheel/backlog/architecture/done/ARCH-20260528-service-decomposition-plan.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-first-run-health-readiness.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-sample-plugin-workflow-demo.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-console-empty-states-onboarding.md`
 
 Ready implementation sequence:
 
-- `flywheel/backlog/engineering/ready/STORY-20260528-console-empty-states-onboarding.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-quickstart-demo-docs-alignment.md`
 
 ## Promotion Rule

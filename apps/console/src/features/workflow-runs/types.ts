@@ -86,3 +86,10 @@ export type WorkflowRunGraphStatus = {
     etag: string;
   };
 };
+
+export type WorkflowRunExecuteResult = {
+  runId: string;
+  status: WorkflowRunGraphRunStatus | "cancelled";
+  executedStepIds: string[];
+  snapshot: Record<string, unknown>;
+};

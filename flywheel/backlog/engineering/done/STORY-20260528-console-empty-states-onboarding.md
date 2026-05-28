@@ -1,7 +1,7 @@
 ---
 kind: story
 id: STORY-20260528-console-empty-states-onboarding
-status: ready
+status: done
 owner_role: Software Engineer
 source: epic
 success_metric: Empty console surfaces guide a first-run operator to supported next actions.
@@ -14,7 +14,7 @@ ready: true
 ## Metadata
 - `id`: STORY-20260528-console-empty-states-onboarding
 - `owner_role`: Software Engineer
-- `status`: ready
+- `status`: done
 - `source`: epic
 - `decision_refs`: [ADR-0006, ADR-0012, ADR-0015]
 - `epic`: docs/product/epics/refinement/2026.23.00-epic-operator-readiness-first-run.md
@@ -56,16 +56,19 @@ The console has operational surfaces, but first-run empty states do not consiste
 Engineering should update only routes backed by implemented readiness/sample/catalog behavior and leave placeholders out of the UI.
 
 ## Engineering Handoff
-- `change_summary`:
-- `validation_evidence`:
-- `qa_focus`:
-- `open_risks`:
+- `change_summary`: Added console readiness query support, first-run dashboard guidance, workflow-run execute action after template instantiation, clearer blank-state guidance for agents, workflows, missions, schedules, and workflow-run detail, plus a mobile shell overflow fix for the global search row.
+- `validation_evidence`: `npm --workspace apps/console run typecheck`; `npm --workspace apps/console test`; `npm --workspace apps/console run build`; `npm --workspace apps/console run lint`; Playwright smoke QA against `/`, `/agents`, `/workflows`, `/missions`, `/schedules`, and `/workflows/runs/demo-missing` at 1440x1000 and 390x900 with no blank pages or horizontal overflow.
+- `qa_focus`: Confirm empty states avoid internal planning jargon, only link to implemented routes, and guide first-run operators toward readiness, agent/plugin inspection, workflow creation, and workflow execution.
+- `open_risks`: Browser smoke ran against the Vite dev server without a live API, so route rendering and empty-state layout were verified while live API data paths remain covered by console unit/model tests.
 
 ## QA Verdict
-- `verdict`:
-- `evidence_quality`:
-- `defects`:
-- `state_transition`:
+- `verdict`: Pass.
+- `evidence_quality`: Strong. Console typecheck, tests, build, lint, public-copy scan, and Playwright smoke across desktop/mobile routes all passed after the app shell mobile overflow fix.
+- `defects`: Initial mobile smoke found horizontal overflow in the global header search row; fixed in `AppLayout.module.css` and verified at 390px.
+- `state_transition`: Move to done.
 
 ## Transition History
 - `2026-05-28T22:38:02Z`: `intake` -> `ready`; PM refinement complete for first-run console onboarding
+- `2026-05-28T23:17:36Z`: `ready` -> `active`; Engineering starts console empty states onboarding
+- `2026-05-28T23:25:55Z`: `active` -> `qa`; Engineering handoff ready for console empty states onboarding
+- `2026-05-28T23:26:27Z`: `qa` -> `done`; QA passed for console empty states onboarding
