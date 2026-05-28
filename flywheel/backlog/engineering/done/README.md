@@ -10,3 +10,4 @@ Engineering work accepted by QA.
 4. `STORY-20260528-run-template-console.md`
 5. `STORY-20260528-verification-evidence-model.md`
 6. `STORY-20260528-run-verification-inspection.md`
+7. `STORY-20260528-runtime-isolation-policy-packs.md`

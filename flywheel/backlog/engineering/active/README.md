@@ -12,4 +12,4 @@ No active engineering stories.
 
 ## Next Up
 
-No ready engineering stories are queued after the active item.
+See `flywheel/backlog/engineering/ready/README.md` for the next ready story.

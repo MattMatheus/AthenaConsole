@@ -67,7 +67,7 @@ These need PM refinement before activation:
 
 - Run templates for repeatable operator-triggered jobs. Refined track: `docs/product/epics/refinement/2026.18.00-epic-run-templates.md`.
 - Verification/evidence model for output quality gates. Refined track: `docs/product/epics/refinement/2026.19.00-epic-verification-evidence-model.md`.
-- Richer runtime isolation and policy packs.
+- Richer runtime isolation and policy packs. Refined track: `docs/product/epics/refinement/2026.20.00-epic-runtime-policy-packs.md`.
 - A2A observability, if it is reframed against Team Orchestrator’s current event/run model.
 
 ## Promotion Rule
