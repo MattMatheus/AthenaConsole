@@ -1,0 +1,53 @@
+version: 1
+
+workflow:
+  required_branch: main
+  cycle_commit_format: "cycle-{cycle_id}"
+
+paths:
+  prompts: "flywheel/prompts"
+  roles: "flywheel/roles"
+  process: "flywheel/process"
+  templates: "flywheel/templates"
+  artifacts:
+    planning: "flywheel/artifacts/planning"
+    observer: "flywheel/artifacts/observer"
+    release: "flywheel/artifacts/release"
+  engineering:
+    intake: "flywheel/backlog/engineering/intake"
+    ready: "flywheel/backlog/engineering/ready"
+    active: "flywheel/backlog/engineering/active"
+    qa: "flywheel/backlog/engineering/qa"
+    done: "flywheel/backlog/engineering/done"
+    blocked: "flywheel/backlog/engineering/blocked"
+    archive: "flywheel/backlog/engineering/archive"
+  architecture:
+    intake: "flywheel/backlog/architecture/intake"
+    ready: "flywheel/backlog/architecture/ready"
+    active: "flywheel/backlog/architecture/active"
+    qa: "flywheel/backlog/architecture/qa"
+    done: "flywheel/backlog/architecture/done"
+    blocked: "flywheel/backlog/architecture/blocked"
+    archive: "flywheel/backlog/architecture/archive"
+
+templates:
+  story: "STORY_TEMPLATE.md"
+  bug: "BUG_TEMPLATE.md"
+  architecture_story: "ARCH_STORY_TEMPLATE.md"
+  observer_report: "OBSERVER_REPORT_TEMPLATE.md"
+
+artifacts:
+  planning_note_pattern: "PLAN-{date}-{slug}.md"
+  observer_report_pattern: "OBSERVER-REPORT-{cycle_id}.md"
+  release_bundle_pattern: "RELEASE-BUNDLE-{release_id}.md"
+
+features:
+  planning_notes: true
+  release_bundles: false
+  api_adapter: false
+  role_selection: true
+
+integrations:
+  artifact_workflow:
+    enabled: false
+    command: ""

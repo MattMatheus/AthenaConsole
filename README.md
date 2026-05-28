@@ -14,6 +14,13 @@ For production-like local validation, see the `docker-compose.prod.yml` workflow
 
 Team Orchestrator is being reset around a web-first, local-first agent orchestration model.
 
-The canonical planning baseline is:
+The workflow harness is Flywheel:
 
-- `planning/architecture/0006-team-orchestrator-direction-and-agent-model.md`
+- `flywheel.yaml`
+- `flywheel/README.md`
+- `flywheel/backlog/engineering/active/README.md`
+
+The canonical product baseline is:
+
+- `docs/product/architecture/decisions/0006-team-orchestrator-direction-and-agent-model.md`
+- `docs/product/direction/current-direction.md`

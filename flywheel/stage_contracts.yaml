@@ -1,0 +1,117 @@
+version: 1
+
+stages:
+  planning:
+    cycle: planning
+    prompt: planning.md
+    input_lane: null
+    output_lane: engineering.intake|architecture.intake
+    checklist:
+      - capture goals, constraints, risks, and assumptions
+      - create or refine intake artifacts
+      - recommend next stage
+      - do not implement production changes
+    exit_gate:
+      - intake artifacts are created or updated
+      - scope, constraints, assumptions, and risks are explicit
+      - next-stage recommendation is explicit
+    forbidden_actions:
+      - production changes
+
+  architect:
+    cycle: architect
+    prompt: architect.md
+    input_lane_key: paths.architecture.active
+    output_lane_key: paths.architecture.qa
+    checklist:
+      - restate decision scope
+      - update architecture artifacts
+      - prepare handoff
+      - move work to architecture qa
+    exit_gate:
+      - decision output is concrete and reviewable
+      - alternatives, tradeoffs, and operational impact are explicit
+      - follow-on implementation paths are explicit when needed
+      - story moves to architecture qa
+    forbidden_actions:
+      - implementation work replacing architecture decision work
+      - direct architecture active-to-done transition
+
+  engineering:
+    cycle: engineering
+    prompt: engineering.md
+    input_lane_key: paths.engineering.active
+    output_lane_key: paths.engineering.qa
+    checklist:
+      - implement the selected story
+      - update validation
+      - prepare handoff
+      - move work to engineering qa
+      - do not commit yet
+    exit_gate:
+      - acceptance criteria implementation is complete
+      - required validation has run or unavailable checks are recorded
+      - handoff includes validation evidence, open risks, and QA focus areas
+      - story moves to engineering qa
+    forbidden_actions:
+      - cycle commit
+      - direct active-to-done transition
+      - risky or sensitive actions without approval
+
+  qa:
+    cycle: qa
+    prompt: qa.md
+    input_lane_key: paths.engineering.qa
+    output_lane: engineering.done|engineering.active
+    checklist:
+      - validate the story in the engineering qa lane
+      - file bugs if needed
+      - move work to done or back to active
+      - run observer
+      - create the cycle commit
+    exit_gate:
+      - verdict is explicit
+      - missing evidence is treated as a blocking QA issue
+      - bugs are filed when needed
+      - story moves to done or back to active
+    forbidden_actions:
+      - reprioritization during QA
+      - silent validation failure
+
+  pm:
+    cycle: pm
+    prompt: pm.md
+    input_lane: engineering.intake|architecture.intake
+    output_lane: engineering.active|architecture.active
+    checklist:
+      - refine intake work
+      - validate metadata and lane placement
+      - rank the active queues
+      - keep queue ordering explicit
+    exit_gate:
+      - refined work is bounded and testable
+      - queue ordering is explicit
+      - risks and dependencies are preserved
+    forbidden_actions:
+      - implementation work
+      - architecture and engineering lane blending
+
+  cycle:
+    cycle: engineering+qa loop
+    prompt: cycle.md
+    input_lane_key: paths.engineering.active
+    output_lane: engineering.qa|engineering.done|engineering.active
+    checklist:
+      - run engineering stage
+      - stop if engineering reports no stories
+      - run qa stage
+      - run observer
+      - create one cycle commit
+      - repeat until active queue is empty
+    exit_gate:
+      - active engineering queue is drained or blocked
+      - observer report exists for each completed cycle
+      - one commit exists per completed cycle
+    forbidden_actions:
+      - inventing work when active queue is empty
+      - commits during intermediate stage transitions
