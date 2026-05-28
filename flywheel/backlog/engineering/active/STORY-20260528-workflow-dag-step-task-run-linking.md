@@ -1,12 +1,12 @@
 ---
 kind: story
 id: STORY-20260528-workflow-dag-step-task-run-linking
-status: intake
+status: active
 owner_role: Software Engineer
 source: epic
 success_metric: Workflow DAG steps reflect real task run lifecycle outcomes for workflow-template tasks.
 release_scope: required
-ready: false
+ready: true
 ---
 
 # Story: Link Workflow DAG Steps To Task Run Outcomes
@@ -14,7 +14,7 @@ ready: false
 ## Metadata
 - `id`: STORY-20260528-workflow-dag-step-task-run-linking
 - `owner_role`: Software Engineer
-- `status`: intake
+- `status`: active
 - `source`: epic
 - `decision_refs`: [ADR-0015, ADR-0012]
 - `epic`: docs/product/epics/refinement/2026.17.00-epic-workflow-dag-engine.md
@@ -27,8 +27,8 @@ Workflow-template instantiation now creates a canonical workflow DAG run and pro
 
 ## Scope
 
-- In: use task provenance to start, complete, and fail matching workflow DAG steps when task runs execute; include task run ids and useful outputs/failures on step records; focused service/API tests.
-- Out: replacing the mission executor, parallel DAG execution, schedule execution changes, console redesign.
+- In: provenance-driven workflow DAG step lifecycle updates inside task run execution; helper-level parsing of `workflowDagRunId` and `workflowDagStepId`; step output/failure payloads that include task run id and execution detail; focused service/API tests.
+- Out: replacing the mission executor, adding a DAG executor service, parallel DAG execution, schedule execution changes, console redesign, schema changes.
 
 ## Acceptance Criteria
 
@@ -38,11 +38,12 @@ Workflow-template instantiation now creates a canonical workflow DAG run and pro
 4. Workflow status for an instantiated workflow-template run reflects real task outcomes.
 5. Non-workflow-template tasks keep existing behavior.
 6. Existing task, mission, workflow-template, workflow-state, and workflow-status APIs remain backward compatible.
+7. The implementation is a narrow hook/helper around existing task workbench run transitions, not a broad task workbench refactor.
 
 ## Validation
 
-- Required checks: `npm --workspace @athena/core run typecheck`; focused task workbench, workflow-template instantiation, workflow-state, and workflow-status tests.
-- Additional checks: API workflow status regression tests and full `npm --workspace @athena/core run test:unit` if task workbench internals change broadly.
+- Required checks: `npm --workspace @athena/core run typecheck`; `npm --workspace @athena/core run test:unit -- tests/control-plane.task-workbench.test.ts tests/control-plane.workflow-template-instantiation.test.ts tests/control-plane.workflow-state.test.ts tests/control-plane.workflow-status.test.ts`.
+- Additional checks: API workflow status regression tests if route behavior changes; full `npm --workspace @athena/core run test:unit` because task workbench is a shared execution path.
 
 ## Dependencies
 
@@ -53,9 +54,15 @@ Workflow-template instantiation now creates a canonical workflow DAG run and pro
 - Task run lifecycle code is central and already large; keep the change narrowly focused on provenance-driven DAG step updates.
 - Output/failure payloads should stay additive and avoid leaking provider-specific internals.
 
+## Open Questions
+
+- Resolved: this should run before the DAG executor service because it proves real task-run-to-DAG-status linkage while preserving existing execution.
+- Resolved: use existing task provenance fields (`workflowDagRunId`, `workflowDagStepId`) as the linkage contract; do not introduce schema changes in this slice.
+- Resolved: keep the implementation narrow by adding helper calls around existing task workbench run start/success/failure transitions.
+
 ## Next Step
 
-PM refinement should confirm whether this runs before the DAG executor service. Recommended: yes, because it proves status linkage while preserving existing execution.
+Engineering should implement this as the next active workflow DAG story before introducing the DAG executor service.
 
 ## Engineering Handoff
 - `change_summary`:
@@ -68,3 +75,6 @@ PM refinement should confirm whether this runs before the DAG executor service. 
 - `evidence_quality`:
 - `defects`:
 - `state_transition`:
+
+## Transition History
+- `2026-05-28T18:43:38Z`: `intake` -> `active`; PM refined as next workflow DAG execution-linking story

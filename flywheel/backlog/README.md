@@ -6,7 +6,7 @@ This is the operational view of current and future work.
 
 Work currently being implemented:
 
-No active engineering or architecture work.
+- `engineering/active/STORY-20260528-workflow-dag-step-task-run-linking.md`
 
 ## Next
 
@@ -18,7 +18,6 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-- `engineering/intake/STORY-20260528-workflow-dag-step-task-run-linking.md`
 - `engineering/intake/STORY-20260528-workflow-dag-executor-service.md`
 - `engineering/intake/STORY-20260528-workflow-dag-restart-resume.md`
 - `engineering/intake/STORY-20260528-workflow-template-schedule-dag-execution.md`

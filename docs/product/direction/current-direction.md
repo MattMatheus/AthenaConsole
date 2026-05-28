@@ -70,7 +70,7 @@ Completed foundation:
 
 Next implementation refinement:
 
-- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-step-task-run-linking.md`
+- `flywheel/backlog/engineering/active/STORY-20260528-workflow-dag-step-task-run-linking.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-executor-service.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-restart-resume.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-workflow-template-schedule-dag-execution.md`
@@ -102,7 +102,6 @@ Recently completed tracks now live in Flywheel done history:
 
 Deferred implementation candidates that need PM refinement:
 
-- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-step-task-run-linking.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-executor-service.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-restart-resume.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-workflow-template-schedule-dag-execution.md`
