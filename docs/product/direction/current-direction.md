@@ -49,6 +49,7 @@ The reset implementation has delivered:
 - Durable workflow DAG run state, resumable stale-step recovery, and visualizer-friendly workflow status APIs.
 - Workflow-template instantiation and scheduled workflow-template execution now create and expose a canonical workflow DAG run envelope.
 - Workflow-template-projected task runs now update linked workflow DAG steps with real task run lifecycle outcomes.
+- A service-only canonical workflow DAG executor can run projected tasks by dependency readiness.
 - Run templates, verification evidence, runtime policy packs, and A2A observability reframing migrated into the current Team Orchestrator model.
 - Startup recovery for stale task and mission runs left `running` after API/service restart.
 - SQL-backed bounded task, run, and schedule list queries for current app-state console/API surfaces.
@@ -68,11 +69,11 @@ Completed foundation:
 - `flywheel/backlog/engineering/done/STORY-20260528-workflow-status-api.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-workflow-template-dag-run-envelope.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-workflow-dag-step-task-run-linking.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-workflow-dag-executor-service.md`
 - `flywheel/backlog/architecture/done/ARCH-20260528-canonical-orchestration-state-model.md`
 
 Next implementation refinement:
 
-- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-executor-service.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-restart-resume.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-workflow-template-schedule-dag-execution.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-workflow-run-graph-console.md`
@@ -99,12 +100,12 @@ Recently completed tracks now live in Flywheel done history:
 - `flywheel/backlog/engineering/done/STORY-20260528-app-state-list-query-bounds.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-workflow-template-dag-run-envelope.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-workflow-dag-step-task-run-linking.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-workflow-dag-executor-service.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-split-app-state-domain-repositories.md`
 - `flywheel/backlog/architecture/done/ARCH-20260528-service-decomposition-plan.md`
 
 Deferred implementation candidates that need PM refinement:
 
-- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-executor-service.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-restart-resume.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-workflow-template-schedule-dag-execution.md`
 - `flywheel/backlog/engineering/intake/STORY-20260528-workflow-run-graph-console.md`

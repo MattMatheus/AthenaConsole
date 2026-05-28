@@ -92,11 +92,17 @@ export interface ListTasksOptions {
 
 export class TaskRepository {
   private readonly getStatement: Database.Statement;
+  private readonly findByWorkflowDagStepStatement: Database.Statement;
   private readonly insertStatement: Database.Statement;
   private readonly updateStatement: Database.Statement;
 
   constructor(private readonly db: Database.Database) {
     this.getStatement = db.prepare(taskSelectSql("where id = ?"));
+    this.findByWorkflowDagStepStatement = db.prepare(
+      taskSelectSql(
+        "where archived_at is null and json_extract(provenance_json, '$.source') = 'workflow-template' and json_extract(provenance_json, '$.workflowDagRunId') = @runId and json_extract(provenance_json, '$.workflowDagStepId') = @stepId order by updated_at desc, created_at desc limit 1"
+      )
+    );
     this.insertStatement = db.prepare(`
       insert into tasks (
         id,
@@ -191,6 +197,11 @@ export class TaskRepository {
       throw new Error(`Task not found: ${id}`);
     }
     return task;
+  }
+
+  findByWorkflowDagStep(runId: string, stepId: string): TaskRecord | undefined {
+    const row = this.findByWorkflowDagStepStatement.get({ runId, stepId }) as TaskRow | undefined;
+    return row ? mapTaskRow(row) : undefined;
   }
 
   list(options: ListTasksOptions = {}): TaskRecord[] {

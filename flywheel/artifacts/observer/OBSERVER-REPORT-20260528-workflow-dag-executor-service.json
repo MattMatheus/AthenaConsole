@@ -1,0 +1,128 @@
+{
+  "cycle_id": "20260528-workflow-dag-executor-service",
+  "generated_at_utc": "2026-05-28T19:22:41Z",
+  "branch": "main",
+  "story_path": "flywheel/backlog/engineering/done/STORY-20260528-workflow-dag-executor-service.md",
+  "actor": "Codex",
+  "stage_trace": [
+    "PM refined the executor story as a service-only canonical workflow DAG executor slice and moved it from intake to active.",
+    "Engineering implemented the executor, provenance-based task lookup, and focused success/failure tests.",
+    "QA reran focused and full validation, fixed an unrelated order-sensitive test assertion, and moved the story to done."
+  ],
+  "diff_inventory": [
+    "A\tflywheel/backlog/engineering/done/STORY-20260528-workflow-dag-executor-service.md",
+    "A\tpackages/core/src/control-plane/services/workflow-dag-executor.ts",
+    "A\tpackages/core/tests/control-plane.workflow-dag-executor.test.ts",
+    "D\tflywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-executor-service.md",
+    "M\tdocs/product/direction/current-direction.md",
+    "M\tdocs/product/epics/refinement/2026.17.00-epic-workflow-dag-engine.md",
+    "M\tflywheel/backlog/README.md",
+    "M\tflywheel/backlog/engineering/done/README.md",
+    "M\tflywheel/backlog/engineering/intake/README.md",
+    "M\tpackages/core/src/control-plane/app-state/domain-repositories/tasks.ts",
+    "M\tpackages/core/tests/control-plane.stale-run-recovery.test.ts"
+  ],
+  "objective": {
+    "intended_outcome": "Add a deterministic service-only executor that runs canonical workflow DAG steps through projected task runs.",
+    "scope_boundary": "No API route, schedule execution change, parallelism, schema migration, or legacy file-backed WorkflowExecutor replacement."
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [
+      "flywheel/backlog/engineering/done/STORY-20260528-workflow-dag-executor-service.md",
+      "docs/product/epics/refinement/2026.17.00-epic-workflow-dag-engine.md",
+      "docs/product/direction/current-direction.md",
+      "packages/core/src/control-plane/services/workflow-dag-executor.ts",
+      "packages/core/src/control-plane/services/task-workbench.ts",
+      "packages/core/src/control-plane/services/workflow-state.ts",
+      "packages/core/src/control-plane/app-state/domain-repositories/tasks.ts",
+      "packages/core/tests/control-plane.workflow-dag-executor.test.ts"
+    ],
+    "tools_used": [
+      "launch_stage.sh",
+      "flywheel_state.sh",
+      "validate_workflow_state.sh",
+      "flywheel_doctor.sh",
+      "run_observer_cycle.sh",
+      "npm --workspace @athena/core run typecheck",
+      "npm --workspace @athena/core run test:unit"
+    ],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [
+      "packages/core/src/control-plane/services/workflow-dag-executor.ts",
+      "packages/core/src/control-plane/app-state/domain-repositories/tasks.ts",
+      "packages/core/tests/control-plane.workflow-dag-executor.test.ts",
+      "packages/core/tests/control-plane.stale-run-recovery.test.ts",
+      "flywheel/backlog/engineering/done/STORY-20260528-workflow-dag-executor-service.md",
+      "flywheel/backlog/engineering/intake/README.md",
+      "flywheel/backlog/engineering/done/README.md",
+      "flywheel/backlog/README.md",
+      "docs/product/direction/current-direction.md",
+      "docs/product/epics/refinement/2026.17.00-epic-workflow-dag-engine.md"
+    ],
+    "state_transitions": [
+      "STORY-20260528-workflow-dag-executor-service.md: engineering/intake -> engineering/active",
+      "STORY-20260528-workflow-dag-executor-service.md: engineering/active -> engineering/qa",
+      "STORY-20260528-workflow-dag-executor-service.md: engineering/qa -> engineering/done"
+    ],
+    "non_file_actions": [
+      "Confirmed the new executor is service-only and leaves API, schedule, and legacy workflow executor behavior unchanged.",
+      "Fixed an unrelated order-sensitive stale-run recovery test assertion found during full-suite QA."
+    ]
+  },
+  "validation": {
+    "checks_run": [
+      "npm --workspace @athena/core run typecheck",
+      "npm --workspace @athena/core run test:unit -- tests/control-plane.workflow-dag-executor.test.ts tests/control-plane.task-workbench.test.ts tests/control-plane.workflow-template-instantiation.test.ts tests/control-plane.workflow-state.test.ts tests/control-plane.workflow-status.test.ts",
+      "npm --workspace @athena/core run test:unit -- tests/control-plane.stale-run-recovery.test.ts",
+      "npm --workspace @athena/core run test:unit",
+      "./flywheel/tools/validate_workflow_state.sh",
+      "./flywheel/tools/flywheel_doctor.sh",
+      "git diff --check"
+    ],
+    "results": [
+      "Typecheck passed.",
+      "Focused workflow/task suite passed: 5 files, 36 tests.",
+      "Stale-run recovery regression passed: 1 file, 4 tests.",
+      "Full unit suite passed: 85 files, 411 tests.",
+      "Workflow state validation passed.",
+      "Flywheel doctor passed.",
+      "git diff --check produced no errors."
+    ],
+    "checks_not_run": []
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": true,
+    "prompts_updated_if_stage_behavior_changed": true,
+    "process_docs_updated_if_contracts_or_gates_changed": true,
+    "queue_order_and_state_synchronized": true
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [
+      "Cancellation and timeout orchestration remain follow-on work.",
+      "Missing projected tasks are treated as configuration errors."
+    ],
+    "assumptions_carried": [
+      "Workflow-template task provenance remains the canonical DAG step-to-task linkage contract.",
+      "Serial execution is the desired first executor behavior."
+    ],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "local write",
+    "approval_required": "no",
+    "approval_reference": "none"
+  },
+  "next_step": {
+    "recommended_next_state": "engineering/done",
+    "follow_up_work": [
+      "Refine the restart/resume workflow DAG story next."
+    ],
+    "durable_promotions": []
+  },
+  "release_impact": {
+    "release_scope": "Required Workflow DAG Engine backend slice completed.",
+    "additional_release_actions": []
+  }
+}

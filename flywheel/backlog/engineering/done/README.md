@@ -22,3 +22,4 @@ Engineering work accepted by QA.
 16. `STORY-20260528-workflow-template-dag-run-envelope.md`
 17. `STORY-20260528-split-app-state-domain-repositories.md`
 18. `STORY-20260528-workflow-dag-step-task-run-linking.md`
+19. `STORY-20260528-workflow-dag-executor-service.md`

@@ -50,8 +50,9 @@ describe("stale task and mission run recovery", () => {
         expect(result).toEqual({
           taskRunsRecovered: 1,
           missionRunsRecovered: 1,
-          recoveredRunIds: ["run-task-stale", "run-mission-stale"]
+          recoveredRunIds: expect.arrayContaining(["run-task-stale", "run-mission-stale"])
         });
+        expect(result.recoveredRunIds).toHaveLength(2);
         expect(appState.runs.require("run-task-stale")).toMatchObject({
           status: "failed",
           endedAt: "2026-05-28T11:00:00.000Z",
