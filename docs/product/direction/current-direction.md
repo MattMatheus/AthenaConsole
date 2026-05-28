@@ -70,7 +70,12 @@ Completed foundation:
 
 Next implementation refinement:
 
-- No active DAG implementation story is queued; route the next DAG executor slice through PM refinement.
+- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-step-task-run-linking.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-executor-service.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-restart-resume.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-template-schedule-dag-execution.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-run-graph-console.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-legacy-workflow-dag-alignment.md`
 
 Source epic:
 
@@ -97,7 +102,12 @@ Recently completed tracks now live in Flywheel done history:
 
 Deferred implementation candidates that need PM refinement:
 
-- None currently queued.
+- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-step-task-run-linking.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-executor-service.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-dag-restart-resume.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-template-schedule-dag-execution.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-workflow-run-graph-console.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-legacy-workflow-dag-alignment.md`
 
 ## Promotion Rule
 
