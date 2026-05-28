@@ -7,7 +7,6 @@ This is the operational view of current and future work.
 Work currently being implemented:
 
 - `engineering/active/BUG-20260528-product-direction-backlog-sync.md`
-- `architecture/active/ARCH-20260528-canonical-orchestration-state-model.md`
 - `engineering/active/STORY-20260528-stale-run-recovery.md`
 - `engineering/active/STORY-20260528-app-state-list-query-bounds.md`
 - `architecture/active/ARCH-20260528-service-decomposition-plan.md`
@@ -22,7 +21,7 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-No candidate engineering or architecture intake items.
+- `engineering/intake/STORY-20260528-workflow-template-dag-run-envelope.md`
 
 ## Rule
 

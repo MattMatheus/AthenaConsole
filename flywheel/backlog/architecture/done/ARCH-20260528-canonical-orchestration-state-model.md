@@ -1,7 +1,7 @@
 ---
 kind: architecture_story
 id: ARCH-20260528-canonical-orchestration-state-model
-status: active
+status: done
 owner_role: Software Architect
 source: planning
 decision_owner: Software Architect
@@ -14,9 +14,9 @@ ready: true
 ## Metadata
 - `id`: ARCH-20260528-canonical-orchestration-state-model
 - `owner_role`: Software Architect
-- `status`: active
+- `status`: done
 - `source`: planning
-- `decision_refs`: [ADR-0009, ADR-0010, ADR-0012, ADR-0014]
+- `decision_refs`: [ADR-0009, ADR-0010, ADR-0012, ADR-0014, ADR-0015]
 - `decision_owner`: Software Architect
 - `success_metric`: Workflow templates, missions, tasks, schedules, runs, and workflow DAG status have one documented canonical state ownership model.
 
@@ -56,7 +56,7 @@ The decision will set the target for follow-on implementation stories, including
 Confirm the decision removes ambiguity rather than adding another parallel abstraction.
 
 ## Next Step
-Promote to architecture active as the first architecture item. Engineering should use the resulting decision before starting stale run recovery.
+Engineering should use ADR 0015 while implementing `STORY-20260528-stale-run-recovery`, then refine the workflow-template DAG run envelope follow-up.
 
 ## Intake Promotion Checklist
 - [x] Decision scope is explicit and bounded.
@@ -67,10 +67,18 @@ Promote to architecture active as the first architecture item. Engineering shoul
 - [x] Follow-on implementation work is split out when needed.
 
 ## Architecture Handoff
-- `decision_summary`:
-- `alternatives_considered`:
-- `operational_impact`:
-- `follow_on_work`:
+- `decision_summary`: Accepted ADR 0015, which names SQLite app state as canonical orchestration state; workflow DAG runs as the canonical workflow-template execution envelope; task/mission runs as canonical direct execution attempts and workflow execution details; and file-backed workflow state as legacy or support state unless explicitly filesystem-owned payload state.
+- `alternatives_considered`: Kept DAG runs separate from task/mission execution; made mission/task runs canonical with DAG visualization only; made workflow DAG runs canonical and attached mission/task run details; preserved file-backed workflow execution as another first-class path. The accepted path is the workflow DAG run envelope with attached task/mission execution details.
+- `operational_impact`: Workflow-template instantiation should create a workflow DAG run and expose its id; workflow-template schedules should record `workflowDagRunId`; stale task/mission recovery should fail startup-stale runs with `STALE_RUNNING_RUN` metadata and visible events; legacy file-backed orchestration paths should be labeled compatibility or migration-targeted.
+- `follow_on_work`: `flywheel/backlog/engineering/active/STORY-20260528-stale-run-recovery.md` now consumes ADR 0015 recovery semantics. `flywheel/backlog/engineering/intake/STORY-20260528-workflow-template-dag-run-envelope.md` was added for DAG run creation during workflow-template instantiation and scheduled workflow-template execution.
+
+## Architecture Review
+- `verdict`: Pass.
+- `evidence_quality`: ADR 0015 documents the canonical state model, state ownership map, workflow-template and schedule target model, migration posture, alternatives, operational risks, and first implementation sequence.
+- `defects`: None found.
+- `state_transition`: Ready for architecture done.
 
 ## Transition History
 - `2026-05-28T16:23:43Z`: `intake` -> `active` by `Codex`; PM refined and queued first for architecture
+- `2026-05-28T16:50:55Z`: `active` -> `qa` by `Codex`; Architecture handoff complete for ADR 0015
+- `2026-05-28T16:51:20Z`: `qa` -> `done` by `Codex`; Architecture review passed

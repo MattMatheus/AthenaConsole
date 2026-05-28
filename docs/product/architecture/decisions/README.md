@@ -18,6 +18,7 @@ Architecture notes and decisions for Team Orchestrator.
 - [ADR 0012: Event and Artifact Observability Model](0012-event-artifact-observability-model.md) - Accepted
 - [ADR 0013: Safety, Approval, and Loop Limit Model](0013-safety-approval-and-loop-limit-model.md) - Accepted
 - [ADR 0014: Scheduling Model](0014-scheduling-model.md) - Accepted
+- [ADR 0015: Canonical Orchestration State Model](0015-canonical-orchestration-state-model.md) - Accepted
 
 ## Archived Records
 

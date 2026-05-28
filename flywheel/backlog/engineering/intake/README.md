@@ -4,7 +4,7 @@ Raw engineering work enters here before PM refinement.
 
 ## Candidate Sequence
 
-No candidate engineering items.
+1. `STORY-20260528-workflow-template-dag-run-envelope.md`
 
 ## Refinement Rule
 
