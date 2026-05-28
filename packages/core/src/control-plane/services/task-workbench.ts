@@ -33,6 +33,7 @@ import type {
 } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
 import type { TaskWorkbenchService } from "../interfaces.js";
+import { LocalWorkflowStateService } from "./workflow-state.js";
 
 export interface LocalTaskWorkbenchServiceOptions {
   appState?: AppStateDatabase;
@@ -317,6 +318,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         startedAt
       });
       appState.tasks.update(task.id, { status: "running" });
+      startLinkedWorkflowDagStep(appState, task);
       appendRunEvent(appState, run.id, task, agent.id, "run.validated", "Task inputs validated.", {
         inputKeys: Object.keys(isRecord(task.inputs) ? task.inputs : {})
       });
@@ -399,6 +401,10 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         appendRunEvent(appState, run.id, task, agent.id, "run.cancelled", `${backendLabel(command.backend)} task run cancelled.`, {
           signal: exit.signal
         });
+        failLinkedWorkflowDagStep(appState, task, run, {
+          reason: "cancelled",
+          signal: exit.signal
+        });
         return mapRunRecord(run);
       }
       if (exit.safetyStop) {
@@ -460,6 +466,9 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         appendRunEvent(appState, run.id, task, agent.id, "run.completed", `${backendLabel(command.backend)} task run completed.`, {
           artifactCount: envelope.artifacts.length
         });
+        completeLinkedWorkflowDagStep(appState, task, run, envelope.output, {
+          artifactCount: envelope.artifacts.length
+        });
         return mapRunRecord(run);
       }
       appState.tasks.update(task.id, { status: "failed" });
@@ -475,6 +484,11 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       appendRunEvent(appState, run.id, task, agent.id, "run.failed", `${backendLabel(command.backend)} task run failed.`, {
         code: exit.code,
         signal: exit.signal
+      });
+      failLinkedWorkflowDagStep(appState, task, run, {
+        code: exit.code,
+        signal: exit.signal,
+        stderr
       });
       return mapRunRecord(run);
     });
@@ -551,6 +565,11 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         status: response.status,
         statusText: response.statusText
       });
+      failLinkedWorkflowDagStep(appState, task, run, {
+        status: response.status,
+        statusText: response.statusText,
+        body: responseText
+      });
       return mapRunRecord(run);
     }
     let envelope: AgentRunEnvelope;
@@ -605,6 +624,9 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       ...(envelope.verificationFailures ? { verificationFailures: envelope.verificationFailures } : {})
     });
     appendRunEvent(appState, run.id, task, agent.id, "run.completed", "HTTP/API task run completed.", {
+      artifactCount: envelope.artifacts.length
+    });
+    completeLinkedWorkflowDagStep(appState, task, run, envelope.output, {
       artifactCount: envelope.artifacts.length
     });
     return mapRunRecord(run);
@@ -1287,6 +1309,7 @@ function stopTaskRunByLimit(
     }
   });
   appendRunEvent(appState, stoppedRun.id, task, agentId, "run.stopped-by-limit", safetyStop.reason, safetyStop);
+  failLinkedWorkflowDagStep(appState, task, stoppedRun, safetyStop);
   return mapRunRecord(stoppedRun);
 }
 
@@ -1305,7 +1328,73 @@ function failTaskRun(
     failure
   });
   appendRunEvent(appState, failedRun.id, task, agentId, "run.failed", message, failure);
+  failLinkedWorkflowDagStep(appState, task, failedRun, failure);
   return mapRunRecord(failedRun);
+}
+
+function startLinkedWorkflowDagStep(appState: AppStateDatabase, task: TaskRecord): void {
+  const link = resolveWorkflowDagStepLink(task);
+  if (!link) {
+    return;
+  }
+  new LocalWorkflowStateService(appState).startStep(link.runId, link.stepId);
+}
+
+function completeLinkedWorkflowDagStep(
+  appState: AppStateDatabase,
+  task: TaskRecord,
+  run: RunRecord,
+  output: unknown,
+  detail: Record<string, unknown> = {}
+): void {
+  const link = resolveWorkflowDagStepLink(task);
+  if (!link) {
+    return;
+  }
+  new LocalWorkflowStateService(appState).completeStep(link.runId, link.stepId, {
+    taskRunId: run.id,
+    taskId: task.id,
+    status: run.status,
+    output,
+    execution: taskRunExecutionDetail(run),
+    ...detail
+  });
+}
+
+function failLinkedWorkflowDagStep(appState: AppStateDatabase, task: TaskRecord, run: RunRecord, failure: unknown): void {
+  const link = resolveWorkflowDagStepLink(task);
+  if (!link) {
+    return;
+  }
+  new LocalWorkflowStateService(appState).failStep(link.runId, link.stepId, {
+    taskRunId: run.id,
+    taskId: task.id,
+    status: run.status,
+    failure,
+    execution: taskRunExecutionDetail(run)
+  });
+}
+
+function resolveWorkflowDagStepLink(task: TaskRecord): { runId: string; stepId: string } | undefined {
+  if (!isRecord(task.provenance) || task.provenance.source !== "workflow-template") {
+    return undefined;
+  }
+  const runId = task.provenance.workflowDagRunId;
+  const stepId = task.provenance.workflowDagStepId;
+  if (typeof runId !== "string" || !runId.trim() || typeof stepId !== "string" || !stepId.trim()) {
+    return undefined;
+  }
+  return { runId, stepId };
+}
+
+function taskRunExecutionDetail(run: RunRecord): Record<string, unknown> {
+  return {
+    ...(run.backend ? { backend: run.backend } : {}),
+    ...(run.agentId ? { agentId: run.agentId } : {}),
+    ...(run.agentVersion ? { agentVersion: run.agentVersion } : {}),
+    ...(run.startedAt ? { startedAt: run.startedAt } : {}),
+    ...(run.endedAt ? { endedAt: run.endedAt } : {})
+  };
 }
 
 function waitForExit(

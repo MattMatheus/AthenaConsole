@@ -8,7 +8,7 @@ This lane shows what is being implemented now.
 
 ## Active Sequence
 
-1. `STORY-20260528-workflow-dag-step-task-run-linking.md`
+No active engineering stories.
 
 ## Next Up
 

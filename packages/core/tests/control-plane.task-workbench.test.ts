@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { openAppStateDatabase } from "../src/control-plane/app-state/index.js";
 import { LocalTaskWorkbenchService } from "../src/control-plane/services/task-workbench.js";
+import { LocalWorkflowStatusService } from "../src/control-plane/services/workflow-status.js";
 import { AthenaError } from "../src/runtime/errors.js";
 import { loadConfig } from "../src/shared/config.js";
 
@@ -267,6 +268,93 @@ process.stdin.on("end", () => {
             metadata: { source: "test" }
           })
         ]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("updates linked workflow DAG steps when workflow-template task runs complete", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-workflow-dag-success-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "workflow-success.js"),
+        "process.stdout.write(JSON.stringify({ output: { summary: 'workflow step complete' }, artifacts: [] }));",
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "workflow-success.js");
+        appState.workflowDagRuns.create({
+          id: "workflow-run-linked-success",
+          workflowTemplateId: "linked.workflow",
+          workflowTemplateVersion: "1.0.0",
+          stepOrder: ["plan", "review"],
+          dependencies: {
+            plan: [],
+            review: ["plan"]
+          }
+        });
+        appState.tasks.create({
+          id: "task-linked-plan",
+          title: "Linked plan",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: { taskBrief: "Complete linked plan" },
+          provenance: {
+            source: "workflow-template",
+            workflowDagRunId: "workflow-run-linked-success",
+            workflowDagStepId: "plan",
+            workflowTemplateId: "linked.workflow",
+            templateTaskId: "plan"
+          }
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+        const statusService = new LocalWorkflowStatusService(config, { appState });
+
+        const run = await service.runTask("task-linked-plan", { runId: "run-linked-plan" });
+        const status = await statusService.getStatus("workflow-run-linked-success");
+
+        expect(run).toMatchObject({ id: "run-linked-plan", status: "completed" });
+        expect(status.run).toMatchObject({ id: "workflow-run-linked-success", status: "running" });
+        expect(status.progress).toMatchObject({
+          totalSteps: 2,
+          completedSteps: 1,
+          runningSteps: 0,
+          pendingSteps: 1,
+          readySteps: 1,
+          percentComplete: 50
+        });
+        expect(status.nodes.find((node) => node.id === "plan")).toMatchObject({
+          status: "completed",
+          attempt: 1,
+          output: {
+            taskRunId: "run-linked-plan",
+            taskId: "task-linked-plan",
+            status: "completed",
+            output: { summary: "workflow step complete" },
+            artifactCount: 0,
+            execution: expect.objectContaining({
+              backend: "local-process",
+              agentId: "software.run.local"
+            })
+          }
+        });
+        expect(status.nodes.find((node) => node.id === "review")).toMatchObject({
+          status: "pending",
+          ready: true,
+          blockingStepIds: []
+        });
+        expect(status.events.map((event) => event.type)).toEqual(
+          expect.arrayContaining(["workflow.step.started", "workflow.step.completed"])
+        );
       } finally {
         appState.close();
       }
@@ -1173,6 +1261,107 @@ process.stdin.on("end", () => {
         });
         expect(appState.tasks.get("task-run-fail")).toMatchObject({ status: "failed" });
         expect(appState.runEvents.listForRun("run-fail").map((event) => event.type)).toContain("run.failed");
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("updates linked workflow DAG steps when workflow-template task runs fail", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-workflow-dag-fail-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(join(pluginDir, "workflow-fail.js"), "process.stderr.write('workflow boom'); process.exit(9);", "utf8");
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "workflow-fail.js");
+        appState.workflowDagRuns.create({
+          id: "workflow-run-linked-fail",
+          workflowTemplateId: "linked.workflow",
+          workflowTemplateVersion: "1.0.0",
+          stepOrder: ["plan", "review"],
+          dependencies: {
+            plan: [],
+            review: ["plan"]
+          }
+        });
+        appState.tasks.create({
+          id: "task-linked-fail-plan",
+          title: "Linked plan failure",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: { taskBrief: "Fail linked plan" },
+          provenance: {
+            source: "workflow-template",
+            workflowDagRunId: "workflow-run-linked-fail",
+            workflowDagStepId: "plan",
+            workflowTemplateId: "linked.workflow",
+            templateTaskId: "plan"
+          }
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+        const statusService = new LocalWorkflowStatusService(config, { appState });
+
+        const run = await service.runTask("task-linked-fail-plan", { runId: "run-linked-fail-plan" });
+        const status = await statusService.getStatus("workflow-run-linked-fail");
+
+        expect(run).toMatchObject({
+          id: "run-linked-fail-plan",
+          status: "failed",
+          failure: {
+            code: 9,
+            stderr: "workflow boom"
+          }
+        });
+        expect(status.run).toMatchObject({
+          id: "workflow-run-linked-fail",
+          status: "failed",
+          failure: {
+            stepId: "plan",
+            detail: {
+              taskRunId: "run-linked-fail-plan",
+              taskId: "task-linked-fail-plan",
+              status: "failed"
+            }
+          }
+        });
+        expect(status.progress).toMatchObject({
+          totalSteps: 2,
+          completedSteps: 0,
+          failedSteps: 1,
+          pendingSteps: 1,
+          blockedSteps: 1
+        });
+        expect(status.nodes.find((node) => node.id === "plan")).toMatchObject({
+          status: "failed",
+          failure: {
+            taskRunId: "run-linked-fail-plan",
+            taskId: "task-linked-fail-plan",
+            status: "failed",
+            failure: {
+              code: 9,
+              stderr: "workflow boom"
+            },
+            execution: expect.objectContaining({
+              backend: "local-process",
+              agentId: "software.run.local"
+            })
+          }
+        });
+        expect(status.nodes.find((node) => node.id === "review")).toMatchObject({
+          status: "pending",
+          ready: false,
+          blockingStepIds: ["plan"]
+        });
+        expect(status.events.map((event) => event.type)).toEqual(
+          expect.arrayContaining(["workflow.step.started", "workflow.step.failed"])
+        );
       } finally {
         appState.close();
       }

@@ -1,7 +1,7 @@
 ---
 kind: story
 id: STORY-20260528-workflow-dag-step-task-run-linking
-status: active
+status: done
 owner_role: Software Engineer
 source: epic
 success_metric: Workflow DAG steps reflect real task run lifecycle outcomes for workflow-template tasks.
@@ -14,7 +14,7 @@ ready: true
 ## Metadata
 - `id`: STORY-20260528-workflow-dag-step-task-run-linking
 - `owner_role`: Software Engineer
-- `status`: active
+- `status`: done
 - `source`: epic
 - `decision_refs`: [ADR-0015, ADR-0012]
 - `epic`: docs/product/epics/refinement/2026.17.00-epic-workflow-dag-engine.md
@@ -65,16 +65,18 @@ Workflow-template instantiation now creates a canonical workflow DAG run and pro
 Engineering should implement this as the next active workflow DAG story before introducing the DAG executor service.
 
 ## Engineering Handoff
-- `change_summary`:
-- `validation_evidence`:
-- `qa_focus`:
-- `open_risks`:
+- `change_summary`: Added provenance-driven workflow DAG step lifecycle hooks to `LocalTaskWorkbenchService`. Workflow-template tasks now start their linked DAG step when task execution begins, complete it with task run id/output/execution detail on success, and fail it with task run id/failure/execution detail on failed, stopped-by-limit, or cancelled terminal outcomes. Added task workbench regression coverage for linked workflow DAG success and failure reflected through workflow status.
+- `validation_evidence`: `npm --workspace @athena/core run typecheck`; `npm --workspace @athena/core run test:unit -- tests/control-plane.task-workbench.test.ts tests/control-plane.workflow-template-instantiation.test.ts tests/control-plane.workflow-state.test.ts tests/control-plane.workflow-status.test.ts`; `npm --workspace @athena/core run test:unit`.
+- `qa_focus`: Verify workflow-template-projected tasks update only when provenance includes `source: workflow-template`, `workflowDagRunId`, and `workflowDagStepId`; verify success and failure payloads include task run id plus execution detail; verify non-workflow-template task behavior remains unchanged.
+- `open_risks`: The hook intentionally lets invalid workflow DAG linkage surface as an execution error rather than silently ignoring corrupt provenance.
 
 ## QA Verdict
-- `verdict`:
-- `evidence_quality`:
-- `defects`:
-- `state_transition`:
+- `verdict`: pass
+- `evidence_quality`: Strong. QA reran typecheck, the required focused workflow/task suites, and the full core unit suite. Coverage includes linked workflow DAG success/failure via workflow status plus existing task workbench regressions for non-workflow-template behavior.
+- `defects`: none
+- `state_transition`: move to engineering/done
 
 ## Transition History
 - `2026-05-28T18:43:38Z`: `intake` -> `active`; PM refined as next workflow DAG execution-linking story
+- `2026-05-28T19:02:52Z`: `active` -> `qa`; Engineering implemented workflow DAG step task-run linkage
+- `2026-05-28T19:03:34Z`: `qa` -> `done`; QA passed workflow DAG step task-run linkage

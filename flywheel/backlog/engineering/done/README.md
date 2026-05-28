@@ -21,3 +21,4 @@ Engineering work accepted by QA.
 15. `STORY-20260528-app-state-list-query-bounds.md`
 16. `STORY-20260528-workflow-template-dag-run-envelope.md`
 17. `STORY-20260528-split-app-state-domain-repositories.md`
+18. `STORY-20260528-workflow-dag-step-task-run-linking.md`
