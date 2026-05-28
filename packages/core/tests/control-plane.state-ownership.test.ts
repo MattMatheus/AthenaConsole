@@ -24,11 +24,10 @@ describe("state ownership diagnostics", () => {
         "work-queues": "intentional-file-support-state",
         directives: "sqlite-app-state",
         "harness-profiles": "sqlite-app-state",
-        "run-templates": "sqlite-app-state",
-        "legacy-workflows": "deprecated-file-backed-state",
-        "legacy-workflow-runs": "deprecated-file-backed-state"
+        "run-templates": "sqlite-app-state"
       });
       expect([...categoriesById.values()]).not.toContain("migration-candidate");
+      expect([...categoriesById.values()]).not.toContain("deprecated-file-backed-state");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

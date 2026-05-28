@@ -5,7 +5,6 @@ import type {
   RunResult,
   ScheduledTask,
   ScheduleRunLog,
-  WorkflowRunObservability,
   WorkItem,
   WorkQueueState
 } from "../shared/contracts.js";
@@ -75,7 +74,6 @@ export interface CliApiClient {
   cancel(request: CancelRunRequest): Promise<CancelRunResult>;
   enqueueWork(request: { sessionId: string; payload: string; mode: WorkItem["mode"] }): Promise<WorkQueueState>;
   getWorkQueue(sessionId: string): Promise<WorkQueueState>;
-  getWorkflowRun(workflowId: string): Promise<WorkflowRunObservability>;
   drainWork(request: { sessionId: string; provider?: string; model?: string }): Promise<DrainResult>;
   searchMemory(request: { query: string; maxResults?: number; minScore?: number }): Promise<
     Array<{
@@ -190,15 +188,6 @@ export function createCliApiClient(options: CliApiClientOptions): CliApiClient {
         timeoutMs,
         "GET",
         `/api/v1/sessions/${encodeURIComponent(sessionId)}/work-queue`,
-        {}
-      );
-    },
-    async getWorkflowRun(workflowId: string): Promise<WorkflowRunObservability> {
-      return requestJson<WorkflowRunObservability>(
-        baseUrl,
-        timeoutMs,
-        "GET",
-        `/api/v1/workflows/run/${encodeURIComponent(workflowId)}`,
         {}
       );
     },

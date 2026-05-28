@@ -27,8 +27,7 @@ describe("api route registration", () => {
     expect(HARNESS_PROFILE_ROUTES.every((route) => route.meta.family === "harness-profiles")).toBe(true);
     expect(RUN_TEMPLATE_ROUTES.every((route) => route.meta.family === "run-templates")).toBe(true);
     expect(WORKFLOW_ROUTES.every((route) => route.meta.family === "workflows")).toBe(true);
-    expect(WORKFLOW_ROUTES.some((route) => route.path === "/api/v1/workflows/run/:id")).toBe(true);
-    expect(WORKFLOW_ROUTES.some((route) => route.path === "/api/v1/workflows/run/:id/resume")).toBe(true);
+    expect(WORKFLOW_ROUTES.map((route) => route.path)).toEqual(["/api/v1/workflow-runs/:runId/status"]);
     expect(MEMORY_ROUTES.every((route) => route.meta.family === "memory")).toBe(true);
     expect(WORK_ROUTES.every((route) => route.meta.family === "work")).toBe(true);
     expect(SCHEDULE_ROUTES.every((route) => route.meta.family === "schedules")).toBe(true);

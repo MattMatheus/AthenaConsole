@@ -26,7 +26,7 @@ export interface OpenApiOperationArtifact {
   "x-athena-stream"?: "sse";
   "x-athena-queryMode"?: "cursor-page" | "tail";
   "x-athena-lifecycle"?: "stable" | "deprecated";
-  "x-athena-surface"?: "canonical" | "legacy-file-backed-workflow";
+  "x-athena-surface"?: "canonical";
   "x-athena-canonicalPath"?: string;
 }
 

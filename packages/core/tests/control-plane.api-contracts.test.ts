@@ -9,7 +9,7 @@ import {
 
 describe("control-plane api contracts", () => {
   it("declares the full initial v1 route surface", () => {
-    expect(API_V1_ROUTES.length).toBe(88);
+    expect(API_V1_ROUTES.length).toBe(84);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/capabilities")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/health")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/agent-catalog/plugins")).toBe(
@@ -62,21 +62,11 @@ describe("control-plane api contracts", () => {
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/run-templates")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/run-templates")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/templates/:id/run")).toBe(true);
-    expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/workflows")).toBe(true);
-    expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/workflows")).toBe(true);
-    expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/workflows/run/:id")).toBe(true);
-    expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/workflows/run/:id/resume")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.path === "/api/v1/workflows")).toBe(false);
+    expect(API_V1_ROUTES.some((route) => route.path.startsWith("/api/v1/workflows/"))).toBe(false);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/workflow-runs/:runId/status")).toBe(
       true
     );
-    expect(
-      API_V1_ROUTES.filter((route) => route.path.startsWith("/api/v1/workflows")).every(
-        (route) =>
-          route.lifecycle === "deprecated" &&
-          route.surface === "legacy-file-backed-workflow" &&
-          route.canonicalPath === "/api/v1/workflow-runs/:runId/status"
-      )
-    ).toBe(true);
     expect(API_V1_ROUTES.find((route) => route.path === "/api/v1/workflow-runs/:runId/status")).toMatchObject({
       lifecycle: "stable",
       surface: "canonical"

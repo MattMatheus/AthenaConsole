@@ -59,13 +59,7 @@ import type {
   RunTemplateListResult,
   RunTemplateListQuery,
   TemplateRunRequest,
-  Workflow,
-  WorkflowCreateRequest,
   WorkflowRunGraphStatus,
-  WorkflowRunObservability,
-  WorkflowRun,
-  WorkflowListQuery,
-  WorkflowListResult,
   WorkflowTemplateCatalogListQuery,
   WorkflowTemplateCatalogListResult,
   WorkflowTemplateInstantiateRequest,
@@ -142,13 +136,6 @@ export interface RunTemplateService {
   list(query?: RunTemplateListQuery): Promise<RunTemplateListResult>;
   create(request: RunTemplateCreateRequest): Promise<RunTemplate>;
   run(id: string, request?: TemplateRunRequest): Promise<RunResult>;
-}
-
-export interface WorkflowService {
-  list(query?: WorkflowListQuery): Promise<WorkflowListResult>;
-  create(request: WorkflowCreateRequest): Promise<Workflow>;
-  status(id: string): Promise<WorkflowRunObservability>;
-  resume(id: string): Promise<WorkflowRun>;
 }
 
 export interface WorkflowStatusService {

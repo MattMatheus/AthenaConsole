@@ -50,7 +50,7 @@ State classifications mean:
 | Directives | SQLite, `directives` | SQLite app-state | Runtime list/create/resolve paths use SQLite. Old `.athena/directives` files are not read by normal runtime paths. |
 | Harness profiles | SQLite, `harness_profiles` | SQLite app-state | Runtime list/create/resolve paths use SQLite. Old `.athena/harness-profiles` files are not read by normal runtime paths. |
 | Run templates | SQLite, `run_templates` | SQLite app-state | Runtime list/create/run paths use SQLite. Old `.athena/run-templates` files are not read by normal runtime paths. |
-| Legacy workflows | `FileStateStore`, `.athena/workflows` and `.athena/workflow-runs` | Deprecated file-backed state to remove | Remove or disable after canonical workflow DAG route coverage is confirmed. |
+| Legacy workflows | Removed from normal API/service runtime paths | Removed deprecated file-backed control-plane state | Keep unreachable. Do not reintroduce `/api/v1/workflows*` routes, service wiring, read bridges, or file-store fallbacks. |
 | Sessions | `SessionStore`, `.athena/sessions` | Intentional file support state | Keep file-backed runtime support records under run-history retention. Consider a future SQLite index only if console search requires it. |
 | Transcripts | `SessionStore`, `.athena/transcripts/*.jsonl` | Intentional file artifact | Keep file-backed append-only payloads under session retention; do not store transcript bodies in SQLite. |
 | Work queues | `WorkManager`, per-session files | Intentional file support state | Keep file-backed unless work queues become operator-facing durable app-state. |
@@ -65,22 +65,22 @@ State classifications mean:
 
 1. Add diagnostics for active state stores and ownership categories.
 2. Classify sessions, transcripts, run evidence, and specialist artifacts in docs/tests so artifact payloads do not get pulled into app-state by accident.
-3. Remove or disable deprecated file-backed legacy workflow runtime/storage paths after canonical workflow DAG route coverage is confirmed.
+3. Keep deprecated file-backed legacy workflow runtime/storage paths removed after canonical workflow DAG route coverage is confirmed.
 
 ## Validation Expectations
 
 | Story | Focused validation |
 | --- | --- |
-| State store startup diagnostics | Config/server diagnostics tests prove SQLite paths, intentional artifact roots, and deprecated file roots are categorized without exposing secrets. |
+| State store startup diagnostics | Config/server diagnostics tests prove SQLite paths and intentional artifact roots are categorized without exposing secrets. |
 | Harness profiles SQLite migration | Harness profile API/service tests plus task/run-template resolution tests prove SQLite is the runtime source of truth. |
 | Directives SQLite migration | Directive API/service tests plus task and run-template run-path tests prove directive lookup resolves through SQLite. |
 | Run templates SQLite migration | Run-template API/service tests prove list/create/run behavior works through SQLite-owned templates. |
 | Session/artifact classification | Docs or ownership-map tests prevent new file-backed control-plane state from appearing without classification. |
-| Legacy workflow file-state removal | Workflow DAG API/service tests prove canonical status and graph inspection cover operator needs after deprecated file paths are removed or disabled. |
+| Legacy workflow file-state removal | Workflow DAG API/service tests prove canonical status and graph inspection cover operator needs after deprecated file paths are removed. |
 
 ## Operational Impact
 
-Startup and diagnostics should make the active SQLite database path visible to maintainers. They should also list intentional file artifact roots and any deprecated file-backed roots that still need removal.
+Startup and diagnostics should make the active SQLite database path visible to maintainers. They should also list intentional file artifact roots. Deprecated file-backed workflow roots are no longer active diagnostics entries because the normal API/service surface has been removed.
 
 Diagnostics may include local filesystem paths for local operator troubleshooting, but they must not include secret values, payload contents, transcript contents, directive contents, or artifact bytes.
 

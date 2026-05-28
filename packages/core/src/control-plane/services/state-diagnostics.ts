@@ -38,7 +38,7 @@ export class LocalStateDiagnosticsService implements StateDiagnosticsService {
   }
 }
 
-export function buildStateStoreDiagnostics(config: AthenaConfig, stateStore: StateStore): StateStoreDiagnostics {
+export function buildStateStoreDiagnostics(config: AthenaConfig, _stateStore: StateStore): StateStoreDiagnostics {
   const runtimePaths = resolveRuntimePaths(config);
   const stateRoot = runtimePaths.stateRoot;
   const sqliteAppStatePath = resolveAppStateDatabasePath(config);
@@ -107,23 +107,7 @@ export function buildStateStoreDiagnostics(config: AthenaConfig, stateStore: Sta
         label: "Run template records",
         category: "sqlite-app-state",
         path: sqliteAppStatePath
-      },
-      ...(stateStore.kind === "file"
-        ? [
-            {
-              id: "legacy-workflows",
-              label: "Deprecated legacy workflow definitions",
-              category: "deprecated-file-backed-state" as const,
-              path: resolve(stateRoot, "workflows")
-            },
-            {
-              id: "legacy-workflow-runs",
-              label: "Deprecated legacy workflow run state",
-              category: "deprecated-file-backed-state" as const,
-              path: resolve(stateRoot, "workflow-runs")
-            }
-          ]
-        : [])
+      }
     ]
   };
 }

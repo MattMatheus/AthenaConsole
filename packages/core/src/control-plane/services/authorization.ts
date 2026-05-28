@@ -24,7 +24,6 @@ import type {
   RunService,
   ScheduleService,
   SessionService,
-  WorkflowService,
   WorkflowStatusService,
   WorkService
 } from "../interfaces.js";
@@ -68,10 +67,6 @@ interface AuthorizationRequirement {
     | "sessions.list"
     | "sessions.search"
     | "sessions.transcript"
-    | "workflow.create"
-    | "workflow.list"
-    | "workflow.resume"
-    | "workflow.status"
     | "workflowRun.status"
     | "work.drain"
     | "work.enqueue"
@@ -489,45 +484,6 @@ export class AuthorizedDirectiveService implements DirectiveService {
       ...(personaName ? { personaName } : {})
     });
     return this.delegate.create(request);
-  }
-}
-
-export class AuthorizedWorkflowService implements WorkflowService {
-  constructor(
-    private readonly delegate: WorkflowService,
-    private readonly authorizer: ServiceAuthorizer
-  ) {}
-
-  async list(query?: Parameters<WorkflowService["list"]>[0]) {
-    await this.authorizer.assertAllowed({
-      operation: "workflow.list",
-      requiredRoles: ["Operator", "Admin"]
-    });
-    return this.delegate.list(query);
-  }
-
-  async create(request: Parameters<WorkflowService["create"]>[0]) {
-    await this.authorizer.assertAllowed({
-      operation: "workflow.create",
-      requiredRoles: ["Operator", "Admin"]
-    });
-    return this.delegate.create(request);
-  }
-
-  async status(id: string) {
-    await this.authorizer.assertAllowed({
-      operation: "workflow.status",
-      requiredRoles: ["Operator", "Admin"]
-    });
-    return this.delegate.status(id);
-  }
-
-  async resume(id: string) {
-    await this.authorizer.assertAllowed({
-      operation: "workflow.resume",
-      requiredRoles: ["Operator", "Admin"]
-    });
-    return this.delegate.resume(id);
   }
 }
 

@@ -53,7 +53,7 @@ The reset implementation has delivered:
 - Canonical workflow DAG startup recovery and service-level resume can recover stale steps and continue without re-running completed dependencies.
 - Due workflow-template schedules now execute through canonical workflow DAG runs and record terminal DAG outcomes.
 - Console workflow-template instantiation and schedule history now link to workflow DAG run inspection with dependency, readiness, progress, failure, recovery, and event detail.
-- Deprecated file-backed `/api/v1/workflows*` APIs point operators to canonical workflow DAG status at `/api/v1/workflow-runs/:runId/status` and are slated for removal rather than long-term compatibility.
+- Deprecated file-backed `/api/v1/workflows*` APIs were removed; operators use canonical workflow DAG status at `/api/v1/workflow-runs/:runId/status`.
 - Run templates, verification evidence, runtime policy packs, and A2A observability reframing migrated into the current Team Orchestrator model.
 - Startup recovery for stale task and mission runs left `running` after API/service restart.
 - SQL-backed bounded task, run, and schedule list queries for current app-state console/API surfaces.
@@ -104,7 +104,7 @@ Next refinement sequence:
 - `flywheel/backlog/engineering/done/STORY-20260528-directives-sqlite-migration.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-run-templates-sqlite-migration.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-session-artifact-state-classification.md`
-- `flywheel/backlog/engineering/intake/STORY-20260528-remove-legacy-workflow-file-state.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-remove-legacy-workflow-file-state.md`
 
 Source epic:
 
@@ -122,6 +122,7 @@ Recently completed tracks now live in Flywheel done history:
 - `flywheel/backlog/engineering/done/STORY-20260528-directives-sqlite-migration.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-run-templates-sqlite-migration.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-session-artifact-state-classification.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-remove-legacy-workflow-file-state.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-run-templates.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-run-template-console.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-verification-evidence-model.md`
@@ -143,7 +144,7 @@ Recently completed tracks now live in Flywheel done history:
 
 Deferred implementation candidates that need PM refinement:
 
-- `flywheel/backlog/engineering/intake/STORY-20260528-remove-legacy-workflow-file-state.md`
+No deferred implementation candidates remain in the current state ownership sequence.
 
 ## Promotion Rule
 

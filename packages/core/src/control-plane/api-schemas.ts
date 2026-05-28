@@ -1023,16 +1023,6 @@ const API_COMPONENT_SCHEMA_STRICTNESS_HINTS: Record<string, ApiSchema> = {
       createdAt: { type: "string", format: "date-time" }
     }
   },
-  WorkflowListResult: {
-    type: "object",
-    properties: {
-      items: {
-        type: "array",
-        items: { $ref: "#/components/schemas/Workflow" }
-      },
-      nextCursor: { type: "string", minLength: 1 }
-    }
-  },
   WorkflowRun: {
     type: "object",
     properties: {
@@ -2173,121 +2163,6 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       }
     },
     responseSchema: { $ref: "#/components/schemas/RunResult" }
-  },
-  listWorkflows: {
-    operationId: "listWorkflows",
-    method: "GET",
-    path: "/api/v1/workflows",
-    querySchema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        cursor: { type: "string" },
-        limit: { type: "integer", minimum: 1 }
-      }
-    },
-    responseSchema: { $ref: "#/components/schemas/WorkflowListResult" }
-  },
-  createWorkflow: {
-    operationId: "createWorkflow",
-    method: "POST",
-    path: "/api/v1/workflows",
-    requestBodySchema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        definition: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            steps: {
-              type: "array",
-              items: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  id: STRING_SCHEMA,
-                  directiveId: STRING_SCHEMA,
-                  harnessProfileId: STRING_SCHEMA,
-                  outputs: {
-                    type: "array",
-                    items: STRING_SCHEMA
-                  },
-                  execution: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      maxAttempts: { type: "integer", minimum: 1 },
-                      timeoutMs: { type: "integer", minimum: 1 },
-                      metadata: {
-                        type: "object",
-                        additionalProperties: { type: "string" }
-                      }
-                    }
-                  }
-                },
-                required: ["id", "directiveId", "harnessProfileId"]
-              }
-            },
-            dependencies: {
-              type: "array",
-              items: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  from: STRING_SCHEMA,
-                  to: STRING_SCHEMA,
-                  mappings: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      additionalProperties: false,
-                      properties: {
-                        fromOutput: STRING_SCHEMA,
-                        toInput: STRING_SCHEMA
-                      },
-                      required: ["fromOutput", "toInput"]
-                    }
-                  }
-                },
-                required: ["from", "to"]
-              }
-            }
-          },
-          required: ["steps", "dependencies"]
-        }
-      },
-      required: ["definition"]
-    },
-    responseSchema: { $ref: "#/components/schemas/Workflow" }
-  },
-  resumeWorkflow: {
-    operationId: "resumeWorkflow",
-    method: "POST",
-    path: "/api/v1/workflows/run/:id/resume",
-    pathParamsSchema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        id: STRING_SCHEMA
-      },
-      required: ["id"]
-    },
-    responseSchema: { $ref: "#/components/schemas/WorkflowRun" }
-  },
-  getWorkflowRun: {
-    operationId: "getWorkflowRun",
-    method: "GET",
-    path: "/api/v1/workflows/run/:id",
-    pathParamsSchema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        id: STRING_SCHEMA
-      },
-      required: ["id"]
-    },
-    responseSchema: { $ref: "#/components/schemas/WorkflowRunObservability" }
   },
   getWorkflowRunStatus: {
     operationId: "getWorkflowRunStatus",

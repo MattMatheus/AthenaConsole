@@ -210,57 +210,6 @@ describe("CLI", () => {
     }
   });
 
-  it("renders workflow graph progress for work status --workflow", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "athena-cli-workflow-status-"));
-    try {
-      const config = loadConfig(dir);
-      const services = createLocalControlPlaneServices({ config });
-      const directive = await services.directiveService.create({
-        input: "workflow status test"
-      });
-      const profile = await services.harnessProfileService.create({
-        displayName: "Workflow Status Runner",
-        version: "v1",
-        config: {
-          provider: "mock",
-          model: "mock-model",
-          tools: ["status"]
-        },
-        policies: {
-          timeoutMs: 30_000,
-          retryLimit: 2,
-          budgetUsd: 2
-        }
-      });
-      const workflow = await services.workflowService.create({
-        definition: {
-          steps: [
-            {
-              id: "seed",
-              directiveId: directive.id,
-              harnessProfileId: profile.id
-            },
-            {
-              id: "review",
-              directiveId: directive.id,
-              harnessProfileId: profile.id
-            }
-          ],
-          dependencies: [{ from: "seed", to: "review" }]
-        }
-      });
-      await services.workflowService.resume(workflow.id);
-
-      const out = await runCli(["work", "status", "--workflow", workflow.id], { cwd: dir });
-      expect(out).toContain(`workflowId=${workflow.id}`);
-      expect(out).toContain("progress=2/2 (100.00%)");
-      expect(out).toContain("[OK] seed");
-      expect(out).toContain("[OK] review");
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
   it("writes machine-readable API contract artifacts", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-cli-api-contracts-"));
     try {

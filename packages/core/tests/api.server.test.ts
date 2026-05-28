@@ -28,9 +28,9 @@ describe("api server", () => {
     expect(resolveApiRouteFamily("GET", "/api/v1/harness-profiles")).toBe("harness-profiles");
     expect(resolveApiRouteFamily("GET", "/api/v1/run-templates")).toBe("run-templates");
     expect(resolveApiRouteFamily("POST", "/api/v1/templates/template-1/run")).toBe("run-templates");
-    expect(resolveApiRouteFamily("GET", "/api/v1/workflows")).toBe("workflows");
-    expect(resolveApiRouteFamily("GET", "/api/v1/workflows/run/workflow-1")).toBe("workflows");
-    expect(resolveApiRouteFamily("POST", "/api/v1/workflows/run/workflow-1/resume")).toBe("workflows");
+    expect(resolveApiRouteFamily("GET", "/api/v1/workflows")).toBeUndefined();
+    expect(resolveApiRouteFamily("GET", "/api/v1/workflows/run/workflow-1")).toBeUndefined();
+    expect(resolveApiRouteFamily("POST", "/api/v1/workflows/run/workflow-1/resume")).toBeUndefined();
     expect(resolveApiRouteFamily("GET", "/api/v1/workflow-runs/workflow-run-1/status")).toBe("workflows");
     expect(resolveApiRouteFamily("GET", "/api/v1/work/observability")).toBe("work");
     expect(resolveApiRouteFamily("GET", "/api/v1/work/observability/alerts")).toBe("work");
@@ -111,11 +111,12 @@ describe("api server", () => {
             category: "sqlite-app-state"
           }),
           expect.objectContaining({
-            id: "legacy-workflows",
-            category: "deprecated-file-backed-state"
+            id: "sqlite-app-state",
+            category: "sqlite-app-state"
           })
         ])
       });
+      expect(JSON.stringify(stateStoreEvents.events[0]?.payload)).not.toContain("legacy-workflows");
     } finally {
       if (started) {
         await server.stop();
@@ -488,14 +489,11 @@ describe("api server", () => {
             id: "run-templates",
             category: "sqlite-app-state",
             path: join(dir, ".athena", "team-orchestrator.sqlite")
-          }),
-          expect.objectContaining({
-            id: "legacy-workflow-runs",
-            category: "deprecated-file-backed-state",
-            path: join(dir, ".athena", "workflow-runs")
           })
         ])
       );
+      expect(adminHealthEnvelope.data.stateStores.stores.map((store) => store.id)).not.toContain("legacy-workflows");
+      expect(adminHealthEnvelope.data.stateStores.stores.map((store) => store.id)).not.toContain("legacy-workflow-runs");
       expect(JSON.stringify(adminHealthEnvelope.data.stateStores)).not.toContain("ATHENA_");
 
       const capabilitiesResponse = await fetch(`${base}/api/v1/capabilities`);
@@ -859,120 +857,30 @@ describe("api server", () => {
       });
       expect(runTemplateEnvelope.data.output).toContain("feature/abc");
 
-      const createWorkflowResponse = await fetch(`${base}/api/v1/workflows`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          definition: {
-            steps: [
-              {
-                id: "seed",
-                directiveId: createDirectiveEnvelope.data.id,
-                harnessProfileId: createHarnessProfileEnvelope.data.id,
-                outputs: ["summary"]
-              },
-              {
-                id: "review",
-                directiveId: createDirectiveEnvelope.data.id,
-                harnessProfileId: createHarnessProfileEnvelope.data.id
-              }
-            ],
-            dependencies: [
-              {
-                from: "seed",
-                to: "review",
-                mappings: [{ fromOutput: "summary", toInput: "upstreamSummary" }]
-              }
-            ]
-          }
-        })
-      });
-      expect(createWorkflowResponse.status).toBe(200);
-      const createWorkflowEnvelope = (await createWorkflowResponse.json()) as {
-        ok: boolean;
-        data: {
-          id: string;
-          definition: {
-            steps: Array<{ id: string }>;
-            dependencies: Array<{ from: string; to: string; mappings?: Array<{ fromOutput: string; toInput: string }> }>;
-          };
-        };
-      };
-      expect(createWorkflowEnvelope.ok).toBe(true);
-      expect(createWorkflowEnvelope.data.definition.steps.length).toBe(2);
-      expect(createWorkflowEnvelope.data.definition.dependencies[0]).toMatchObject({ from: "seed", to: "review" });
-
-      const listWorkflowsResponse = await fetch(`${base}/api/v1/workflows?limit=10`);
-      expect(listWorkflowsResponse.status).toBe(200);
-      const listWorkflowsEnvelope = (await listWorkflowsResponse.json()) as {
-        ok: boolean;
-        data: {
-          items: Array<{ id: string; definition: { steps: Array<{ id: string }> } }>;
-        };
-      };
-      expect(listWorkflowsEnvelope.ok).toBe(true);
-      expect(listWorkflowsEnvelope.data.items.length).toBeGreaterThan(0);
-      expect(listWorkflowsEnvelope.data.items[0]?.id).toBe(createWorkflowEnvelope.data.id);
-      expect(listWorkflowsEnvelope.data.items[0]?.definition.steps[0]?.id).toBe("seed");
-
-      const resumeWorkflowResponse = await fetch(
-        `${base}/api/v1/workflows/run/${encodeURIComponent(createWorkflowEnvelope.data.id)}/resume`,
-        {
-          method: "POST",
-          headers: {
-            "content-type": "application/json"
-          },
-          body: JSON.stringify({})
-        }
-      );
-      expect(resumeWorkflowResponse.status).toBe(200);
-      const resumeWorkflowEnvelope = (await resumeWorkflowResponse.json()) as {
-        ok: boolean;
-        data: {
-          id: string;
-          workflowId: string;
-          status: "pending" | "running" | "ok" | "failed";
-          stepStates: Record<string, { status: "pending" | "running" | "ok" | "failed" }>;
-        };
-      };
-      expect(resumeWorkflowEnvelope.ok).toBe(true);
-      expect(resumeWorkflowEnvelope.data.workflowId).toBe(createWorkflowEnvelope.data.id);
-      expect(resumeWorkflowEnvelope.data.status).toBe("ok");
-      expect(resumeWorkflowEnvelope.data.stepStates.seed?.status).toBe("ok");
-      expect(resumeWorkflowEnvelope.data.stepStates.review?.status).toBe("ok");
-
-      const workflowStatusResponse = await fetch(
-        `${base}/api/v1/workflows/run/${encodeURIComponent(createWorkflowEnvelope.data.id)}`
-      );
-      expect(workflowStatusResponse.status).toBe(200);
-      const workflowStatusEnvelope = (await workflowStatusResponse.json()) as {
-        ok: boolean;
-        data: {
-          workflow: { id: string };
-          run: { id: string; status: "pending" | "running" | "ok" | "failed" };
-          progress: { totalSteps: number; completedSteps: number };
-          artifactRefs: Array<{ stepId: string; artifactRef: string }>;
-          compatibility: {
-            surface: "legacy-file-backed-workflow";
-            lifecycle: "deprecated";
-            canonicalWorkflowDagStatusPath: string;
-          };
-        };
-      };
-      expect(workflowStatusEnvelope.ok).toBe(true);
-      expect(workflowStatusEnvelope.data.workflow.id).toBe(createWorkflowEnvelope.data.id);
-      expect(workflowStatusEnvelope.data.run.id).toBe(resumeWorkflowEnvelope.data.id);
-      expect(workflowStatusEnvelope.data.run.status).toBe("ok");
-      expect(workflowStatusEnvelope.data.progress.totalSteps).toBe(2);
-      expect(workflowStatusEnvelope.data.progress.completedSteps).toBe(2);
-      expect(workflowStatusEnvelope.data.artifactRefs.some((entry) => entry.stepId === "seed")).toBe(true);
-      expect(workflowStatusEnvelope.data.compatibility).toMatchObject({
-        surface: "legacy-file-backed-workflow",
-        lifecycle: "deprecated",
-        canonicalWorkflowDagStatusPath: "/api/v1/workflow-runs/{runId}/status"
-      });
+      expect((await fetch(`${base}/api/v1/workflows`)).status).toBe(404);
+      expect(
+        (
+          await fetch(`${base}/api/v1/workflows`, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json"
+            },
+            body: JSON.stringify({ definition: { steps: [], dependencies: [] } })
+          })
+        ).status
+      ).toBe(404);
+      expect((await fetch(`${base}/api/v1/workflows/run/legacy-workflow`)).status).toBe(404);
+      expect(
+        (
+          await fetch(`${base}/api/v1/workflows/run/legacy-workflow/resume`, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json"
+            },
+            body: JSON.stringify({})
+          })
+        ).status
+      ).toBe(404);
 
       const memorySearchResponse = await fetch(`${base}/api/v1/memory/search?query=athena&maxResults=3`);
       expect(memorySearchResponse.status).toBe(200);

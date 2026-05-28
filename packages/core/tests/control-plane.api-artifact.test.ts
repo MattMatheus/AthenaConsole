@@ -22,17 +22,9 @@ describe("control-plane api artifact", () => {
     expect(artifact.openapi.paths["/api/v1/run-templates"]?.get?.operationId).toBe("listRunTemplates");
     expect(artifact.openapi.paths["/api/v1/run-templates"]?.post?.operationId).toBe("createRunTemplate");
     expect(artifact.openapi.paths["/api/v1/templates/{id}/run"]?.post?.operationId).toBe("runTemplate");
-    expect(artifact.openapi.paths["/api/v1/workflows"]?.get?.operationId).toBe("listWorkflows");
-    expect(artifact.openapi.paths["/api/v1/workflows"]?.post?.operationId).toBe("createWorkflow");
-    expect(artifact.openapi.paths["/api/v1/workflows/run/{id}"]?.get?.operationId).toBe("getWorkflowRun");
-    expect(artifact.openapi.paths["/api/v1/workflows/run/{id}/resume"]?.post?.operationId).toBe("resumeWorkflow");
-    expect(artifact.openapi.paths["/api/v1/workflows/run/{id}"]?.get?.deprecated).toBe(true);
-    expect(artifact.openapi.paths["/api/v1/workflows/run/{id}"]?.get?.["x-athena-surface"]).toBe(
-      "legacy-file-backed-workflow"
-    );
-    expect(artifact.openapi.paths["/api/v1/workflows/run/{id}"]?.get?.["x-athena-canonicalPath"]).toBe(
-      "/api/v1/workflow-runs/:runId/status"
-    );
+    expect(artifact.openapi.paths["/api/v1/workflows"]).toBeUndefined();
+    expect(artifact.openapi.paths["/api/v1/workflows/run/{id}"]).toBeUndefined();
+    expect(artifact.openapi.paths["/api/v1/workflows/run/{id}/resume"]).toBeUndefined();
     expect(artifact.openapi.paths["/api/v1/workflow-runs/{runId}/status"]?.get?.["x-athena-surface"]).toBe("canonical");
     expect(artifact.openapi.paths["/api/v1/work/observability"]?.get?.operationId).toBe("getA2aObservability");
     expect(artifact.openapi.paths["/api/v1/work/observability/alerts"]?.get?.operationId).toBe("listA2aObservabilityAlerts");

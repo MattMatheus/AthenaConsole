@@ -22,7 +22,7 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-- `engineering/intake/STORY-20260528-remove-legacy-workflow-file-state.md`
+No candidate engineering or architecture intake items.
 
 ## Rule
 

@@ -5,7 +5,6 @@ import type { CliOptions } from "../types.js";
 import { parseArgs } from "../helpers/args.js";
 import { runWithSelectedTransport, resolveCliTransport } from "../helpers/transport.js";
 import { usage } from "../helpers/usage.js";
-import { formatWorkflowStatus } from "../helpers/workflow-format.js";
 
 export async function runWorkCli(argv: string[], options: CliOptions): Promise<string> {
   const action = argv[0];
@@ -59,22 +58,16 @@ export async function runWorkCli(argv: string[], options: CliOptions): Promise<s
 
   if (action === "status") {
     const workflowId = parsed.flags.workflow;
-    if (sessionId && workflowId) {
-      throw new Error(`'work status' accepts either --session or --workflow, not both.\n${usage()}`);
-    }
     if (workflowId) {
-      const snapshot = await runWithSelectedTransport(
-        transport,
-        async () => services.workflowService.status(workflowId),
-        async (apiBaseUrl, timeoutMs) => {
-          const client = createCliApiClient({ baseUrl: apiBaseUrl, timeoutMs });
-          return client.getWorkflowRun(workflowId);
-        }
+      throw new Error(
+        "'work status --workflow' was removed with the legacy file-backed workflow surface. Use /api/v1/workflow-runs/:runId/status for canonical workflow DAG run status."
       );
-      return formatWorkflowStatus(snapshot);
+    }
+    if (sessionId && workflowId) {
+      throw new Error(`'work status' accepts --session only.\n${usage()}`);
     }
     if (!sessionId) {
-      throw new Error(`'work status' requires --session or --workflow\n${usage()}`);
+      throw new Error(`'work status' requires --session\n${usage()}`);
     }
     const queue = await runWithSelectedTransport(
       transport,

@@ -93,60 +93,6 @@ export interface WorkflowRun {
   finishedAt?: string;
 }
 
-export interface WorkflowRunProgressMetadata {
-  totalSteps: number;
-  completedSteps: number;
-  runningSteps: number;
-  failedSteps: number;
-  pendingSteps: number;
-  percentComplete: number;
-}
-
-export interface WorkflowRunEta {
-  computedAt: string;
-  source: "historical-average" | "insufficient-history" | "completed";
-  historicalSampleSize: number;
-  estimatedRemainingMs?: number;
-  estimatedCompletionAt?: string;
-}
-
-export interface WorkflowRunCompatibilityMetadata {
-  surface: "legacy-file-backed-workflow";
-  lifecycle: "deprecated";
-  canonicalWorkflowDagStatusPath: "/api/v1/workflow-runs/{runId}/status";
-  note: string;
-}
-
-export interface WorkflowRunArtifactReference {
-  stepId: string;
-  artifactRef: string;
-  kind: WorkflowStepArtifact["kind"];
-  provider: string;
-  model: string;
-  createdAt: string;
-  outputChars: number;
-}
-
-export interface WorkflowRunObservability {
-  workflow: Workflow;
-  run: WorkflowRun;
-  nodes: WorkflowRunStepState[];
-  progress: WorkflowRunProgressMetadata;
-  artifactRefs: WorkflowRunArtifactReference[];
-  eta: WorkflowRunEta;
-  compatibility: WorkflowRunCompatibilityMetadata;
-}
-
 export interface WorkflowCreateRequest {
   definition: WorkflowDefinition;
-}
-
-export interface WorkflowListQuery {
-  cursor?: string;
-  limit?: number;
-}
-
-export interface WorkflowListResult {
-  items: Workflow[];
-  nextCursor?: string;
 }

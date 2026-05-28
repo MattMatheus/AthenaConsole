@@ -76,27 +76,6 @@ describe("control-plane authorization wrappers", () => {
       ).rejects.toMatchObject({
         code: "AUTHZ_DENIED"
       });
-      await expect(withRole("Viewer", () => services.workflowService.list())).rejects.toMatchObject({
-        code: "AUTHZ_DENIED"
-      });
-      await expect(
-        withRole("Viewer", () =>
-          services.workflowService.create({
-            definition: {
-              steps: [],
-              dependencies: []
-            }
-          })
-        )
-      ).rejects.toMatchObject({
-        code: "AUTHZ_DENIED"
-      });
-      await expect(withRole("Viewer", () => services.workflowService.status("wf-1"))).rejects.toMatchObject({
-        code: "AUTHZ_DENIED"
-      });
-      await expect(withRole("Viewer", () => services.workflowService.resume("wf-1"))).rejects.toMatchObject({
-        code: "AUTHZ_DENIED"
-      });
       await expect(
         withRole("Viewer", () =>
           services.workService.enqueue({
@@ -146,7 +125,7 @@ describe("control-plane authorization wrappers", () => {
           limit: 40
         })
       );
-      expect(deniedEvents.events.length).toBe(19);
+      expect(deniedEvents.events.length).toBe(15);
       expect(deniedEvents.events.map((event) => event.payload.operation)).toEqual([
         "policy.put",
         "runs.cancel",
@@ -154,10 +133,6 @@ describe("control-plane authorization wrappers", () => {
         "schedules.remove",
         "directives.list",
         "directives.create",
-        "workflow.list",
-        "workflow.create",
-        "workflow.status",
-        "workflow.resume",
         "work.enqueue",
         "work.status",
         "work.drain",
@@ -244,13 +219,6 @@ describe("control-plane authorization wrappers", () => {
         )
       ).resolves.toMatchObject({
         input: "operator directive"
-      });
-      await expect(withRole("Operator", () => services.workflowService.list())).resolves.toEqual({ items: [] });
-      await expect(withRole("Operator", () => services.workflowService.status("missing-workflow"))).rejects.toMatchObject({
-        code: "CONFIG_ERROR"
-      });
-      await expect(withRole("Operator", () => services.workflowService.resume("missing-workflow"))).rejects.toMatchObject({
-        code: "CONFIG_ERROR"
       });
       await expect(
         withRole("Operator", () =>
