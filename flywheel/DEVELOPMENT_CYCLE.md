@@ -55,7 +55,7 @@ Flywheel runs a staged workflow with explicit queue movement and cycle closure.
 - Workflow locations are resolved from `flywheel.yaml`.
 - Stage launch context is available in human-readable text and machine-readable JSON.
 - Stage launch behavior is sourced from `flywheel/stage_contracts.yaml`.
-- Backlog movement should use the local state tool when practical so lane placement, metadata status, and transition history are updated together.
+- Backlog movement should use the local state tool when practical so lane placement, frontmatter status, metadata status, transition history, and lane README queues are updated together.
 - Backlog state should pass `flywheel/tools/validate_workflow_state.sh` before cycle closure.
 - Observer is part of cycle closure, not optional cleanup.
 - Artifact readiness must be explicit before promotion.

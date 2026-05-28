@@ -27,7 +27,7 @@ Use this after backlog state changes and before cycle closure.
 ./flywheel/tools/flywheel_state.sh move ARCH-20260524-example active qa --domain architecture --format json
 ```
 
-Use this instead of manually moving backlog files when practical. It moves the file, updates metadata status, and appends transition history.
+Use this instead of manually moving backlog files when practical. It moves the file, updates YAML frontmatter status and markdown metadata status, appends transition history, and keeps the source and target lane README queue sections synchronized.
 
 ## Observer Closure
 

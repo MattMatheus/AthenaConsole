@@ -35,7 +35,7 @@ These should be resolved from `paths.prompts`.
 - Do not commit during intermediate stage transitions.
 - Use one commit per completed cycle.
 - Generate an observer artifact through `flywheel/tools/run_observer_cycle.sh` at cycle closure.
-- Use `flywheel/tools/flywheel_state.sh move ...` for backlog lane movement when practical so status metadata and transition history stay synchronized.
+- Use `flywheel/tools/flywheel_state.sh move ...` for backlog lane movement when practical so frontmatter status, status metadata, transition history, and lane README queues stay synchronized.
 - Treat QA as a gate, not a suggestion.
 - Treat artifact readiness as explicit, not implied.
 - Record evidence, risks, and next-state recommendation in stage handoffs.

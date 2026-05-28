@@ -14,6 +14,30 @@ from flywheel_config import DOMAINS, LANES, load_config, path, rel, repo_root
 
 STATUS_RE = re.compile(r"^(\s*-\s*`status`:\s*)(.*)$", re.MULTILINE)
 ID_RE = re.compile(r"^\s*-\s*`id`:\s*(.*)$", re.MULTILINE)
+FRONTMATTER_RE = re.compile(r"^---\n(?P<body>.*?)\n---\n", re.DOTALL)
+FRONTMATTER_STATUS_RE = re.compile(r"^(status:\s*)(.*)$", re.MULTILINE)
+QUEUE_ITEM_RE = re.compile(r"^(\s*)\d+\.\s*`([^`]+)`(.*)$")
+SECTION_RE = re.compile(r"^##\s+")
+
+QUEUE_SECTIONS = {
+    "intake": "## Candidate Sequence",
+    "ready": "## Ready Sequence",
+    "active": "## Active Sequence",
+    "qa": "## QA Sequence",
+    "done": "## Completed",
+    "blocked": "## Blocked Sequence",
+    "archive": "## Archived",
+}
+
+EMPTY_MESSAGES = {
+    "intake": "No candidate {domain} items.",
+    "ready": "No ready {domain} stories.",
+    "active": "No active {domain} stories.",
+    "qa": "No {domain} stories are waiting for QA.",
+    "done": "No completed {domain} stories.",
+    "blocked": "No blocked {domain} stories.",
+    "archive": "No archived {domain} stories.",
+}
 
 
 def utc_now() -> str:
@@ -71,7 +95,17 @@ def find_item(root: Path, config: dict, domain: str, lane: str, item: str) -> Pa
 def update_status(text: str, to_lane: str) -> str:
     if not STATUS_RE.search(text):
         raise RuntimeError("item is missing metadata status line")
-    return STATUS_RE.sub(rf"\g<1>{to_lane}", text, count=1)
+    updated = STATUS_RE.sub(rf"\g<1>{to_lane}", text, count=1)
+    frontmatter = FRONTMATTER_RE.match(updated)
+    if not frontmatter:
+        return updated
+
+    body = frontmatter.group("body")
+    if not FRONTMATTER_STATUS_RE.search(body):
+        return updated
+
+    body = FRONTMATTER_STATUS_RE.sub(rf"\g<1>{to_lane}", body, count=1)
+    return updated[: frontmatter.start("body")] + body + updated[frontmatter.end("body") :]
 
 
 def append_transition(text: str, from_lane: str, to_lane: str, actor: str, reason: str) -> str:
@@ -86,6 +120,138 @@ def append_transition(text: str, from_lane: str, to_lane: str, actor: str, reaso
     if section not in text:
         return text.rstrip() + "\n\n" + section + "\n" + note
     return text.rstrip() + "\n" + note
+
+
+def queue_item_name(line: str) -> str | None:
+    match = QUEUE_ITEM_RE.match(line)
+    if not match:
+        return None
+    return Path(match.group(2)).name
+
+
+def empty_message(domain: str, lane: str) -> str:
+    return EMPTY_MESSAGES.get(lane, "No {domain} stories.").format(domain=domain)
+
+
+def find_section(lines: list[str], heading: str) -> tuple[int, int] | None:
+    for index, line in enumerate(lines):
+        if line.strip() == heading:
+            end = len(lines)
+            for next_index in range(index + 1, len(lines)):
+                if SECTION_RE.match(lines[next_index]):
+                    end = next_index
+                    break
+            return index, end
+    return None
+
+
+def normalize_queue_section(lines: list[str], start: int, end: int, domain: str, lane: str) -> None:
+    item_number = 1
+    has_items = False
+    for index in range(start + 1, end):
+        match = QUEUE_ITEM_RE.match(lines[index])
+        if match:
+            lines[index] = f"{match.group(1)}{item_number}. `{match.group(2)}`{match.group(3)}"
+            item_number += 1
+            has_items = True
+
+    message = empty_message(domain, lane)
+    message_indices = [
+        index
+        for index in range(start + 1, end)
+        if lines[index].strip().startswith("No ") and queue_item_name(lines[index]) is None
+    ]
+
+    if has_items:
+        for index in reversed(message_indices):
+            del lines[index]
+        return
+
+    if message_indices:
+        first = message_indices[0]
+        lines[first] = message
+        for index in reversed(message_indices[1:]):
+            del lines[index]
+        if first + 1 < len(lines) and lines[first + 1].strip():
+            lines.insert(first + 1, "")
+        return
+
+    insert_at = start + 1
+    while insert_at < len(lines) and lines[insert_at].strip() == "":
+        insert_at += 1
+    lines.insert(insert_at, message)
+    if insert_at + 1 < len(lines) and lines[insert_at + 1].strip():
+        lines.insert(insert_at + 1, "")
+
+
+def remove_queue_item(lines: list[str], item_name: str) -> bool:
+    removed = False
+    for index in range(len(lines) - 1, -1, -1):
+        if queue_item_name(lines[index]) == item_name:
+            del lines[index]
+            removed = True
+    return removed
+
+
+def add_queue_item(lines: list[str], start: int, end: int, item_name: str) -> None:
+    for line in lines[start + 1 : end]:
+        if queue_item_name(line) == item_name:
+            return
+
+    insert_at = end
+    while insert_at > start + 1 and lines[insert_at - 1].strip() == "":
+        insert_at -= 1
+    lines.insert(insert_at, f"1. `{item_name}`")
+
+
+def ensure_queue_section(lines: list[str], heading: str) -> tuple[int, int]:
+    section = find_section(lines, heading)
+    if section:
+        return section
+
+    if lines and lines[-1].strip():
+        lines.append("")
+    lines.extend([heading, ""])
+    return len(lines) - 2, len(lines)
+
+
+def update_lane_readme(root: Path, config: dict, domain: str, lane: str, item_name: str, add: bool) -> str | None:
+    lane_dir = path(root, config, f"paths.{domain}.{lane}")
+    readme = lane_dir / "README.md"
+    if not readme.is_file():
+        return None
+
+    original = readme.read_text(encoding="utf-8")
+    lines = original.splitlines()
+    heading = QUEUE_SECTIONS.get(lane, f"## {lane.title()} Sequence")
+
+    if add:
+        start, end = ensure_queue_section(lines, heading)
+        add_queue_item(lines, start, end, item_name)
+        start, end = find_section(lines, heading) or (start, end + 1)
+        normalize_queue_section(lines, start, end, domain, lane)
+    else:
+        removed = remove_queue_item(lines, item_name)
+        section = find_section(lines, heading)
+        if section and removed:
+            normalize_queue_section(lines, section[0], section[1], domain, lane)
+
+    updated = "\n".join(lines).rstrip() + "\n"
+    if updated != original:
+        readme.write_text(updated, encoding="utf-8")
+        return rel(root, readme)
+    return None
+
+
+def sync_lane_readmes(root: Path, config: dict, domain: str, from_lane: str, to_lane: str, item_name: str) -> list[str]:
+    updated = []
+    from_readme = update_lane_readme(root, config, domain, from_lane, item_name, add=False)
+    if from_readme:
+        updated.append(from_readme)
+    to_readme = update_lane_readme(root, config, domain, to_lane, item_name, add=True)
+    if to_readme:
+        updated.append(to_readme)
+    return updated
 
 
 def move_item(args: argparse.Namespace) -> dict:
@@ -114,6 +280,7 @@ def move_item(args: argparse.Namespace) -> dict:
     temp.write_text(updated, encoding="utf-8")
     shutil.move(str(temp), str(target))
     source.unlink()
+    synced_readmes = sync_lane_readmes(root, config, domain, args.from_lane, args.to_lane, source.name)
 
     return {
         "state_transition": {
@@ -123,6 +290,7 @@ def move_item(args: argparse.Namespace) -> dict:
             "source_path": rel(root, source),
             "target_path": rel(root, target),
             "history_recorded": not args.no_history,
+            "synced_readmes": synced_readmes,
         }
     }
 
@@ -133,13 +301,15 @@ def print_payload(payload: dict, output_format: str) -> None:
         return
     transition = payload["state_transition"]
     print(f"moved: {transition['source_path']} -> {transition['target_path']}")
+    if transition["synced_readmes"]:
+        print(f"synced readmes: {', '.join(transition['synced_readmes'])}")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Manage local Flywheel workflow state")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    move = subparsers.add_parser("move", help="move an item between lanes and update metadata status")
+    move = subparsers.add_parser("move", help="move an item between lanes and update workflow state")
     move.add_argument("item", help="item path, filename, or metadata id")
     move.add_argument("from_lane", choices=LANES)
     move.add_argument("to_lane", choices=LANES)

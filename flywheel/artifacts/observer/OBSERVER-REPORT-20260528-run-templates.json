@@ -1,0 +1,111 @@
+{
+  "cycle_id": "20260528-run-templates",
+  "generated_at_utc": "2026-05-28T03:05:42Z",
+  "branch": "main",
+  "story_path": "flywheel/backlog/engineering/done/STORY-20260528-run-templates.md",
+  "actor": "Codex",
+  "stage_trace": [],
+  "diff_inventory": [
+    "A\tdocs/product/epics/refinement/2026.18.00-epic-run-templates.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260528-run-templates.md",
+    "A\tflywheel/backlog/engineering/ready/STORY-20260528-run-template-console.md",
+    "D\tflywheel/backlog/engineering/intake/STORY-20260528-run-templates.md",
+    "M\tdocs/product/direction/current-direction.md",
+    "M\tflywheel/AGENTS.md",
+    "M\tflywheel/DEVELOPMENT_CYCLE.md",
+    "M\tflywheel/HUMANS.md",
+    "M\tflywheel/backlog/engineering/active/README.md",
+    "M\tflywheel/backlog/engineering/done/README.md",
+    "M\tflywheel/backlog/engineering/intake/README.md",
+    "M\tflywheel/backlog/engineering/ready/README.md",
+    "M\tflywheel/tools/README.md",
+    "M\tflywheel/tools/lib/flywheel_state.py"
+  ],
+  "objective": {
+    "intended_outcome": "Refine the deferred run-templates track, distinguish it from workflow templates and schedules, and create the next implementation story.",
+    "scope_boundary": "PM refinement plus Flywheel harness README-sync fix; no product runtime behavior changes."
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [
+      "flywheel/backlog/engineering/intake/STORY-20260528-run-templates.md",
+      "docs/product/direction/current-direction.md",
+      "existing run-template API/CLI/source/tests"
+    ],
+    "tools_used": [
+      "flywheel_state.sh",
+      "validate_workflow_state.sh",
+      "flywheel_doctor.sh",
+      "vitest",
+      "py_compile"
+    ],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [
+      "run-template refinement epic",
+      "ready console story",
+      "active/done backlog item",
+      "lane READMEs",
+      "current direction",
+      "Flywheel state tool/docs"
+    ],
+    "state_transitions": [
+      "intake -> active",
+      "active -> qa",
+      "qa -> done"
+    ],
+    "non_file_actions": [
+      "focused validation of existing run-template contract tests"
+    ]
+  },
+  "validation": {
+    "checks_run": [
+      "./flywheel/tools/validate_workflow_state.sh --format json",
+      "./flywheel/tools/flywheel_doctor.sh --format json",
+      "python3 -m py_compile flywheel/tools/lib/flywheel_state.py",
+      "npm --workspace @athena/core run test:unit -- tests/api.request-parsers.test.ts tests/control-plane.api-contracts.test.ts tests/api.route-registration.test.ts",
+      "git diff --check"
+    ],
+    "results": [
+      "pass",
+      "pass",
+      "pass",
+      "35 tests passed",
+      "pass"
+    ],
+    "checks_not_run": []
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": true,
+    "prompts_updated_if_stage_behavior_changed": true,
+    "process_docs_updated_if_contracts_or_gates_changed": true,
+    "queue_order_and_state_synchronized": true
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [
+      "Run-template scheduling remains deferred."
+    ],
+    "assumptions_carried": [
+      "Workflow-template DAG execution remains the nearer-term product track."
+    ],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "local write",
+    "approval_required": "no",
+    "approval_reference": "n/a"
+  },
+  "next_step": {
+    "recommended_next_state": "Ready story can be promoted when the deferred run-template console track is selected.",
+    "follow_up_work": [
+      "flywheel/backlog/engineering/ready/STORY-20260528-run-template-console.md"
+    ],
+    "durable_promotions": [
+      "Run-template console story is ready."
+    ]
+  },
+  "release_impact": {
+    "release_scope": "deferred",
+    "additional_release_actions": []
+  }
+}

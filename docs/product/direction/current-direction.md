@@ -65,7 +65,7 @@ Source epic:
 
 These need PM refinement before activation:
 
-- Run templates for repeatable operator-triggered jobs.
+- Run templates for repeatable operator-triggered jobs. Refined track: `docs/product/epics/refinement/2026.18.00-epic-run-templates.md`.
 - Verification/evidence model for output quality gates.
 - Richer runtime isolation and policy packs.
 - A2A observability, if it is reframed against Team Orchestrator’s current event/run model.

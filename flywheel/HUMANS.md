@@ -30,7 +30,7 @@ The harness does not require a product-specific repo layout. Operators should us
 - Do not commit during intermediate stage transitions.
 - Close each completed cycle with an observer report.
 - Use one commit per completed cycle.
-- Prefer `flywheel/tools/flywheel_state.sh move ...` for backlog lane movement so file location, metadata status, and transition history remain synchronized.
+- Prefer `flywheel/tools/flywheel_state.sh move ...` for backlog lane movement so file location, frontmatter status, metadata status, transition history, and lane README queues remain synchronized.
 - Treat artifact readiness as explicit, not implied.
 - Record validation evidence, open risks, and next-state recommendation in handoffs.
 - Validate local backlog state with `flywheel/tools/validate_workflow_state.sh` before cycle closure when queue state changed.
@@ -65,7 +65,7 @@ Examples live under `flywheel/examples/` and should not be treated as active wor
 2. Read the stage prompt from the configured prompt directory.
 3. Work only in the configured backlog lanes and artifact directories.
 4. Produce the required handoff for the stage.
-5. Move backlog items with `flywheel/tools/flywheel_state.sh move ...` when practical.
+5. Move backlog items with `flywheel/tools/flywheel_state.sh move ...` when practical so lane README queues update with the item.
 6. Run `flywheel/tools/validate_workflow_state.sh` when backlog state changed.
 7. Run `flywheel/tools/run_observer_cycle.sh` at cycle closure.
 8. Commit using `workflow.cycle_commit_format`.
