@@ -267,6 +267,65 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
       create index if not exists idx_schedule_run_history_schedule_started
         on schedule_run_history(schedule_id, started_at desc);
     `
+  },
+  {
+    version: 6,
+    name: "add-workflow-dag-run-state",
+    sql: `
+      create table if not exists workflow_dag_runs (
+        id text primary key,
+        workflow_template_id text not null,
+        workflow_template_version text,
+        plugin_id text,
+        plugin_version text,
+        status text not null,
+        step_order_json text not null default '[]',
+        dependencies_json text not null default '{}',
+        failure_json text,
+        created_at text not null,
+        updated_at text not null,
+        started_at text,
+        finished_at text
+      );
+
+      create table if not exists workflow_dag_run_steps (
+        run_id text not null,
+        step_id text not null,
+        status text not null,
+        attempt integer not null default 0,
+        ready integer not null default 0 check (ready in (0, 1)),
+        dependencies_json text not null default '[]',
+        blocking_step_ids_json text not null default '[]',
+        started_at text,
+        finished_at text,
+        failure_json text,
+        output_json text,
+        updated_at text not null,
+        primary key (run_id, step_id),
+        foreign key (run_id) references workflow_dag_runs(id) on delete cascade
+      );
+
+      create table if not exists workflow_dag_run_events (
+        id text primary key,
+        run_id text not null,
+        step_id text,
+        type text not null,
+        level text not null,
+        message text not null default '',
+        payload_json text not null default '{}',
+        timestamp text not null,
+        foreign key (run_id) references workflow_dag_runs(id) on delete cascade
+      );
+
+      create index if not exists idx_workflow_dag_runs_template_updated
+        on workflow_dag_runs(workflow_template_id, updated_at desc);
+      create index if not exists idx_workflow_dag_runs_status
+        on workflow_dag_runs(status);
+      create index if not exists idx_workflow_dag_run_steps_status
+        on workflow_dag_run_steps(run_id, status);
+      create index if not exists idx_workflow_dag_run_events_run_timestamp
+        on workflow_dag_run_events(run_id, timestamp);
+    `
   }
 ];
 

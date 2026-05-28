@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   APP_STATE_DB_FILENAME,
+  APP_STATE_MIGRATIONS,
   openAppStateDatabase,
   resolveAppStateDatabasePath
 } from "../src/control-plane/app-state/index.js";
@@ -39,6 +40,9 @@ describe("control-plane app-state database", () => {
             "runs",
             "schedules",
             "tasks",
+            "workflow_dag_run_events",
+            "workflow_dag_run_steps",
+            "workflow_dag_runs",
             "workflow_template_index"
           ])
         );
@@ -60,6 +64,14 @@ describe("control-plane app-state database", () => {
             expect.objectContaining({
               version: 4,
               name: "add-workflow-template-index"
+            }),
+            expect.objectContaining({
+              version: 5,
+              name: "add-schedule-run-history"
+            }),
+            expect.objectContaining({
+              version: 6,
+              name: "add-workflow-dag-run-state"
             })
           ])
         );
@@ -77,10 +89,10 @@ describe("control-plane app-state database", () => {
       const config = loadConfig(dir);
       openAppStateDatabase(config).close();
 
-      const appState = openAppStateDatabase(config);
+        const appState = openAppStateDatabase(config);
       try {
-        expect(appState.migrations.list()).toHaveLength(4);
-        expect(appState.migrations.listVersions()).toEqual([1, 2, 3, 4]);
+        expect(appState.migrations.list()).toHaveLength(APP_STATE_MIGRATIONS.length);
+        expect(appState.migrations.listVersions()).toEqual(APP_STATE_MIGRATIONS.map((migration) => migration.version));
       } finally {
         appState.close();
       }

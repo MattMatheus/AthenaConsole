@@ -19,6 +19,7 @@ import {
   PluginIndexRepository,
   WorkflowTemplateIndexRepository
 } from "./repositories.js";
+import { WorkflowDagRunRepository } from "./workflow-state-repository.js";
 
 export const APP_STATE_DB_FILENAME = "team-orchestrator.sqlite";
 
@@ -34,6 +35,7 @@ export interface AppStateDatabase {
   readonly plugins: PluginIndexRepository;
   readonly agents: AgentIndexRepository;
   readonly workflowTemplates: WorkflowTemplateIndexRepository;
+  readonly workflowDagRuns: WorkflowDagRunRepository;
   readonly tasks: TaskRepository;
   readonly missions: MissionRepository;
   readonly runs: RunRepository;
@@ -72,6 +74,7 @@ export function openAppStateDatabase(config: AthenaConfig, options: AppStateData
     plugins: new PluginIndexRepository(db),
     agents: new AgentIndexRepository(db),
     workflowTemplates: new WorkflowTemplateIndexRepository(db),
+    workflowDagRuns: new WorkflowDagRunRepository(db),
     tasks: new TaskRepository(db),
     missions: new MissionRepository(db),
     runs: new RunRepository(db),

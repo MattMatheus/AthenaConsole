@@ -1,7 +1,7 @@
 ---
 kind: story
 id: STORY-20260528-workflow-state-store-resumption
-status: active
+status: done
 owner_role: Software Architect
 source: pm
 success_metric: Durable workflow run state can be created, loaded, updated, and resumed without changing current mission/template behavior.
@@ -14,7 +14,7 @@ ready: true
 ## Metadata
 - `id`: STORY-20260528-workflow-state-store-resumption
 - `owner_role`: Software Architect
-- `status`: active
+- `status`: done
 - `source`: pm
 - `decision_refs`: [ADR-0009, ADR-0011, ADR-0012, EPIC-2026.17]
 - `success_metric`: Durable workflow run state can be created, loaded, updated, and resumed without changing current mission/template behavior.
@@ -22,7 +22,7 @@ ready: true
 
 ## Status
 
-Active.
+Done.
 
 ## Source Decisions
 
@@ -67,14 +67,18 @@ Add the first durable workflow-run state model for DAG-capable workflow executio
 
 ## Engineering Handoff
 
-- `change_summary`:
-- `validation_evidence`:
-- `qa_focus`:
-- `open_risks`:
+- `change_summary`: Added SQLite app-state tables and repository access for durable workflow DAG runs, steps, and events. Added `LocalWorkflowStateService` helpers to create runs from parsed workflow-template DAG tasks, load snapshots, start/complete/fail steps, recompute dependency readiness, recover stale running steps into resumable state, and prepare resume from the first failed step. Updated app-state database wiring and migration tests.
+- `validation_evidence`: Pass: `npm --workspace @athena/core exec vitest run tests/control-plane.workflow-state.test.ts`. Pass: `npm --workspace @athena/core exec vitest run tests/control-plane.workflow-template-instantiation.test.ts tests/control-plane.workflow-template-dag.test.ts tests/control-plane.domain-repositories.test.ts`. Pass: `npm --workspace @athena/core run typecheck`. Pass: `npm --workspace @athena/core run validate:manifests`. Pass: `npm --workspace @athena/core run test:unit` (82 files, 386 tests). Pass: `git diff --check`.
+- `qa_focus`: Verify migration 6 creates durable workflow DAG run/step/event tables and remains idempotent. Verify readiness calculations for dependency chains, failure/resume behavior, attempt preservation, and stale running step recovery after reopening the SQLite database. Confirm existing workflow-template instantiation and mission/run repository behavior remain unchanged.
+- `open_risks`: This introduces service-level workflow state only; it is intentionally not wired into a public HTTP route, scheduler execution path, or UI yet. Future executor/status API stories should decide how this service becomes the canonical runtime entry point.
 
 ## QA Verdict
 
-- `verdict`:
-- `evidence_quality`:
-- `defects`:
-- `state_transition`:
+- `verdict`: Pass. Acceptance criteria are satisfied for a service-level durable workflow DAG state slice.
+- `evidence_quality`: Strong. QA reran focused workflow-state tests, affected app-state/workflow-template regression tests, typecheck, manifest validation, `git diff --check`, and the full unit suite. One full-suite attempt hit an unrelated `tests/runtime.lock.test.ts` temp-file race; the failed test passed in isolation and the full suite passed on retry.
+- `defects`: None filed.
+- `state_transition`: Move `qa` -> `done`.
+
+## Transition History
+- `2026-05-28T02:41:28Z`: `active` -> `qa`; engineering handoff ready
+- `2026-05-28T02:42:47Z`: `qa` -> `done`; QA passed
