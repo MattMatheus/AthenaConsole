@@ -1373,6 +1373,54 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       required: ["status", "now"]
     }
   },
+  getReadiness: {
+    operationId: "getReadiness",
+    method: "GET",
+    path: "/api/v1/readiness",
+    responseSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        status: { type: "string", enum: ["ready", "degraded", "not-ready"] },
+        generatedAt: { type: "string", format: "date-time" },
+        summary: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            ready: { type: "boolean" },
+            requiredFailed: { type: "integer", minimum: 0 },
+            degraded: { type: "integer", minimum: 0 },
+            optionalUnavailable: { type: "integer", minimum: 0 }
+          },
+          required: ["ready", "requiredFailed", "degraded", "optionalUnavailable"]
+        },
+        checks: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              id: { type: "string", minLength: 1 },
+              label: { type: "string", minLength: 1 },
+              category: { type: "string", enum: ["api", "app-state", "plugins", "runtime", "sample-demo"] },
+              status: { type: "string", enum: ["ok", "degraded", "failed"] },
+              required: { type: "boolean" },
+              message: { type: "string", minLength: 1 },
+              nextStep: { type: "string", minLength: 1 },
+              details: {
+                type: "object",
+                additionalProperties: {
+                  anyOf: [{ type: "string" }, { type: "number" }, { type: "boolean" }]
+                }
+              }
+            },
+            required: ["id", "label", "category", "status", "required", "message", "nextStep", "details"]
+          }
+        }
+      },
+      required: ["status", "generatedAt", "summary", "checks"]
+    }
+  },
   getAdminHealth: {
     operationId: "getAdminHealth",
     method: "GET",

@@ -66,7 +66,9 @@ Useful checks:
 
 ```bash
 curl http://127.0.0.1:8787/api/v1/health
+curl http://127.0.0.1:8787/api/v1/readiness
 curl http://127.0.0.1:5173/api/v1/health
+curl http://127.0.0.1:5173/api/v1/readiness
 ```
 
 To stop and remove containers:

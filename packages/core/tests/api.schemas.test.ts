@@ -40,6 +40,48 @@ describe("api schemas", () => {
     ).toThrow(AthenaError);
 
     expect(() =>
+      assertApiResponseSchema("getReadiness", {
+        status: "degraded",
+        generatedAt: "2026-02-21T00:00:00.000Z",
+        summary: {
+          ready: false,
+          requiredFailed: 0,
+          degraded: 1,
+          optionalUnavailable: 1
+        },
+        checks: [
+          {
+            id: "sample-demo",
+            label: "Sample/demo workflow",
+            category: "sample-demo",
+            status: "degraded",
+            required: false,
+            message: "No available workflow template is ready for a first-run demo yet.",
+            nextStep: "Continue with the sample plugin workflow demo story before documenting a demo run.",
+            details: {
+              totalWorkflowTemplates: 0,
+              availableWorkflowTemplates: 0
+            }
+          }
+        ]
+      })
+    ).not.toThrow();
+
+    expect(() =>
+      assertApiResponseSchema("getReadiness", {
+        status: "ok",
+        generatedAt: "2026-02-21T00:00:00.000Z",
+        summary: {
+          ready: true,
+          requiredFailed: 0,
+          degraded: 0,
+          optionalUnavailable: 0
+        },
+        checks: []
+      })
+    ).toThrow(AthenaError);
+
+    expect(() =>
       assertApiResponseSchema("getAdminHealth", {
         status: "ok",
         now: "2026-02-21T00:00:00.000Z",

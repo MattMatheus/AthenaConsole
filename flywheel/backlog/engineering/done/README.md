@@ -33,3 +33,4 @@ Engineering work accepted by QA.
 27. `STORY-20260528-run-templates-sqlite-migration.md`
 28. `STORY-20260528-session-artifact-state-classification.md`
 29. `STORY-20260528-remove-legacy-workflow-file-state.md`
+30. `STORY-20260528-first-run-health-readiness.md`

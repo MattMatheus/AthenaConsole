@@ -60,6 +60,7 @@ describe("api server", () => {
     expect(resolveApiRouteFamily("GET", "/api/v1/task-runs/run-1")).toBe("tasks");
     expect(resolveApiRouteFamily("POST", "/api/v1/task-runs/run-1/cancel")).toBe("tasks");
     expect(resolveApiRouteFamily("GET", "/api/v1/unknown")).toBeUndefined();
+    expect(resolveApiRouteFamily("GET", "/api/v1/readiness")).toBe("core");
   });
 
   it("emits AUTHZ_MODE_ACTIVE on server startup", async () => {
@@ -441,6 +442,54 @@ describe("api server", () => {
       expect(healthEnvelope.ok).toBe(true);
       expect(healthEnvelope.data.status).toBe("ok");
       expect(healthEnvelope.data.now).toEqual(expect.any(String));
+
+      const readinessResponse = await fetch(`${base}/api/v1/readiness`);
+      expect(readinessResponse.status).toBe(200);
+      const readinessEnvelope = (await readinessResponse.json()) as {
+        ok: boolean;
+        data: {
+          status: string;
+          generatedAt: string;
+          summary: {
+            ready: boolean;
+            requiredFailed: number;
+            degraded: number;
+            optionalUnavailable: number;
+          };
+          checks: Array<{
+            id: string;
+            status: string;
+            required: boolean;
+            message: string;
+            nextStep: string;
+            details: Record<string, unknown>;
+          }>;
+        };
+      };
+      expect(readinessEnvelope.ok).toBe(true);
+      expect(readinessEnvelope.data.status).toBe("degraded");
+      expect(readinessEnvelope.data.generatedAt).toEqual(expect.any(String));
+      expect(readinessEnvelope.data.summary.requiredFailed).toBe(0);
+      expect(readinessEnvelope.data.checks.map((check) => check.id)).toEqual([
+        "api",
+        "app-state",
+        "plugins",
+        "runtime",
+        "sample-demo"
+      ]);
+      expect(readinessEnvelope.data.checks.find((check) => check.id === "app-state")).toMatchObject({
+        status: "ok",
+        required: true,
+        details: {
+          appStatePath: join(dir, ".athena", "team-orchestrator.sqlite")
+        }
+      });
+      expect(readinessEnvelope.data.checks.find((check) => check.id === "sample-demo")).toMatchObject({
+        status: "degraded",
+        required: false
+      });
+      expect(JSON.stringify(readinessEnvelope.data)).not.toContain("ATHENA_");
+      expect(JSON.stringify(readinessEnvelope.data)).not.toContain("apiKey");
 
       const adminHealthResponse = await fetch(`${base}/api/v1/admin/health`);
       expect(adminHealthResponse.status).toBe(200);

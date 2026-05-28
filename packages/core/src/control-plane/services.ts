@@ -61,6 +61,7 @@ import {
 } from "./services/local-services.js";
 import { LocalLspService, type LocalLspServiceOptions } from "./services/lsp.js";
 import { LocalPolicyService, PolicyAwareExecutionBackend } from "./services/policy.js";
+import { LocalReadinessService } from "./services/readiness.js";
 import { LocalRunService } from "./services/run-service.js";
 import { LocalStateDiagnosticsService } from "./services/state-diagnostics.js";
 import { LocalWorkflowStatusService } from "./services/workflow-status.js";
@@ -85,6 +86,7 @@ import type {
   PersonaService,
   SpecialistService,
   PolicyService,
+  ReadinessService,
   RunService,
   ScheduleService,
   SessionService,
@@ -141,6 +143,7 @@ export interface ControlPlaneServices {
   governanceAuditService: GovernanceAuditService;
   identityService: IdentityService;
   capabilityService: CapabilityService;
+  readinessService: ReadinessService;
   stateDiagnosticsService: StateDiagnosticsService;
   agentCatalogService: AgentCatalogService;
   missionWorkbenchService: MissionWorkbenchService;
@@ -244,6 +247,17 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
 
   const specialistService = new LocalSpecialistService(options.config, authorizedEventService, authorizedLspService);
 
+  const stateDiagnosticsService = new LocalStateDiagnosticsService(options.config, stateStore);
+  const agentCatalogService = new LocalAgentCatalogService(options.config);
+  const workflowTemplateCatalogService = new LocalWorkflowTemplateCatalogService(options.config);
+  const capabilityService = new LocalCapabilityService(executionBackend, fleetMetricsProvider, sandboxExecutionBackend);
+  const readinessService = new LocalReadinessService(options.config, {
+    stateDiagnosticsService,
+    agentCatalogService,
+    workflowTemplateCatalogService,
+    capabilityService
+  });
+
   return {
     runService,
     sessionService,
@@ -251,7 +265,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     harnessProfileService: new LocalHarnessProfileService(stateStore, options.config),
     runTemplateService: new LocalRunTemplateService(stateStore, runService),
     workflowStatusService,
-    workflowTemplateCatalogService: new LocalWorkflowTemplateCatalogService(options.config),
+    workflowTemplateCatalogService,
     workService,
     memoryService,
     lspService: authorizedLspService,
@@ -275,9 +289,10 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
       ),
       authorizer
     ),
-    capabilityService: new LocalCapabilityService(executionBackend, fleetMetricsProvider, sandboxExecutionBackend),
-    stateDiagnosticsService: new LocalStateDiagnosticsService(options.config, stateStore),
-    agentCatalogService: new LocalAgentCatalogService(options.config),
+    capabilityService,
+    readinessService,
+    stateDiagnosticsService,
+    agentCatalogService,
     missionWorkbenchService: new LocalMissionWorkbenchService(options.config),
     taskWorkbenchService: new LocalTaskWorkbenchService(options.config),
     shutdown: async () => {

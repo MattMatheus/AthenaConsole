@@ -1,7 +1,7 @@
 ---
 kind: story
 id: STORY-20260528-first-run-health-readiness
-status: ready
+status: done
 owner_role: Software Engineer
 source: epic
 success_metric: A new local operator can tell whether Team Orchestrator is ready to run useful work and what to fix when it is not.
@@ -14,7 +14,7 @@ ready: true
 ## Metadata
 - `id`: STORY-20260528-first-run-health-readiness
 - `owner_role`: Software Engineer
-- `status`: ready
+- `status`: done
 - `source`: epic
 - `decision_refs`: [ADR-0006, ADR-0010, ADR-0012, ADR-0013]
 - `epic`: docs/product/epics/refinement/2026.23.00-epic-operator-readiness-first-run.md
@@ -56,16 +56,19 @@ The product has health and diagnostics pieces, but a first-run operator still ha
 Engineering should keep this API-first and only touch console UI if an existing health/admin route already exposes the readiness result.
 
 ## Engineering Handoff
-- `change_summary`:
-- `validation_evidence`:
-- `qa_focus`:
-- `open_risks`:
+- `change_summary`: Added an API-first readiness contract at `GET /api/v1/readiness`, backed by a new control-plane readiness service. The report covers API response, SQLite app-state diagnostics, plugin index posture, runtime/provider posture, and sample/demo workflow availability while distinguishing required checks from optional demo gaps. Updated API contracts/schemas, server coverage, focused service tests, and quickstart command hooks.
+- `validation_evidence`: `npm --workspace @athena/core run typecheck`; `npm --workspace @athena/core exec vitest run tests/control-plane.readiness.test.ts tests/api.schemas.test.ts tests/control-plane.api-contracts.test.ts tests/api.server.test.ts`; `npm --workspace @athena/core run test:unit`; `./flywheel/tools/validate_workflow_state.sh`; `git diff --check`.
+- `qa_focus`: Verify readiness response shape, status rollup semantics, no secret/payload leakage, existing `/api/v1/health` and `/api/v1/admin/health` behavior, and Flywheel/docs alignment.
+- `open_risks`: The sample/demo check is intentionally optional and degraded until the next sample plugin workflow story creates a canonical demo template.
 
 ## QA Verdict
-- `verdict`:
-- `evidence_quality`:
-- `defects`:
-- `state_transition`:
+- `verdict`: Pass.
+- `evidence_quality`: Good. QA reran core typecheck, focused readiness/API/schema/server tests, full core unit suite, workflow-state validation, and whitespace checks.
+- `defects`: None. QA found and fixed stale Flywheel/doc lane references caused by the QA transition before final validation.
+- `state_transition`: Move to `done`.
 
 ## Transition History
 - `2026-05-28T22:38:02Z`: `intake` -> `ready`; PM refinement complete for first-run readiness
+- `2026-05-28T22:45:19Z`: `ready` -> `active`; Engineering starts first-run readiness
+- `2026-05-28T22:52:10Z`: `active` -> `qa`; Engineering handoff complete for first-run readiness
+- `2026-05-28T22:52:54Z`: `qa` -> `done`; QA passed for first-run readiness

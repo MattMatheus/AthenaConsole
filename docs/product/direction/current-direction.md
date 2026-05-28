@@ -114,9 +114,9 @@ Source epic:
 
 Goal: make Team Orchestrator understandable and useful to a new local operator within the first few minutes after clone/startup.
 
-Ready engineering sequence:
+Engineering sequence:
 
-- `flywheel/backlog/engineering/ready/STORY-20260528-first-run-health-readiness.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-first-run-health-readiness.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-sample-plugin-workflow-demo.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-console-empty-states-onboarding.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-quickstart-demo-docs-alignment.md`
@@ -159,7 +159,6 @@ Recently completed tracks now live in Flywheel done history:
 
 Ready implementation sequence:
 
-- `flywheel/backlog/engineering/ready/STORY-20260528-first-run-health-readiness.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-sample-plugin-workflow-demo.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-console-empty-states-onboarding.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-quickstart-demo-docs-alignment.md`

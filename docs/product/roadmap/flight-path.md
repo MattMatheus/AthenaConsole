@@ -75,7 +75,7 @@ Source epic:
 
 Ready story sequence:
 
-1. `flywheel/backlog/engineering/ready/STORY-20260528-first-run-health-readiness.md`
+1. `flywheel/backlog/engineering/done/STORY-20260528-first-run-health-readiness.md`
 2. `flywheel/backlog/engineering/ready/STORY-20260528-sample-plugin-workflow-demo.md`
 3. `flywheel/backlog/engineering/ready/STORY-20260528-console-empty-states-onboarding.md`
 4. `flywheel/backlog/engineering/ready/STORY-20260528-quickstart-demo-docs-alignment.md`

@@ -269,6 +269,37 @@ export interface CapabilityService {
   getCapabilities(): Promise<CapabilitySet>;
 }
 
+export type ReadinessCheckCategory = "api" | "app-state" | "plugins" | "runtime" | "sample-demo";
+export type ReadinessCheckStatus = "ok" | "degraded" | "failed";
+export type ReadinessStatus = "ready" | "degraded" | "not-ready";
+
+export interface ReadinessCheck {
+  id: string;
+  label: string;
+  category: ReadinessCheckCategory;
+  status: ReadinessCheckStatus;
+  required: boolean;
+  message: string;
+  nextStep: string;
+  details: Record<string, string | number | boolean>;
+}
+
+export interface ReadinessReport {
+  status: ReadinessStatus;
+  generatedAt: string;
+  summary: {
+    ready: boolean;
+    requiredFailed: number;
+    degraded: number;
+    optionalUnavailable: number;
+  };
+  checks: ReadinessCheck[];
+}
+
+export interface ReadinessService {
+  getReadiness(): Promise<ReadinessReport>;
+}
+
 export interface StateDiagnosticsService {
   getDiagnostics(): {
     ownershipMap: string;

@@ -53,6 +53,7 @@ export interface ApiErrorResponse {
 export const API_V1_ROUTES: ApiRouteDefinition[] = [
   { method: "GET", path: `${API_V1_PREFIX}/capabilities`, operationId: "getCapabilities" },
   { method: "GET", path: `${API_V1_PREFIX}/health`, operationId: "getHealth" },
+  { method: "GET", path: `${API_V1_PREFIX}/readiness`, operationId: "getReadiness" },
   { method: "GET", path: `${API_V1_PREFIX}/admin/health`, operationId: "getAdminHealth" },
   { method: "GET", path: `${API_V1_PREFIX}/agent-catalog/plugins`, operationId: "listAgentCatalogPlugins" },
   { method: "GET", path: `${API_V1_PREFIX}/agent-catalog/agents`, operationId: "listAgentCatalogAgents" },
