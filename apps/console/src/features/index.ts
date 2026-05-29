@@ -13,3 +13,4 @@ export * from "./governance-audit";
 export * from "./dlq";
 export * from "./a2a-observability";
 export * from "./agent-catalog";
+export * from "./connected-repositories";

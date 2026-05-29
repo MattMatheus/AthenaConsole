@@ -177,6 +177,133 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.repoSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.repoConnectionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.repoField {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-200);
+  font-weight: 700;
+}
+
+.repoMetricValue {
+  margin: 0;
+  color: var(--color-brand-900);
+  font-size: var(--font-size-500);
+  font-weight: 800;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.repoEmptyState {
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-1);
+}
+
+.repoList {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.repoRow {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fbfcff;
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.repoRowSelected {
+  border-color: var(--color-brand-500);
+  background: #f3f8ff;
+}
+
+.repoRowMain {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.repoSelect {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+  cursor: pointer;
+}
+
+.repoSelect input {
+  margin-top: 0.2rem;
+}
+
+.repoSelect span {
+  min-width: 0;
+}
+
+.repoName {
+  display: block;
+  color: var(--color-text);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.repoMetaGrid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.repoMetaItem {
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+  padding-bottom: var(--space-2);
+}
+
+.repoMetaItem dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-100);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.repoMetaItem dd {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-200);
+  overflow-wrap: anywhere;
+}
+
+.repoStatusMessage {
+  margin: 0;
+  color: var(--color-error);
+  font-size: var(--font-size-200);
+  overflow-wrap: anywhere;
+}
+
 .resourceTerm {
   border: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent);
   border-radius: 8px;
@@ -663,11 +790,14 @@
   }
 
   .resourceHero,
-  .resourceGrid {
+  .resourceGrid,
+  .repoConnectionGrid {
     grid-template-columns: 1fr;
   }
 
-  .resourceTermGrid {
+  .resourceTermGrid,
+  .repoSummaryGrid,
+  .repoMetaGrid {
     grid-template-columns: 1fr;
   }
 

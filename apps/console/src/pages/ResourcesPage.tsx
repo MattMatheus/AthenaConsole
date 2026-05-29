@@ -1,16 +1,153 @@
-import { CheckCircle2, FolderGit2, PlugZap, Route, Settings2 } from "lucide-react";
+import { CheckCircle2, FolderGit2, GitBranch, PlugZap, RefreshCw, Route, Save } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  useConnectedRepositoriesQuery,
+  useCreateConnectedRepositoryMutation,
+  useInspectConnectedRepositoryMutation,
+  type ConnectedRepository,
+  type ConnectedRepositoryCreateRequest,
+} from "../features/connected-repositories";
 import styles from "./PageScaffold.module.css";
 
+type ManagedCloneFormState = {
+  name: string;
+  remoteUrl: string;
+  defaultBranch: string;
+};
+
+type ExistingPathFormState = {
+  name: string;
+  workspacePath: string;
+  hostPath: string;
+};
+
+const initialManagedCloneForm: ManagedCloneFormState = {
+  name: "",
+  remoteUrl: "",
+  defaultBranch: "",
+};
+
+const initialExistingPathForm: ExistingPathFormState = {
+  name: "",
+  workspacePath: "",
+  hostPath: "",
+};
+
+function trimOptional(value: string): string | undefined {
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function formatDate(value: string | undefined): string {
+  if (!value) {
+    return "Not inspected";
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
+
+function shortCommit(value: string | undefined): string {
+  return value ? value.slice(0, 12) : "No commit";
+}
+
+function sourceLabel(repository: ConnectedRepository): string {
+  return repository.sourceType === "managed-clone" ? "Managed clone" : "Existing path";
+}
+
+function statusClass(repository: ConnectedRepository): string {
+  if (repository.status === "ready") {
+    return styles.statusReady ?? "";
+  }
+  if (repository.status === "missing" || repository.status === "invalid" || repository.status === "error") {
+    return styles.statusFailed ?? "";
+  }
+  return styles.statusDegraded ?? "";
+}
+
 export function ResourcesPage() {
+  const repositoriesQuery = useConnectedRepositoriesQuery();
+  const createRepositoryMutation = useCreateConnectedRepositoryMutation();
+  const inspectRepositoryMutation = useInspectConnectedRepositoryMutation();
+  const repositories = useMemo(() => repositoriesQuery.data?.repositories ?? [], [repositoriesQuery.data?.repositories]);
+  const [selectedRepositoryId, setSelectedRepositoryId] = useState("");
+  const [managedCloneForm, setManagedCloneForm] = useState<ManagedCloneFormState>(initialManagedCloneForm);
+  const [existingPathForm, setExistingPathForm] = useState<ExistingPathFormState>(initialExistingPathForm);
+  const [formError, setFormError] = useState<string | null>(null);
+  const selectedRepository = useMemo(
+    () => repositories.find((repository) => repository.id === selectedRepositoryId) ?? repositories[0],
+    [repositories, selectedRepositoryId],
+  );
+  const activeError = formError ?? mutationError(createRepositoryMutation.error) ?? mutationError(inspectRepositoryMutation.error);
+
+  function createRepository(request: ConnectedRepositoryCreateRequest, clearForm: () => void): void {
+    setFormError(null);
+    createRepositoryMutation.mutate(request, {
+      onSuccess: (repository) => {
+        setSelectedRepositoryId(repository.id);
+        clearForm();
+      },
+    });
+  }
+
+  function submitManagedClone(): void {
+    const name = managedCloneForm.name.trim();
+    const remoteUrl = managedCloneForm.remoteUrl.trim();
+    if (!name || !remoteUrl) {
+      setFormError("Managed clones need a name and a public HTTP(S) Git URL.");
+      return;
+    }
+    const defaultBranch = trimOptional(managedCloneForm.defaultBranch);
+    createRepository(
+      {
+        name,
+        sourceType: "managed-clone",
+        remoteUrl,
+        ...(defaultBranch ? { defaultBranch } : {}),
+      },
+      () => setManagedCloneForm(initialManagedCloneForm),
+    );
+  }
+
+  function submitExistingPath(): void {
+    const name = existingPathForm.name.trim();
+    const workspacePath = existingPathForm.workspacePath.trim();
+    if (!name || !workspacePath) {
+      setFormError("Existing-path repositories need a name and an absolute workspace path.");
+      return;
+    }
+    const hostPath = trimOptional(existingPathForm.hostPath);
+    createRepository(
+      {
+        name,
+        sourceType: "existing-path",
+        workspacePath,
+        ...(hostPath ? { hostPath } : {}),
+      },
+      () => setExistingPathForm(initialExistingPathForm),
+    );
+  }
+
+  async function refreshAll(): Promise<void> {
+    await repositoriesQuery.refetch();
+  }
+
   return (
     <section className={styles.page}>
       <div className={styles.pageHeader}>
         <div>
           <p className={styles.key}>Resource Controls</p>
-          <h2 className={styles.pageTitle}>Repo Wiring</h2>
+          <h2 className={styles.pageTitle}>Repositories</h2>
         </div>
         <div className={styles.headerActions}>
+          <button
+            type="button"
+            className={styles.secondaryCta}
+            onClick={() => void refreshAll()}
+            disabled={repositoriesQuery.isFetching}
+          >
+            <RefreshCw size={16} /> Refresh
+          </button>
           <Link to="/agents" className={styles.secondaryCta}>
             <PlugZap size={16} /> Agents
           </Link>
@@ -21,87 +158,216 @@ export function ResourcesPage() {
       </div>
 
       <p className={styles.lead}>
-        Wire a local target repo through configuration or run context, then use plugin-backed agents and workflow templates against that repo.
+        Connect the local or cloned Git repositories that agents will inspect and modify during work.
       </p>
 
-      <section className={styles.resourceHero}>
-        <div>
-          <p className={styles.key}>Operating Model</p>
-          <h3 className={styles.resourceTitle}>Team Orchestrator does not save repositories yet</h3>
-          <p className={styles.settingsMuted}>
-            The workspace owns app state and plugin discovery. The target repo is the local project path you expose to the runtime and pass into work when an agent or workflow needs it.
-          </p>
-        </div>
-        <div className={styles.resourceTermGrid}>
-          <TermCard title="Workspace" body="Owns .athena state, local config, relative plugin paths, and artifacts." />
-          <TermCard title="Plugin path" body="Contains plugin packages that provide agents and workflow templates." />
-          <TermCard title="Target repo" body="The local codebase agents should inspect or modify during a run." />
-          <TermCard title="Run context" body="Task or workflow inputs that name the repo, files, branch, or objective." />
-        </div>
+      <section className={styles.repoSummaryGrid}>
+        <StatusTile label="Connected" value={String(repositories.length)} />
+        <StatusTile label="Ready" value={String(repositories.filter((repository) => repository.status === "ready").length)} />
+        <StatusTile label="Dirty" value={String(repositories.filter((repository) => repository.dirtyState === "dirty").length)} />
+        <StatusTile label="Selected" value={selectedRepository?.name ?? "None"} />
       </section>
 
-      <div className={styles.resourceGrid}>
-        <section className={styles.settingsPanel}>
+      <div className={styles.repoConnectionGrid}>
+        <form
+          className={styles.settingsPanel}
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitManagedClone();
+          }}
+        >
           <div className={styles.settingsHeader}>
             <div>
-              <p className={styles.key}>Local Compose</p>
-              <h3 className={styles.resourceTitle}>Mount the target repo</h3>
+              <p className={styles.key}>Managed Clone</p>
+              <h3 className={styles.resourceTitle}>Clone a public repo</h3>
             </div>
             <FolderGit2 size={18} />
           </div>
-          <p className={styles.settingsMuted}>
-            For Docker Compose, expose a host repo path to the services and use the container path as the repo value in task or workflow inputs.
-          </p>
-          <dl className={styles.resourceKvList}>
-            <Kv label="Host repo path" value="ATHENA_REPO_HOST_PATH" />
-            <Kv label="Container repo path" value="ATHENA_REPO_CONTAINER_PATH" />
-            <Kv label="Default container path" value="/workspace/target-repo" />
-            <Kv label="Sandbox host path" value="ATHENA_SANDBOX_WORKSPACE_HOST_PATH" />
-          </dl>
-        </section>
+          <label className={styles.repoField}>
+            <span>Name</span>
+            <input
+              className={styles.settingsInput}
+              value={managedCloneForm.name}
+              onChange={(event) => setManagedCloneForm((current) => ({ ...current, name: event.target.value }))}
+              placeholder="Docs site"
+            />
+          </label>
+          <label className={styles.repoField}>
+            <span>Git URL</span>
+            <input
+              className={styles.settingsInput}
+              value={managedCloneForm.remoteUrl}
+              onChange={(event) => setManagedCloneForm((current) => ({ ...current, remoteUrl: event.target.value }))}
+              placeholder="https://github.com/team/repo.git"
+            />
+          </label>
+          <label className={styles.repoField}>
+            <span>Default branch</span>
+            <input
+              className={styles.settingsInput}
+              value={managedCloneForm.defaultBranch}
+              onChange={(event) => setManagedCloneForm((current) => ({ ...current, defaultBranch: event.target.value }))}
+              placeholder="main"
+            />
+          </label>
+          <div className={styles.settingsActions}>
+            <button type="submit" className={styles.settingsButtonPrimary} disabled={createRepositoryMutation.isPending}>
+              <Save size={16} /> Clone
+            </button>
+          </div>
+        </form>
 
-        <section className={styles.settingsPanel}>
+        <form
+          className={styles.settingsPanel}
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitExistingPath();
+          }}
+        >
           <div className={styles.settingsHeader}>
             <div>
-              <p className={styles.key}>Agent Supply</p>
-              <h3 className={styles.resourceTitle}>Load plugins separately</h3>
+              <p className={styles.key}>Existing Path</p>
+              <h3 className={styles.resourceTitle}>Register a local repo</h3>
             </div>
-            <PlugZap size={18} />
+            <GitBranch size={18} />
           </div>
-          <p className={styles.settingsMuted}>
-            Plugin directories provide agents. They can live in the workspace, system paths, or another configured local directory; they are not the same thing as the target repo.
-          </p>
-          <dl className={styles.resourceKvList}>
-            <Kv label="Workspace plugins" value="ATHENA_PLUGIN_PATHS" />
-            <Kv label="System plugins" value="ATHENA_SYSTEM_PLUGIN_PATHS" />
-            <Kv label="Catalog action" value="Refresh Agents after changing plugin files." />
-          </dl>
-        </section>
+          <label className={styles.repoField}>
+            <span>Name</span>
+            <input
+              className={styles.settingsInput}
+              value={existingPathForm.name}
+              onChange={(event) => setExistingPathForm((current) => ({ ...current, name: event.target.value }))}
+              placeholder="Athena Console"
+            />
+          </label>
+          <label className={styles.repoField}>
+            <span>Workspace path</span>
+            <input
+              className={styles.settingsInput}
+              value={existingPathForm.workspacePath}
+              onChange={(event) => setExistingPathForm((current) => ({ ...current, workspacePath: event.target.value }))}
+              placeholder="/workspace/target-repo"
+            />
+          </label>
+          <label className={styles.repoField}>
+            <span>Host path</span>
+            <input
+              className={styles.settingsInput}
+              value={existingPathForm.hostPath}
+              onChange={(event) => setExistingPathForm((current) => ({ ...current, hostPath: event.target.value }))}
+              placeholder="/Users/me/project"
+            />
+          </label>
+          <div className={styles.settingsActions}>
+            <button type="submit" className={styles.settingsButtonPrimary} disabled={createRepositoryMutation.isPending}>
+              <Save size={16} /> Add Path
+            </button>
+          </div>
+        </form>
       </div>
+
+      {activeError ? (
+        <section className={styles.resourceCallout}>
+          <CheckCircle2 size={18} />
+          <div>
+            <p className={styles.value}>Repository action failed</p>
+            <p className={styles.settingsMuted}>{activeError}</p>
+          </div>
+        </section>
+      ) : null}
 
       <section className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
           <div>
-            <p className={styles.key}>Checklist</p>
-            <h3 className={styles.resourceTitle}>First real repo run</h3>
+            <p className={styles.key}>Connected Repositories</p>
+            <h3 className={styles.resourceTitle}>Select repo context</h3>
           </div>
-          <CheckCircle2 size={18} />
+          <span className={styles.settingsMuted}>{repositoriesQuery.isFetching ? "Refreshing" : `${repositories.length} total`}</span>
         </div>
-        <ol className={styles.resourceSteps}>
-          <li>Choose the local repository path you want agents to operate on.</li>
-          <li>For Docker Compose, set `ATHENA_REPO_HOST_PATH`; use `ATHENA_REPO_CONTAINER_PATH` or `/workspace/target-repo` inside run inputs.</li>
-          <li>Add or update plugin packages through configured plugin paths, then refresh the Agents catalog.</li>
-          <li>Confirm the selected agent or workflow template declares inputs for repo path, files, branch, or objective.</li>
-          <li>Create a task or instantiate a workflow and provide the target repo as run context.</li>
-        </ol>
+
+        {repositoriesQuery.error instanceof Error ? (
+          <div className={styles.repoEmptyState}>
+            <p className={styles.value}>Repository API unavailable</p>
+            <p className={styles.settingsMuted}>{repositoriesQuery.error.message}</p>
+          </div>
+        ) : null}
+
+        {repositoriesQuery.isLoading ? (
+          <div className={styles.repoEmptyState}>
+            <p className={styles.value}>Loading repositories</p>
+            <p className={styles.settingsMuted}>Reading connected repo records from local app state.</p>
+          </div>
+        ) : null}
+
+        {!repositoriesQuery.isLoading && !repositoriesQuery.error && repositories.length === 0 ? (
+          <div className={styles.repoEmptyState}>
+            <p className={styles.value}>No repositories connected</p>
+            <p className={styles.settingsMuted}>
+              Add a public HTTP(S) Git clone or register an absolute local path. Private Git auth and credential collection are not enabled yet.
+            </p>
+          </div>
+        ) : null}
+
+        {repositories.length > 0 ? (
+          <div className={styles.repoList}>
+            {repositories.map((repository) => (
+              <article
+                key={repository.id}
+                className={`${styles.repoRow} ${selectedRepository?.id === repository.id ? styles.repoRowSelected : ""}`}
+              >
+                <div className={styles.repoRowMain}>
+                  <label className={styles.repoSelect}>
+                    <input
+                      type="radio"
+                      name="selectedRepository"
+                      checked={selectedRepository?.id === repository.id}
+                      onChange={() => setSelectedRepositoryId(repository.id)}
+                    />
+                    <span>
+                      <span className={styles.repoName}>{repository.name}</span>
+                      <span className={styles.settingsMuted}>{sourceLabel(repository)}</span>
+                    </span>
+                  </label>
+                  <span className={statusClass(repository)}>{repository.status}</span>
+                </div>
+                <dl className={styles.repoMetaGrid}>
+                  <Meta label="Branch" value={repository.currentBranch ?? repository.defaultBranch ?? "No branch"} />
+                  <Meta label="Commit" value={shortCommit(repository.headCommit)} />
+                  <Meta label="Dirty" value={repository.dirtyState} />
+                  <Meta label="Inspected" value={formatDate(repository.lastInspectedAt)} />
+                  <Meta label="Workspace" value={repository.workspacePath} />
+                  <Meta label="Source" value={repository.remoteUrl ?? repository.hostPath ?? "Local path"} />
+                </dl>
+                {repository.statusMessage ? <p className={styles.repoStatusMessage}>{repository.statusMessage}</p> : null}
+                <div className={styles.settingsActionsStart}>
+                  <button
+                    type="button"
+                    className={styles.settingsButton}
+                    onClick={() => inspectRepositoryMutation.mutate(repository.id)}
+                    disabled={inspectRepositoryMutation.isPending}
+                  >
+                    <RefreshCw size={16} /> Inspect
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.settingsButton}
+                    onClick={() => setSelectedRepositoryId(repository.id)}
+                  >
+                    <CheckCircle2 size={16} /> Select
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className={styles.resourceCallout}>
-        <Settings2 size={18} />
+        <PlugZap size={18} />
         <div>
           <p className={styles.value}>Current boundary</p>
           <p className={styles.settingsMuted}>
-            This guidance uses today&apos;s configuration and runtime behavior. Repository CRUD, remote clone, Git provider auth, and console-native agent authoring are intentionally outside this flow.
+            Connected repositories are local app-state records. Public HTTP(S) clones and absolute paths are supported; private provider auth, credential storage, and remote pushes are deferred.
           </p>
         </div>
       </section>
@@ -109,18 +375,22 @@ export function ResourcesPage() {
   );
 }
 
-function TermCard({ title, body }: { title: string; body: string }) {
+function mutationError(error: unknown): string | undefined {
+  return error instanceof Error ? error.message : undefined;
+}
+
+function StatusTile({ label, value }: { label: string; value: string }) {
   return (
     <article className={styles.resourceTerm}>
-      <p className={styles.value}>{title}</p>
-      <p className={styles.settingsMuted}>{body}</p>
+      <p className={styles.key}>{label}</p>
+      <p className={styles.repoMetricValue}>{value}</p>
     </article>
   );
 }
 
-function Kv({ label, value }: { label: string; value: string }) {
+function Meta({ label, value }: { label: string; value: string }) {
   return (
-    <div className={styles.resourceKvRow}>
+    <div className={styles.repoMetaItem}>
       <dt>{label}</dt>
       <dd>{value}</dd>
     </div>
