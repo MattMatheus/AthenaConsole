@@ -132,7 +132,7 @@ Candidate sequence:
 
 1. `flywheel/backlog/architecture/done/ARCH-20260529-repo-wiring-operating-model.md`
 2. `flywheel/backlog/engineering/done/STORY-20260529-agent-catalog-operating-guidance.md`
-3. `flywheel/backlog/engineering/intake/STORY-20260529-repo-wiring-guidance-surface.md`
+3. `flywheel/backlog/engineering/done/STORY-20260529-repo-wiring-guidance-surface.md`
 4. `flywheel/backlog/engineering/intake/STORY-20260529-create-work-entry-points.md`
 5. `flywheel/backlog/engineering/intake/STORY-20260529-first-run-to-real-repo-bridge.md`
 

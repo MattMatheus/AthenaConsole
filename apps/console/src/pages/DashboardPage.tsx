@@ -1,4 +1,4 @@
-import { CheckCircle2, CircleAlert, RefreshCw, Route, Workflow } from "lucide-react";
+import { CheckCircle2, CircleAlert, FolderGit2, RefreshCw, Route, Workflow } from "lucide-react";
 import { Link } from "react-router-dom";
 import { FleetDashboard } from "../features/fleet";
 import { useReadinessQuery } from "../features/readiness";
@@ -53,8 +53,13 @@ export function DashboardPage() {
           />
           <OnboardingStep
             icon={<CircleAlert size={18} />}
-            title="Inspect operators"
+            title="Inspect agents"
             body="Review indexed agents and plugins before assigning or resuming work."
+          />
+          <OnboardingStep
+            icon={<FolderGit2 size={18} />}
+            title="Wire a repo"
+            body="Open Resource Controls for the current local repo wiring model and validation checklist."
           />
         </div>
         <div className={styles.onboardingActions}>
@@ -68,6 +73,9 @@ export function DashboardPage() {
           </button>
           <Link to="/agents" className={styles.inlineAction}>
             Agents
+          </Link>
+          <Link to="/resources" className={styles.inlineAction}>
+            Repo wiring
           </Link>
           <Link to="/workflows" className={styles.inlineAction}>
             Workflow templates

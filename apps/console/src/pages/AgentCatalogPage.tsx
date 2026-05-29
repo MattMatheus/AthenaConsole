@@ -190,6 +190,9 @@ export function AgentCatalogPage() {
           <p className={styles.description}>
             Agents are provided by local plugin packages discovered from configured plugin paths. To add or change agents, update plugin files on disk and refresh the catalog.
           </p>
+          <Link className={styles.detailLink} to="/resources">
+            Repo wiring guidance
+          </Link>
         </div>
         <div className={styles.guidanceGrid}>
           <div className={styles.guidanceItem}>

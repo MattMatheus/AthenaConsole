@@ -42,3 +42,4 @@ Engineering work accepted by QA.
 36. `STORY-20260528-operator-dashboard-polish.md`
 37. `STORY-20260528-legacy-advanced-surface-containment.md`
 38. `STORY-20260529-agent-catalog-operating-guidance.md`
+39. `STORY-20260529-repo-wiring-guidance-surface.md`
