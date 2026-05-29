@@ -127,6 +127,8 @@ For production-like local validation, use the `docker-compose.prod.yml` workflow
 
 For a durable trusted-LAN server install, use `docker-compose.server.yml` with the path and secret model documented in [Local Server Deployment](docs/developer/product-dev-guides/local-server-deployment.md).
 
+For an end-to-end local-server proof, follow [Fresh Server Real-Work Walkthrough](docs/developer/product-dev-guides/fresh-server-real-work-walkthrough.md).
+
 ## Project Notes
 
 The package names still use `athena` in several places while the product direction has moved to Team Orchestrator. Treat `athena` package names and CLI names as implementation history for now.

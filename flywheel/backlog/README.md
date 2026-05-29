@@ -16,7 +16,7 @@ No engineering or architecture work is awaiting QA.
 
 Refined work ready to activate:
 
-- `engineering/ready/STORY-20260529-fresh-server-real-work-walkthrough.md`
+No ready engineering or architecture work.
 
 ## Later
 
@@ -28,6 +28,7 @@ No candidate engineering or architecture intake items.
 
 Recently completed:
 
+- `engineering/done/STORY-20260529-fresh-server-real-work-walkthrough.md`
 - `engineering/done/STORY-20260529-deployment-readiness-diagnostics.md`
 - `engineering/done/STORY-20260529-local-server-compose-profile.md`
 - `engineering/done/STORY-20260529-safe-run-modes-and-proposed-changes.md`

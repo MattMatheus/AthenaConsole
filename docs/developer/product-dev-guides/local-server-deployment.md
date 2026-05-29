@@ -2,6 +2,8 @@
 
 Use `docker-compose.server.yml` when Team Orchestrator should run on a durable local server instead of a laptop dev process. This profile is for a trusted home or lab LAN. It is not an internet-facing production profile.
 
+For the full clean-server path through repo connection, a useful sample agent run, artifact inspection, and backup/restore, use [Fresh Server Real-Work Walkthrough](fresh-server-real-work-walkthrough.md).
+
 ## Start
 
 Copy the example environment and edit every secret or host path before first boot:

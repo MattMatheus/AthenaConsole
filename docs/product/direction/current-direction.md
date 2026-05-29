@@ -192,7 +192,7 @@ Ready implementation sequence:
 - `flywheel/backlog/engineering/done/STORY-20260529-safe-run-modes-and-proposed-changes.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-local-server-compose-profile.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-deployment-readiness-diagnostics.md`
-- `flywheel/backlog/engineering/ready/STORY-20260529-fresh-server-real-work-walkthrough.md`
+- `flywheel/backlog/engineering/done/STORY-20260529-fresh-server-real-work-walkthrough.md`
 
 Recently completed tracks now live in Flywheel done history:
 
