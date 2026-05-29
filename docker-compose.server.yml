@@ -1,0 +1,73 @@
+# Local-server deployment profile for a trusted home/lab LAN.
+# It is not an internet-facing production profile. Keep ports bound to 127.0.0.1
+# unless the server is protected by LAN firewall/VPN rules you control.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: packages/core/infrastructure/docker/control-plane.prod.Dockerfile
+    environment:
+      ATHENA_DEV_API_HOST: 0.0.0.0
+      ATHENA_DEV_API_PORT: 8787
+      ATHENA_AUTH_ENABLED: "true"
+      ATHENA_AUTH_API_TOKEN: ${ATHENA_AUTH_API_TOKEN:?Set ATHENA_AUTH_API_TOKEN in server.env}
+      ATHENA_AUTH_IDENTITY_ROLE_MAP: console:Admin,healthcheck:Viewer,*:Viewer
+      ATHENA_AUTHZ_MODE: enforce
+      ATHENA_AUTHZ_DEFAULT_DECISION: deny
+      ATHENA_WORKSPACE_ROOT: /athena/workspace
+      ATHENA_STATE_DIR: /athena/state
+      ATHENA_PLUGIN_PATHS: /athena/plugins,/workspace/sample-plugins
+      ATHENA_LOCK_PROVIDER_DEFAULT: local
+      ATHENA_DISTRIBUTED_LOCK_PROVIDER: local
+      ATHENA_EXECUTION_PROVIDER_DEFAULT: docker
+      ATHENA_SANDBOX_BACKEND_PROVIDER: docker
+      ATHENA_SANDBOX_WORKSPACE_HOST_PATH: ${ATHENA_SANDBOX_WORKSPACE_HOST_PATH:-/srv/team-orchestrator/workspace}
+      ATHENA_SANDBOX_DOCKER_NETWORK_MODE: none
+      ATHENA_OPENAI_API_KEY: ${ATHENA_OPENAI_API_KEY:-}
+      ATHENA_FOUNDRY_API_KEY: ${ATHENA_FOUNDRY_API_KEY:-}
+    volumes:
+      - ${ATHENA_SERVER_WORKSPACE_PATH:-/srv/team-orchestrator/workspace}:/athena/workspace
+      - ${ATHENA_SERVER_STATE_PATH:-/srv/team-orchestrator/state}:/athena/state
+      - ${ATHENA_SERVER_ARTIFACTS_PATH:-/srv/team-orchestrator/artifacts}/run-evidence:/athena/state/run-evidence
+      - ${ATHENA_SERVER_ARTIFACTS_PATH:-/srv/team-orchestrator/artifacts}/transcripts:/athena/state/transcripts
+      - ${ATHENA_SERVER_ARTIFACTS_PATH:-/srv/team-orchestrator/artifacts}/specialist-runs:/athena/state/specialist-runs
+      - ${ATHENA_SERVER_ARTIFACTS_PATH:-/srv/team-orchestrator/artifacts}/persona-runs:/athena/state/persona-runs
+      - ${ATHENA_SERVER_REPOS_PATH:-/srv/team-orchestrator/repos}:/athena/workspace/repos
+      - ${ATHENA_SERVER_PLUGINS_PATH:-/srv/team-orchestrator/plugins}:/athena/plugins
+      - ${ATHENA_SERVER_SECRETS_PATH:-/srv/team-orchestrator/secrets}:/run/secrets/athena:ro
+      - ${ATHENA_SERVER_DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock
+    ports:
+      - "${ATHENA_SERVER_BIND_ADDRESS:-127.0.0.1}:${ATHENA_SERVER_API_PORT:-8787}:8787"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:8787/api/v1/health',{headers:{authorization:'Bearer '+process.env.ATHENA_AUTH_API_TOKEN,'x-athena-identity':'healthcheck'}}).then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+  console:
+    build:
+      context: .
+      dockerfile: packages/core/infrastructure/docker/console.prod.Dockerfile
+      args:
+        VITE_ATHENA_API_TOKEN: ${ATHENA_AUTH_API_TOKEN:?Set ATHENA_AUTH_API_TOKEN in server.env}
+        VITE_ATHENA_IDENTITY: console
+        VITE_CONSOLE_PASSWORD: ${ATHENA_CONSOLE_PASSWORD:?Set ATHENA_CONSOLE_PASSWORD in server.env}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${ATHENA_SERVER_BIND_ADDRESS:-127.0.0.1}:${ATHENA_SERVER_CONSOLE_PORT:-5173}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped

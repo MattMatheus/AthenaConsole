@@ -259,6 +259,18 @@ If sandboxed work needs access to a specific local source tree, set:
 ATHENA_SANDBOX_WORKSPACE_HOST_PATH=/absolute/path/to/source
 ```
 
+## Local Server Deployment
+
+Use `docker-compose.server.yml` when you want Team Orchestrator to keep running on a trusted local server with explicit durable paths for state, artifacts, managed repos, plugins, and local secret files.
+
+```bash
+cp server.env.example server.env
+# Edit server.env before starting.
+docker compose --env-file server.env -f docker-compose.server.yml up --build -d
+```
+
+The server profile binds ports to `127.0.0.1` by default. Set `ATHENA_SERVER_BIND_ADDRESS=0.0.0.0` only for a protected LAN. See [Local Server Deployment](docs/developer/product-dev-guides/local-server-deployment.md) for path ownership and secret-file conventions.
+
 ## Production-Like Local Validation
 
 `docker-compose.prod.yml` builds compiled API artifacts and serves static console assets through Nginx with `/api/*` proxied to the API container. It requires explicit auth settings.

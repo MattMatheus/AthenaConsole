@@ -15,6 +15,10 @@ RUN npm run build --workspace @athena/core && npm run build --workspace @athena/
 FROM node:20-bookworm-slim AS runtime
 WORKDIR /workspace
 
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends git ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
 ENV NODE_ENV=production
 ENV ATHENA_DEV_API_HOST=0.0.0.0
 ENV ATHENA_DEV_API_PORT=8787

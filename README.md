@@ -28,7 +28,7 @@ The current foundation includes:
 - SQLite-backed app state for plugins, agents, tasks, missions, runs, events, artifact metadata, schedules, workflow templates, workflow DAG runs, directives, harness profiles, and run templates.
 - A React console for the main operator workflows and first-run onboarding.
 - A Node/TypeScript API and core orchestration package.
-- Local and production-like Docker Compose workflows.
+- Local, local-server, and production-like Docker Compose workflows.
 - Product direction and architecture records under `docs/product/`.
 
 The project intentionally does not maintain legacy compatibility shims for deprecated file-backed control-plane state. When state ownership changes, the project moves forward and updates the canonical runtime path.
@@ -124,6 +124,8 @@ Architecture decision records are under:
 - [docs/product/architecture/decisions/](docs/product/architecture/decisions/)
 
 For production-like local validation, use the `docker-compose.prod.yml` workflow documented in [GETTING_STARTED.md](GETTING_STARTED.md).
+
+For a durable trusted-LAN server install, use `docker-compose.server.yml` with the path and secret model documented in [Local Server Deployment](docs/developer/product-dev-guides/local-server-deployment.md).
 
 ## Project Notes
 

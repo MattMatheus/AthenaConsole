@@ -21,7 +21,10 @@ target-clean/
 # Environment and secrets
 .env
 .env.*
+server.env
 !.env.example
+!*.env.example
+.athena-server/
 
 # Logs
 *.log
