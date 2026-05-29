@@ -4,6 +4,8 @@
 
 This guide covers current implementation extension points. Future extension work should be reframed around formal agents, plugins, lifecycle contracts, and pluggable execution backends.
 
+For authoring a new local plugin-backed agent, start with `packages/core/docs/user/07-pdk-guide.md`. The console is for operating installed agents; plugin manifests and runner files remain the normal authoring path.
+
 ## 1. Add a New `ExecutionBackend`
 
 Use this when introducing a new direct run backend (for example a container or remote executor).

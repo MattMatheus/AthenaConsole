@@ -10,17 +10,17 @@ For users looking to install and use Team Orchestrator.
 - [**Quickstart**](user/00-quickstart.md) - The fastest way to get Team Orchestrator up and running.
 - [**Introduction**](user/01-introduction.md) - Overview of core concepts and architecture.
 - [**Installation**](user/02-installation.md) - Prerequisites and setup instructions.
-- [**Basic Usage**](user/03-basic-usage.md) - How to run turns and use personas.
+- [**Basic Usage**](user/03-basic-usage.md) - Current CLI and API usage patterns.
 - [**API Server**](user/04-api-server.md) - Interacting with the Team Orchestrator API.
 - [**Advanced Usage**](user/05-advanced-usage.md) - Complex workflows and configurations.
 - [**API Examples**](user/06-api-examples.md) - Practical examples of API requests.
-- [**PDK Guide**](user/07-pdk-guide.md) - Persona Development Kit for custom agents.
-- [**Athena Console**](user/08-console-ui.md) - Web UI for fleet management and session explorer.
+- [**Build Your First Agent**](user/07-pdk-guide.md) - Create a local plugin-backed agent with the Team Orchestrator PDK.
+- [**Athena Console**](user/08-console-ui.md) - Web console for agents, tasks, workflows, runs, and artifacts.
 - [**Symbolic Navigation**](user/09-symbolic-navigation.md) - Semantic code reasoning using LSP tools.
 
 ## 📂 Other Resources
 
-- [**Personas**](personas/README.md) - Documentation for built-in personas.
+- [**Personas**](personas/README.md) - Legacy specialist/persona documentation.
 - [**Getting Started**](getting-started/README.md) - Initial onboarding for new users.
 
 ---

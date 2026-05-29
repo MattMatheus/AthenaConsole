@@ -1,7 +1,7 @@
 {
   "name": "@athena/pdk",
   "version": "0.1.0",
-  "description": "Persona Development Kit for ProjectAthena persona authors",
+  "description": "Development kit for Team Orchestrator plugin and agent authors",
   "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,

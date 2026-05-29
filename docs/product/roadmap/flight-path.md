@@ -179,7 +179,7 @@ Recommended sequence:
 9. `flywheel/backlog/engineering/done/STORY-20260529-agent-sdk-core-package.md`
 10. `flywheel/backlog/engineering/done/STORY-20260529-example-repo-summary-agent.md`
 11. `flywheel/backlog/engineering/done/STORY-20260529-example-generic-research-agents.md`
-12. `flywheel/backlog/engineering/ready/STORY-20260529-build-your-first-agent-guide.md`
+12. `flywheel/backlog/engineering/done/STORY-20260529-build-your-first-agent-guide.md`
 13. `flywheel/backlog/engineering/ready/STORY-20260529-manifest-input-schema-forms.md`
 14. `flywheel/backlog/engineering/ready/STORY-20260529-run-readiness-gates.md`
 15. `flywheel/backlog/engineering/ready/STORY-20260529-safe-run-modes-and-proposed-changes.md`

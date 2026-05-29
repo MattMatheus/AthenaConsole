@@ -4,13 +4,12 @@ Refined engineering work can wait here before activation if the host repo uses a
 
 ## Ready Sequence
 
-1. `STORY-20260529-build-your-first-agent-guide.md`
-2. `STORY-20260529-manifest-input-schema-forms.md`
-3. `STORY-20260529-run-readiness-gates.md`
-4. `STORY-20260529-safe-run-modes-and-proposed-changes.md`
-5. `STORY-20260529-local-server-compose-profile.md`
-6. `STORY-20260529-deployment-readiness-diagnostics.md`
-7. `STORY-20260529-fresh-server-real-work-walkthrough.md`
+1. `STORY-20260529-manifest-input-schema-forms.md`
+2. `STORY-20260529-run-readiness-gates.md`
+3. `STORY-20260529-safe-run-modes-and-proposed-changes.md`
+4. `STORY-20260529-local-server-compose-profile.md`
+5. `STORY-20260529-deployment-readiness-diagnostics.md`
+6. `STORY-20260529-fresh-server-real-work-walkthrough.md`
 
 ## Promotion Rule
 

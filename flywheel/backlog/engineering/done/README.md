@@ -55,3 +55,4 @@ Engineering work accepted by QA.
 49. `STORY-20260529-example-repo-summary-agent.md`
 50. `STORY-20260529-agent-provider-readiness.md`
 51. `STORY-20260529-example-generic-research-agents.md`
+52. `STORY-20260529-build-your-first-agent-guide.md`
