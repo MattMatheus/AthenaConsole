@@ -129,7 +129,7 @@ Source epic:
 
 Goal: make the current console feel coherent after the product-direction reset by cleaning up old branding, old terminology, and flat navigation that mixes primary workflows with advanced or legacy tools.
 
-Planning intake:
+Completed story sequence:
 
 - `flywheel/backlog/engineering/done/STORY-20260528-console-product-identity-polish.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-console-navigation-surface-grouping.md`
@@ -144,7 +144,7 @@ Source epic:
 
 Goal: make it obvious how a local operator wires Team Orchestrator to a repository, understands where agents come from, and starts useful work without needing to author agents inside the console.
 
-Planning intake:
+Completed story sequence:
 
 - `flywheel/backlog/architecture/done/ARCH-20260529-repo-wiring-operating-model.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-agent-catalog-operating-guidance.md`
@@ -159,6 +159,8 @@ Source epic:
 ### Current Flywheel Priorities
 
 Flywheel lanes are the operational source of truth. No engineering or architecture items are active or awaiting QA right now.
+
+No active roadmap track is selected right now. The next major roadmap item should be selected from operator feedback, refined into an epic, and then broken down into Flywheel-ready architecture and engineering stories before implementation starts.
 
 Recently completed tracks now live in Flywheel done history:
 

@@ -51,8 +51,6 @@ Source epic:
 
 - `docs/product/epics/refinement/2026.22.00-epic-state-ownership-and-sqlite-migration.md`
 
-## Active Roadmap Track
-
 ### 2026.23 Operator Readiness And First-Run Experience
 
 Status: Complete.
@@ -73,7 +71,7 @@ Source epic:
 
 - `docs/product/epics/refinement/2026.23.00-epic-operator-readiness-first-run.md`
 
-Ready story sequence:
+Completed story sequence:
 
 1. `flywheel/backlog/engineering/done/STORY-20260528-first-run-health-readiness.md`
 2. `flywheel/backlog/engineering/done/STORY-20260528-sample-plugin-workflow-demo.md`
@@ -100,7 +98,7 @@ Source epic:
 
 - `docs/product/epics/refinement/2026.24.00-epic-console-product-surface-polish.md`
 
-Candidate story sequence:
+Completed story sequence:
 
 1. `flywheel/backlog/engineering/done/STORY-20260528-console-product-identity-polish.md`
 2. `flywheel/backlog/engineering/done/STORY-20260528-console-navigation-surface-grouping.md`
@@ -109,7 +107,7 @@ Candidate story sequence:
 
 ### 2026.25 Operator Workflow Clarity And Repo Wiring
 
-Status: Planning intake.
+Status: Complete.
 
 Goal: make it obvious how a local operator wires Team Orchestrator to a repository, understands where agents come from, and starts useful work without needing to author agents inside the console.
 
@@ -128,7 +126,7 @@ Source epic:
 
 - `docs/product/epics/refinement/2026.25.00-epic-operator-workflow-clarity-repo-wiring.md`
 
-Candidate sequence:
+Completed story sequence:
 
 1. `flywheel/backlog/architecture/done/ARCH-20260529-repo-wiring-operating-model.md`
 2. `flywheel/backlog/engineering/done/STORY-20260529-agent-catalog-operating-guidance.md`
@@ -137,6 +135,8 @@ Candidate sequence:
 5. `flywheel/backlog/engineering/done/STORY-20260529-first-run-to-real-repo-bridge.md`
 
 ## Near-Term Principles
+
+No active roadmap track is selected right now. The next major roadmap item should be shaped from operator feedback and then broken into Flywheel-ready architecture and engineering stories before implementation starts.
 
 - Prefer complete local operator loops over new isolated backend features.
 - Keep the first-run path honest: only document and expose workflows that actually work in the current product.
