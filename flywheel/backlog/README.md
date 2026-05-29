@@ -16,16 +16,16 @@ No engineering or architecture work awaiting QA.
 
 Refined work ready to activate:
 
-No ready engineering or architecture work.
+- `engineering/ready/STORY-20260528-console-product-identity-polish.md`
+- `engineering/ready/STORY-20260528-console-navigation-surface-grouping.md`
+- `engineering/ready/STORY-20260528-operator-dashboard-polish.md`
+- `engineering/ready/STORY-20260528-legacy-advanced-surface-containment.md`
 
 ## Later
 
 Candidate work that needs PM refinement before activation:
 
-- `engineering/intake/STORY-20260528-console-product-identity-polish.md`
-- `engineering/intake/STORY-20260528-console-navigation-surface-grouping.md`
-- `engineering/intake/STORY-20260528-operator-dashboard-polish.md`
-- `engineering/intake/STORY-20260528-legacy-advanced-surface-containment.md`
+No candidate engineering or architecture intake items.
 
 ## Rule
 

@@ -131,10 +131,10 @@ Goal: make the current console feel coherent after the product-direction reset b
 
 Planning intake:
 
-- `flywheel/backlog/engineering/intake/STORY-20260528-console-product-identity-polish.md`
-- `flywheel/backlog/engineering/intake/STORY-20260528-console-navigation-surface-grouping.md`
-- `flywheel/backlog/engineering/intake/STORY-20260528-operator-dashboard-polish.md`
-- `flywheel/backlog/engineering/intake/STORY-20260528-legacy-advanced-surface-containment.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-console-product-identity-polish.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-console-navigation-surface-grouping.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-operator-dashboard-polish.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-legacy-advanced-surface-containment.md`
 
 Source epic:
 
@@ -182,10 +182,10 @@ Ready implementation sequence:
 
 Planning intake sequence:
 
-- `flywheel/backlog/engineering/intake/STORY-20260528-console-product-identity-polish.md`
-- `flywheel/backlog/engineering/intake/STORY-20260528-console-navigation-surface-grouping.md`
-- `flywheel/backlog/engineering/intake/STORY-20260528-operator-dashboard-polish.md`
-- `flywheel/backlog/engineering/intake/STORY-20260528-legacy-advanced-surface-containment.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-console-product-identity-polish.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-console-navigation-surface-grouping.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-operator-dashboard-polish.md`
+- `flywheel/backlog/engineering/ready/STORY-20260528-legacy-advanced-surface-containment.md`
 
 ## Promotion Rule
 

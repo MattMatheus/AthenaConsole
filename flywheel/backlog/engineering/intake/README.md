@@ -4,10 +4,7 @@ Raw engineering work enters here before PM refinement.
 
 ## Candidate Sequence
 
-1. `STORY-20260528-console-product-identity-polish.md`
-2. `STORY-20260528-console-navigation-surface-grouping.md`
-3. `STORY-20260528-operator-dashboard-polish.md`
-4. `STORY-20260528-legacy-advanced-surface-containment.md`
+No candidate engineering items.
 
 ## Refinement Rule
 
