@@ -90,6 +90,15 @@ import type {
   WorkQueueState
 } from "../shared/contracts.js";
 import type {
+  ModelProviderConfig,
+  ModelProviderConfigCreateRequest,
+  ModelProviderConfigDeleteResult,
+  ModelProviderConfigListResult,
+  ModelProviderConfigUpdateRequest,
+  ModelProviderConnectionTestResult,
+  ModelProviderRuntimeConfig
+} from "../shared/contracts/model-providers.js";
+import type {
   ConnectedRepository,
   ConnectedRepositoryCreateRequest,
   ConnectedRepositoryDeleteResult,
@@ -164,6 +173,16 @@ export interface WorkService {
   enqueue(request: EnqueueWorkRequest): Promise<WorkQueueState>;
   status(sessionId: string): Promise<WorkQueueState>;
   drain(sessionId: string, options?: { provider?: string; model?: string }): Promise<DrainResult>;
+}
+
+export interface ModelProviderConfigService {
+  list(): Promise<ModelProviderConfigListResult>;
+  get(id: string): Promise<ModelProviderConfig>;
+  create(request: ModelProviderConfigCreateRequest): Promise<ModelProviderConfig>;
+  update(id: string, request: ModelProviderConfigUpdateRequest): Promise<ModelProviderConfig>;
+  delete(id: string): Promise<ModelProviderConfigDeleteResult>;
+  test(id: string): Promise<ModelProviderConnectionTestResult>;
+  resolveRuntimeConfig(id: string): Promise<ModelProviderRuntimeConfig>;
 }
 
 export interface MemoryService {

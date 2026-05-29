@@ -26,6 +26,7 @@ import { FLEET_EVENTS_ROUTES } from "./routes/fleet-events-routes.js";
 import { PERSONA_ROUTES } from "./routes/persona-routes.js";
 import { POLICY_ROUTES, SCHEDULE_ROUTES } from "./routes/policy-schedule-routes.js";
 import { REPOSITORY_ROUTES } from "./routes/repository-routes.js";
+import { MODEL_PROVIDER_ROUTES } from "./routes/model-provider-routes.js";
 import { RUN_ROUTES, SESSION_ROUTES } from "./routes/run-routes.js";
 import { RBAC_ROUTES } from "./routes/identity-rbac-routes.js";
 import { DIRECTIVE_ROUTES } from "./routes/directive-routes.js";
@@ -56,6 +57,7 @@ const API_V1_ROUTE_TABLE = composeApiRouteTable(
   CORE_ROUTES,
   AGENT_CATALOG_ROUTES,
   REPOSITORY_ROUTES,
+  MODEL_PROVIDER_ROUTES,
   MISSION_ROUTES,
   TASK_ROUTES,
   RUN_ROUTES,

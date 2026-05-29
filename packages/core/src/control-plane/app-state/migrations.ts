@@ -423,6 +423,29 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
       create index if not exists idx_connected_repositories_updated
         on connected_repositories(updated_at desc);
     `
+  },
+  {
+    version: 13,
+    name: "add-model-provider-configs",
+    sql: `
+      create table if not exists model_provider_configs (
+        id text primary key,
+        name text not null,
+        provider_kind text not null,
+        base_url text not null,
+        default_model text not null,
+        secret_ref_json text not null,
+        status text not null,
+        status_message text,
+        created_at text not null,
+        updated_at text not null
+      );
+
+      create index if not exists idx_model_provider_configs_kind
+        on model_provider_configs(provider_kind);
+      create index if not exists idx_model_provider_configs_updated
+        on model_provider_configs(updated_at desc);
+    `
   }
 ];
 

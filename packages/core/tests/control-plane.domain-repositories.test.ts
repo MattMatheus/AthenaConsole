@@ -6,6 +6,66 @@ import { openAppStateDatabase } from "../src/control-plane/app-state/index.js";
 import { loadConfig } from "../src/shared/config.js";
 
 describe("task, mission, and run repositories", () => {
+  it("stores model provider configs as secret references", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-domain-model-provider-"));
+    try {
+      const appState = openAppStateDatabase(loadConfig(dir));
+      try {
+        const provider = appState.modelProviderConfigs.create({
+          id: "provider-openai",
+          name: "OpenAI",
+          providerKind: "openai-compatible",
+          baseUrl: "https://api.openai.com/v1",
+          defaultModel: "gpt-4.1-mini",
+          secretRef: {
+            kind: "env",
+            name: "OPENAI_API_KEY"
+          },
+          status: "missing",
+          statusMessage: "Environment secret is not configured.",
+          now: new Date("2026-05-29T00:00:00.000Z")
+        });
+
+        expect(provider).toMatchObject({
+          id: "provider-openai",
+          name: "OpenAI",
+          providerKind: "openai-compatible",
+          baseUrl: "https://api.openai.com/v1",
+          defaultModel: "gpt-4.1-mini",
+          secretRef: {
+            kind: "env",
+            name: "OPENAI_API_KEY"
+          },
+          status: "missing"
+        });
+
+        const updated = appState.modelProviderConfigs.update("provider-openai", {
+          secretRef: {
+            kind: "local-file",
+            name: "/run/secrets/openai"
+          },
+          status: "configured",
+          statusMessage: "local-file secret reference is configured.",
+          now: new Date("2026-05-29T00:01:00.000Z")
+        });
+        expect(updated).toMatchObject({
+          status: "configured",
+          secretRef: {
+            kind: "local-file",
+            name: "/run/secrets/openai"
+          },
+          updatedAt: "2026-05-29T00:01:00.000Z"
+        });
+        expect(appState.modelProviderConfigs.list().map((entry) => entry.id)).toEqual(["provider-openai"]);
+        expect(appState.modelProviderConfigs.delete("provider-openai")).toBe(true);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("stores connected repository records with workspace and host paths", () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-domain-connected-repo-"));
     try {

@@ -77,6 +77,21 @@ const CONNECTED_REPOSITORY_SOURCE_TYPE_SCHEMA: ApiSchema = {
   enum: ["existing-path", "managed-clone"]
 };
 
+const MODEL_PROVIDER_KIND_SCHEMA: ApiSchema = {
+  type: "string",
+  enum: ["openai-compatible"]
+};
+
+const MODEL_PROVIDER_SECRET_REFERENCE_KIND_SCHEMA: ApiSchema = {
+  type: "string",
+  enum: ["env", "local-file"]
+};
+
+const MODEL_PROVIDER_SECRET_STATUS_SCHEMA: ApiSchema = {
+  type: "string",
+  enum: ["configured", "missing", "invalid", "unsupported"]
+};
+
 const JSON_VALUE_SCHEMA: ApiSchema = {
   anyOf: [
     { type: "object", additionalProperties: true },
@@ -298,6 +313,66 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       deleted: { type: "boolean" }
     },
     required: ["id", "deleted"]
+  },
+  ModelProviderSecretMetadata: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      kind: MODEL_PROVIDER_SECRET_REFERENCE_KIND_SCHEMA,
+      name: STRING_SCHEMA,
+      configured: { type: "boolean" }
+    },
+    required: ["kind", "name", "configured"]
+  },
+  ModelProviderConfig: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: STRING_SCHEMA,
+      name: STRING_SCHEMA,
+      providerKind: MODEL_PROVIDER_KIND_SCHEMA,
+      baseUrl: STRING_SCHEMA,
+      defaultModel: STRING_SCHEMA,
+      secret: { $ref: "#/components/schemas/ModelProviderSecretMetadata" },
+      status: MODEL_PROVIDER_SECRET_STATUS_SCHEMA,
+      statusMessage: { type: "string" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: ["id", "name", "providerKind", "baseUrl", "defaultModel", "secret", "status", "createdAt", "updatedAt"]
+  },
+  ModelProviderConfigListResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      providers: {
+        type: "array",
+        items: { $ref: "#/components/schemas/ModelProviderConfig" }
+      },
+      total: { type: "integer", minimum: 0 }
+    },
+    required: ["providers", "total"]
+  },
+  ModelProviderConfigDeleteResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: STRING_SCHEMA,
+      deleted: { type: "boolean" }
+    },
+    required: ["id", "deleted"]
+  },
+  ModelProviderConnectionTestResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: STRING_SCHEMA,
+      status: MODEL_PROVIDER_SECRET_STATUS_SCHEMA,
+      message: STRING_SCHEMA,
+      secret: { $ref: "#/components/schemas/ModelProviderSecretMetadata" },
+      testedAt: { type: "string", format: "date-time" }
+    },
+    required: ["id", "status", "message", "secret", "testedAt"]
   },
   WorkflowTemplateCatalogPluginRef: {
     type: "object",
@@ -1443,6 +1518,48 @@ function connectedRepositoryCreateRequestSchema(): ApiSchema {
   };
 }
 
+function modelProviderSecretReferenceSchema(): ApiSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      kind: MODEL_PROVIDER_SECRET_REFERENCE_KIND_SCHEMA,
+      name: STRING_SCHEMA
+    },
+    required: ["kind", "name"]
+  };
+}
+
+function modelProviderCreateRequestSchema(): ApiSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      name: STRING_SCHEMA,
+      providerKind: MODEL_PROVIDER_KIND_SCHEMA,
+      baseUrl: { type: "string", minLength: 1 },
+      defaultModel: STRING_SCHEMA,
+      secret: modelProviderSecretReferenceSchema()
+    },
+    required: ["name", "providerKind", "defaultModel", "secret"]
+  };
+}
+
+function modelProviderUpdateRequestSchema(): ApiSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      name: { type: "string", minLength: 1 },
+      providerKind: MODEL_PROVIDER_KIND_SCHEMA,
+      baseUrl: { type: "string", minLength: 1 },
+      defaultModel: { type: "string", minLength: 1 },
+      secret: modelProviderSecretReferenceSchema()
+    }
+  };
+}
+
 function idPathParamsSchema(): ApiSchema {
   return {
     type: "object",
@@ -1643,6 +1760,48 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
     path: "/api/v1/repositories/:id/inspect",
     pathParamsSchema: idPathParamsSchema(),
     responseSchema: { $ref: "#/components/schemas/ConnectedRepositoryInspection" }
+  },
+  listModelProviders: {
+    operationId: "listModelProviders",
+    method: "GET",
+    path: "/api/v1/model-providers",
+    responseSchema: { $ref: "#/components/schemas/ModelProviderConfigListResult" }
+  },
+  createModelProvider: {
+    operationId: "createModelProvider",
+    method: "POST",
+    path: "/api/v1/model-providers",
+    requestBodySchema: modelProviderCreateRequestSchema(),
+    responseSchema: { $ref: "#/components/schemas/ModelProviderConfig" }
+  },
+  getModelProvider: {
+    operationId: "getModelProvider",
+    method: "GET",
+    path: "/api/v1/model-providers/:id",
+    pathParamsSchema: idPathParamsSchema(),
+    responseSchema: { $ref: "#/components/schemas/ModelProviderConfig" }
+  },
+  updateModelProvider: {
+    operationId: "updateModelProvider",
+    method: "PUT",
+    path: "/api/v1/model-providers/:id",
+    pathParamsSchema: idPathParamsSchema(),
+    requestBodySchema: modelProviderUpdateRequestSchema(),
+    responseSchema: { $ref: "#/components/schemas/ModelProviderConfig" }
+  },
+  deleteModelProvider: {
+    operationId: "deleteModelProvider",
+    method: "DELETE",
+    path: "/api/v1/model-providers/:id",
+    pathParamsSchema: idPathParamsSchema(),
+    responseSchema: { $ref: "#/components/schemas/ModelProviderConfigDeleteResult" }
+  },
+  testModelProvider: {
+    operationId: "testModelProvider",
+    method: "POST",
+    path: "/api/v1/model-providers/:id/test",
+    pathParamsSchema: idPathParamsSchema(),
+    responseSchema: { $ref: "#/components/schemas/ModelProviderConnectionTestResult" }
   },
   listWorkflowTemplates: {
     operationId: "listWorkflowTemplates",

@@ -180,7 +180,7 @@ Ready implementation sequence:
 - `flywheel/backlog/engineering/done/STORY-20260529-repo-managed-clone-flow.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-repo-connection-console.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-repo-context-create-work.md`
-- `flywheel/backlog/engineering/ready/STORY-20260529-provider-config-secret-model.md`
+- `flywheel/backlog/engineering/done/STORY-20260529-provider-config-secret-model.md`
 - `flywheel/backlog/engineering/ready/STORY-20260529-provider-settings-console.md`
 - `flywheel/backlog/engineering/ready/STORY-20260529-agent-provider-readiness.md`
 - `flywheel/backlog/engineering/ready/STORY-20260529-agent-sdk-core-package.md`

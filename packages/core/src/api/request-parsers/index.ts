@@ -13,6 +13,10 @@ export { parseCreateHarnessProfileRequest } from "./harness-profile.js";
 export { parseIdentityAssignmentUpsertRequest } from "./identity.js";
 export { parseMemoryGetRequest, parseMemorySearchQuery } from "./memory.js";
 export {
+  parseModelProviderConfigCreateRequest,
+  parseModelProviderConfigUpdateRequest
+} from "./model-providers.js";
+export {
   parseMissionWorkbenchAttachTaskRequest,
   parseMissionWorkbenchCreateRequest,
   parseMissionWorkbenchCreateTaskRequest,
