@@ -5,6 +5,7 @@ import type { HttpMethod, RouteDefinition } from "../router.js";
 
 export type ApiRouteFamily =
   | "agent-catalog"
+  | "repositories"
   | "tasks"
   | "missions"
   | "core"

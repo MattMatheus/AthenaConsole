@@ -176,7 +176,7 @@ Completed architecture item:
 
 Ready implementation sequence:
 
-- `flywheel/backlog/engineering/ready/STORY-20260529-repo-app-state-inspection.md`
+- `flywheel/backlog/engineering/done/STORY-20260529-repo-app-state-inspection.md`
 - `flywheel/backlog/engineering/ready/STORY-20260529-repo-managed-clone-flow.md`
 - `flywheel/backlog/engineering/ready/STORY-20260529-repo-connection-console.md`
 - `flywheel/backlog/engineering/ready/STORY-20260529-repo-context-create-work.md`

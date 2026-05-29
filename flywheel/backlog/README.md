@@ -16,7 +16,6 @@ No engineering or architecture work is awaiting QA.
 
 Refined work ready to activate:
 
-- `engineering/ready/STORY-20260529-repo-app-state-inspection.md`
 - `engineering/ready/STORY-20260529-repo-managed-clone-flow.md`
 - `engineering/ready/STORY-20260529-repo-connection-console.md`
 - `engineering/ready/STORY-20260529-repo-context-create-work.md`
@@ -44,6 +43,7 @@ No candidate engineering or architecture intake items.
 
 Recently completed:
 
+- `engineering/done/STORY-20260529-repo-app-state-inspection.md`
 - `architecture/done/ARCH-20260529-real-work-enablement-operating-model.md`
 - `engineering/done/STORY-20260529-first-run-to-real-repo-bridge.md`
 - `engineering/done/STORY-20260529-create-work-entry-points.md`

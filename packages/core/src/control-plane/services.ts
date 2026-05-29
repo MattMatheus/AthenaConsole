@@ -62,6 +62,7 @@ import {
 import { LocalLspService, type LocalLspServiceOptions } from "./services/lsp.js";
 import { LocalPolicyService, PolicyAwareExecutionBackend } from "./services/policy.js";
 import { LocalReadinessService } from "./services/readiness.js";
+import { LocalConnectedRepositoryService } from "./services/repositories.js";
 import { LocalRunService } from "./services/run-service.js";
 import { LocalStateDiagnosticsService } from "./services/state-diagnostics.js";
 import { LocalWorkflowStatusService } from "./services/workflow-status.js";
@@ -74,6 +75,7 @@ import type {
   A2aObservabilityService,
   AgentCatalogService,
   CapabilityService,
+  ConnectedRepositoryService,
   DirectiveService,
   HarnessProfileService,
   LspService,
@@ -152,6 +154,7 @@ export interface ControlPlaneServices {
   agentCatalogService: AgentCatalogService;
   missionWorkbenchService: MissionWorkbenchService;
   taskWorkbenchService: TaskWorkbenchService;
+  connectedRepositoryService: ConnectedRepositoryService;
   shutdown?: () => Promise<void>;
 }
 
@@ -301,6 +304,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     agentCatalogService,
     missionWorkbenchService: new LocalMissionWorkbenchService(options.config),
     taskWorkbenchService: new LocalTaskWorkbenchService(options.config),
+    connectedRepositoryService: new LocalConnectedRepositoryService(options.config),
     shutdown: async () => {
       if (hasShutdown(eventService)) {
         await eventService.shutdown();

@@ -62,6 +62,21 @@ const MISSION_STATUS_SCHEMA: ApiSchema = {
   enum: ["draft", "ready", "running", "blocked", "completed", "failed", "cancelled", "archived"]
 };
 
+const CONNECTED_REPOSITORY_STATUS_SCHEMA: ApiSchema = {
+  type: "string",
+  enum: ["ready", "missing", "invalid", "auth-required", "error"]
+};
+
+const CONNECTED_REPOSITORY_DIRTY_STATE_SCHEMA: ApiSchema = {
+  type: "string",
+  enum: ["clean", "dirty", "unknown"]
+};
+
+const CONNECTED_REPOSITORY_SOURCE_TYPE_SCHEMA: ApiSchema = {
+  type: "string",
+  enum: ["existing-path", "managed-clone"]
+};
+
 const JSON_VALUE_SCHEMA: ApiSchema = {
   anyOf: [
     { type: "object", additionalProperties: true },
@@ -83,6 +98,8 @@ const JSON_VALUE_SCHEMA: ApiSchema = {
     { type: "null" }
   ]
 };
+
+const STRING_SCHEMA: ApiSchema = { type: "string", minLength: 1 };
 
 const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
   AgentCatalogValidationIssue: {
@@ -222,6 +239,65 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       }
     },
     required: ["agents", "total", "filters"]
+  },
+  ConnectedRepository: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: STRING_SCHEMA,
+      name: STRING_SCHEMA,
+      sourceType: CONNECTED_REPOSITORY_SOURCE_TYPE_SCHEMA,
+      workspacePath: STRING_SCHEMA,
+      hostPath: { type: "string" },
+      remoteUrl: { type: "string" },
+      defaultBranch: { type: "string" },
+      currentBranch: { type: "string" },
+      headCommit: { type: "string" },
+      dirtyState: CONNECTED_REPOSITORY_DIRTY_STATE_SCHEMA,
+      status: CONNECTED_REPOSITORY_STATUS_SCHEMA,
+      statusMessage: { type: "string" },
+      lastInspectedAt: { type: "string", format: "date-time" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: ["id", "name", "sourceType", "workspacePath", "dirtyState", "status", "createdAt", "updatedAt"]
+  },
+  ConnectedRepositoryListResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      repositories: {
+        type: "array",
+        items: { $ref: "#/components/schemas/ConnectedRepository" }
+      },
+      total: { type: "integer", minimum: 0 }
+    },
+    required: ["repositories", "total"]
+  },
+  ConnectedRepositoryInspection: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      repository: { $ref: "#/components/schemas/ConnectedRepository" },
+      path: STRING_SCHEMA,
+      status: CONNECTED_REPOSITORY_STATUS_SCHEMA,
+      dirtyState: CONNECTED_REPOSITORY_DIRTY_STATE_SCHEMA,
+      statusMessage: { type: "string" },
+      currentBranch: { type: "string" },
+      headCommit: { type: "string" },
+      remoteUrl: { type: "string" },
+      inspectedAt: { type: "string", format: "date-time" }
+    },
+    required: ["path", "status", "dirtyState", "inspectedAt"]
+  },
+  ConnectedRepositoryDeleteResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: STRING_SCHEMA,
+      deleted: { type: "boolean" }
+    },
+    required: ["id", "deleted"]
   },
   WorkflowTemplateCatalogPluginRef: {
     type: "object",
@@ -1278,8 +1354,6 @@ export const API_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
   ...GENERATED_COMPONENT_SCHEMAS_WITH_STRICTNESS
 };
 
-const STRING_SCHEMA: ApiSchema = { type: "string", minLength: 1 };
-
 const OPTIONAL_STRING_QUERY: ApiSchema = {
   type: "object",
   additionalProperties: false,
@@ -1350,6 +1424,34 @@ function missionTaskCreateRequestSchema(): ApiSchema {
     };
   }
   return schema;
+}
+
+function connectedRepositoryCreateRequestSchema(): ApiSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      name: STRING_SCHEMA,
+      sourceType: CONNECTED_REPOSITORY_SOURCE_TYPE_SCHEMA,
+      workspacePath: STRING_SCHEMA,
+      hostPath: { type: "string", minLength: 1 },
+      remoteUrl: { type: "string", minLength: 1 },
+      defaultBranch: { type: "string", minLength: 1 }
+    },
+    required: ["name", "sourceType", "workspacePath"]
+  };
+}
+
+function idPathParamsSchema(): ApiSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: STRING_SCHEMA
+    },
+    required: ["id"]
+  };
 }
 
 export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
@@ -1493,6 +1595,54 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       }
     },
     responseSchema: { $ref: "#/components/schemas/AgentCatalogAgentListResult" }
+  },
+  listRepositories: {
+    operationId: "listRepositories",
+    method: "GET",
+    path: "/api/v1/repositories",
+    responseSchema: { $ref: "#/components/schemas/ConnectedRepositoryListResult" }
+  },
+  createRepository: {
+    operationId: "createRepository",
+    method: "POST",
+    path: "/api/v1/repositories",
+    requestBodySchema: connectedRepositoryCreateRequestSchema(),
+    responseSchema: { $ref: "#/components/schemas/ConnectedRepository" }
+  },
+  inspectRepositoryPath: {
+    operationId: "inspectRepositoryPath",
+    method: "POST",
+    path: "/api/v1/repositories/inspect",
+    requestBodySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        workspacePath: STRING_SCHEMA
+      },
+      required: ["workspacePath"]
+    },
+    responseSchema: { $ref: "#/components/schemas/ConnectedRepositoryInspection" }
+  },
+  getRepository: {
+    operationId: "getRepository",
+    method: "GET",
+    path: "/api/v1/repositories/:id",
+    pathParamsSchema: idPathParamsSchema(),
+    responseSchema: { $ref: "#/components/schemas/ConnectedRepository" }
+  },
+  deleteRepository: {
+    operationId: "deleteRepository",
+    method: "DELETE",
+    path: "/api/v1/repositories/:id",
+    pathParamsSchema: idPathParamsSchema(),
+    responseSchema: { $ref: "#/components/schemas/ConnectedRepositoryDeleteResult" }
+  },
+  inspectRepository: {
+    operationId: "inspectRepository",
+    method: "POST",
+    path: "/api/v1/repositories/:id/inspect",
+    pathParamsSchema: idPathParamsSchema(),
+    responseSchema: { $ref: "#/components/schemas/ConnectedRepositoryInspection" }
   },
   listWorkflowTemplates: {
     operationId: "listWorkflowTemplates",

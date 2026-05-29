@@ -89,6 +89,13 @@ import type {
   MemorySearchResult,
   WorkQueueState
 } from "../shared/contracts.js";
+import type {
+  ConnectedRepository,
+  ConnectedRepositoryCreateRequest,
+  ConnectedRepositoryDeleteResult,
+  ConnectedRepositoryInspection,
+  ConnectedRepositoryListResult
+} from "../shared/contracts/repositories.js";
 import type { WorkflowDagExecutionResult } from "./services/workflow-dag-executor.js";
 import type { RunScheduleResult, UpsertScheduleRequest } from "../schedule/index.js";
 import type { DrainResult, EnqueueWorkRequest } from "../work/index.js";
@@ -340,6 +347,15 @@ export interface TaskWorkbenchService {
   getRun(runId: string): Promise<TaskWorkbenchTaskRunDetail>;
   runTask(id: string, request?: TaskWorkbenchTaskRunRequest): Promise<TaskWorkbenchTaskRun>;
   cancelRun(runId: string, request?: TaskWorkbenchTaskRunCancelRequest): Promise<TaskWorkbenchTaskRunCancelResult>;
+}
+
+export interface ConnectedRepositoryService {
+  list(): Promise<ConnectedRepositoryListResult>;
+  get(id: string): Promise<ConnectedRepository>;
+  create(request: ConnectedRepositoryCreateRequest): Promise<ConnectedRepository>;
+  delete(id: string): Promise<ConnectedRepositoryDeleteResult>;
+  inspect(id: string): Promise<ConnectedRepositoryInspection>;
+  inspectPath(workspacePath: string): Promise<ConnectedRepositoryInspection>;
 }
 
 export interface MissionWorkbenchService {

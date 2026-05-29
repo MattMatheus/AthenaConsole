@@ -6,6 +6,61 @@ import { openAppStateDatabase } from "../src/control-plane/app-state/index.js";
 import { loadConfig } from "../src/shared/config.js";
 
 describe("task, mission, and run repositories", () => {
+  it("stores connected repository records with workspace and host paths", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-domain-connected-repo-"));
+    try {
+      const appState = openAppStateDatabase(loadConfig(dir));
+      try {
+        const repository = appState.connectedRepositories.create({
+          id: "repo-docs",
+          name: "Docs Repo",
+          sourceType: "existing-path",
+          workspacePath: "/workspace/repos/docs",
+          hostPath: "/srv/team-orchestrator/repos/docs",
+          status: "missing",
+          dirtyState: "unknown",
+          statusMessage: "Path does not exist.",
+          now: new Date("2026-05-29T00:00:00.000Z")
+        });
+
+        expect(repository).toMatchObject({
+          id: "repo-docs",
+          name: "Docs Repo",
+          sourceType: "existing-path",
+          workspacePath: "/workspace/repos/docs",
+          hostPath: "/srv/team-orchestrator/repos/docs",
+          status: "missing",
+          dirtyState: "unknown",
+          statusMessage: "Path does not exist."
+        });
+
+        const inspected = appState.connectedRepositories.update("repo-docs", {
+          status: "ready",
+          dirtyState: "clean",
+          currentBranch: "main",
+          headCommit: "abc123",
+          remoteUrl: "https://example.test/repo.git",
+          lastInspectedAt: "2026-05-29T00:01:00.000Z"
+        });
+        expect(inspected).toMatchObject({
+          status: "ready",
+          dirtyState: "clean",
+          currentBranch: "main",
+          headCommit: "abc123",
+          remoteUrl: "https://example.test/repo.git",
+          lastInspectedAt: "2026-05-29T00:01:00.000Z"
+        });
+        expect(appState.connectedRepositories.list().map((entry) => entry.id)).toEqual(["repo-docs"]);
+        expect(appState.connectedRepositories.delete("repo-docs")).toBe(true);
+        expect(appState.connectedRepositories.get("repo-docs")).toBeUndefined();
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("enforces that ready tasks require an assigned agent", () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-domain-ready-"));
     try {

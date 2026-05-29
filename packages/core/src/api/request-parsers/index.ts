@@ -29,6 +29,7 @@ export {
 export { parsePersonaRunRequest, parseSpecialistRunRequest } from "./persona.js";
 export { parseCancelRunRequest, parseCreateRunRequest, parseRunControlQuery } from "./run.js";
 export { parseSessionSearchQuery } from "./session.js";
+export { parseConnectedRepositoryCreateRequest, parseConnectedRepositoryInspectPathRequest } from "./repositories.js";
 export { parseCreateRunTemplateRequest, parseTemplateRunRequest } from "./run-template.js";
 export { parseScheduleRunRequest, parseScheduleTickRequest, parseScheduleUpsertRequest } from "./schedule.js";
 export {

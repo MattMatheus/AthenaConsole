@@ -21,3 +21,4 @@ export * from "./a2a.js";
 export * from "./fleet.js";
 export * from "./identity.js";
 export * from "./governance.js";
+export * from "./repositories.js";

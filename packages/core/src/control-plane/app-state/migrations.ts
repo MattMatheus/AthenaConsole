@@ -395,6 +395,34 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
       create index if not exists idx_run_templates_harness_profile
         on run_templates(harness_profile_id);
     `
+  },
+  {
+    version: 12,
+    name: "add-connected-repositories",
+    sql: `
+      create table if not exists connected_repositories (
+        id text primary key,
+        name text not null,
+        source_type text not null,
+        workspace_path text not null,
+        host_path text,
+        remote_url text,
+        default_branch text,
+        current_branch text,
+        head_commit text,
+        dirty_state text not null default 'unknown',
+        status text not null,
+        status_message text,
+        last_inspected_at text,
+        created_at text not null,
+        updated_at text not null
+      );
+
+      create index if not exists idx_connected_repositories_status
+        on connected_repositories(status);
+      create index if not exists idx_connected_repositories_updated
+        on connected_repositories(updated_at desc);
+    `
   }
 ];
 

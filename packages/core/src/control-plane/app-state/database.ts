@@ -9,7 +9,8 @@ import {
   RunRepository,
   ScheduleRunHistoryRepository,
   ScheduleRepository,
-  TaskRepository
+  TaskRepository,
+  ConnectedRepositoryRepository
 } from "./domain-repositories.js";
 import { ensureAppStateMigrationTable, runAppStateMigrations } from "./migrations.js";
 import {
@@ -43,6 +44,7 @@ export interface AppStateDatabase {
   readonly harnessProfiles: HarnessProfileRepository;
   readonly runTemplates: RunTemplateRepository;
   readonly tasks: TaskRepository;
+  readonly connectedRepositories: ConnectedRepositoryRepository;
   readonly missions: MissionRepository;
   readonly runs: RunRepository;
   readonly schedules: ScheduleRepository;
@@ -85,6 +87,7 @@ export function openAppStateDatabase(config: AthenaConfig, options: AppStateData
     harnessProfiles: new HarnessProfileRepository(db),
     runTemplates: new RunTemplateRepository(db),
     tasks: new TaskRepository(db),
+    connectedRepositories: new ConnectedRepositoryRepository(db),
     missions: new MissionRepository(db),
     runs: new RunRepository(db),
     schedules: new ScheduleRepository(db),
