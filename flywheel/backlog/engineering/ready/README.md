@@ -4,20 +4,19 @@ Refined engineering work can wait here before activation if the host repo uses a
 
 ## Ready Sequence
 
-1. `STORY-20260529-repo-context-create-work.md`
-2. `STORY-20260529-provider-config-secret-model.md`
-3. `STORY-20260529-provider-settings-console.md`
-4. `STORY-20260529-agent-provider-readiness.md`
-5. `STORY-20260529-agent-sdk-core-package.md`
-6. `STORY-20260529-example-repo-summary-agent.md`
-7. `STORY-20260529-example-generic-research-agents.md`
-8. `STORY-20260529-build-your-first-agent-guide.md`
-9. `STORY-20260529-manifest-input-schema-forms.md`
-10. `STORY-20260529-run-readiness-gates.md`
-11. `STORY-20260529-safe-run-modes-and-proposed-changes.md`
-12. `STORY-20260529-local-server-compose-profile.md`
-13. `STORY-20260529-deployment-readiness-diagnostics.md`
-14. `STORY-20260529-fresh-server-real-work-walkthrough.md`
+1. `STORY-20260529-provider-config-secret-model.md`
+2. `STORY-20260529-provider-settings-console.md`
+3. `STORY-20260529-agent-provider-readiness.md`
+4. `STORY-20260529-agent-sdk-core-package.md`
+5. `STORY-20260529-example-repo-summary-agent.md`
+6. `STORY-20260529-example-generic-research-agents.md`
+7. `STORY-20260529-build-your-first-agent-guide.md`
+8. `STORY-20260529-manifest-input-schema-forms.md`
+9. `STORY-20260529-run-readiness-gates.md`
+10. `STORY-20260529-safe-run-modes-and-proposed-changes.md`
+11. `STORY-20260529-local-server-compose-profile.md`
+12. `STORY-20260529-deployment-readiness-diagnostics.md`
+13. `STORY-20260529-fresh-server-real-work-walkthrough.md`
 
 ## Promotion Rule
 

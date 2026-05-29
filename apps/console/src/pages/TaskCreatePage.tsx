@@ -6,6 +6,11 @@ import {
   type AgentCatalogAgentSummary,
 } from "../features/agent-catalog";
 import {
+  connectedRepositoryReadinessMessage,
+  mergeConnectedRepositoryContext,
+  useConnectedRepositoriesQuery,
+} from "../features/connected-repositories";
+import {
   buildCreateTaskRequest,
   filterCompatibleAgents,
   hasValidationErrors,
@@ -49,13 +54,16 @@ export function TaskCreatePage() {
   const agentsQuery = useAgentCatalogAgentsQuery();
   const metadataQuery = useTaskWorkbenchMetadataQuery();
   const missionTasksQuery = useTasksQuery(missionIdFilter ? { missionId: missionIdFilter } : {});
+  const repositoriesQuery = useConnectedRepositoriesQuery();
   const createTaskMutation = useCreateTaskMutation();
   const agents = agentsQuery.data?.agents ?? EMPTY_AGENTS;
+  const repositories = repositoriesQuery.data?.repositories ?? [];
   const capabilityOptions = useMemo(() => uniqueCapabilities(agents), [agents]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [capabilityRequirements, setCapabilityRequirements] = useState<string[]>([]);
   const [selectedAgentKey, setSelectedAgentKey] = useState("");
+  const [selectedRepositoryId, setSelectedRepositoryId] = useState("");
   const [inputValues, setInputValues] = useState<TaskInputValues>({});
   const [validationStatus, setValidationStatus] = useState<TaskWorkbenchTaskStatus>("draft");
   const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
@@ -64,6 +72,8 @@ export function TaskCreatePage() {
     [agents, capabilityRequirements],
   );
   const selectedAgent = findAgent(compatibleAgents, selectedAgentKey);
+  const selectedRepository = repositories.find((repository) => repository.id === selectedRepositoryId);
+  const repoReadinessMessage = connectedRepositoryReadinessMessage(selectedRepository);
   const inputFields = useMemo(
     () => normalizeInputFields(selectedAgent?.metadata.inputs),
     [selectedAgent],
@@ -79,8 +89,8 @@ export function TaskCreatePage() {
   });
   const hasErrors = hasValidationErrors(validation);
   const displayedValidation = hasAttemptedSave ? validation : { inputs: {} };
-  const isLoading = agentsQuery.isLoading || metadataQuery.isLoading;
-  const error = agentsQuery.error ?? metadataQuery.error;
+  const isLoading = agentsQuery.isLoading || metadataQuery.isLoading || repositoriesQuery.isLoading;
+  const error = agentsQuery.error ?? metadataQuery.error ?? repositoriesQuery.error;
   const createdTask = createTaskMutation.data;
   const missionTasks = missionIdFilter ? missionTasksQuery.data?.tasks ?? [] : [];
 
@@ -124,6 +134,9 @@ export function TaskCreatePage() {
   function saveTask(status: TaskWorkbenchTaskStatus): void {
     setValidationStatus(status);
     setHasAttemptedSave(true);
+    if (status === "ready" && repoReadinessMessage) {
+      return;
+    }
     const nextValidation = validateTaskForm({
       title,
       description,
@@ -136,8 +149,7 @@ export function TaskCreatePage() {
     if (hasValidationErrors(nextValidation)) {
       return;
     }
-    createTaskMutation.mutate(
-      buildCreateTaskRequest({
+    const request = buildCreateTaskRequest({
         title,
         description,
         status,
@@ -145,12 +157,23 @@ export function TaskCreatePage() {
         capabilityRequirements,
         inputFields,
         inputValues,
-      }),
+    });
+    request.inputs = mergeConnectedRepositoryContext(
+      typeof request.inputs === "object" && request.inputs !== null && !Array.isArray(request.inputs)
+        ? (request.inputs as Record<string, unknown>)
+        : {},
+      selectedRepository,
     );
+    createTaskMutation.mutate(request);
   }
 
   async function refresh(): Promise<void> {
-    await Promise.all([agentsQuery.refetch(), metadataQuery.refetch(), missionIdFilter ? missionTasksQuery.refetch() : Promise.resolve()]);
+    await Promise.all([
+      agentsQuery.refetch(),
+      metadataQuery.refetch(),
+      repositoriesQuery.refetch(),
+      missionIdFilter ? missionTasksQuery.refetch() : Promise.resolve(),
+    ]);
   }
 
   return (
@@ -335,6 +358,56 @@ export function TaskCreatePage() {
           </form>
 
           <aside className={styles.sidePanel}>
+            <section className={styles.panelSection}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.panelTitle}>Repository</p>
+                  <p className={styles.panelMeta}>{selectedRepository ? selectedRepository.status : "Optional"}</p>
+                </div>
+              </div>
+              <label className={styles.field}>
+                <span className={styles.fieldLabel}>Repo context</span>
+                <select
+                  className={styles.select}
+                  value={selectedRepositoryId}
+                  onChange={(event) => setSelectedRepositoryId(event.target.value)}
+                >
+                  <option value="">No connected repo</option>
+                  {repositories.map((repository) => (
+                    <option key={repository.id} value={repository.id}>
+                      {repository.name} ({repository.status})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {repositories.length === 0 ? (
+                <p className={styles.description}>Connect a repository in Resource Controls to pass structured repo context.</p>
+              ) : null}
+              {selectedRepository ? (
+                <dl className={styles.kvList}>
+                  <div>
+                    <dt>Workspace</dt>
+                    <dd className={styles.mono}>{selectedRepository.workspacePath}</dd>
+                  </div>
+                  <div>
+                    <dt>Branch</dt>
+                    <dd>{selectedRepository.currentBranch ?? selectedRepository.defaultBranch ?? "Unknown"}</dd>
+                  </div>
+                  <div>
+                    <dt>Dirty</dt>
+                    <dd>
+                      <span className={selectedRepository.dirtyState === "clean" ? styles.badgeSuccess : styles.badgeWarning}>
+                        {selectedRepository.dirtyState}
+                      </span>
+                    </dd>
+                  </div>
+                </dl>
+              ) : null}
+              {hasAttemptedSave && validationStatus === "ready" && repoReadinessMessage ? (
+                <p className={styles.fieldError}>{repoReadinessMessage}</p>
+              ) : null}
+            </section>
+
             <section className={styles.panelSection}>
               <div className={styles.sectionHeader}>
                 <div>

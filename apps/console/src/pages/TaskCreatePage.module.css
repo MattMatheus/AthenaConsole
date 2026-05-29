@@ -156,7 +156,8 @@
 
 .required,
 .badge,
-.badgeSuccess {
+.badgeSuccess,
+.badgeWarning {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
@@ -180,6 +181,12 @@
   border: 1px solid #bbf7d0;
   background: #f0fdf4;
   color: var(--color-success);
+}
+
+.badgeWarning {
+  border: 1px solid color-mix(in srgb, var(--color-warning) 34%, var(--color-border));
+  background: #fff7ed;
+  color: var(--color-warning);
 }
 
 .toggleRow {

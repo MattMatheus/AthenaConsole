@@ -48,3 +48,4 @@ Engineering work accepted by QA.
 42. `STORY-20260529-repo-app-state-inspection.md`
 43. `STORY-20260529-repo-managed-clone-flow.md`
 44. `STORY-20260529-repo-connection-console.md`
+45. `STORY-20260529-repo-context-create-work.md`

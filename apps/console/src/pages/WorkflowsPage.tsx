@@ -1,6 +1,11 @@
 import { CheckCircle2, Play, RefreshCw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  connectedRepositoryReadinessMessage,
+  mergeConnectedRepositoryContext,
+  useConnectedRepositoriesQuery,
+} from "../features/connected-repositories";
 import type { TaskInputField, TaskInputValues } from "../features/task-workbench";
 import { useExecuteWorkflowRunMutation } from "../features/workflow-runs";
 import {
@@ -75,12 +80,15 @@ export function WorkflowsPage() {
   const [search, setSearch] = useState("");
   const [availability, setAvailability] = useState<AvailabilityFilter>("all");
   const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
+  const [selectedRepositoryId, setSelectedRepositoryId] = useState("");
   const [inputValues, setInputValues] = useState<TaskInputValues>({});
   const [hasAttemptedInstantiate, setHasAttemptedInstantiate] = useState(false);
   const templatesQuery = useWorkflowTemplatesQuery({ includeUnavailable: true });
+  const repositoriesQuery = useConnectedRepositoriesQuery();
   const instantiateMutation = useInstantiateWorkflowTemplateMutation();
   const executeWorkflowRunMutation = useExecuteWorkflowRunMutation();
   const templates = templatesQuery.data?.templates ?? EMPTY_TEMPLATES;
+  const repositories = repositoriesQuery.data?.repositories ?? [];
   const visibleTemplates = useMemo(
     () =>
       templates.filter((template) => {
@@ -98,6 +106,8 @@ export function WorkflowsPage() {
     () => templates.find((template) => templateKey(template) === selectedTemplateKey) ?? visibleTemplates[0],
     [selectedTemplateKey, templates, visibleTemplates],
   );
+  const selectedRepository = repositories.find((repository) => repository.id === selectedRepositoryId);
+  const repoReadinessMessage = connectedRepositoryReadinessMessage(selectedRepository);
   const inputFields = useMemo(() => workflowTemplateInputFields(selectedTemplate), [selectedTemplate]);
   const inputValidation = validateWorkflowTemplateInputs(inputFields, inputValues);
   const displayedValidation = hasAttemptedInstantiate ? inputValidation : {};
@@ -126,7 +136,7 @@ export function WorkflowsPage() {
   }
 
   async function refresh(): Promise<void> {
-    await templatesQuery.refetch();
+    await Promise.all([templatesQuery.refetch(), repositoriesQuery.refetch()]);
   }
 
   function instantiateSelected(): void {
@@ -134,12 +144,17 @@ export function WorkflowsPage() {
       return;
     }
     setHasAttemptedInstantiate(true);
+    if (repoReadinessMessage) {
+      return;
+    }
     if (hasWorkflowTemplateInputErrors(inputValidation)) {
       return;
     }
+    const request = buildWorkflowTemplateInstantiateRequest(selectedTemplate, inputFields, inputValues);
+    request.inputs = mergeConnectedRepositoryContext(request.inputs ?? {}, selectedRepository);
     instantiateMutation.mutate({
       templateId: selectedTemplate.id,
-      request: buildWorkflowTemplateInstantiateRequest(selectedTemplate, inputFields, inputValues),
+      request,
     });
   }
 
@@ -217,21 +232,21 @@ export function WorkflowsPage() {
         </label>
       </div>
 
-      {templatesQuery.isLoading ? (
+      {templatesQuery.isLoading || repositoriesQuery.isLoading ? (
         <div className={styles.state}>
           <p className={styles.stateTitle}>Loading Workflow Templates</p>
-          <p className={styles.description}>Reading indexed workflow templates from the local catalog API.</p>
+          <p className={styles.description}>Reading indexed workflow templates and connected repositories from local APIs.</p>
         </div>
       ) : null}
 
-      {templatesQuery.error instanceof Error ? (
+      {(templatesQuery.error ?? repositoriesQuery.error) instanceof Error ? (
         <div className={styles.state}>
           <p className={styles.stateTitle}>Unable To Load Workflow Templates</p>
-          <p className={styles.errorText}>{templatesQuery.error.message}</p>
+          <p className={styles.errorText}>{((templatesQuery.error ?? repositoriesQuery.error) as Error).message}</p>
         </div>
       ) : null}
 
-      {!templatesQuery.isLoading && !templatesQuery.error && templates.length === 0 ? (
+      {!templatesQuery.isLoading && !repositoriesQuery.isLoading && !templatesQuery.error && !repositoriesQuery.error && templates.length === 0 ? (
         <div className={styles.state}>
           <p className={styles.stateTitle}>No Workflow Templates Indexed</p>
           <p className={styles.description}>Open the agent catalog to confirm plugins are loaded, then refresh this page.</p>
@@ -243,7 +258,7 @@ export function WorkflowsPage() {
         </div>
       ) : null}
 
-      {!templatesQuery.isLoading && !templatesQuery.error && templates.length > 0 ? (
+      {!templatesQuery.isLoading && !repositoriesQuery.isLoading && !templatesQuery.error && !repositoriesQuery.error && templates.length > 0 ? (
         <div className={styles.layout}>
           <section className={styles.panel}>
             <div className={styles.panelHeader}>
@@ -349,6 +364,56 @@ export function WorkflowsPage() {
                       {inputFields.map((field) => renderInputField(field, inputValues, updateInput, displayedValidation))}
                     </div>
                   )}
+                </section>
+
+                <section className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <div>
+                      <p className={styles.sectionTitle}>Repository</p>
+                      <p className={styles.panelMeta}>{selectedRepository ? selectedRepository.status : "Optional"}</p>
+                    </div>
+                  </div>
+                  <label className={styles.field}>
+                    <span className={styles.fieldLabel}>Repo context</span>
+                    <select
+                      className={styles.select}
+                      value={selectedRepositoryId}
+                      onChange={(event) => setSelectedRepositoryId(event.target.value)}
+                    >
+                      <option value="">No connected repo</option>
+                      {repositories.map((repository) => (
+                        <option key={repository.id} value={repository.id}>
+                          {repository.name} ({repository.status})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {repositories.length === 0 ? (
+                    <p className={styles.description}>Connect a repository in Resource Controls to pass structured repo context.</p>
+                  ) : null}
+                  {selectedRepository ? (
+                    <dl className={styles.kvList}>
+                      <div>
+                        <dt>Workspace</dt>
+                        <dd>{selectedRepository.workspacePath}</dd>
+                      </div>
+                      <div>
+                        <dt>Branch</dt>
+                        <dd>{selectedRepository.currentBranch ?? selectedRepository.defaultBranch ?? "Unknown"}</dd>
+                      </div>
+                      <div>
+                        <dt>Dirty</dt>
+                        <dd>
+                          <span className={selectedRepository.dirtyState === "clean" ? styles.badgeSuccess : styles.badgeWarning}>
+                            {selectedRepository.dirtyState}
+                          </span>
+                        </dd>
+                      </div>
+                    </dl>
+                  ) : null}
+                  {hasAttemptedInstantiate && repoReadinessMessage ? (
+                    <p className={styles.errorText}>{repoReadinessMessage}</p>
+                  ) : null}
                 </section>
 
                 {instantiateMutation.error instanceof Error ? <p className={styles.errorText}>{instantiateMutation.error.message}</p> : null}

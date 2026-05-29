@@ -172,7 +172,7 @@ Recommended sequence:
 2. `flywheel/backlog/engineering/done/STORY-20260529-repo-app-state-inspection.md`
 3. `flywheel/backlog/engineering/done/STORY-20260529-repo-managed-clone-flow.md`
 4. `flywheel/backlog/engineering/done/STORY-20260529-repo-connection-console.md`
-5. `flywheel/backlog/engineering/ready/STORY-20260529-repo-context-create-work.md`
+5. `flywheel/backlog/engineering/done/STORY-20260529-repo-context-create-work.md`
 6. `flywheel/backlog/engineering/ready/STORY-20260529-provider-config-secret-model.md`
 7. `flywheel/backlog/engineering/ready/STORY-20260529-provider-settings-console.md`
 8. `flywheel/backlog/engineering/ready/STORY-20260529-agent-provider-readiness.md`
