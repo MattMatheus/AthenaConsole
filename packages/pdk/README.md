@@ -1,11 +1,15 @@
-# @projectathena/pdk
+# @athena/pdk
 
-Typed Persona Development Kit (PDK) contracts and helpers for ProjectAthena specialist authors.
+Typed development kit for Team Orchestrator plugin and agent authors.
 
 ## Scope
 
 This package provides:
 
+- Agent task/run envelope parsing (`parseAgentTaskRunEnvelope`)
+- Manifest-shaped agent input validation (`parseAgentInputs`, `parseAgentEnvelopeInputs`)
+- Agent run output and artifact builders (`createAgentRunOutput`, `createAgentArtifact`)
+- Minimal agent handler test helper (`runAgentHandler`)
 - Stable specialist authoring contracts (`PersonaDefinition`, `Context`, `Skill`)
 - Typed specialist run input/output envelopes (`PersonaRunInput`, `PersonaRunOutput`)
 - Runtime validation helper (`definePersona` / `defineSpecialist`) with deterministic error messages
@@ -13,14 +17,76 @@ This package provides:
 
 ## Compatibility Boundaries
 
+- Agent input validation intentionally follows the current `agent.inputs` manifest shape. It does not generate manifests or replace manifest validation.
+- Agent output helpers produce the run envelope consumed by local-command, container-command, and HTTP/API task execution.
 - `PersonaDefinition` is aligned to the current `specialists/<id>/manifest.json` runtime contract.
 - Validation is additive and fail-closed for malformed required fields.
 - Unknown additional properties are currently allowed for forward compatibility.
 
-## Usage
+## Minimal Agent Example
 
 ```ts
-import { definePersona, type PersonaDefinition } from "@projectathena/pdk";
+import {
+  createAgentArtifact,
+  createAgentRunOutput,
+  parseAgentEnvelopeInputs,
+  parseAgentTaskRunEnvelope,
+  serializeAgentRunOutput,
+  type AgentInputContract
+} from "@athena/pdk";
+
+const inputs = {
+  topic: {
+    type: "string",
+    required: true,
+    label: "Topic"
+  },
+  maxItems: {
+    type: "integer",
+    default: 5
+  }
+} satisfies AgentInputContract;
+
+const stdin = await new Promise<string>((resolve, reject) => {
+  let body = "";
+  process.stdin.setEncoding("utf8");
+  process.stdin.on("data", (chunk) => {
+    body += chunk;
+  });
+  process.stdin.on("end", () => resolve(body));
+  process.stdin.on("error", reject);
+});
+
+const envelope = parseAgentTaskRunEnvelope(stdin);
+const taskInputs = parseAgentEnvelopeInputs<{
+  topic: string;
+  maxItems: number;
+}>(envelope, inputs);
+
+const result = createAgentRunOutput(
+  {
+    summary: `Prepared research plan for ${taskInputs.topic}.`,
+    maxItems: taskInputs.maxItems
+  },
+  {
+    artifacts: [
+      createAgentArtifact({
+        label: "Research Plan",
+        kind: "primary",
+        format: "markdown",
+        storageUri: "artifacts/research-plan.md"
+      })
+    ]
+  }
+);
+
+process.stdout.write(serializeAgentRunOutput(result));
+```
+
+## Persona Usage
+
+```ts
+import { definePersona, type PersonaDefinition } from "@athena/pdk";
 
 const persona = definePersona({
   schemaVersion: 1,
@@ -38,6 +104,13 @@ const persona = definePersona({
 
 ## API
 
+- `parseAgentTaskRunEnvelope(value: string | unknown): AgentTaskRunEnvelope`
+- `parseAgentInputs(contract, inputs): Record<string, unknown>`
+- `parseAgentEnvelopeInputs(envelope, contract): Record<string, unknown>`
+- `createAgentArtifact(artifact): AgentRunArtifact`
+- `createAgentRunOutput(output, options): AgentRunOutputEnvelope`
+- `serializeAgentRunOutput(envelope): string`
+- `runAgentHandler(handler, options): Promise<AgentRunOutputEnvelope>`
 - `definePersona(definition: PersonaDefinition): PersonaDefinition`
 - `defineSpecialist(definition: PersonaDefinition): PersonaDefinition`
 - `SPECIALISTS_DIRNAME` / `SPECIALIST_MANIFEST_FILENAME`
@@ -57,7 +130,7 @@ import {
   MockRuntime,
   PersonaTestHarness,
   definePersona
-} from "@projectathena/pdk";
+} from "@athena/pdk";
 
 const persona = definePersona({
   schemaVersion: 1,
@@ -107,6 +180,6 @@ expect(result.runOutput.mergeGate).toBe("pass");
 ## Build
 
 ```bash
-npm --prefix packages/pdk run typecheck
-npm --prefix packages/pdk run build
+npm --workspace @athena/pdk run typecheck
+npm --workspace @athena/pdk run test
 ```

@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   useAgentCatalogAgentsQuery,
   type AgentCatalogAgentSummary,
+  type ProviderReadiness,
 } from "../features/agent-catalog";
 import {
   connectedRepositoryReadinessMessage,
@@ -46,6 +47,20 @@ function formatDate(value: string): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
+function isProviderReadinessBlocking(readiness: ProviderReadiness | undefined): boolean {
+  return Boolean(readiness?.required && (readiness.status === "missing" || readiness.status === "invalid"));
+}
+
+function providerReadinessClass(readiness: ProviderReadiness): string {
+  if (readiness.status === "configured") {
+    return styles.badgeSuccess ?? "";
+  }
+  if (readiness.status === "missing" || readiness.status === "invalid") {
+    return styles.badgeWarning ?? "";
+  }
+  return styles.badge ?? "";
+}
+
 export function TaskCreatePage() {
   const [searchParams] = useSearchParams();
   const missionIdFilter = searchParams.get("missionId")?.trim() ?? "";
@@ -74,6 +89,7 @@ export function TaskCreatePage() {
   const selectedAgent = findAgent(compatibleAgents, selectedAgentKey);
   const selectedRepository = repositories.find((repository) => repository.id === selectedRepositoryId);
   const repoReadinessMessage = connectedRepositoryReadinessMessage(selectedRepository);
+  const providerReadinessBlocking = isProviderReadinessBlocking(selectedAgent?.providerReadiness);
   const inputFields = useMemo(
     () => normalizeInputFields(selectedAgent?.metadata.inputs),
     [selectedAgent],
@@ -135,6 +151,9 @@ export function TaskCreatePage() {
     setValidationStatus(status);
     setHasAttemptedSave(true);
     if (status === "ready" && repoReadinessMessage) {
+      return;
+    }
+    if (status === "ready" && providerReadinessBlocking) {
       return;
     }
     const nextValidation = validateTaskForm({
@@ -439,6 +458,18 @@ export function TaskCreatePage() {
                   <p className={styles.agentName}>{selectedAgent.name}</p>
                   <p className={styles.mono}>{selectedAgent.id}@{selectedAgent.version}</p>
                   <p className={styles.description}>{selectedAgent.metadata.description ?? "No description declared."}</p>
+                  <div className={styles.badgeRow}>
+                    <span className={providerReadinessClass(selectedAgent.providerReadiness)}>
+                      provider {selectedAgent.providerReadiness.status}
+                    </span>
+                    {selectedAgent.providerReadiness.providerName ? (
+                      <span className={styles.badgeMuted}>{selectedAgent.providerReadiness.providerName}</span>
+                    ) : null}
+                  </div>
+                  <p className={styles.description}>{selectedAgent.providerReadiness.message}</p>
+                  {hasAttemptedSave && validationStatus === "ready" && providerReadinessBlocking ? (
+                    <p className={styles.fieldError}>Configure a valid model provider in Settings before saving this task as ready.</p>
+                  ) : null}
                   <div className={styles.badgeRow}>
                     {selectedAgent.capabilities.map((capability) => (
                       <span key={capability} className={styles.badge}>

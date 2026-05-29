@@ -10,6 +10,7 @@ import type {
   WorkflowTemplateSummary,
   WorkflowTemplateValidationIssue,
 } from "./types";
+import type { ProviderReadiness } from "../agent-catalog";
 
 type RecordValue = Record<string, unknown>;
 
@@ -25,6 +26,33 @@ function toStringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string" && item.length > 0)
     : [];
+}
+
+function parseProviderReadiness(value: unknown): ProviderReadiness {
+  const record = isRecord(value) ? value : {};
+  const requirements = Array.isArray(record.requirements)
+    ? record.requirements.filter(isRecord).map((requirement) => ({
+        required: requirement.required !== false,
+        ...(requirement.providerKind === "openai-compatible" ? { providerKind: "openai-compatible" as const } : {}),
+        ...(typeof requirement.providerId === "string" ? { providerId: requirement.providerId } : {}),
+        ...(typeof requirement.model === "string" ? { model: requirement.model } : {}),
+        ...(typeof requirement.label === "string" ? { label: requirement.label } : {}),
+      }))
+    : [];
+  const status =
+    record.status === "configured" || record.status === "missing" || record.status === "invalid" || record.status === "untested"
+      ? record.status
+      : "untested";
+  return {
+    status,
+    required: Boolean(record.required),
+    requirements,
+    ...(typeof record.providerId === "string" ? { providerId: record.providerId } : {}),
+    ...(typeof record.providerName === "string" ? { providerName: record.providerName } : {}),
+    ...(record.providerKind === "openai-compatible" ? { providerKind: "openai-compatible" } : {}),
+    ...(typeof record.model === "string" ? { model: record.model } : {}),
+    message: typeof record.message === "string" ? record.message : "No model provider requirement declared.",
+  };
 }
 
 function parseValidationIssue(value: unknown): WorkflowTemplateValidationIssue | undefined {
@@ -82,6 +110,15 @@ function parseTemplate(value: unknown): WorkflowTemplateSummary | undefined {
   const inputs = parseInputDefinitions(metadata.inputs);
   const context = metadata.context;
   const ui = toRecord(metadata.ui);
+  const providerRequirements = Array.isArray(metadata.providerRequirements)
+    ? metadata.providerRequirements.filter(isRecord).map((requirement) => ({
+        required: requirement.required !== false,
+        ...(requirement.providerKind === "openai-compatible" ? { providerKind: "openai-compatible" as const } : {}),
+        ...(typeof requirement.providerId === "string" ? { providerId: requirement.providerId } : {}),
+        ...(typeof requirement.model === "string" ? { model: requirement.model } : {}),
+        ...(typeof requirement.label === "string" ? { label: requirement.label } : {}),
+      }))
+    : undefined;
   return {
     id: value.id,
     version: value.version,
@@ -90,11 +127,13 @@ function parseTemplate(value: unknown): WorkflowTemplateSummary | undefined {
     plugin: parsePlugin(value.plugin),
     status: typeof value.status === "string" ? value.status : "unknown",
     available: Boolean(value.available),
+    providerReadiness: parseProviderReadiness(value.providerReadiness),
     taskCount: typeof value.taskCount === "number" ? value.taskCount : 0,
     metadata: {
       ...(typeof metadata.goal === "string" ? { goal: metadata.goal } : {}),
       ...(context !== undefined ? { context } : {}),
       ...(inputs ? { inputs } : {}),
+      ...(providerRequirements ? { providerRequirements } : {}),
       ...(Array.isArray(metadata.tasks) ? { tasks: metadata.tasks } : {}),
       ...(ui ? { ui } : {}),
     },

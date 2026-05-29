@@ -1,0 +1,62 @@
+schemaVersion: 1
+agent:
+  id: repo.summary.local
+  name: Repo Summary Agent
+  version: 0.1.0
+  description: Inspects a local repository read-only and produces a deterministic markdown summary.
+  capabilities:
+    - repo.inspect
+    - repo.summarize
+    - artifacts.produce
+  inputs:
+    repo:
+      type: object
+      required: true
+      label: Repository
+      description: Object containing the local repository path to summarize.
+      schema: schemas/repo-summary-input.schema.json
+    maxFiles:
+      type: integer
+      required: false
+      default: 200
+      label: Max files
+      description: Maximum number of repository files to scan.
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: repoSummary
+        label: Repo Summary
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - agents/repo-summary-runner.mjs
+  runtime:
+    preferredBackend: local-process
+    backendPreferences:
+      - local-process
+    workingDirectory: .
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+  limits:
+    maxRuntimeSeconds: 60
+    maxToolCalls: 0
+    maxRepeatedActions: 1
+    maxRetries: 0
+    maxFollowUpTasks: 0
+    maxOutputBytes: 65536
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+    eventHints:
+      - run.started
+      - artifact.created
+      - run.completed
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    pluginApi: team-orchestrator.manifests.v1

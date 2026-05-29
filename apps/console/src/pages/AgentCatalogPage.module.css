@@ -56,7 +56,7 @@
 
 .summaryGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-3);
 }
 
@@ -426,6 +426,12 @@
 .agentSecondary {
   color: var(--color-text-muted);
   font-size: var(--font-size-200);
+}
+
+.providerReadinessCell {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 8rem;
 }
 
 .capabilityList {

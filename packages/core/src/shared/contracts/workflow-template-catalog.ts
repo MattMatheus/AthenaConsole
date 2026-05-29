@@ -23,6 +23,7 @@ export interface WorkflowTemplateCatalogTemplateSummary {
   plugin: WorkflowTemplateCatalogPluginRef;
   status: string;
   available: boolean;
+  providerReadiness: import("./provider-readiness.js").ProviderReadiness;
   taskCount: number;
   metadata: {
     goal?: string;

@@ -92,6 +92,11 @@ const MODEL_PROVIDER_SECRET_STATUS_SCHEMA: ApiSchema = {
   enum: ["configured", "missing", "invalid", "unsupported"]
 };
 
+const PROVIDER_READINESS_STATUS_SCHEMA: ApiSchema = {
+  type: "string",
+  enum: ["configured", "missing", "invalid", "untested"]
+};
+
 const JSON_VALUE_SCHEMA: ApiSchema = {
   anyOf: [
     { type: "object", additionalProperties: true },
@@ -117,6 +122,36 @@ const JSON_VALUE_SCHEMA: ApiSchema = {
 const STRING_SCHEMA: ApiSchema = { type: "string", minLength: 1 };
 
 const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
+  ModelProviderRequirement: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      required: { type: "boolean" },
+      providerKind: MODEL_PROVIDER_KIND_SCHEMA,
+      providerId: { type: "string" },
+      model: { type: "string" },
+      label: { type: "string" }
+    },
+    required: ["required"]
+  },
+  ProviderReadiness: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      status: PROVIDER_READINESS_STATUS_SCHEMA,
+      required: { type: "boolean" },
+      requirements: {
+        type: "array",
+        items: { $ref: "#/components/schemas/ModelProviderRequirement" }
+      },
+      providerId: { type: "string" },
+      providerName: { type: "string" },
+      providerKind: MODEL_PROVIDER_KIND_SCHEMA,
+      model: { type: "string" },
+      message: STRING_SCHEMA
+    },
+    required: ["status", "required", "requirements", "message"]
+  },
   AgentCatalogValidationIssue: {
     type: "object",
     additionalProperties: false,
@@ -215,6 +250,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
             },
             status: { type: "string", minLength: 1 },
             available: { type: "boolean" },
+            providerReadiness: { $ref: "#/components/schemas/ProviderReadiness" },
             metadata: {
               type: "object",
               additionalProperties: true
@@ -234,6 +270,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
             "capabilities",
             "status",
             "available",
+            "providerReadiness",
             "metadata",
             "validationErrors",
             "createdAt",
@@ -410,6 +447,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       plugin: { $ref: "#/components/schemas/WorkflowTemplateCatalogPluginRef" },
       status: { type: "string", minLength: 1 },
       available: { type: "boolean" },
+      providerReadiness: { $ref: "#/components/schemas/ProviderReadiness" },
       taskCount: { type: "integer", minimum: 0 },
       metadata: {
         type: "object",
@@ -420,6 +458,10 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
           inputs: {
             type: "object",
             additionalProperties: true
+          },
+          providerRequirements: {
+            type: "array",
+            items: { $ref: "#/components/schemas/ModelProviderRequirement" }
           },
           tasks: {
             type: "array",
@@ -446,6 +488,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       "plugin",
       "status",
       "available",
+      "providerReadiness",
       "taskCount",
       "metadata",
       "validationErrors",

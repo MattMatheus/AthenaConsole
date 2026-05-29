@@ -5,6 +5,7 @@ import {
   useAgentCatalogPluginsQuery,
   type AgentCatalogAgentSummary,
   type AgentCatalogPluginSummary,
+  type ProviderReadiness,
 } from "../features/agent-catalog";
 import styles from "./AgentCatalogPage.module.css";
 
@@ -17,6 +18,16 @@ function asText(value: unknown): string {
 
 function asNumberText(value: unknown): string {
   return typeof value === "number" && Number.isFinite(value) ? String(value) : "not declared";
+}
+
+function providerReadinessClass(readiness: ProviderReadiness): string {
+  if (readiness.status === "configured") {
+    return styles.badgeSuccess ?? "";
+  }
+  if (readiness.status === "missing" || readiness.status === "invalid") {
+    return styles.badgeWarning ?? "";
+  }
+  return styles.badgeMuted ?? "";
 }
 
 function toEntries(record: Record<string, unknown> | undefined): Array<[string, unknown]> {
@@ -179,6 +190,9 @@ export function AgentDetailPage() {
           </span>
           <span className={styles.badge}>{agent.plugin.sourceScope === "system" ? "System" : "Workspace"}</span>
           <span className={styles.badgeMuted}>{agent.status}</span>
+          <span className={providerReadinessClass(agent.providerReadiness)}>
+            provider {agent.providerReadiness.status}
+          </span>
         </div>
       </div>
 
@@ -253,6 +267,43 @@ export function AgentDetailPage() {
               <p className={styles.description}>
                 Path: <span className={styles.mono}>{plugin.path}</span>
               </p>
+            ) : null}
+          </div>
+        </section>
+
+        <section className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <div>
+              <p className={styles.panelTitle}>Provider Readiness</p>
+              <p className={styles.panelMeta}>Model setup required before run</p>
+            </div>
+          </div>
+          <div className={styles.detailBody}>
+            <div className={styles.badgeRow}>
+              <span className={providerReadinessClass(agent.providerReadiness)}>{agent.providerReadiness.status}</span>
+              <span className={agent.providerReadiness.required ? styles.badgeWarning : styles.badgeMuted}>
+                {agent.providerReadiness.required ? "required" : "optional"}
+              </span>
+            </div>
+            <p className={styles.description}>{agent.providerReadiness.message}</p>
+            {agent.providerReadiness.requirements.length > 0 ? (
+              <dl className={styles.detailKvList}>
+                {agent.providerReadiness.requirements.map((requirement, index) => (
+                  <div key={`${requirement.providerId ?? requirement.providerKind ?? "provider"}-${index}`} className={styles.detailKvRow}>
+                    <dt>{requirement.label ?? `requirement ${index + 1}`}</dt>
+                    <dd>
+                      {[
+                        requirement.providerId,
+                        requirement.providerKind,
+                        requirement.model,
+                        requirement.required ? "required" : "optional",
+                      ]
+                        .filter(Boolean)
+                        .join(" / ")}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
             ) : null}
           </div>
         </section>

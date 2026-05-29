@@ -3,6 +3,25 @@ export type AgentCatalogPluginSourceScope = "workspace" | "system";
 export type AgentCatalogPluginStatus = "loaded" | "invalid" | string;
 export type AgentCatalogAgentStatus = "loaded" | string;
 
+export interface AgentCatalogProviderRequirement {
+  required: boolean;
+  providerKind?: import("./model-providers.js").ModelProviderKind;
+  providerId?: string;
+  model?: string;
+  label?: string;
+}
+
+export interface AgentCatalogProviderReadiness {
+  status: "configured" | "missing" | "invalid" | "untested";
+  required: boolean;
+  requirements: AgentCatalogProviderRequirement[];
+  providerId?: string;
+  providerName?: string;
+  providerKind?: import("./model-providers.js").ModelProviderKind;
+  model?: string;
+  message: string;
+}
+
 export interface AgentCatalogValidationIssue {
   file?: string;
   path: string;
@@ -67,6 +86,7 @@ export interface AgentCatalogAgentSummary {
   capabilities: string[];
   status: AgentCatalogAgentStatus;
   available: boolean;
+  providerReadiness: AgentCatalogProviderReadiness;
   metadata: AgentCatalogAgentMetadata;
   validationErrors: AgentCatalogValidationIssue[];
   createdAt: string;

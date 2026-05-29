@@ -55,6 +55,12 @@ describe("agent catalog service", () => {
           name: "Software Fixer",
           capabilities: ["code.modify", "text.summarize"],
           available: true,
+          providerReadiness: {
+            status: "missing",
+            required: true,
+            providerId: "openai-main",
+            model: "gpt-4.1-mini"
+          },
           plugin: {
             id: "team-orchestrator.test.software",
             name: "Software Plugin",
@@ -76,6 +82,7 @@ describe("agent catalog service", () => {
           },
           validationErrors: []
         });
+        expect(agents.agents[1]?.providerReadiness.status).toBe("untested");
       } finally {
         appState.close();
       }
@@ -100,6 +107,47 @@ describe("agent catalog service", () => {
         const noMatch = await service.listAgents({ capabilities: ["code.modify", "audio.transcribe"] });
         expect(noMatch.agents).toEqual([]);
         expect(noMatch.total).toBe(0);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("reports configured provider readiness without exposing secret values", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-agent-catalog-provider-"));
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        seedCatalog(appState);
+        appState.modelProviderConfigs.create({
+          id: "openai-main",
+          name: "OpenAI Main",
+          providerKind: "openai-compatible",
+          baseUrl: "https://api.openai.com/v1",
+          defaultModel: "gpt-4.1-mini",
+          secretRef: {
+            kind: "env",
+            name: "OPENAI_API_KEY"
+          },
+          status: "configured",
+          statusMessage: "env secret reference is configured."
+        });
+
+        const service = new LocalAgentCatalogService(config, { appState });
+        const agents = await service.listAgents();
+        const softwareAgent = agents.agents.find((agent) => agent.id === "software.fix.local");
+
+        expect(softwareAgent?.providerReadiness).toMatchObject({
+          status: "configured",
+          required: true,
+          providerId: "openai-main",
+          providerName: "OpenAI Main",
+          model: "gpt-4.1-mini"
+        });
+        expect(JSON.stringify(softwareAgent)).not.toContain("OPENAI_API_KEY");
       } finally {
         appState.close();
       }
@@ -160,6 +208,14 @@ function seedCatalog(appState: ReturnType<typeof openAppStateDatabase>): void {
         implementation: {
           type: "local-command",
           command: "npm"
+        },
+        runtime: {
+          modelProvider: {
+            required: true,
+            providerId: "openai-main",
+            providerKind: "openai-compatible",
+            model: "gpt-4.1-mini"
+          }
         },
         limits: {
           maxRuntimeSeconds: 600,

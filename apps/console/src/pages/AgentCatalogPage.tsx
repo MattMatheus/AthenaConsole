@@ -7,6 +7,7 @@ import {
   type AgentCatalogAgentSummary,
   type AgentCatalogPluginSourceScope,
   type AgentCatalogPluginSummary,
+  type ProviderReadiness,
 } from "../features/agent-catalog";
 import styles from "./AgentCatalogPage.module.css";
 
@@ -36,6 +37,23 @@ function runtimeLimitLabel(agent: AgentCatalogAgentSummary): string {
   const runtimeSeconds = formatLimit(agent.metadata.limits?.maxRuntimeSeconds);
   const toolCalls = formatLimit(agent.metadata.limits?.maxToolCalls);
   return `${runtimeSeconds}s / ${toolCalls} calls`;
+}
+
+function providerReadinessClass(readiness: ProviderReadiness): string {
+  if (readiness.status === "configured") {
+    return styles.badgeSuccess ?? "";
+  }
+  if (readiness.status === "missing" || readiness.status === "invalid") {
+    return styles.badgeWarning ?? "";
+  }
+  return styles.badgeMuted ?? "";
+}
+
+function providerReadinessLabel(readiness: ProviderReadiness): string {
+  if (readiness.status === "untested") {
+    return "No provider required";
+  }
+  return readiness.providerName ?? readiness.providerId ?? readiness.providerKind ?? readiness.status;
 }
 
 function matchesSearch(agent: AgentCatalogAgentSummary, search: string): boolean {
@@ -227,6 +245,12 @@ export function AgentCatalogPage() {
           <span className={styles.metricLabel}>Validation Issues</span>
           <span className={styles.metricValue}>{validationIssues}</span>
         </div>
+        <div className={styles.metric}>
+          <span className={styles.metricLabel}>Provider Issues</span>
+          <span className={styles.metricValue}>
+            {allAgents.filter((agent) => agent.providerReadiness.status === "missing" || agent.providerReadiness.status === "invalid").length}
+          </span>
+        </div>
       </div>
 
       <div className={styles.filters}>
@@ -365,6 +389,7 @@ export function AgentCatalogPage() {
                       <th>Implementation</th>
                       <th>Observability</th>
                       <th>Safety Limits</th>
+                      <th>Provider</th>
                       <th>Status</th>
                     </tr>
                   </thead>
@@ -398,6 +423,12 @@ export function AgentCatalogPage() {
                         <td><span className={styles.mono}>{implementationType(agent)}</span></td>
                         <td><span className={styles.mono}>{observabilityMode(agent)}</span></td>
                         <td><span className={styles.mono}>{runtimeLimitLabel(agent)}</span></td>
+                        <td>
+                          <div className={styles.providerReadinessCell}>
+                            <span className={providerReadinessClass(agent.providerReadiness)}>{agent.providerReadiness.status}</span>
+                            <span className={styles.agentSecondary}>{providerReadinessLabel(agent.providerReadiness)}</span>
+                          </div>
+                        </td>
                         <td>
                           <div className={styles.badgeRow}>
                             <span className={statusBadgeClass(agent.status, agent.available)}>{agent.status}</span>

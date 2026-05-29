@@ -177,6 +177,12 @@ function workflowTemplateCatalogService(input: { total: number; templates: Array
           },
           available: template.available,
           status: template.available ? "loaded" : "invalid",
+          providerReadiness: {
+            status: "untested",
+            required: false,
+            requirements: [],
+            message: "No model provider requirement declared."
+          },
           taskCount: 1,
           metadata: {},
           validationErrors: [],

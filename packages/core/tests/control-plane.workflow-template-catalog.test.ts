@@ -49,6 +49,14 @@ describe("workflow template catalog service", () => {
                 releaseName: { type: "string", label: "Release Name", required: true },
                 dryRun: { type: "boolean", default: true }
               },
+              providerRequirements: [
+                {
+                  required: true,
+                  providerId: "openai-main",
+                  providerKind: "openai-compatible",
+                  model: "gpt-4.1-mini"
+                }
+              ],
               tasks: [
                 { id: "plan", title: "Plan", capabilityRequirements: ["test.run"] },
                 { id: "review", title: "Review", dependsOn: ["plan"] }
@@ -69,6 +77,11 @@ describe("workflow template catalog service", () => {
           version: "0.1.0",
           name: "Release Workflow",
           available: true,
+          providerReadiness: {
+            status: "missing",
+            required: true,
+            providerId: "openai-main"
+          },
           taskCount: 2,
           plugin: {
             id: "team-orchestrator.test.templates",
@@ -83,11 +96,90 @@ describe("workflow template catalog service", () => {
               releaseName: { type: "string", label: "Release Name", required: true },
               dryRun: { type: "boolean", default: true }
             },
+            providerRequirements: [
+              {
+                required: true,
+                providerId: "openai-main",
+                providerKind: "openai-compatible",
+                model: "gpt-4.1-mini"
+              }
+            ],
             ui: { icon: "list-checks" }
           },
           validationErrors: []
         });
         expect(result.templates[0]?.metadata.tasks).toHaveLength(2);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("reports configured workflow provider readiness without exposing secret references", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-workflow-template-provider-"));
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        appState.plugins.upsert({
+          id: "team-orchestrator.test.templates",
+          version: "0.1.0",
+          path: join(dir, "plugins", "templates"),
+          sourceType: "local",
+          status: "loaded",
+          manifest: {
+            schemaVersion: 1,
+            plugin: {
+              id: "team-orchestrator.test.templates",
+              name: "Template Plugin",
+              version: "0.1.0"
+            }
+          },
+          validationErrors: []
+        });
+        appState.modelProviderConfigs.create({
+          id: "openai-main",
+          name: "OpenAI Main",
+          providerKind: "openai-compatible",
+          baseUrl: "https://api.openai.com/v1",
+          defaultModel: "gpt-4.1-mini",
+          secretRef: {
+            kind: "env",
+            name: "OPENAI_API_KEY"
+          },
+          status: "configured"
+        });
+        appState.workflowTemplates.upsert({
+          id: "templates.provider.workflow",
+          version: "0.1.0",
+          pluginId: "team-orchestrator.test.templates",
+          pluginVersion: "0.1.0",
+          name: "Provider Workflow",
+          taskCount: 1,
+          manifest: {
+            schemaVersion: 1,
+            workflow: {
+              id: "templates.provider.workflow",
+              name: "Provider Workflow",
+              version: "0.1.0",
+              goal: "Use a model-backed provider.",
+              providerRequirements: [{ required: true, providerId: "openai-main", model: "gpt-4.1-mini" }],
+              tasks: [{ id: "plan", title: "Plan" }]
+            }
+          },
+          status: "loaded"
+        });
+
+        const service = new LocalWorkflowTemplateCatalogService(config, { appState });
+        const result = await service.list();
+
+        expect(result.templates[0]?.providerReadiness).toMatchObject({
+          status: "configured",
+          providerName: "OpenAI Main"
+        });
+        expect(JSON.stringify(result)).not.toContain("OPENAI_API_KEY");
       } finally {
         appState.close();
       }

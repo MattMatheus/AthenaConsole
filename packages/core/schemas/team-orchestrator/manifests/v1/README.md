@@ -4,7 +4,14 @@ This directory is the canonical source for reset-era Team Orchestrator manifest 
 
 - `plugin.schema.json` validates root `plugin.yaml` files.
 - `agent.schema.json` validates referenced `*.agent.yaml` files.
+- `workflow.schema.json` validates referenced `*.workflow.yaml` files.
 - `examples/` contains validation fixtures for common plugin shapes.
+
+Provider readiness is declared with manifest-compatible references, not raw secrets:
+
+- Agents can declare `agent.runtime.modelProvider` with `required`, optional `providerId`, `providerKind`, `model`, and `label`.
+- Workflows can declare `workflow.providerRequirements` as an array with the same fields. If omitted, workflow readiness is inferred from assigned agents.
+- Provider configs and API keys remain app-state/runtime concerns; manifests reference only provider identity, kind, or model preferences.
 
 Schema versioning is explicit:
 

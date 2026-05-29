@@ -1,6 +1,7 @@
 import { CheckCircle2, Play, RefreshCw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import type { ProviderReadiness } from "../features/agent-catalog";
 import {
   connectedRepositoryReadinessMessage,
   mergeConnectedRepositoryContext,
@@ -76,6 +77,20 @@ function templateKey(template: WorkflowTemplateSummary): string {
   return `${template.id}@${template.version}:${template.plugin.id}@${template.plugin.version}`;
 }
 
+function isProviderReadinessBlocking(readiness: ProviderReadiness | undefined): boolean {
+  return Boolean(readiness?.required && (readiness.status === "missing" || readiness.status === "invalid"));
+}
+
+function providerReadinessClass(readiness: ProviderReadiness): string {
+  if (readiness.status === "configured") {
+    return styles.badgeSuccess ?? "";
+  }
+  if (readiness.status === "missing" || readiness.status === "invalid") {
+    return styles.badgeWarning ?? "";
+  }
+  return styles.badgeMuted ?? "";
+}
+
 export function WorkflowsPage() {
   const [search, setSearch] = useState("");
   const [availability, setAvailability] = useState<AvailabilityFilter>("all");
@@ -108,6 +123,7 @@ export function WorkflowsPage() {
   );
   const selectedRepository = repositories.find((repository) => repository.id === selectedRepositoryId);
   const repoReadinessMessage = connectedRepositoryReadinessMessage(selectedRepository);
+  const providerReadinessBlocking = isProviderReadinessBlocking(selectedTemplate?.providerReadiness);
   const inputFields = useMemo(() => workflowTemplateInputFields(selectedTemplate), [selectedTemplate]);
   const inputValidation = validateWorkflowTemplateInputs(inputFields, inputValues);
   const displayedValidation = hasAttemptedInstantiate ? inputValidation : {};
@@ -145,6 +161,9 @@ export function WorkflowsPage() {
     }
     setHasAttemptedInstantiate(true);
     if (repoReadinessMessage) {
+      return;
+    }
+    if (providerReadinessBlocking) {
       return;
     }
     if (hasWorkflowTemplateInputErrors(inputValidation)) {
@@ -293,6 +312,9 @@ export function WorkflowsPage() {
                       <span className={styles.badge}>{template.taskCount} tasks</span>
                       <span className={styles.badgeMuted}>{template.plugin.name}</span>
                       <span className={styles.badgeMuted}>{inputMeta(workflowTemplateInputFields(template))}</span>
+                      <span className={providerReadinessClass(template.providerReadiness)}>
+                        provider {template.providerReadiness.status}
+                      </span>
                     </span>
                   </button>
                 ))}
@@ -325,6 +347,15 @@ export function WorkflowsPage() {
                     <span className={statusClass(selectedTemplate)}>{selectedTemplate.status}</span>
                   </div>
                   <p className={styles.description}>{selectedTemplate.description || "No description declared."}</p>
+                  <div className={styles.badgeRow}>
+                    <span className={providerReadinessClass(selectedTemplate.providerReadiness)}>
+                      provider {selectedTemplate.providerReadiness.status}
+                    </span>
+                    {selectedTemplate.providerReadiness.providerName ? (
+                      <span className={styles.badgeMuted}>{selectedTemplate.providerReadiness.providerName}</span>
+                    ) : null}
+                  </div>
+                  <p className={styles.description}>{selectedTemplate.providerReadiness.message}</p>
                   {selectedTemplate.metadata.goal ? (
                     <dl className={styles.kvList}>
                       <div>
@@ -417,6 +448,9 @@ export function WorkflowsPage() {
                 </section>
 
                 {instantiateMutation.error instanceof Error ? <p className={styles.errorText}>{instantiateMutation.error.message}</p> : null}
+                {hasAttemptedInstantiate && providerReadinessBlocking ? (
+                  <p className={styles.errorText}>Configure a valid model provider in Settings before instantiating this workflow.</p>
+                ) : null}
                 {hasAttemptedInstantiate && hasWorkflowTemplateInputErrors(inputValidation) ? (
                   <p className={styles.errorText}>Review the highlighted inputs before instantiating.</p>
                 ) : null}

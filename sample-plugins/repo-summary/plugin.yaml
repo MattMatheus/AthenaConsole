@@ -1,0 +1,33 @@
+schemaVersion: 1
+plugin:
+  id: team-orchestrator.samples.repo-summary
+  name: Repo Summary
+  version: 0.1.0
+  description: Read-only local repo summarizer example built with the Team Orchestrator PDK.
+  authors:
+    - name: Team Orchestrator
+  agents:
+    - path: agents/repo-summary.agent.yaml
+      id: repo.summary.local
+      version: 0.1.0
+  docs:
+    readme: docs/README.md
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    manifestSchema: team-orchestrator.manifests.v1
+    runtimeBackends:
+      - local-process
+    platforms:
+      - any
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+  ui:
+    icon: book-open-text
+    color: "#3b7c6e"
+    tags:
+      - sample
+      - repo
+      - read-only

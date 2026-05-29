@@ -1,0 +1,103 @@
+{
+  "cycle_id": "20260529-provider-sdk-repo-summary",
+  "generated_at_utc": "2026-05-29T20:29:39Z",
+  "branch": "main",
+  "story_path": "",
+  "actor": "",
+  "stage_trace": [],
+  "diff_inventory": [
+    "A\tflywheel/backlog/engineering/done/STORY-20260529-agent-provider-readiness.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260529-agent-sdk-core-package.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260529-example-repo-summary-agent.md",
+    "A\tpackages/core/src/control-plane/services/provider-readiness.ts",
+    "A\tpackages/core/src/shared/contracts/provider-readiness.ts",
+    "A\tpackages/core/tests/control-plane.repo-summary-sample.test.ts",
+    "A\tpackages/pdk/src/agent.ts",
+    "A\tpackages/pdk/tests/agent-sdk.test.mjs",
+    "A\tsample-plugins/repo-summary/agents/repo-summary-runner.mjs",
+    "A\tsample-plugins/repo-summary/agents/repo-summary.agent.yaml",
+    "A\tsample-plugins/repo-summary/docs/README.md",
+    "A\tsample-plugins/repo-summary/plugin.yaml",
+    "A\tsample-plugins/repo-summary/schemas/repo-summary-input.schema.json",
+    "D\tflywheel/backlog/engineering/ready/STORY-20260529-agent-provider-readiness.md",
+    "D\tflywheel/backlog/engineering/ready/STORY-20260529-agent-sdk-core-package.md",
+    "D\tflywheel/backlog/engineering/ready/STORY-20260529-example-repo-summary-agent.md",
+    "M\tapps/console/src/features/agent-catalog/api.ts",
+    "M\tapps/console/src/features/agent-catalog/types.ts",
+    "M\tapps/console/src/features/task-workbench/formModel.test.ts",
+    "M\tapps/console/src/features/workflow-templates/api.ts",
+    "M\tapps/console/src/features/workflow-templates/formModel.test.ts",
+    "M\tapps/console/src/features/workflow-templates/types.ts",
+    "M\tapps/console/src/pages/AgentCatalogPage.module.css",
+    "M\tapps/console/src/pages/AgentCatalogPage.tsx",
+    "M\tapps/console/src/pages/AgentDetailPage.tsx",
+    "M\tapps/console/src/pages/TaskCreatePage.tsx",
+    "M\tapps/console/src/pages/WorkflowsPage.tsx",
+    "M\tdocs/product/direction/current-direction.md",
+    "M\tdocs/product/epics/refinement/2026.27.00-epic-model-provider-and-secrets-setup.md",
+    "M\tdocs/product/epics/refinement/2026.28.00-epic-agent-sdk-and-examples.md",
+    "M\tdocs/product/roadmap/flight-path.md",
+    "M\tflywheel/backlog/README.md",
+    "M\tflywheel/backlog/engineering/done/README.md",
+    "M\tflywheel/backlog/engineering/ready/README.md",
+    "M\tpackages/core/schemas/team-orchestrator/manifests/v1/README.md",
+    "M\tpackages/core/schemas/team-orchestrator/manifests/v1/agent.schema.json",
+    "M\tpackages/core/schemas/team-orchestrator/manifests/v1/workflow.schema.json",
+    "M\tpackages/core/src/control-plane/api-schemas.ts",
+    "M\tpackages/core/src/control-plane/services/agent-catalog.ts",
+    "M\tpackages/core/src/control-plane/services/workflow-template-catalog.ts",
+    "M\tpackages/core/src/shared/contracts/agent-catalog.ts",
+    "M\tpackages/core/src/shared/contracts/index.ts",
+    "M\tpackages/core/src/shared/contracts/workflow-template-catalog.ts",
+    "M\tpackages/core/tests/control-plane.agent-catalog.test.ts",
+    "M\tpackages/core/tests/control-plane.readiness.test.ts",
+    "M\tpackages/core/tests/control-plane.workflow-template-catalog.test.ts",
+    "M\tpackages/pdk/README.md",
+    "M\tpackages/pdk/package.json",
+    "M\tpackages/pdk/src/index.ts"
+  ],
+  "objective": {
+    "intended_outcome": "",
+    "scope_boundary": ""
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [],
+    "tools_used": [],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [],
+    "state_transitions": [],
+    "non_file_actions": []
+  },
+  "validation": {
+    "checks_run": [],
+    "results": [],
+    "checks_not_run": []
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": false,
+    "prompts_updated_if_stage_behavior_changed": false,
+    "process_docs_updated_if_contracts_or_gates_changed": false,
+    "queue_order_and_state_synchronized": false
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [],
+    "assumptions_carried": [],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "",
+    "approval_required": "",
+    "approval_reference": ""
+  },
+  "next_step": {
+    "recommended_next_state": "",
+    "follow_up_work": [],
+    "durable_promotions": []
+  },
+  "release_impact": {
+    "release_scope": "",
+    "additional_release_actions": []
+  }
+}

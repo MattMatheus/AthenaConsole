@@ -12,6 +12,7 @@ import type {
 import type { AgentCatalogService } from "../interfaces.js";
 import type { AppStateDatabase, AgentIndexRecord, PluginIndexRecord } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
+import { evaluateProviderReadiness, normalizeModelProviderRequirement } from "./provider-readiness.js";
 
 interface AgentManifestDocument {
   agent?: {
@@ -67,10 +68,11 @@ export class LocalAgentCatalogService implements AgentCatalogService {
     return this.withAppState((appState) => {
       const pluginsByKey = new Map(appState.plugins.list().map((plugin) => [pluginKey(plugin.id, plugin.version), plugin]));
       const requiredCapabilities = normalizeCapabilities(query.capabilities);
+      const providers = appState.modelProviderConfigs.list();
       const agents = appState.agents
         .list()
         .filter((agent) => hasRequiredCapabilities(agent.capabilities, requiredCapabilities))
-        .map((agent) => mapAgentSummary(agent, pluginsByKey.get(pluginKey(agent.pluginId, agent.pluginVersion))))
+        .map((agent) => mapAgentSummary(agent, pluginsByKey.get(pluginKey(agent.pluginId, agent.pluginVersion)), providers))
         .filter((agent): agent is AgentCatalogAgentSummary => Boolean(agent));
 
       return {
@@ -122,13 +124,15 @@ function mapPluginSummary(plugin: PluginIndexRecord, agents: AgentIndexRecord[])
 
 function mapAgentSummary(
   agent: AgentIndexRecord,
-  plugin: PluginIndexRecord | undefined
+  plugin: PluginIndexRecord | undefined,
+  providers: ReturnType<AppStateDatabase["modelProviderConfigs"]["list"]>
 ): AgentCatalogAgentSummary | undefined {
   if (!plugin) {
     return undefined;
   }
   const pluginManifest = normalizePluginManifest(plugin.manifest);
   const agentManifest = normalizeAgentManifest(agent.manifest);
+  const providerRequirement = normalizeModelProviderRequirement(agentManifest.agent?.runtime?.modelProvider);
   return {
     id: agent.id,
     version: agent.version,
@@ -145,6 +149,7 @@ function mapAgentSummary(
     capabilities: agent.capabilities,
     status: agent.status,
     available: plugin.enabled && plugin.status === "loaded" && agent.status === "loaded",
+    providerReadiness: evaluateProviderReadiness(providerRequirement ? [providerRequirement] : [], providers),
     metadata: mapAgentMetadata(agentManifest),
     validationErrors: [],
     createdAt: agent.createdAt,

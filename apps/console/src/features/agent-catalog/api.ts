@@ -7,6 +7,7 @@ import type {
   AgentCatalogPluginSourceScope,
   AgentCatalogPluginSummary,
   AgentCatalogValidationIssue,
+  ProviderReadiness,
 } from "./types";
 
 type RecordValue = Record<string, unknown>;
@@ -27,6 +28,33 @@ function toStringArray(value: unknown): string[] {
 
 function toRecord(value: unknown): Record<string, unknown> | undefined {
   return isRecord(value) ? value : undefined;
+}
+
+function parseProviderReadiness(value: unknown): ProviderReadiness {
+  const record = isRecord(value) ? value : {};
+  const requirements = Array.isArray(record.requirements)
+    ? record.requirements.filter(isRecord).map((requirement) => ({
+        required: requirement.required !== false,
+        ...(requirement.providerKind === "openai-compatible" ? { providerKind: "openai-compatible" as const } : {}),
+        ...(typeof requirement.providerId === "string" ? { providerId: requirement.providerId } : {}),
+        ...(typeof requirement.model === "string" ? { model: requirement.model } : {}),
+        ...(typeof requirement.label === "string" ? { label: requirement.label } : {}),
+      }))
+    : [];
+  const status =
+    record.status === "configured" || record.status === "missing" || record.status === "invalid" || record.status === "untested"
+      ? record.status
+      : "untested";
+  return {
+    status,
+    required: Boolean(record.required),
+    requirements,
+    ...(typeof record.providerId === "string" ? { providerId: record.providerId } : {}),
+    ...(typeof record.providerName === "string" ? { providerName: record.providerName } : {}),
+    ...(record.providerKind === "openai-compatible" ? { providerKind: "openai-compatible" } : {}),
+    ...(typeof record.model === "string" ? { model: record.model } : {}),
+    message: typeof record.message === "string" ? record.message : "No model provider requirement declared.",
+  };
 }
 
 function parseValidationIssue(value: unknown): AgentCatalogValidationIssue | undefined {
@@ -108,6 +136,7 @@ function parseAgent(value: unknown): AgentCatalogAgentSummary | undefined {
     capabilities: toStringArray(value.capabilities),
     status: typeof value.status === "string" ? value.status : "unknown",
     available: Boolean(value.available),
+    providerReadiness: parseProviderReadiness(value.providerReadiness),
     metadata: {
       ...(typeof metadata.description === "string" ? { description: metadata.description } : {}),
       ...(inputs ? { inputs } : {}),

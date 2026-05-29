@@ -51,3 +51,6 @@ Engineering work accepted by QA.
 45. `STORY-20260529-repo-context-create-work.md`
 46. `STORY-20260529-provider-config-secret-model.md`
 47. `STORY-20260529-provider-settings-console.md`
+48. `STORY-20260529-agent-sdk-core-package.md`
+49. `STORY-20260529-example-repo-summary-agent.md`
+50. `STORY-20260529-agent-provider-readiness.md`

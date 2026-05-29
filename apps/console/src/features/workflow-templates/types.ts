@@ -1,4 +1,5 @@
 import type { TaskWorkbenchTask, TaskWorkbenchTaskStatus } from "../task-workbench";
+import type { ModelProviderRequirement, ProviderReadiness } from "../agent-catalog";
 
 export type WorkflowTemplateValidationIssue = {
   file?: string;
@@ -43,11 +44,13 @@ export type WorkflowTemplateSummary = {
   plugin: WorkflowTemplatePluginRef;
   status: string;
   available: boolean;
+  providerReadiness: ProviderReadiness;
   taskCount: number;
   metadata: {
     goal?: string;
     context?: unknown;
     inputs?: Record<string, WorkflowTemplateInputDefinition>;
+    providerRequirements?: ModelProviderRequirement[];
     tasks?: unknown[];
     ui?: Record<string, unknown>;
   };

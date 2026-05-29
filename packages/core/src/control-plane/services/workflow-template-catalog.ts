@@ -17,6 +17,12 @@ import type { WorkflowTemplateCatalogService } from "../interfaces.js";
 import { parseWorkflowTemplateDag } from "../workflow-template-dag.js";
 import { LocalTaskWorkbenchService } from "./task-workbench.js";
 import { LocalWorkflowStateService } from "./workflow-state.js";
+import {
+  combineProviderReadiness,
+  evaluateProviderReadiness,
+  normalizeModelProviderRequirement,
+  normalizeModelProviderRequirements
+} from "./provider-readiness.js";
 
 interface PluginManifestDocument {
   plugin?: {
@@ -33,6 +39,7 @@ interface WorkflowTemplateManifestDocument {
     goal?: string;
     context?: unknown;
     inputs?: Record<string, WorkflowInputDefinition>;
+    providerRequirements?: unknown;
     tasks?: WorkflowTaskTemplate[];
     ui?: Record<string, unknown>;
   };
@@ -70,7 +77,7 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
       const templates = appState.workflowTemplates
         .list()
         .filter((template) => (query.pluginId ? template.pluginId === query.pluginId : true))
-        .map((template) => mapTemplateSummary(template, pluginsByKey.get(pluginKey(template.pluginId, template.pluginVersion))))
+        .map((template) => mapTemplateSummary(template, pluginsByKey.get(pluginKey(template.pluginId, template.pluginVersion)), appState))
         .filter((template): template is WorkflowTemplateCatalogTemplateSummary => Boolean(template))
         .filter((template) => (query.includeUnavailable ? true : template.available));
 
@@ -390,13 +397,15 @@ function mapMissionRecord(record: {
 
 function mapTemplateSummary(
   template: WorkflowTemplateIndexRecord,
-  plugin: PluginIndexRecord | undefined
+  plugin: PluginIndexRecord | undefined,
+  appState: AppStateDatabase
 ): WorkflowTemplateCatalogTemplateSummary | undefined {
   if (!plugin) {
     return undefined;
   }
   const pluginManifest = normalizePluginManifest(plugin.manifest);
   const workflowManifest = normalizeWorkflowManifest(template.manifest);
+  const providerReadiness = evaluateWorkflowProviderReadiness(workflowManifest.workflow, appState);
   return {
     id: template.id,
     version: template.version,
@@ -412,11 +421,15 @@ function mapTemplateSummary(
     },
     status: template.status,
     available: plugin.enabled && plugin.status === "loaded" && template.status === "loaded",
+    providerReadiness,
     taskCount: template.taskCount,
     metadata: {
       ...(workflowManifest.workflow?.goal ? { goal: workflowManifest.workflow.goal } : {}),
       ...(workflowManifest.workflow?.context !== undefined ? { context: workflowManifest.workflow.context } : {}),
       ...(workflowManifest.workflow?.inputs ? { inputs: workflowManifest.workflow.inputs } : {}),
+      ...(workflowManifest.workflow?.providerRequirements !== undefined
+        ? { providerRequirements: workflowManifest.workflow.providerRequirements }
+        : {}),
       ...(workflowManifest.workflow?.tasks ? { tasks: workflowManifest.workflow.tasks } : {}),
       ...(workflowManifest.workflow?.ui ? { ui: workflowManifest.workflow.ui } : {})
     },
@@ -424,6 +437,46 @@ function mapTemplateSummary(
     createdAt: template.createdAt,
     updatedAt: template.updatedAt
   };
+}
+
+function evaluateWorkflowProviderReadiness(
+  workflow: WorkflowTemplateManifestDocument["workflow"] | undefined,
+  appState: AppStateDatabase
+) {
+  const providers = appState.modelProviderConfigs.list();
+  const explicit = normalizeModelProviderRequirements(workflow?.providerRequirements);
+  if (explicit.length > 0) {
+    return evaluateProviderReadiness(explicit, providers);
+  }
+
+  const agents = appState.agents.list();
+  const agentChecks =
+    workflow?.tasks
+      ?.map((task) => findAssignedAgent(agents, task))
+      .filter((agent): agent is NonNullable<ReturnType<typeof findAssignedAgent>> => agent !== undefined)
+      .map((agent) => {
+        const agentManifest = normalizeAgentManifest(agent.manifest);
+        const requirement = normalizeModelProviderRequirement(agentManifest.agent?.runtime?.modelProvider);
+        return evaluateProviderReadiness(requirement ? [requirement] : [], providers);
+      }) ?? [];
+
+  return combineProviderReadiness(agentChecks);
+}
+
+function findAssignedAgent(
+  agents: ReturnType<AppStateDatabase["agents"]["list"]>,
+  task: WorkflowTaskTemplate
+) {
+  if (!task.assignedAgentId) {
+    return undefined;
+  }
+  return agents.find(
+    (agent) => agent.id === task.assignedAgentId && (!task.assignedAgentVersion || agent.version === task.assignedAgentVersion)
+  );
+}
+
+function normalizeAgentManifest(manifest: unknown): { agent?: { runtime?: Record<string, unknown> } } {
+  return isRecord(manifest) ? (manifest as { agent?: { runtime?: Record<string, unknown> } }) : {};
 }
 
 function pluginKey(id: string, version: string): string {

@@ -1,4 +1,24 @@
 export type AgentCatalogPluginSourceScope = "workspace" | "system";
+export type ProviderReadinessStatus = "configured" | "missing" | "invalid" | "untested";
+
+export type ModelProviderRequirement = {
+  required: boolean;
+  providerKind?: "openai-compatible";
+  providerId?: string;
+  model?: string;
+  label?: string;
+};
+
+export type ProviderReadiness = {
+  status: ProviderReadinessStatus;
+  required: boolean;
+  requirements: ModelProviderRequirement[];
+  providerId?: string;
+  providerName?: string;
+  providerKind?: "openai-compatible";
+  model?: string;
+  message: string;
+};
 
 export type AgentCatalogValidationIssue = {
   file?: string;
@@ -45,6 +65,7 @@ export type AgentCatalogAgentSummary = {
   capabilities: string[];
   status: string;
   available: boolean;
+  providerReadiness: ProviderReadiness;
   metadata: {
     description?: string;
     inputs?: Record<string, unknown>;

@@ -68,6 +68,12 @@ function workflowTemplate(inputs: WorkflowTemplateSummary["metadata"]["inputs"])
     },
     status: "loaded",
     available: true,
+    providerReadiness: {
+      status: "untested",
+      required: false,
+      requirements: [],
+      message: "No model provider requirement declared.",
+    },
     taskCount: 2,
     metadata: inputs ? { inputs } : {},
     validationErrors: [],

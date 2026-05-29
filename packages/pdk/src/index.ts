@@ -12,6 +12,29 @@ export type {
 } from "./contracts.js";
 import type { PersonaDefinition } from "./contracts.js";
 
+export type {
+  AgentHandler,
+  AgentHandlerContext,
+  AgentInputContract,
+  AgentInputField,
+  AgentInputFieldType,
+  AgentInputValidationIssue,
+  AgentRunArtifact,
+  AgentRunOutputEnvelope,
+  AgentRunVerificationFailure,
+  AgentRunVerificationStatus,
+  AgentTaskRunEnvelope
+} from "./agent.js";
+export {
+  AgentSdkValidationError,
+  createAgentArtifact,
+  createAgentRunOutput,
+  parseAgentEnvelopeInputs,
+  parseAgentInputs,
+  parseAgentTaskRunEnvelope,
+  runAgentHandler,
+  serializeAgentRunOutput
+} from "./agent.js";
 export { definePersona } from "./define-persona.js";
 export { assertValidPersonaName, clampConfidence, isFindingPriority, isValidPersonaName } from "./helpers.js";
 import { definePersona } from "./define-persona.js";

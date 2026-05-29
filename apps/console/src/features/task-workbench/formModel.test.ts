@@ -130,6 +130,12 @@ function agent(id: string, available: boolean, capabilities: string[]): AgentCat
     capabilities,
     status: "loaded",
     available,
+    providerReadiness: {
+      status: "untested",
+      required: false,
+      requirements: [],
+      message: "No model provider requirement declared.",
+    },
     metadata: {},
     validationErrors: [],
     createdAt: "2026-01-01T00:00:00.000Z",
