@@ -80,6 +80,33 @@ Ready story sequence:
 3. `flywheel/backlog/engineering/done/STORY-20260528-console-empty-states-onboarding.md`
 4. `flywheel/backlog/engineering/done/STORY-20260528-quickstart-demo-docs-alignment.md`
 
+### 2026.24 Console Product Surface Polish
+
+Status: Planning intake.
+
+Goal: make the console feel like a coherent Team Orchestrator product surface after the product-direction reset and first-run work.
+
+Why now:
+
+- The first-run path is complete enough for outside review.
+- Visible console cruft from older product direction can distract from the current operator workflow.
+- UI polish should happen before adding deeper features so new work lands into a cleaner information architecture.
+
+Target outcome:
+
+- A new or returning operator sees Team Orchestrator branding, clear primary workflows, and advanced/legacy tools that are contained rather than promoted as the main path.
+
+Source epic:
+
+- `docs/product/epics/refinement/2026.24.00-epic-console-product-surface-polish.md`
+
+Candidate story sequence:
+
+1. `flywheel/backlog/engineering/intake/STORY-20260528-console-product-identity-polish.md`
+2. `flywheel/backlog/engineering/intake/STORY-20260528-console-navigation-surface-grouping.md`
+3. `flywheel/backlog/engineering/intake/STORY-20260528-operator-dashboard-polish.md`
+4. `flywheel/backlog/engineering/intake/STORY-20260528-legacy-advanced-surface-containment.md`
+
 ## Near-Term Principles
 
 - Prefer complete local operator loops over new isolated backend features.

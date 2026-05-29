@@ -22,7 +22,10 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-No candidate engineering or architecture intake items.
+- `engineering/intake/STORY-20260528-console-product-identity-polish.md`
+- `engineering/intake/STORY-20260528-console-navigation-surface-grouping.md`
+- `engineering/intake/STORY-20260528-operator-dashboard-polish.md`
+- `engineering/intake/STORY-20260528-legacy-advanced-surface-containment.md`
 
 ## Rule
 

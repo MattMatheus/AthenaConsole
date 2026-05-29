@@ -125,6 +125,21 @@ Source epic:
 
 - `docs/product/epics/refinement/2026.23.00-epic-operator-readiness-first-run.md`
 
+### 2026.24 Console Product Surface Polish
+
+Goal: make the current console feel coherent after the product-direction reset by cleaning up old branding, old terminology, and flat navigation that mixes primary workflows with advanced or legacy tools.
+
+Planning intake:
+
+- `flywheel/backlog/engineering/intake/STORY-20260528-console-product-identity-polish.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-console-navigation-surface-grouping.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-operator-dashboard-polish.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-legacy-advanced-surface-containment.md`
+
+Source epic:
+
+- `docs/product/epics/refinement/2026.24.00-epic-console-product-surface-polish.md`
+
 ### Current Flywheel Priorities
 
 Flywheel lanes are the operational source of truth. No engineering or architecture items are active or awaiting QA right now.
@@ -164,6 +179,13 @@ Recently completed tracks now live in Flywheel done history:
 Ready implementation sequence:
 
 - No refined engineering or architecture work is waiting.
+
+Planning intake sequence:
+
+- `flywheel/backlog/engineering/intake/STORY-20260528-console-product-identity-polish.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-console-navigation-surface-grouping.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-operator-dashboard-polish.md`
+- `flywheel/backlog/engineering/intake/STORY-20260528-legacy-advanced-surface-containment.md`
 
 ## Promotion Rule
 

@@ -19,9 +19,10 @@ Pre-reset refinement records were moved to:
 
 ## Active Refinement Tracks
 
-- `docs/product/epics/refinement/2026.23.00-epic-operator-readiness-first-run.md`
+- `docs/product/epics/refinement/2026.24.00-epic-console-product-surface-polish.md`
 
 ## Completed Refinement Tracks
 
 - `docs/product/epics/refinement/2026.17.00-epic-workflow-dag-engine.md`
 - `docs/product/epics/refinement/2026.22.00-epic-state-ownership-and-sqlite-migration.md`
+- `docs/product/epics/refinement/2026.23.00-epic-operator-readiness-first-run.md`
