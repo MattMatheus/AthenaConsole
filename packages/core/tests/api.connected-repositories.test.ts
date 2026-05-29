@@ -7,6 +7,134 @@ import { createApiServer } from "../src/api/server.js";
 import { loadConfig } from "../src/shared/config.js";
 
 describe("connected repositories api", () => {
+  it("creates managed clones from local Git sources and records failed clones", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-managed-repo-"));
+    const sourceRepoDir = join(dir, "source-repo");
+    mkdirSync(sourceRepoDir, { recursive: true });
+    initGitRepo(sourceRepoDir);
+
+    const config = loadConfig(dir);
+    const server = createApiServer({
+      config,
+      host: "127.0.0.1",
+      port: 0
+    });
+    let bound: { host: string; port: number };
+    try {
+      bound = await server.start();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      rmSync(dir, { recursive: true, force: true });
+      if (message.includes("EPERM")) {
+        return;
+      }
+      throw error;
+    }
+    const base = `http://${bound.host}:${bound.port}`;
+
+    try {
+      const cloneResponse = await fetch(`${base}/api/v1/repositories`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: "repo-managed",
+          name: "Managed Repo",
+          sourceType: "managed-clone",
+          remoteUrl: sourceRepoDir
+        })
+      });
+      expect(cloneResponse.status).toBe(200);
+      const cloneEnvelope = (await cloneResponse.json()) as {
+        data: {
+          id: string;
+          sourceType: string;
+          workspacePath: string;
+          remoteUrl?: string;
+          status: string;
+          dirtyState: string;
+          currentBranch?: string;
+        };
+      };
+      expect(cloneEnvelope.data).toMatchObject({
+        id: "repo-managed",
+        sourceType: "managed-clone",
+        remoteUrl: sourceRepoDir,
+        status: "ready",
+        dirtyState: "clean",
+        currentBranch: "main"
+      });
+      expect(cloneEnvelope.data.workspacePath).toBe(join(dir, "repos", "managed", "repo-managed"));
+
+      const escapedIdResponse = await fetch(`${base}/api/v1/repositories`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: "../repo-escape",
+          name: "Managed Repo Escape",
+          sourceType: "managed-clone",
+          remoteUrl: sourceRepoDir
+        })
+      });
+      expect(escapedIdResponse.status).toBe(200);
+      const escapedIdEnvelope = (await escapedIdResponse.json()) as {
+        data: { id: string; workspacePath: string; status: string };
+      };
+      expect(escapedIdEnvelope.data).toMatchObject({
+        id: "../repo-escape",
+        workspacePath: join(dir, "repos", "managed", "repo-escape"),
+        status: "ready"
+      });
+
+      const unsupportedSourceResponse = await fetch(`${base}/api/v1/repositories`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: "repo-ssh",
+          name: "Managed Repo SSH",
+          sourceType: "managed-clone",
+          remoteUrl: "git@example.test:team/repo.git"
+        })
+      });
+      expect(unsupportedSourceResponse.status).toBe(400);
+
+      const duplicateResponse = await fetch(`${base}/api/v1/repositories`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: "repo-managed",
+          name: "Managed Repo Again",
+          sourceType: "managed-clone",
+          remoteUrl: sourceRepoDir
+        })
+      });
+      expect(duplicateResponse.status).toBe(400);
+
+      const failedCloneResponse = await fetch(`${base}/api/v1/repositories`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: "repo-managed-fail",
+          name: "Managed Repo Fail",
+          sourceType: "managed-clone",
+          remoteUrl: join(dir, "missing-source")
+        })
+      });
+      expect(failedCloneResponse.status).toBe(200);
+      const failedCloneEnvelope = (await failedCloneResponse.json()) as {
+        data: { id: string; status: string; dirtyState: string; statusMessage?: string };
+      };
+      expect(failedCloneEnvelope.data).toMatchObject({
+        id: "repo-managed-fail",
+        status: "error",
+        dirtyState: "unknown"
+      });
+      expect(failedCloneEnvelope.data.statusMessage).toContain("Git clone failed");
+    } finally {
+      await server.stop();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("creates, lists, inspects, and deletes existing-path repositories", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-api-connected-repo-"));
     const repoDir = join(dir, "target-repo");

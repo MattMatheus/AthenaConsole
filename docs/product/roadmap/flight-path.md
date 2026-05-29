@@ -170,7 +170,7 @@ Recommended sequence:
 
 1. `flywheel/backlog/architecture/done/ARCH-20260529-real-work-enablement-operating-model.md`
 2. `flywheel/backlog/engineering/done/STORY-20260529-repo-app-state-inspection.md`
-3. `flywheel/backlog/engineering/ready/STORY-20260529-repo-managed-clone-flow.md`
+3. `flywheel/backlog/engineering/done/STORY-20260529-repo-managed-clone-flow.md`
 4. `flywheel/backlog/engineering/ready/STORY-20260529-repo-connection-console.md`
 5. `flywheel/backlog/engineering/ready/STORY-20260529-repo-context-create-work.md`
 6. `flywheel/backlog/engineering/ready/STORY-20260529-provider-config-secret-model.md`

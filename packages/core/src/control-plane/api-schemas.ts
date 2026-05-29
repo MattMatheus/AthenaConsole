@@ -1439,7 +1439,7 @@ function connectedRepositoryCreateRequestSchema(): ApiSchema {
       remoteUrl: { type: "string", minLength: 1 },
       defaultBranch: { type: "string", minLength: 1 }
     },
-    required: ["name", "sourceType", "workspacePath"]
+    required: ["name", "sourceType"]
   };
 }
 

@@ -46,3 +46,4 @@ Engineering work accepted by QA.
 40. `STORY-20260529-create-work-entry-points.md`
 41. `STORY-20260529-first-run-to-real-repo-bridge.md`
 42. `STORY-20260529-repo-app-state-inspection.md`
+43. `STORY-20260529-repo-managed-clone-flow.md`

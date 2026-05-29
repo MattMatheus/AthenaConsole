@@ -29,7 +29,7 @@ export interface ConnectedRepositoryCreateRequest {
   id?: string;
   name: string;
   sourceType: ConnectedRepositorySourceType;
-  workspacePath: string;
+  workspacePath?: string;
   hostPath?: string;
   remoteUrl?: string;
   defaultBranch?: string;

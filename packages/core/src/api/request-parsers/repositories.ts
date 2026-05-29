@@ -9,14 +9,21 @@ import { optionalString, requireString } from "../validation.js";
 export function parseConnectedRepositoryCreateRequest(body: Record<string, unknown>): ConnectedRepositoryCreateRequest {
   const id = optionalString(body, "id", "repositories.create");
   const sourceType = parseSourceType(body.sourceType, "repositories.create.sourceType");
+  const workspacePath = optionalString(body, "workspacePath", "repositories.create");
   const hostPath = optionalString(body, "hostPath", "repositories.create");
   const remoteUrl = optionalString(body, "remoteUrl", "repositories.create");
   const defaultBranch = optionalString(body, "defaultBranch", "repositories.create");
+  if (sourceType === "existing-path" && !workspacePath) {
+    throw new AthenaError("CONFIG_ERROR", "repositories.create.workspacePath is required for existing-path repositories.");
+  }
+  if (sourceType === "managed-clone" && !remoteUrl) {
+    throw new AthenaError("CONFIG_ERROR", "repositories.create.remoteUrl is required for managed-clone repositories.");
+  }
   return {
     ...(id ? { id } : {}),
     name: requireString(body, "name", "repositories.create"),
     sourceType,
-    workspacePath: requireString(body, "workspacePath", "repositories.create"),
+    ...(workspacePath ? { workspacePath } : {}),
     ...(hostPath ? { hostPath } : {}),
     ...(remoteUrl ? { remoteUrl } : {}),
     ...(defaultBranch ? { defaultBranch } : {})

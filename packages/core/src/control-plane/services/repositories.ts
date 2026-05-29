@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
-import { existsSync, statSync } from "node:fs";
-import { isAbsolute } from "node:path";
+import { existsSync, mkdirSync, statSync } from "node:fs";
+import { basename, dirname, isAbsolute, resolve } from "node:path";
 import { promisify } from "node:util";
 import { randomUUID } from "node:crypto";
 import { AthenaError } from "../../runtime/errors.js";
@@ -52,23 +52,81 @@ export class LocalConnectedRepositoryService implements ConnectedRepositoryServi
   }
 
   async create(request: ConnectedRepositoryCreateRequest): Promise<ConnectedRepository> {
-    if (request.sourceType !== "existing-path") {
-      throw new AthenaError("CONFIG_ERROR", "repositories.create.sourceType currently supports only existing-path.");
+    if (request.sourceType === "managed-clone") {
+      return await this.createManagedClone(request);
     }
-    assertAbsolutePath(request.workspacePath, "repositories.create.workspacePath");
+    if (!request.workspacePath) {
+      throw new AthenaError("CONFIG_ERROR", "repositories.create.workspacePath is required for existing-path repositories.");
+    }
+    const workspacePath = request.workspacePath;
+    assertAbsolutePath(workspacePath, "repositories.create.workspacePath");
     if (request.hostPath) {
       assertAbsolutePath(request.hostPath, "repositories.create.hostPath");
     }
     return await this.withAppStateAsync(async (appState) => {
-      const inspected = await inspectGitRepositoryPath(request.workspacePath);
+      const inspected = await inspectGitRepositoryPath(workspacePath);
       try {
         const repository = appState.connectedRepositories.create({
           id: request.id ?? `repo-${randomUUID()}`,
           name: request.name,
           sourceType: request.sourceType,
-          workspacePath: request.workspacePath,
+          workspacePath,
           ...(request.hostPath ? { hostPath: request.hostPath } : {}),
           remoteUrl: request.remoteUrl ?? inspected.remoteUrl,
+          ...(request.defaultBranch ? { defaultBranch: request.defaultBranch } : {}),
+          status: inspected.status,
+          dirtyState: inspected.dirtyState,
+          ...(inspected.statusMessage ? { statusMessage: inspected.statusMessage } : {})
+        });
+        return mapRepositoryRecord(applyInspection(appState, repository.id, inspected) ?? repository);
+      } catch (error) {
+        throw normalizeRepositoryError(error);
+      }
+    });
+  }
+
+  private async createManagedClone(request: ConnectedRepositoryCreateRequest): Promise<ConnectedRepository> {
+    if (!request.remoteUrl) {
+      throw new AthenaError("CONFIG_ERROR", "repositories.create.remoteUrl is required for managed-clone repositories.");
+    }
+    const source = normalizeCloneSource(request.remoteUrl);
+    const repositoryId = request.id ?? `repo-${randomUUID()}`;
+    const workspacePath = resolveManagedClonePath(this.config, repositoryId, request.name);
+    if (existsSync(workspacePath)) {
+      throw new AthenaError("CONFIG_ERROR", `Managed repository destination already exists: ${workspacePath}`);
+    }
+
+    return await this.withAppStateAsync(async (appState) => {
+      try {
+        await cloneRepository(source, workspacePath);
+      } catch (error) {
+        const statusMessage = cloneErrorMessage(error);
+        try {
+          const failed = appState.connectedRepositories.create({
+            id: repositoryId,
+            name: request.name,
+            sourceType: "managed-clone",
+            workspacePath,
+            remoteUrl: request.remoteUrl,
+            ...(request.defaultBranch ? { defaultBranch: request.defaultBranch } : {}),
+            status: "error",
+            dirtyState: "unknown",
+            statusMessage
+          });
+          return mapRepositoryRecord(failed);
+        } catch (repositoryError) {
+          throw normalizeRepositoryError(repositoryError);
+        }
+      }
+
+      const inspected = await inspectGitRepositoryPath(workspacePath);
+      try {
+        const repository = appState.connectedRepositories.create({
+          id: repositoryId,
+          name: request.name,
+          sourceType: "managed-clone",
+          workspacePath,
+          remoteUrl: request.remoteUrl,
           ...(request.defaultBranch ? { defaultBranch: request.defaultBranch } : {}),
           status: inspected.status,
           dirtyState: inspected.dirtyState,
@@ -230,6 +288,59 @@ async function git(cwd: string, args: string[]): Promise<{ status: "ok" | "faile
       stderr: typeof failure.stderr === "string" ? failure.stderr : ""
     };
   }
+}
+
+async function cloneRepository(source: string, destination: string): Promise<void> {
+  mkdirSync(dirname(destination), { recursive: true });
+  await execFileAsync("git", ["clone", "--", source, destination], {
+    timeout: 30_000,
+    maxBuffer: 1024 * 1024
+  });
+}
+
+function resolveManagedClonePath(config: AthenaConfig, id: string, name: string): string {
+  const root = resolve(config.workspaceRoot, "repos", "managed");
+  const slug = slugify(id || name);
+  const destination = resolve(root, slug);
+  const rootWithSeparator = root.endsWith("/") ? root : `${root}/`;
+  if (destination !== root && !destination.startsWith(rootWithSeparator)) {
+    throw new AthenaError("CONFIG_ERROR", "Managed repository destination escaped the managed repo root.");
+  }
+  return destination;
+}
+
+function slugify(value: string): string {
+  const candidate = basename(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return candidate || `repo-${randomUUID()}`;
+}
+
+function normalizeCloneSource(source: string): string {
+  const trimmed = source.trim();
+  if (isAbsolute(trimmed)) {
+    return trimmed;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+      return trimmed;
+    }
+  } catch {
+    // Fall through to the unsupported-source error below.
+  }
+  throw new AthenaError(
+    "CONFIG_ERROR",
+    "repositories.create.remoteUrl for managed-clone must be a public HTTP(S) Git URL or an absolute local path."
+  );
+}
+
+function cloneErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return `Git clone failed: ${error.message}`;
+  }
+  return "Git clone failed.";
 }
 
 function assertAbsolutePath(path: string, context: string): void {
