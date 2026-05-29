@@ -170,9 +170,9 @@ Active refinement epics:
 - `docs/product/epics/refinement/2026.29.00-epic-real-work-run-loop.md`
 - `docs/product/epics/refinement/2026.30.00-epic-local-server-deployment-readiness.md`
 
-First planning item:
+Completed architecture item:
 
-- `flywheel/backlog/architecture/intake/ARCH-20260529-real-work-enablement-operating-model.md`
+- `flywheel/backlog/architecture/done/ARCH-20260529-real-work-enablement-operating-model.md`
 
 Recently completed tracks now live in Flywheel done history:
 

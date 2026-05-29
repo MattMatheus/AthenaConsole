@@ -20,6 +20,8 @@ Architecture notes and decisions for Team Orchestrator.
 - [ADR 0014: Scheduling Model](0014-scheduling-model.md) - Accepted
 - [ADR 0015: Canonical Orchestration State Model](0015-canonical-orchestration-state-model.md) - Accepted
 - [ADR 0016: Core Service Decomposition Plan](0016-core-service-decomposition-plan.md) - Accepted
+- [ADR 0017: Repo Wiring Operating Model](0017-repo-wiring-operating-model.md) - Accepted
+- [ADR 0018: Real Work Enablement Operating Model](0018-real-work-enablement-operating-model.md) - Accepted
 
 ## Archived Records
 

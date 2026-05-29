@@ -22,12 +22,13 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-- `architecture/intake/ARCH-20260529-real-work-enablement-operating-model.md`
+No candidate engineering or architecture intake items.
 
 ## Done
 
 Recently completed:
 
+- `architecture/done/ARCH-20260529-real-work-enablement-operating-model.md`
 - `engineering/done/STORY-20260529-first-run-to-real-repo-bridge.md`
 - `engineering/done/STORY-20260529-create-work-entry-points.md`
 - `engineering/done/STORY-20260529-repo-wiring-guidance-surface.md`
