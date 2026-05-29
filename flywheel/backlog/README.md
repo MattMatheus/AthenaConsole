@@ -16,7 +16,23 @@ No engineering or architecture work is awaiting QA.
 
 Refined work ready to activate:
 
-No ready engineering or architecture work.
+- `engineering/ready/STORY-20260529-repo-app-state-inspection.md`
+- `engineering/ready/STORY-20260529-repo-managed-clone-flow.md`
+- `engineering/ready/STORY-20260529-repo-connection-console.md`
+- `engineering/ready/STORY-20260529-repo-context-create-work.md`
+- `engineering/ready/STORY-20260529-provider-config-secret-model.md`
+- `engineering/ready/STORY-20260529-provider-settings-console.md`
+- `engineering/ready/STORY-20260529-agent-provider-readiness.md`
+- `engineering/ready/STORY-20260529-agent-sdk-core-package.md`
+- `engineering/ready/STORY-20260529-example-repo-summary-agent.md`
+- `engineering/ready/STORY-20260529-example-generic-research-agents.md`
+- `engineering/ready/STORY-20260529-build-your-first-agent-guide.md`
+- `engineering/ready/STORY-20260529-manifest-input-schema-forms.md`
+- `engineering/ready/STORY-20260529-run-readiness-gates.md`
+- `engineering/ready/STORY-20260529-safe-run-modes-and-proposed-changes.md`
+- `engineering/ready/STORY-20260529-local-server-compose-profile.md`
+- `engineering/ready/STORY-20260529-deployment-readiness-diagnostics.md`
+- `engineering/ready/STORY-20260529-fresh-server-real-work-walkthrough.md`
 
 ## Later
 

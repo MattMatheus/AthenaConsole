@@ -174,6 +174,26 @@ Completed architecture item:
 
 - `flywheel/backlog/architecture/done/ARCH-20260529-real-work-enablement-operating-model.md`
 
+Ready implementation sequence:
+
+- `flywheel/backlog/engineering/ready/STORY-20260529-repo-app-state-inspection.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-repo-managed-clone-flow.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-repo-connection-console.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-repo-context-create-work.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-provider-config-secret-model.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-provider-settings-console.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-agent-provider-readiness.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-agent-sdk-core-package.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-example-repo-summary-agent.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-example-generic-research-agents.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-build-your-first-agent-guide.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-manifest-input-schema-forms.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-run-readiness-gates.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-safe-run-modes-and-proposed-changes.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-local-server-compose-profile.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-deployment-readiness-diagnostics.md`
+- `flywheel/backlog/engineering/ready/STORY-20260529-fresh-server-real-work-walkthrough.md`
+
 Recently completed tracks now live in Flywheel done history:
 
 - `flywheel/backlog/architecture/done/ARCH-20260528-state-ownership-map.md`

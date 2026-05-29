@@ -168,16 +168,28 @@ Completed architecture item:
 
 Recommended sequence:
 
-1. Real-work enablement operating model across repos, providers, secrets, SDK, run safety, and server deployment.
-2. Repo connection and inspection.
-3. Model provider and secret setup.
-4. Agent SDK plus useful example agents.
-5. Structured real-work run loop with safety gates.
-6. Local-server deployment readiness as the end-to-end proof.
+1. `flywheel/backlog/architecture/done/ARCH-20260529-real-work-enablement-operating-model.md`
+2. `flywheel/backlog/engineering/ready/STORY-20260529-repo-app-state-inspection.md`
+3. `flywheel/backlog/engineering/ready/STORY-20260529-repo-managed-clone-flow.md`
+4. `flywheel/backlog/engineering/ready/STORY-20260529-repo-connection-console.md`
+5. `flywheel/backlog/engineering/ready/STORY-20260529-repo-context-create-work.md`
+6. `flywheel/backlog/engineering/ready/STORY-20260529-provider-config-secret-model.md`
+7. `flywheel/backlog/engineering/ready/STORY-20260529-provider-settings-console.md`
+8. `flywheel/backlog/engineering/ready/STORY-20260529-agent-provider-readiness.md`
+9. `flywheel/backlog/engineering/ready/STORY-20260529-agent-sdk-core-package.md`
+10. `flywheel/backlog/engineering/ready/STORY-20260529-example-repo-summary-agent.md`
+11. `flywheel/backlog/engineering/ready/STORY-20260529-example-generic-research-agents.md`
+12. `flywheel/backlog/engineering/ready/STORY-20260529-build-your-first-agent-guide.md`
+13. `flywheel/backlog/engineering/ready/STORY-20260529-manifest-input-schema-forms.md`
+14. `flywheel/backlog/engineering/ready/STORY-20260529-run-readiness-gates.md`
+15. `flywheel/backlog/engineering/ready/STORY-20260529-safe-run-modes-and-proposed-changes.md`
+16. `flywheel/backlog/engineering/ready/STORY-20260529-local-server-compose-profile.md`
+17. `flywheel/backlog/engineering/ready/STORY-20260529-deployment-readiness-diagnostics.md`
+18. `flywheel/backlog/engineering/ready/STORY-20260529-fresh-server-real-work-walkthrough.md`
 
 ## Near-Term Principles
 
-The next roadmap arc is selected but not yet refined into engineering-ready stories. Start with architecture, then turn the epics into Flywheel-ready architecture and engineering stories before implementation starts.
+The next roadmap arc is refined into ready engineering stories. Promote one story at a time through Flywheel, starting with repository app-state and inspection.
 
 - Prefer complete local operator loops over new isolated backend features.
 - Keep the first-run path honest: only document and expose workflows that actually work in the current product.
