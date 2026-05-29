@@ -131,7 +131,7 @@ Goal: make the current console feel coherent after the product-direction reset b
 
 Planning intake:
 
-- `flywheel/backlog/engineering/ready/STORY-20260528-console-product-identity-polish.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-console-product-identity-polish.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-console-navigation-surface-grouping.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-operator-dashboard-polish.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-legacy-advanced-surface-containment.md`
@@ -175,17 +175,17 @@ Recently completed tracks now live in Flywheel done history:
 - `flywheel/backlog/engineering/done/STORY-20260528-sample-plugin-workflow-demo.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-console-empty-states-onboarding.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-quickstart-demo-docs-alignment.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-console-product-identity-polish.md`
 
 Ready implementation sequence:
 
-- No refined engineering or architecture work is waiting.
-
-Planning intake sequence:
-
-- `flywheel/backlog/engineering/ready/STORY-20260528-console-product-identity-polish.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-console-navigation-surface-grouping.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-operator-dashboard-polish.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-legacy-advanced-surface-containment.md`
+
+Planning intake sequence:
+
+- No unrefined engineering or architecture intake is waiting.
 
 ## Promotion Rule
 

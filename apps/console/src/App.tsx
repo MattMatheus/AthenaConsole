@@ -51,7 +51,7 @@ function App() {
     return (
       <div className={styles.shell}>
         <section className={styles.card}>
-          <p className={styles.eyebrow}>ProjectAthena</p>
+          <p className={styles.eyebrow}>Team Orchestrator</p>
           <h1 className={styles.title}>Console Access</h1>
           <p className={styles.subtitle}>Enter the access password configured for this environment.</p>
           <form className={styles.form} onSubmit={handleSubmit}>

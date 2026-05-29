@@ -10,13 +10,12 @@ No active engineering or architecture work.
 
 Work currently awaiting QA:
 
-No engineering or architecture work awaiting QA.
+No engineering or architecture work is awaiting QA.
 
 ## Next
 
 Refined work ready to activate:
 
-- `engineering/ready/STORY-20260528-console-product-identity-polish.md`
 - `engineering/ready/STORY-20260528-console-navigation-surface-grouping.md`
 - `engineering/ready/STORY-20260528-operator-dashboard-polish.md`
 - `engineering/ready/STORY-20260528-legacy-advanced-surface-containment.md`
@@ -26,6 +25,12 @@ Refined work ready to activate:
 Candidate work that needs PM refinement before activation:
 
 No candidate engineering or architecture intake items.
+
+## Done
+
+Recently completed:
+
+- `engineering/done/STORY-20260528-console-product-identity-polish.md`
 
 ## Rule
 

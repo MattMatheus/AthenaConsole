@@ -102,7 +102,7 @@ Source epic:
 
 Candidate story sequence:
 
-1. `flywheel/backlog/engineering/ready/STORY-20260528-console-product-identity-polish.md`
+1. `flywheel/backlog/engineering/done/STORY-20260528-console-product-identity-polish.md`
 2. `flywheel/backlog/engineering/ready/STORY-20260528-console-navigation-surface-grouping.md`
 3. `flywheel/backlog/engineering/ready/STORY-20260528-operator-dashboard-polish.md`
 4. `flywheel/backlog/engineering/ready/STORY-20260528-legacy-advanced-surface-containment.md`

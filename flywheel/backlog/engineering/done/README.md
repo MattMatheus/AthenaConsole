@@ -37,3 +37,4 @@ Engineering work accepted by QA.
 31. `STORY-20260528-sample-plugin-workflow-demo.md`
 32. `STORY-20260528-console-empty-states-onboarding.md`
 33. `STORY-20260528-quickstart-demo-docs-alignment.md`
+34. `STORY-20260528-console-product-identity-polish.md`

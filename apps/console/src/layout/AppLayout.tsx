@@ -111,7 +111,7 @@ export function AppLayout() {
         }`}
       >
         <div className={styles.sidebarHeader}>
-          <p className={styles.brand}>ProjectAthena</p>
+          <p className={styles.brand}>Team Orchestrator</p>
           <p className={styles.brandSubtle}>Console</p>
         </div>
         <nav className={styles.nav} aria-label="Primary">
