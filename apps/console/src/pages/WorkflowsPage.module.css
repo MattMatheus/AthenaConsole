@@ -42,10 +42,23 @@
 .metric,
 .panel,
 .state,
-.filters {
+.filters,
+.guidancePanel {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-surface-elevated);
+}
+
+.guidancePanel {
+  padding: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.guidancePanel > * {
+  min-width: 0;
 }
 
 .metric {
@@ -422,7 +435,13 @@
   .summaryGrid,
   .filters,
   .layout,
-  .inputGrid {
+  .inputGrid,
+  .guidancePanel {
     grid-template-columns: 1fr;
+  }
+
+  .guidancePanel {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

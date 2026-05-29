@@ -138,6 +138,23 @@ export function RunTemplatesPage() {
         </button>
       </div>
 
+      <section className={styles.guidancePanel}>
+        <div>
+          <p className={styles.panelTitle}>Use run presets for advanced repeated prompts</p>
+          <p className={styles.description}>
+            Run templates are saved directive presets with parameter overrides. Use plugin workflow templates for orchestrated task graphs, and tasks for ordinary one-off agent work.
+          </p>
+        </div>
+        <div className={styles.actionBar}>
+          <Link className={styles.inlineLink} to="/tasks">
+            Tasks
+          </Link>
+          <Link className={styles.inlineLink} to="/workflows">
+            Workflows
+          </Link>
+        </div>
+      </section>
+
       <div className={styles.summaryGrid}>
         <div className={styles.metric}>
           <span className={styles.metricLabel}>Templates</span>

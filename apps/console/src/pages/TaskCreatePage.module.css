@@ -47,6 +47,21 @@
   padding: var(--space-4);
 }
 
+.guidancePanel {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-elevated);
+  padding: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.guidancePanel > * {
+  min-width: 0;
+}
+
 .panelTitle,
 .stateTitle,
 .agentName {
@@ -276,7 +291,8 @@
 @media (max-width: 720px) {
   .pageHeader,
   .sectionHeader,
-  .actionBar {
+  .actionBar,
+  .guidancePanel {
     align-items: stretch;
     flex-direction: column;
   }

@@ -44,6 +44,8 @@ function formatDate(value: string): string {
 export function TaskCreatePage() {
   const [searchParams] = useSearchParams();
   const missionIdFilter = searchParams.get("missionId")?.trim() ?? "";
+  const agentIdParam = searchParams.get("agentId")?.trim() ?? "";
+  const agentVersionParam = searchParams.get("version")?.trim() ?? "";
   const agentsQuery = useAgentCatalogAgentsQuery();
   const metadataQuery = useTaskWorkbenchMetadataQuery();
   const missionTasksQuery = useTasksQuery(missionIdFilter ? { missionId: missionIdFilter } : {});
@@ -83,10 +85,22 @@ export function TaskCreatePage() {
   const missionTasks = missionIdFilter ? missionTasksQuery.data?.tasks ?? [] : [];
 
   useEffect(() => {
-    if (selectedAgentKey && !compatibleAgents.some((agent) => agentKey(agent) === selectedAgentKey)) {
+    if (selectedAgentKey && !agentsQuery.isLoading && !compatibleAgents.some((agent) => agentKey(agent) === selectedAgentKey)) {
       setSelectedAgentKey("");
     }
-  }, [compatibleAgents, selectedAgentKey]);
+  }, [agentsQuery.isLoading, compatibleAgents, selectedAgentKey]);
+
+  useEffect(() => {
+    if (!agentIdParam || agentsQuery.isLoading || selectedAgentKey) {
+      return;
+    }
+    const queryAgent = compatibleAgents.find(
+      (agent) => agent.id === agentIdParam && (!agentVersionParam || agent.version === agentVersionParam),
+    );
+    if (queryAgent) {
+      setSelectedAgentKey(agentKey(queryAgent));
+    }
+  }, [agentIdParam, agentVersionParam, agentsQuery.isLoading, compatibleAgents, selectedAgentKey]);
 
   useEffect(() => {
     setInputValues(initialInputValues(inputFields));
@@ -157,6 +171,18 @@ export function TaskCreatePage() {
           <RefreshCw size={16} />
         </button>
       </div>
+
+      <section className={styles.guidancePanel}>
+        <div>
+          <p className={styles.panelTitle}>Use a task for one clear unit of work</p>
+          <p className={styles.description}>
+            Pick an existing plugin-backed agent, describe the objective, and provide manifest inputs such as repo path, files, branch, or other run context.
+          </p>
+        </div>
+        {agentIdParam ? (
+          <p className={styles.mono}>Requested agent: {agentIdParam}{agentVersionParam ? `@${agentVersionParam}` : ""}</p>
+        ) : null}
+      </section>
 
       {error instanceof Error ? (
         <div className={styles.state}>

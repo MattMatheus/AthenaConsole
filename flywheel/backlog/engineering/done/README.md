@@ -43,3 +43,4 @@ Engineering work accepted by QA.
 37. `STORY-20260528-legacy-advanced-surface-containment.md`
 38. `STORY-20260529-agent-catalog-operating-guidance.md`
 39. `STORY-20260529-repo-wiring-guidance-surface.md`
+40. `STORY-20260529-create-work-entry-points.md`

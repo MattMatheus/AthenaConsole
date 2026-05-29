@@ -49,12 +49,21 @@
 .inputPanel,
 .historyPanel,
 .resultPanel,
+.guidancePanel,
 .state,
 .stateInline {
   display: grid;
   gap: var(--space-4);
   min-width: 0;
   padding: var(--space-4);
+}
+
+.guidancePanel {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-elevated);
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
 }
 
 .panelTitle,
@@ -427,13 +436,15 @@
 @media (max-width: 720px) {
   .pageHeader,
   .headerActions,
-  .sectionHeader {
+  .sectionHeader,
+  .guidancePanel {
     align-items: stretch;
     flex-direction: column;
   }
 
   .tableRow,
-  .recurrenceGrid {
+  .recurrenceGrid,
+  .guidancePanel {
     grid-template-columns: 1fr;
   }
 

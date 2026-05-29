@@ -30,6 +30,13 @@ function toCatalogSearch(searchParams: URLSearchParams): string {
   return query ? `?${query}` : "";
 }
 
+function taskCreateSearch(agent: AgentCatalogAgentSummary): string {
+  const next = new URLSearchParams();
+  next.set("agentId", agent.id);
+  next.set("version", agent.version);
+  return `?${next.toString()}`;
+}
+
 function permissionRiskLabels(permissions: Record<string, unknown> | undefined): string[] {
   const labels: string[] = [];
   if (permissions?.network === "write" || permissions?.network === "allow") {
@@ -185,7 +192,7 @@ export function AgentDetailPage() {
           </p>
         </div>
         <div className={styles.actionBarEnd}>
-          <Link className={styles.primaryLink} to="/tasks">
+          <Link className={styles.primaryLink} to={`/tasks${taskCreateSearch(agent)}`}>
             <Play size={15} /> New task
           </Link>
           <Link className={styles.detailLink} to="/workflows">

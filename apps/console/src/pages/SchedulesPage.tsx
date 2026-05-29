@@ -308,6 +308,23 @@ export function SchedulesPage() {
         </div>
       </div>
 
+      <section className={styles.guidancePanel}>
+        <div>
+          <p className={styles.panelTitle}>Use a schedule for repeated work</p>
+          <p className={styles.description}>
+            Schedules run a ready task or instantiate a workflow template on a cadence. Use tasks or workflows first when you are still shaping repo context and inputs.
+          </p>
+        </div>
+        <div className={styles.headerActions}>
+          <Link className={styles.inlineLink} to="/tasks">
+            New task
+          </Link>
+          <Link className={styles.inlineLink} to="/workflows">
+            Workflow templates
+          </Link>
+        </div>
+      </section>
+
       {dataError ? (
         <div className={styles.state}>
           <p className={styles.stateTitle}>Schedule Data Unavailable</p>

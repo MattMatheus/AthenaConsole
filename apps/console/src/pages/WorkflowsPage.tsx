@@ -162,6 +162,18 @@ export function WorkflowsPage() {
         </button>
       </div>
 
+      <section className={styles.guidancePanel}>
+        <div>
+          <p className={styles.panelTitle}>Use a workflow for coordinated work</p>
+          <p className={styles.description}>
+            Workflow templates come from plugins. Instantiating one creates a mission, tasks, and a workflow run; provide repo path or objective inputs when the template asks for run context.
+          </p>
+        </div>
+        <Link className={styles.inlineLink} to="/tasks">
+          Create a one-off task instead
+        </Link>
+      </section>
+
       <div className={styles.summaryGrid}>
         <div className={styles.metric}>
           <span className={styles.metricLabel}>Templates</span>

@@ -25,6 +25,18 @@ export function DashboardPage() {
           </Link>
         </div>
       </div>
+      <section className={styles.createWorkPanel}>
+        <div>
+          <p className={styles.key}>Create Work</p>
+          <h2 className={styles.onboardingTitle}>Choose the right primitive</h2>
+        </div>
+        <div className={styles.createWorkGrid}>
+          <WorkEntry to="/tasks" title="Task" body="One agent, one concrete unit of work." />
+          <WorkEntry to="/workflows" title="Workflow" body="A plugin template that creates coordinated tasks." />
+          <WorkEntry to="/schedules" title="Schedule" body="Repeat a ready task or workflow over time." />
+          <WorkEntry to="/run-templates" title="Run preset" body="Advanced directive preset for repeatable local runs." />
+        </div>
+      </section>
       <FleetDashboard />
       <section className={styles.onboardingPanel}>
         <div className={styles.onboardingHeader}>
@@ -83,6 +95,15 @@ export function DashboardPage() {
         </div>
       </section>
     </section>
+  );
+}
+
+function WorkEntry({ to, title, body }: { to: string; title: string; body: string }) {
+  return (
+    <Link to={to} className={styles.createWorkEntry}>
+      <span className={styles.value}>{title}</span>
+      <span className={styles.settingsMuted}>{body}</span>
+    </Link>
   );
 }
 
