@@ -10,22 +10,44 @@ type NavItem = {
   match: RegExp;
 };
 
-const navItems: NavItem[] = [
-  { path: "/", label: "Dashboard", match: /^\/$/ },
-  { path: "/agents", label: "Agents", match: /^\/agents/ },
-  { path: "/missions", label: "Missions", match: /^\/missions/ },
-  { path: "/tasks", label: "Tasks", match: /^\/tasks/ },
-  { path: "/schedules", label: "Schedules", match: /^\/schedules/ },
-  { path: "/mission-control", label: "Mission Control", match: /^\/mission-control/ },
-  { path: "/sessions", label: "Sessions", match: /^\/sessions/ },
-  { path: "/workflows", label: "Workflows", match: /^\/workflows/ },
-  { path: "/run-templates", label: "Run Templates", match: /^\/run-templates/ },
-  { path: "/dlq", label: "Legacy A2A DLQ", match: /^\/dlq/ },
-  { path: "/resources", label: "Resources", match: /^\/resources/ },
-  { path: "/rbac", label: "RBAC", match: /^\/rbac/ },
-  { path: "/audit-trail", label: "Audit Trail", match: /^\/audit-trail/ },
-  { path: "/settings", label: "Settings", match: /^\/settings/ },
+type NavSection = {
+  label: string;
+  items: NavItem[];
+};
+
+const navSections: NavSection[] = [
+  {
+    label: "Operate",
+    items: [
+      { path: "/", label: "Dashboard", match: /^\/$/ },
+      { path: "/agents", label: "Agents", match: /^\/agents/ },
+      { path: "/workflows", label: "Workflows", match: /^\/workflows/ },
+      { path: "/missions", label: "Missions", match: /^\/missions/ },
+      { path: "/tasks", label: "Tasks", match: /^\/tasks/ },
+      { path: "/schedules", label: "Schedules", match: /^\/schedules/ },
+      { path: "/sessions", label: "Sessions", match: /^\/sessions/ },
+    ],
+  },
+  {
+    label: "Configure",
+    items: [
+      { path: "/mission-control", label: "Mission Control", match: /^\/mission-control/ },
+      { path: "/run-templates", label: "Run Templates", match: /^\/run-templates/ },
+      { path: "/resources", label: "Resource Controls", match: /^\/resources/ },
+    ],
+  },
+  {
+    label: "Admin & diagnostics",
+    items: [
+      { path: "/audit-trail", label: "Audit Trail", match: /^\/audit-trail/ },
+      { path: "/rbac", label: "RBAC", match: /^\/rbac/ },
+      { path: "/dlq", label: "Legacy A2A DLQ", match: /^\/dlq/ },
+      { path: "/settings", label: "Settings", match: /^\/settings/ },
+    ],
+  },
 ];
+
+const navItems = navSections.flatMap((section) => section.items);
 
 const SIDEBAR_VISIBILITY_KEY = "athena.console.sidebar.visible";
 const MOBILE_BREAKPOINT = "(max-width: 900px)";
@@ -55,15 +77,21 @@ function getInitialSidebarVisibility(): boolean {
   return !isMobileViewport();
 }
 
-function toBreadcrumb(pathname: string): string[] {
+function toBreadcrumb(pathname: string, activeNav?: NavItem): string[] {
   if (pathname === "/") {
     return ["Dashboard"];
   }
 
-  return pathname
+  const segments = pathname
     .split("/")
     .filter(Boolean)
     .map((segment) => segment[0]!.toUpperCase() + segment.slice(1));
+
+  if (activeNav) {
+    return [activeNav.label, ...segments.slice(1)];
+  }
+
+  return segments;
 }
 
 export function AppLayout() {
@@ -95,13 +123,12 @@ export function AppLayout() {
     };
   }, [setSidebarVisible]);
 
-  const breadcrumb = useMemo(
-    () => toBreadcrumb(location.pathname),
-    [location.pathname],
-  );
-
   const activeNav = navItems.find((item) => item.match.test(location.pathname));
   const title = activeNav?.label ?? "Console";
+  const breadcrumb = useMemo(
+    () => toBreadcrumb(location.pathname, activeNav),
+    [activeNav, location.pathname],
+  );
 
   return (
     <div className={styles.shell}>
@@ -114,23 +141,30 @@ export function AppLayout() {
           <p className={styles.brand}>Team Orchestrator</p>
           <p className={styles.brandSubtle}>Console</p>
         </div>
-        <nav className={styles.nav} aria-label="Primary">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }: { isActive: boolean }) =>
-                `${styles.navLink} ${isActive ? styles.navLinkActive : ""}`
-              }
-              end={item.path === "/"}
-              onClick={() => {
-                if (isMobile) {
-                  setSidebarVisible(false);
-                }
-              }}
-            >
-              {item.label}
-            </NavLink>
+        <nav className={styles.nav} aria-label="Console">
+          {navSections.map((section) => (
+            <section className={styles.navSection} key={section.label} aria-label={section.label}>
+              <p className={styles.navSectionLabel}>{section.label}</p>
+              <div className={styles.navSectionItems}>
+                {section.items.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={({ isActive }: { isActive: boolean }) =>
+                      `${styles.navLink} ${isActive ? styles.navLinkActive : ""}`
+                    }
+                    end={item.path === "/"}
+                    onClick={() => {
+                      if (isMobile) {
+                        setSidebarVisible(false);
+                      }
+                    }}
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            </section>
           ))}
         </nav>
       </aside>

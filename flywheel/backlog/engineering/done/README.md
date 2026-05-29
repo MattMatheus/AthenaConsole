@@ -38,3 +38,4 @@ Engineering work accepted by QA.
 32. `STORY-20260528-console-empty-states-onboarding.md`
 33. `STORY-20260528-quickstart-demo-docs-alignment.md`
 34. `STORY-20260528-console-product-identity-polish.md`
+35. `STORY-20260528-console-navigation-surface-grouping.md`
