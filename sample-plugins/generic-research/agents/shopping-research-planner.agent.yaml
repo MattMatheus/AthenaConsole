@@ -1,0 +1,66 @@
+schemaVersion: 1
+agent:
+  id: research.shopping.planner.local
+  name: Shopping Research Planner Example
+  version: 0.1.0
+  description: Turns a shopping or research objective into a safe research plan without browsing, purchasing, or form submission.
+  capabilities:
+    - research.plan
+    - shopping.plan
+    - artifacts.produce
+  inputs:
+    objective:
+      type: string
+      required: true
+      label: Objective
+      description: The thing to research, compare, or decide.
+    constraints:
+      type: object
+      required: false
+      label: Constraints
+      description: Budget, must-have requirements, location, or time constraints.
+      schema: schemas/shopping-plan-input.schema.json
+    preferences:
+      type: object
+      required: false
+      label: Preferences
+      description: Nice-to-have qualities, exclusions, or scoring preferences.
+    decisionDeadline:
+      type: string
+      required: false
+      label: Decision deadline
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: researchPlan
+        label: Research Plan
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - agents/shopping-research-planner-runner.mjs
+  runtime:
+    preferredBackend: local-process
+    backendPreferences:
+      - local-process
+    workingDirectory: .
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+  limits:
+    maxRuntimeSeconds: 60
+    maxToolCalls: 0
+    maxRepeatedActions: 1
+    maxRetries: 0
+    maxFollowUpTasks: 0
+    maxOutputBytes: 65536
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    pluginApi: team-orchestrator.manifests.v1

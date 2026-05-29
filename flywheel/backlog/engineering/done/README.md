@@ -54,3 +54,4 @@ Engineering work accepted by QA.
 48. `STORY-20260529-agent-sdk-core-package.md`
 49. `STORY-20260529-example-repo-summary-agent.md`
 50. `STORY-20260529-agent-provider-readiness.md`
+51. `STORY-20260529-example-generic-research-agents.md`

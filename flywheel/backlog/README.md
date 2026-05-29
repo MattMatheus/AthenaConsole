@@ -16,7 +16,6 @@ No engineering or architecture work is awaiting QA.
 
 Refined work ready to activate:
 
-- `engineering/ready/STORY-20260529-example-generic-research-agents.md`
 - `engineering/ready/STORY-20260529-build-your-first-agent-guide.md`
 - `engineering/ready/STORY-20260529-manifest-input-schema-forms.md`
 - `engineering/ready/STORY-20260529-run-readiness-gates.md`
@@ -35,6 +34,7 @@ No candidate engineering or architecture intake items.
 
 Recently completed:
 
+- `engineering/done/STORY-20260529-example-generic-research-agents.md`
 - `engineering/done/STORY-20260529-agent-provider-readiness.md`
 - `engineering/done/STORY-20260529-example-repo-summary-agent.md`
 - `engineering/done/STORY-20260529-agent-sdk-core-package.md`

@@ -1,0 +1,62 @@
+schemaVersion: 1
+agent:
+  id: research.article.summarizer.local
+  name: Article Summarizer Example
+  version: 0.1.0
+  description: Summarizes provided article text or a local article/document path without external network access.
+  capabilities:
+    - text.summarize
+    - article.summarize
+    - artifacts.produce
+  inputs:
+    article:
+      type: object
+      required: false
+      label: Article
+      description: Object with title, text, url, or local path fields.
+      schema: schemas/article-input.schema.json
+    text:
+      type: markdown
+      required: false
+      label: Article text
+      description: Raw article text to summarize when no article object is provided.
+    maxBullets:
+      type: integer
+      required: false
+      default: 5
+      label: Max bullets
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: articleSummary
+        label: Article Summary
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - agents/article-summarizer-runner.mjs
+  runtime:
+    preferredBackend: local-process
+    backendPreferences:
+      - local-process
+    workingDirectory: .
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+  limits:
+    maxRuntimeSeconds: 60
+    maxToolCalls: 0
+    maxRepeatedActions: 1
+    maxRetries: 0
+    maxFollowUpTasks: 0
+    maxOutputBytes: 65536
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    pluginApi: team-orchestrator.manifests.v1

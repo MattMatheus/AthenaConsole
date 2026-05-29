@@ -1,0 +1,36 @@
+schemaVersion: 1
+plugin:
+  id: team-orchestrator.samples.generic-research
+  name: Generic Research Examples
+  version: 0.1.0
+  description: Safe local examples for article summarization and shopping/research planning agents.
+  authors:
+    - name: Team Orchestrator
+  agents:
+    - path: agents/article-summarizer.agent.yaml
+      id: research.article.summarizer.local
+      version: 0.1.0
+    - path: agents/shopping-research-planner.agent.yaml
+      id: research.shopping.planner.local
+      version: 0.1.0
+  docs:
+    readme: docs/README.md
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    manifestSchema: team-orchestrator.manifests.v1
+    runtimeBackends:
+      - local-process
+    platforms:
+      - any
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+  ui:
+    icon: search-check
+    color: "#4c6f9f"
+    tags:
+      - sample
+      - research
+      - read-only
