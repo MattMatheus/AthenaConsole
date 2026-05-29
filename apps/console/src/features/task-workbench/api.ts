@@ -231,6 +231,8 @@ function parseMetadata(value: unknown): TaskWorkbenchMetadata {
     statuses: toStringArray(value.statuses) as TaskWorkbenchTaskStatus[],
     defaultStatus: parseStatus(value.defaultStatus),
     readyRequiresAssignedAgent: Boolean(value.readyRequiresAssignedAgent),
+    runModes: toStringArray(value.runModes) as TaskWorkbenchMetadata["runModes"],
+    defaultRunMode: typeof value.defaultRunMode === "string" ? (value.defaultRunMode as TaskWorkbenchMetadata["defaultRunMode"]) : "read-only",
   };
 }
 

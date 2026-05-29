@@ -58,3 +58,4 @@ Engineering work accepted by QA.
 52. `STORY-20260529-build-your-first-agent-guide.md`
 53. `STORY-20260529-manifest-input-schema-forms.md`
 54. `STORY-20260529-run-readiness-gates.md`
+55. `STORY-20260529-safe-run-modes-and-proposed-changes.md`

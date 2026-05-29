@@ -1,5 +1,10 @@
 import type { VerificationPolicyFailure } from "./harness.js";
 
+export type TaskWorkbenchRunMode = "read-only" | "propose-changes" | "approved-write";
+
+export const TASK_WORKBENCH_RUN_MODES: TaskWorkbenchRunMode[] = ["read-only", "propose-changes", "approved-write"];
+export const DEFAULT_TASK_WORKBENCH_RUN_MODE: TaskWorkbenchRunMode = "read-only";
+
 export type TaskWorkbenchTaskStatus =
   | "draft"
   | "proposed"
@@ -110,6 +115,8 @@ export interface TaskWorkbenchMetadata {
   statuses: TaskWorkbenchTaskStatus[];
   defaultStatus: TaskWorkbenchTaskStatus;
   readyRequiresAssignedAgent: boolean;
+  runModes: TaskWorkbenchRunMode[];
+  defaultRunMode: TaskWorkbenchRunMode;
 }
 
 export type TaskWorkbenchRunStatus =

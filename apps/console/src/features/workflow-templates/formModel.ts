@@ -6,6 +6,7 @@ import {
   validateRawInputJson,
   type TaskInputField,
   type TaskInputValues,
+  type TaskWorkbenchRunMode,
 } from "../task-workbench";
 import type { WorkflowTemplateInstantiateRequest, WorkflowTemplateSummary } from "./types";
 
@@ -15,6 +16,7 @@ export type WorkflowTemplateInputOptions = {
   useRawInputs?: boolean;
   rawInputJson?: string;
   repoContextAvailable?: boolean;
+  runMode?: TaskWorkbenchRunMode;
 };
 
 export function workflowTemplateInputFields(template: WorkflowTemplateSummary | undefined): TaskInputField[] {
@@ -78,6 +80,7 @@ export function buildWorkflowTemplateInstantiateRequest(
   options: WorkflowTemplateInputOptions = {},
 ): WorkflowTemplateInstantiateRequest {
   const inputs = options.useRawInputs ? parseRawInputJson(options.rawInputJson) : buildTaskInputs(fields, values);
+  inputs.runMode = options.runMode ?? "read-only";
   return {
     version: template.version,
     pluginId: template.plugin.id,

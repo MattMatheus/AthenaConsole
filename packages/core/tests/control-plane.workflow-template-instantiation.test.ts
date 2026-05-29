@@ -67,7 +67,8 @@ describe("workflow template instantiation service", () => {
           capabilityRequirements: ["release.plan"],
           inputs: {
             release: "v1.2.0",
-            channel: "stable"
+            channel: "stable",
+            runMode: "read-only"
           },
           dependsOn: [],
           missionId: "mission-release",
@@ -89,6 +90,43 @@ describe("workflow template instantiation service", () => {
           missionId: "mission-release",
           dependsOn: ["release-plan"]
         });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("propagates workflow run mode inputs to generated tasks", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-workflow-template-run-mode-"));
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        seedPluginAndAgent(appState);
+        seedWorkflowTemplate(appState);
+        const service = new LocalWorkflowTemplateCatalogService(config, { appState });
+
+        const result = await service.instantiate("templates.release.workflow", {
+          missionId: "mission-run-mode",
+          taskIdPrefix: "run-mode",
+          inputs: {
+            releaseName: "v2.0.0",
+            runMode: "propose-changes"
+          }
+        });
+
+        expect(result.tasks.map((task) => task.inputs)).toEqual([
+          {
+            release: "v2.0.0",
+            channel: "stable",
+            runMode: "propose-changes"
+          },
+          {
+            runMode: "propose-changes"
+          }
+        ]);
       } finally {
         appState.close();
       }

@@ -9,6 +9,8 @@ export type TaskWorkbenchTaskStatus =
   | "cancelled"
   | "archived";
 
+export type TaskWorkbenchRunMode = "read-only" | "propose-changes" | "approved-write";
+
 export type TaskWorkbenchTask = {
   id: string;
   title: string;
@@ -65,6 +67,8 @@ export type TaskWorkbenchMetadata = {
   statuses: TaskWorkbenchTaskStatus[];
   defaultStatus: TaskWorkbenchTaskStatus;
   readyRequiresAssignedAgent: boolean;
+  runModes: TaskWorkbenchRunMode[];
+  defaultRunMode: TaskWorkbenchRunMode;
 };
 
 export type TaskWorkbenchRunStatus =

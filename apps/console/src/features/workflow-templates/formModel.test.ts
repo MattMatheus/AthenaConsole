@@ -59,6 +59,7 @@ describe("workflow template form model", () => {
         releaseMode: "ship",
         releaseName: "v1.2.0",
         count: 2,
+        runMode: "read-only",
       },
       createdBy: "console",
     });
@@ -81,6 +82,7 @@ describe("workflow template form model", () => {
     ).toEqual({
       objective: "Ship it",
       depth: 2,
+      runMode: "read-only",
     });
   });
 });

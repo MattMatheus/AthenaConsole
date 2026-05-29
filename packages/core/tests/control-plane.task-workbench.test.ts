@@ -32,7 +32,7 @@ describe("task workbench service", () => {
           description: "Manual operator draft",
           status: "draft",
           capabilityRequirements: ["code.modify"],
-          inputs: { brief: "Change the API" },
+          inputs: { brief: "Change the API", runMode: "read-only" },
           createdBy: "operator"
         });
         expect(task.id).toMatch(/^task-/);
@@ -112,6 +112,8 @@ describe("task workbench service", () => {
       await expect(service.metadata()).resolves.toMatchObject({
         defaultStatus: "draft",
         readyRequiresAssignedAgent: true,
+        defaultRunMode: "read-only",
+        runModes: ["read-only", "propose-changes", "approved-write"],
         statuses: expect.arrayContaining(["draft", "ready", "completed"])
       });
     } finally {
@@ -363,6 +365,99 @@ process.stdin.on("end", () => {
     }
   });
 
+  it("persists proposed-change artifacts without applying file mutations", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-proposed-change-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "propose-change.js"),
+        `
+process.stdout.write(JSON.stringify({
+  output: { summary: "Proposed one file change." },
+  artifacts: [
+    {
+      id: "proposed-change-readme",
+      label: "Proposed README change",
+      kind: "proposed-change",
+      format: "diff",
+      storageUri: "artifacts/proposed/readme.diff",
+      metadata: {
+        artifactType: "proposed-changes",
+        runMode: "propose-changes",
+        applyAvailable: false,
+        summary: "One README edit proposed.",
+        proposedChanges: [
+          {
+            path: "README.md",
+            changeType: "modify",
+            diff: ["@@ -1 +1 @@", "-old", "+new"].join("\\n")
+          }
+        ]
+      }
+    }
+  ]
+}));
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "propose-change.js");
+        const service = new LocalTaskWorkbenchService(config, { appState });
+        await service.create({
+          id: "task-run-propose-change",
+          title: "Propose change",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: {
+            taskBrief: "Propose README edit",
+            runMode: "propose-changes"
+          }
+        });
+
+        const run = await service.runTask("task-run-propose-change", { runId: "run-propose-change" });
+        const artifacts = appState.artifacts.listForRun("run-propose-change");
+        const events = appState.runEvents.listForRun("run-propose-change");
+
+        expect(run).toMatchObject({
+          status: "completed",
+          output: { summary: "Proposed one file change." }
+        });
+        expect(events.find((event) => event.type === "run.mode")?.payload).toMatchObject({
+          runMode: "propose-changes",
+          applyAvailable: false
+        });
+        expect(artifacts).toEqual([
+          expect.objectContaining({
+            id: "proposed-change-readme",
+            kind: "proposed-change",
+            format: "diff",
+            metadata: expect.objectContaining({
+              artifactType: "proposed-changes",
+              applyAvailable: false,
+              proposedChanges: [
+                {
+                  path: "README.md",
+                  changeType: "modify",
+                  diff: "@@ -1 +1 @@\n-old\n+new"
+                }
+              ]
+            })
+          })
+        ]);
+        expect(appState.tasks.get("task-run-propose-change")).toMatchObject({ status: "completed" });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("rejects local task runs when manifest-required inputs are missing", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-run-input-"));
     try {
@@ -386,6 +481,57 @@ process.stdin.on("end", () => {
 
         await expect(service.runTask("task-run-missing-input")).rejects.toThrow("task.inputs.taskBrief is required");
         expect(appState.runs.list({ targetType: "task", targetId: "task-run-missing-input" })).toEqual([]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("blocks approved-write run mode until approvals can apply mutations", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-run-mode-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(join(pluginDir, "success.js"), "process.stdout.write(JSON.stringify({ output: { ok: true }, artifacts: [] }));", "utf8");
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "success.js");
+        const service = new LocalTaskWorkbenchService(config, { appState });
+        const task = await service.create({
+          id: "task-run-approved-write",
+          title: "Approved write placeholder",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: {
+            taskBrief: "Patch the API",
+            runMode: "approved-write"
+          }
+        });
+
+        expect(task.inputs).toMatchObject({ runMode: "approved-write" });
+        const readiness = await service.getRunReadiness("task-run-approved-write");
+
+        expect(readiness).toMatchObject({
+          status: "blocked",
+          ready: false
+        });
+        expect(readiness.checks).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: "run-mode",
+              category: "permissions",
+              status: "blocked",
+              message: "Approved write mode is not available until approval implementation exists."
+            })
+          ])
+        );
+        await expect(service.runTask("task-run-approved-write")).rejects.toThrow("Approved write mode is not available");
+        expect(appState.runs.list({ targetType: "task", targetId: "task-run-approved-write" })).toEqual([]);
       } finally {
         appState.close();
       }

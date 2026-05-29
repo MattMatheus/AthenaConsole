@@ -158,7 +158,7 @@ Source epic:
 
 ### Current Flywheel Priorities
 
-Flywheel lanes are the operational source of truth. No engineering or architecture items are active or awaiting QA right now.
+Flywheel lanes are the operational source of truth. No engineering or architecture items are active or awaiting QA right now; local-server deployment readiness is the next ready implementation sequence.
 
 The next roadmap arc is Real Work Enablement. It starts in planning/architecture because repo connection, model provider secrets, agent SDK boundaries, run safety, and local-server deployment all affect the operating model.
 
@@ -189,7 +189,7 @@ Ready implementation sequence:
 - `flywheel/backlog/engineering/done/STORY-20260529-build-your-first-agent-guide.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-manifest-input-schema-forms.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-run-readiness-gates.md`
-- `flywheel/backlog/engineering/ready/STORY-20260529-safe-run-modes-and-proposed-changes.md`
+- `flywheel/backlog/engineering/done/STORY-20260529-safe-run-modes-and-proposed-changes.md`
 - `flywheel/backlog/engineering/ready/STORY-20260529-local-server-compose-profile.md`
 - `flywheel/backlog/engineering/ready/STORY-20260529-deployment-readiness-diagnostics.md`
 - `flywheel/backlog/engineering/ready/STORY-20260529-fresh-server-real-work-walkthrough.md`

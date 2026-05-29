@@ -142,6 +142,7 @@ describe("task workbench form model", () => {
     }).inputs).toEqual({
       mode: "careful",
       advanced: { depth: 2 },
+      runMode: "read-only",
     });
   });
 
@@ -181,6 +182,7 @@ describe("task workbench form model", () => {
         retryCount: 2,
         dryRun: true,
         config: { scope: "unit" },
+        runMode: "read-only",
       },
     });
   });

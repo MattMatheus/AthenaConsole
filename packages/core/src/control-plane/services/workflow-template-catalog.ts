@@ -11,6 +11,8 @@ import type {
   WorkflowTemplateInstantiateRequest,
   WorkflowTemplateInstantiationResult
 } from "../../shared/contracts.js";
+import type { TaskWorkbenchRunMode } from "../../shared/contracts.js";
+import { DEFAULT_TASK_WORKBENCH_RUN_MODE, TASK_WORKBENCH_RUN_MODES } from "../../shared/contracts.js";
 import type { AppStateDatabase, PluginIndexRecord, WorkflowTemplateIndexRecord } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
 import type { WorkflowTemplateCatalogService } from "../interfaces.js";
@@ -165,7 +167,10 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
           ),
           ...(taskTemplate.assignedAgentId ? { assignedAgentId: taskTemplate.assignedAgentId } : {}),
           ...(taskTemplate.assignedAgentVersion ? { assignedAgentVersion: taskTemplate.assignedAgentVersion } : {}),
-          inputs: renderTemplateValue(taskTemplate.inputs ?? {}, inputValues, `workflow.tasks.${taskTemplate.id}.inputs`),
+          inputs: applyWorkflowRunModeToTaskInputs(
+            renderTemplateValue(taskTemplate.inputs ?? {}, inputValues, `workflow.tasks.${taskTemplate.id}.inputs`),
+            inputValues
+          ),
           dependsOn: (dag.dependenciesByTaskId[taskTemplate.id] ?? []).map((dependencyId) =>
             requireMappedTaskId(taskIdByTemplateId, dependencyId)
           ),
@@ -284,6 +289,24 @@ function normalizeTaskTemplates(tasks: WorkflowTaskTemplate[] | undefined): Norm
     };
   });
   return normalized;
+}
+
+function applyWorkflowRunModeToTaskInputs(taskInputs: unknown, inputValues: Record<string, unknown>): unknown {
+  if (!isRecord(taskInputs)) {
+    return taskInputs;
+  }
+  if (taskInputs.runMode !== undefined) {
+    return taskInputs;
+  }
+  const runMode = isTaskWorkbenchRunMode(inputValues.runMode) ? inputValues.runMode : DEFAULT_TASK_WORKBENCH_RUN_MODE;
+  return {
+    ...taskInputs,
+    runMode
+  };
+}
+
+function isTaskWorkbenchRunMode(value: unknown): value is TaskWorkbenchRunMode {
+  return typeof value === "string" && TASK_WORKBENCH_RUN_MODES.includes(value as TaskWorkbenchRunMode);
 }
 
 function resolveWorkflowInputs(

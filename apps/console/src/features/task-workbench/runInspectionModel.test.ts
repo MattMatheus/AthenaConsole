@@ -4,6 +4,8 @@ import {
   formatBytes,
   formatUnknown,
   formatVerificationFailureDetails,
+  isProposedChangeArtifact,
+  proposedChangeArtifact,
   runStatusTone,
   verificationStatusLabel,
   verificationStatusTone,
@@ -50,5 +52,37 @@ describe("task run inspection model", () => {
       })
     ).toBe("label: test-report\nevidenceType: json");
     expect(formatVerificationFailureDetails({})).toBe("No details recorded.");
+  });
+
+  it("normalizes proposed-change artifacts for diff inspection", () => {
+    const artifact = {
+      kind: "proposed-change",
+      format: "diff",
+      metadata: {
+        artifactType: "proposed-changes",
+        summary: "Two edits proposed.",
+        applyAvailable: false,
+        proposedChanges: [
+          {
+            path: "src/app.ts",
+            changeType: "modify",
+            diff: "@@ -1 +1 @@\n-old\n+new",
+          },
+        ],
+      },
+    };
+
+    expect(isProposedChangeArtifact(artifact)).toBe(true);
+    expect(proposedChangeArtifact(artifact)).toEqual({
+      summary: "Two edits proposed.",
+      applyAvailable: false,
+      changes: [
+        {
+          path: "src/app.ts",
+          changeType: "modify",
+          diff: "@@ -1 +1 @@\n-old\n+new",
+        },
+      ],
+    });
   });
 });

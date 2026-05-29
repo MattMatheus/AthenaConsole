@@ -6,6 +6,7 @@ import type { AthenaConfig } from "../../shared/config.js";
 import type { VerificationPolicyFailure } from "../../shared/contracts/harness.js";
 import type {
   ProviderReadiness,
+  TaskWorkbenchRunMode,
   TaskWorkbenchMetadata,
   TaskWorkbenchArtifactMetadata,
   TaskWorkbenchRunEvent,
@@ -22,7 +23,7 @@ import type {
   TaskWorkbenchTaskRunRequest,
   TaskWorkbenchTaskUpdateRequest
 } from "../../shared/contracts.js";
-import { TASK_WORKBENCH_STATUSES } from "../../shared/contracts.js";
+import { DEFAULT_TASK_WORKBENCH_RUN_MODE, TASK_WORKBENCH_RUN_MODES, TASK_WORKBENCH_STATUSES } from "../../shared/contracts.js";
 import type {
   AgentIndexRecord,
   AppStateDatabase,
@@ -206,7 +207,9 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
     return {
       statuses: TASK_WORKBENCH_STATUSES,
       defaultStatus: "draft",
-      readyRequiresAssignedAgent: true
+      readyRequiresAssignedAgent: true,
+      runModes: TASK_WORKBENCH_RUN_MODES,
+      defaultRunMode: DEFAULT_TASK_WORKBENCH_RUN_MODE
     };
   }
 
@@ -237,20 +240,20 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       validateCompatibleAssignment(appState, request.assignedAgentId, request.assignedAgentVersion, request.capabilityRequirements ?? []);
       try {
         const created = appState.tasks.create({
-            id: request.id ?? `task-${randomUUID()}`,
-            title: request.title,
-            ...(request.description !== undefined ? { description: request.description } : {}),
-            ...(request.status !== undefined ? { status: request.status } : {}),
-            ...(request.capabilityRequirements !== undefined ? { capabilityRequirements: request.capabilityRequirements } : {}),
-            ...(request.assignedAgentId !== undefined ? { assignedAgentId: request.assignedAgentId } : {}),
-            ...(request.assignedAgentVersion !== undefined ? { assignedAgentVersion: request.assignedAgentVersion } : {}),
-            ...(request.inputs !== undefined ? { inputs: request.inputs } : {}),
-            ...(request.dependsOn !== undefined ? { dependsOn: request.dependsOn } : {}),
-            ...(request.missionId !== undefined ? { missionId: request.missionId } : {}),
-            ...(request.sourceRunId !== undefined ? { sourceRunId: request.sourceRunId } : {}),
-            ...(request.provenance !== undefined ? { provenance: request.provenance } : {}),
-            ...(request.createdBy !== undefined ? { createdBy: request.createdBy } : {})
-          });
+          id: request.id ?? `task-${randomUUID()}`,
+          title: request.title,
+          ...(request.description !== undefined ? { description: request.description } : {}),
+          ...(request.status !== undefined ? { status: request.status } : {}),
+          ...(request.capabilityRequirements !== undefined ? { capabilityRequirements: request.capabilityRequirements } : {}),
+          ...(request.assignedAgentId !== undefined ? { assignedAgentId: request.assignedAgentId } : {}),
+          ...(request.assignedAgentVersion !== undefined ? { assignedAgentVersion: request.assignedAgentVersion } : {}),
+          inputs: normalizeTaskInputsWithRunMode(request.inputs),
+          ...(request.dependsOn !== undefined ? { dependsOn: request.dependsOn } : {}),
+          ...(request.missionId !== undefined ? { missionId: request.missionId } : {}),
+          ...(request.sourceRunId !== undefined ? { sourceRunId: request.sourceRunId } : {}),
+          ...(request.provenance !== undefined ? { provenance: request.provenance } : {}),
+          ...(request.createdBy !== undefined ? { createdBy: request.createdBy } : {})
+        });
         return mapTaskRecord(created, appState);
       } catch (error) {
         throw normalizeTaskRepositoryError(error);
@@ -271,7 +274,11 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       validateReadyAssignment(nextStatus, nextAssignedAgentId);
       validateCompatibleAssignment(appState, nextAssignedAgentId, nextAssignedAgentVersion, nextCapabilities);
       try {
-        return mapTaskRecord(appState.tasks.update(id, request), appState);
+        const updateRequest = {
+          ...request,
+          ...(request.inputs !== undefined ? { inputs: normalizeTaskInputsWithRunMode(request.inputs) } : {})
+        };
+        return mapTaskRecord(appState.tasks.update(id, updateRequest), appState);
       } catch (error) {
         throw normalizeTaskRepositoryError(error);
       }
@@ -329,6 +336,10 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       startLinkedWorkflowDagStep(appState, task);
       appendRunEvent(appState, run.id, task, agent.id, "run.validated", "Task inputs validated.", {
         inputKeys: Object.keys(isRecord(task.inputs) ? task.inputs : {})
+      });
+      appendRunEvent(appState, run.id, task, agent.id, "run.mode", `Task run mode: ${resolveTaskRunMode(task.inputs)}.`, {
+        runMode: resolveTaskRunMode(task.inputs),
+        applyAvailable: false
       });
       appendRunEvent(appState, run.id, task, agent.id, "run.safety.limits", "Task run safety limits resolved.", {
         policyPackId: safety.policyPackId,
@@ -1451,6 +1462,7 @@ function isPathInside(parent: string, child: string): boolean {
 export function evaluateTaskRunReadiness(appState: AppStateDatabase, task: TaskRecord): TaskWorkbenchRunReadiness {
   const checks: TaskWorkbenchRunReadinessCheck[] = [];
   const addCheck = (check: TaskWorkbenchRunReadinessCheck) => checks.push(check);
+  addRunModeReadinessCheck(task, addCheck);
 
   if (task.status !== "ready") {
     addCheck({
@@ -1515,6 +1527,23 @@ export function evaluateTaskRunReadiness(appState: AppStateDatabase, task: TaskR
   addPermissionReadinessCheck(manifest, addCheck);
 
   return summarizeRunReadiness(checks);
+}
+
+function normalizeTaskInputsWithRunMode(inputs: unknown): Record<string, unknown> {
+  const values = isRecord(inputs) ? { ...inputs } : {};
+  if (!Object.prototype.hasOwnProperty.call(values, "runMode")) {
+    values.runMode = DEFAULT_TASK_WORKBENCH_RUN_MODE;
+  }
+  return values;
+}
+
+function resolveTaskRunMode(inputs: unknown): TaskWorkbenchRunMode {
+  const values = isRecord(inputs) ? inputs : {};
+  return isTaskRunMode(values.runMode) ? values.runMode : DEFAULT_TASK_WORKBENCH_RUN_MODE;
+}
+
+function isTaskRunMode(value: unknown): value is TaskWorkbenchRunMode {
+  return typeof value === "string" && TASK_WORKBENCH_RUN_MODES.includes(value as TaskWorkbenchRunMode);
 }
 
 function resolveAssignedAgentForReadiness(
@@ -1665,6 +1694,53 @@ function addRuntimeReadinessCheck(
       nextStep: "Fix the agent implementation/runtime manifest before starting the run."
     });
   }
+}
+
+function addRunModeReadinessCheck(
+  task: TaskRecord,
+  addCheck: (check: TaskWorkbenchRunReadinessCheck) => void
+): void {
+  const inputs = isRecord(task.inputs) ? task.inputs : {};
+  const rawRunMode = inputs.runMode;
+  if (rawRunMode !== undefined && !isTaskRunMode(rawRunMode)) {
+    addCheck({
+      id: "run-mode",
+      category: "permissions",
+      status: "blocked",
+      label: "Run Mode",
+      message: `Unsupported run mode: ${String(rawRunMode)}.`,
+      nextStep: `Use one of: ${TASK_WORKBENCH_RUN_MODES.join(", ")}.`
+    });
+    return;
+  }
+
+  const runMode = resolveTaskRunMode(task.inputs);
+  if (runMode === "approved-write") {
+    addCheck({
+      id: "run-mode",
+      category: "permissions",
+      status: "blocked",
+      label: "Run Mode",
+      message: "Approved write mode is not available until approval implementation exists.",
+      nextStep: "Use read-only or propose-changes mode. Proposed changes must be returned as artifacts."
+    });
+    return;
+  }
+
+  addCheck({
+    id: "run-mode",
+    category: "permissions",
+    status: runMode === "propose-changes" ? "warning" : "ok",
+    label: "Run Mode",
+    message:
+      runMode === "propose-changes"
+        ? "Agent may propose file changes as artifacts, but changes are not applied automatically."
+        : "Run mode defaults to read-only; file mutations are not applied automatically.",
+    nextStep:
+      runMode === "propose-changes"
+        ? "Review proposed-change artifacts after the run."
+        : "Switch to propose-changes when you want diff artifacts for operator review."
+  });
 }
 
 function addPermissionReadinessCheck(

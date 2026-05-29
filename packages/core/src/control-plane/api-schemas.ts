@@ -796,9 +796,14 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
         items: TASK_STATUS_SCHEMA
       },
       defaultStatus: TASK_STATUS_SCHEMA,
-      readyRequiresAssignedAgent: { type: "boolean" }
+      readyRequiresAssignedAgent: { type: "boolean" },
+      runModes: {
+        type: "array",
+        items: { type: "string", enum: ["read-only", "propose-changes", "approved-write"] }
+      },
+      defaultRunMode: { type: "string", enum: ["read-only", "propose-changes", "approved-write"] }
     },
-    required: ["statuses", "defaultStatus", "readyRequiresAssignedAgent"]
+    required: ["statuses", "defaultStatus", "readyRequiresAssignedAgent", "runModes", "defaultRunMode"]
   },
   TaskWorkbenchTaskRun: {
     type: "object",

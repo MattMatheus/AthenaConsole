@@ -5,12 +5,15 @@ import {
   formatBytes,
   formatUnknown,
   formatVerificationFailureDetails,
+  isProposedChangeArtifact,
+  proposedChangeArtifact,
   runStatusTone,
   verificationStatusLabel,
   verificationStatusTone,
   useTaskRunDetailQuery,
   type TaskWorkbenchRunEvent,
   type TaskWorkbenchRunStatus,
+  type TaskWorkbenchArtifactMetadata,
   type TaskWorkbenchVerificationStatus,
 } from "../features/task-workbench";
 import styles from "./TaskRunDetailPage.module.css";
@@ -74,6 +77,56 @@ function verificationClass(status: TaskWorkbenchVerificationStatus | undefined):
     return styles.badgeDanger ?? "";
   }
   return styles.badge ?? "";
+}
+
+function renderArtifactBody(artifact: TaskWorkbenchArtifactMetadata): JSX.Element {
+  if (!isProposedChangeArtifact(artifact)) {
+    return (
+      <>
+        <p className={styles.mono}>{artifact.storageUri}</p>
+        <dl className={styles.compactKv}>
+          <div>
+            <dt>Kind</dt>
+            <dd>{artifact.kind}</dd>
+          </div>
+          <div>
+            <dt>Size</dt>
+            <dd>{formatBytes(artifact.sizeBytes)}</dd>
+          </div>
+          <div>
+            <dt>Hash</dt>
+            <dd>{artifact.hash ?? "not recorded"}</dd>
+          </div>
+        </dl>
+      </>
+    );
+  }
+
+  const proposed = proposedChangeArtifact(artifact);
+  return (
+    <>
+      <p className={styles.description}>{proposed.summary}</p>
+      <p className={styles.errorText}>
+        {proposed.applyAvailable ? "Apply action is unavailable in this console build." : "Apply action unavailable until approvals exist."}
+      </p>
+      <p className={styles.mono}>{artifact.storageUri}</p>
+      {proposed.changes.length === 0 ? (
+        <p className={styles.description}>No file-level diff metadata was recorded.</p>
+      ) : (
+        <div className={styles.diffList}>
+          {proposed.changes.map((change) => (
+            <article key={`${artifact.id}-${change.path}`} className={styles.diffItem}>
+              <div className={styles.artifactHeader}>
+                <p className={styles.artifactTitle}>{change.path}</p>
+                <span className={styles.badgeWarning}>{change.changeType}</span>
+              </div>
+              {change.diff ? <pre className={styles.diffBlock}>{change.diff}</pre> : <p className={styles.description}>No diff text recorded.</p>}
+            </article>
+          ))}
+        </div>
+      )}
+    </>
+  );
 }
 
 export function TaskRunDetailPage() {
@@ -290,23 +343,11 @@ export function TaskRunDetailPage() {
                       <article key={artifact.id} className={styles.artifact}>
                         <div className={styles.artifactHeader}>
                           <p className={styles.artifactTitle}>{artifact.label}</p>
-                          <span className={styles.badge}>{artifact.format}</span>
+                          <span className={isProposedChangeArtifact(artifact) ? styles.badgeWarning : styles.badge}>
+                            {isProposedChangeArtifact(artifact) ? "proposed change" : artifact.format}
+                          </span>
                         </div>
-                        <p className={styles.mono}>{artifact.storageUri}</p>
-                        <dl className={styles.compactKv}>
-                          <div>
-                            <dt>Kind</dt>
-                            <dd>{artifact.kind}</dd>
-                          </div>
-                          <div>
-                            <dt>Size</dt>
-                            <dd>{formatBytes(artifact.sizeBytes)}</dd>
-                          </div>
-                          <div>
-                            <dt>Hash</dt>
-                            <dd>{artifact.hash ?? "not recorded"}</dd>
-                          </div>
-                        </dl>
+                        {renderArtifactBody(artifact)}
                       </article>
                     ))}
                   </div>

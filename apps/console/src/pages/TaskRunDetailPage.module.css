@@ -70,7 +70,8 @@
 .sideStack,
 .panel,
 .state,
-.artifactList {
+.artifactList,
+.diffList {
   display: grid;
   gap: var(--space-4);
 }
@@ -200,7 +201,8 @@
 }
 
 .codeBlock,
-.eventPayload {
+.eventPayload,
+.diffBlock {
   margin: 0;
   overflow: auto;
   border: 1px solid #dbe4ee;
@@ -221,6 +223,12 @@
 .eventPayload {
   max-height: 14rem;
   padding: var(--space-3);
+}
+
+.diffBlock {
+  max-height: 20rem;
+  padding: var(--space-3);
+  white-space: pre;
 }
 
 .timeline {
@@ -302,6 +310,15 @@
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: #fff;
+  padding: var(--space-3);
+}
+
+.diffItem {
+  display: grid;
+  gap: var(--space-3);
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  background: #fffaf3;
   padding: var(--space-3);
 }
 

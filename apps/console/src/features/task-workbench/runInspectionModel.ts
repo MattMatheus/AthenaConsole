@@ -1,4 +1,5 @@
 import type {
+  TaskWorkbenchArtifactMetadata,
   TaskWorkbenchRunEvent,
   TaskWorkbenchRunStatus,
   TaskWorkbenchVerificationFailure,
@@ -8,6 +9,16 @@ import type {
 export type RunEventKind = "log" | "artifact" | "lifecycle";
 export type RunStatusTone = "neutral" | "running" | "success" | "danger" | "warning";
 export type VerificationStatusTone = "neutral" | "success" | "danger";
+
+export type ProposedChangeArtifact = {
+  summary: string;
+  applyAvailable: boolean;
+  changes: Array<{
+    path: string;
+    changeType: string;
+    diff: string;
+  }>;
+};
 
 export function classifyRunEvent(event: Pick<TaskWorkbenchRunEvent, "type">): RunEventKind {
   if (event.type === "run.log") {
@@ -91,4 +102,50 @@ export function formatBytes(value: number | undefined): string {
     return `${(value / 1024).toFixed(1)} KB`;
   }
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function isProposedChangeArtifact(artifact: Pick<TaskWorkbenchArtifactMetadata, "kind" | "format" | "metadata">): boolean {
+  const metadata = asRecord(artifact.metadata);
+  return (
+    artifact.kind === "proposed-change" ||
+    artifact.kind === "proposed-changes" ||
+    artifact.format === "diff" ||
+    artifact.format === "patch" ||
+    metadata?.artifactType === "proposed-change" ||
+    metadata?.artifactType === "proposed-changes"
+  );
+}
+
+export function proposedChangeArtifact(artifact: Pick<TaskWorkbenchArtifactMetadata, "metadata">): ProposedChangeArtifact {
+  const metadata = asRecord(artifact.metadata) ?? {};
+  const rawChanges = Array.isArray(metadata.proposedChanges)
+    ? metadata.proposedChanges
+    : Array.isArray(metadata.changes)
+      ? metadata.changes
+      : [];
+  return {
+    summary: typeof metadata.summary === "string" ? metadata.summary : "Proposed file changes are available for review.",
+    applyAvailable: metadata.applyAvailable === true,
+    changes: rawChanges.map(normalizeProposedChange).filter((change): change is ProposedChangeArtifact["changes"][number] => Boolean(change)),
+  };
+}
+
+function normalizeProposedChange(value: unknown): ProposedChangeArtifact["changes"][number] | undefined {
+  const record = asRecord(value);
+  if (!record) {
+    return undefined;
+  }
+  const path = typeof record.path === "string" ? record.path : typeof record.file === "string" ? record.file : undefined;
+  if (!path) {
+    return undefined;
+  }
+  return {
+    path,
+    changeType: typeof record.changeType === "string" ? record.changeType : typeof record.type === "string" ? record.type : "modify",
+    diff: typeof record.diff === "string" ? record.diff : "",
+  };
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
 }

@@ -1,5 +1,5 @@
 import type { AgentCatalogAgentSummary } from "../agent-catalog";
-import type { TaskWorkbenchTaskCreateRequest, TaskWorkbenchTaskStatus } from "./types";
+import type { TaskWorkbenchRunMode, TaskWorkbenchTaskCreateRequest, TaskWorkbenchTaskStatus } from "./types";
 
 export type TaskInputType = "string" | "markdown" | "integer" | "number" | "boolean" | "file" | "url" | "enum" | "repo" | "json";
 
@@ -25,10 +25,13 @@ export type TaskFormDraft = {
   capabilityRequirements: string[];
   inputFields: TaskInputField[];
   inputValues: TaskInputValues;
+  runMode?: TaskWorkbenchRunMode;
   useRawInputs?: boolean;
   rawInputJson?: string;
   repoContextAvailable?: boolean;
 };
+
+export const DEFAULT_TASK_WORKBENCH_RUN_MODE: TaskWorkbenchRunMode = "read-only";
 
 export type TaskFormValidation = {
   title?: string;
@@ -223,10 +226,14 @@ export function validateRawInputJson(rawInputJson: string): string | undefined {
 }
 
 export function buildCreateTaskRequest(draft: TaskFormDraft): TaskWorkbenchTaskCreateRequest {
+  const inputs = draft.useRawInputs ? parseRawInputJson(draft.rawInputJson) : buildTaskInputs(draft.inputFields, draft.inputValues);
   const request: TaskWorkbenchTaskCreateRequest = {
     title: draft.title.trim(),
     status: draft.status,
-    inputs: draft.useRawInputs ? parseRawInputJson(draft.rawInputJson) : buildTaskInputs(draft.inputFields, draft.inputValues),
+    inputs: {
+      ...inputs,
+      runMode: draft.runMode ?? DEFAULT_TASK_WORKBENCH_RUN_MODE,
+    },
   };
   const description = draft.description.trim();
   if (description) {

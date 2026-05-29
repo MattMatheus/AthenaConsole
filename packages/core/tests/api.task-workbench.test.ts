@@ -56,13 +56,15 @@ process.stdin.on("end", () => {
       expect(metadataResponse.status).toBe(200);
       const metadataEnvelope = (await metadataResponse.json()) as {
         ok: boolean;
-        data: { defaultStatus: string; readyRequiresAssignedAgent: boolean; statuses: string[] };
+        data: { defaultStatus: string; readyRequiresAssignedAgent: boolean; statuses: string[]; defaultRunMode: string; runModes: string[] };
       };
       expect(metadataEnvelope.data).toMatchObject({
         defaultStatus: "draft",
-        readyRequiresAssignedAgent: true
+        readyRequiresAssignedAgent: true,
+        defaultRunMode: "read-only"
       });
       expect(metadataEnvelope.data.statuses).toContain("ready");
+      expect(metadataEnvelope.data.runModes).toEqual(["read-only", "propose-changes", "approved-write"]);
 
       const createResponse = await fetch(`${base}/api/v1/tasks`, {
         method: "POST",
@@ -77,13 +79,17 @@ process.stdin.on("end", () => {
       expect(createResponse.status).toBe(200);
       const createEnvelope = (await createResponse.json()) as {
         ok: boolean;
-        data: { id: string; status: string; assignedAgentId?: string; capabilityRequirements: string[] };
+        data: { id: string; status: string; assignedAgentId?: string; capabilityRequirements: string[]; inputs: Record<string, unknown> };
       };
       expect(createEnvelope.ok).toBe(true);
       expect(createEnvelope.data).toMatchObject({
         id: "task-api-draft",
         status: "draft",
-        capabilityRequirements: ["code.modify"]
+        capabilityRequirements: ["code.modify"],
+        inputs: {
+          brief: "Wire task APIs",
+          runMode: "read-only"
+        }
       });
 
       const invalidReadyResponse = await fetch(`${base}/api/v1/tasks/${encodeURIComponent("task-api-draft")}`, {

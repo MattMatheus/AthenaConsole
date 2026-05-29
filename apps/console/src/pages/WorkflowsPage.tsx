@@ -8,7 +8,7 @@ import {
   type ConnectedRepository,
   useConnectedRepositoriesQuery,
 } from "../features/connected-repositories";
-import { buildTaskInputs, type TaskInputField, type TaskInputValues } from "../features/task-workbench";
+import { buildTaskInputs, type TaskInputField, type TaskInputValues, type TaskWorkbenchRunMode } from "../features/task-workbench";
 import { useExecuteWorkflowRunMutation } from "../features/workflow-runs";
 import {
   buildWorkflowTemplateInstantiateRequest,
@@ -23,6 +23,7 @@ import {
 import styles from "./WorkflowsPage.module.css";
 
 const EMPTY_TEMPLATES: WorkflowTemplateSummary[] = [];
+const RUN_MODES: TaskWorkbenchRunMode[] = ["read-only", "propose-changes", "approved-write"];
 
 type AvailabilityFilter = "all" | "available" | "unavailable";
 
@@ -108,6 +109,7 @@ export function WorkflowsPage() {
   const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
   const [selectedRepositoryId, setSelectedRepositoryId] = useState("");
   const [inputValues, setInputValues] = useState<TaskInputValues>({});
+  const [runMode, setRunMode] = useState<TaskWorkbenchRunMode>("read-only");
   const [useRawInputs, setUseRawInputs] = useState(false);
   const [rawInputJson, setRawInputJson] = useState("{}");
   const [hasAttemptedInstantiate, setHasAttemptedInstantiate] = useState(false);
@@ -200,6 +202,7 @@ export function WorkflowsPage() {
       useRawInputs,
       rawInputJson,
       repoContextAvailable: Boolean(selectedRepository),
+      runMode,
     });
     request.inputs = mergeConnectedRepositoryContext(request.inputs ?? {}, selectedRepository);
     instantiateMutation.mutate({
@@ -415,6 +418,32 @@ export function WorkflowsPage() {
                 <section className={styles.section}>
                   <div className={styles.sectionHeader}>
                     <div>
+                      <p className={styles.sectionTitle}>Run Mode</p>
+                      <p className={styles.panelMeta}>{runMode}</p>
+                    </div>
+                  </div>
+                  <label className={styles.field}>
+                    <span className={styles.fieldLabel}>Mode</span>
+                    <select
+                      className={styles.select}
+                      value={runMode}
+                      onChange={(event) => setRunMode(event.target.value as TaskWorkbenchRunMode)}
+                    >
+                      {RUN_MODES.map((mode) => (
+                        <option key={mode} value={mode}>
+                          {runModeLabel(mode)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p className={runMode === "approved-write" ? styles.errorText : styles.description}>
+                    {runModeDescription(runMode)}
+                  </p>
+                </section>
+
+                <section className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <div>
                       <p className={styles.sectionTitle}>Inputs</p>
                       <p className={styles.panelMeta}>{useRawInputs ? "Raw JSON" : inputMeta(inputFields)}</p>
                     </div>
@@ -612,6 +641,9 @@ export function WorkflowsPage() {
                         <p className={styles.mono}>{task.id}</p>
                         <div className={styles.badgeRow}>
                           <span className={task.status === "ready" ? styles.badgeSuccess : styles.badgeMuted}>{task.status}</span>
+                          <span className={taskRunMode(task.inputs) === "approved-write" ? styles.badgeWarning : styles.badgeMuted}>
+                            {taskRunMode(task.inputs)}
+                          </span>
                           {task.runReadiness ? (
                             <span className={runReadinessClass(task.runReadiness.status)}>run {task.runReadiness.status}</span>
                           ) : null}
@@ -633,6 +665,33 @@ export function WorkflowsPage() {
       ) : null}
     </section>
   );
+}
+
+function runModeLabel(mode: TaskWorkbenchRunMode): string {
+  if (mode === "read-only") {
+    return "Read-only";
+  }
+  if (mode === "propose-changes") {
+    return "Propose changes";
+  }
+  return "Approved write (unavailable)";
+}
+
+function runModeDescription(mode: TaskWorkbenchRunMode): string {
+  if (mode === "read-only") {
+    return "Workflow tasks default to read-only. File mutations are not applied automatically.";
+  }
+  if (mode === "propose-changes") {
+    return "Workflow tasks may return proposed diffs as artifacts for review; the console will not apply them.";
+  }
+  return "Write/apply mode is unavailable until approval handling exists.";
+}
+
+function taskRunMode(inputs: unknown): string {
+  if (typeof inputs === "object" && inputs !== null && !Array.isArray(inputs) && typeof (inputs as { runMode?: unknown }).runMode === "string") {
+    return (inputs as { runMode: string }).runMode;
+  }
+  return "read-only";
 }
 
 function renderInputField(

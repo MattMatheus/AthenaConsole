@@ -23,11 +23,13 @@ import {
   useTaskWorkbenchMetadataQuery,
   validateTaskForm,
   type TaskInputValues,
+  type TaskWorkbenchRunMode,
   type TaskWorkbenchTaskStatus,
 } from "../features/task-workbench";
 import styles from "./TaskCreatePage.module.css";
 
 const EMPTY_AGENTS: AgentCatalogAgentSummary[] = [];
+const DEFAULT_RUN_MODES: TaskWorkbenchRunMode[] = ["read-only", "propose-changes", "approved-write"];
 
 function agentKey(agent: AgentCatalogAgentSummary): string {
   return `${agent.id}@${agent.version}`;
@@ -81,6 +83,7 @@ export function TaskCreatePage() {
   const [selectedAgentKey, setSelectedAgentKey] = useState("");
   const [selectedRepositoryId, setSelectedRepositoryId] = useState("");
   const [inputValues, setInputValues] = useState<TaskInputValues>({});
+  const [runMode, setRunMode] = useState<TaskWorkbenchRunMode>("read-only");
   const [useRawInputs, setUseRawInputs] = useState(false);
   const [rawInputJson, setRawInputJson] = useState("{}");
   const [validationStatus, setValidationStatus] = useState<TaskWorkbenchTaskStatus>("draft");
@@ -115,6 +118,8 @@ export function TaskCreatePage() {
   const error = agentsQuery.error ?? metadataQuery.error ?? repositoriesQuery.error;
   const createdTask = createTaskMutation.data;
   const missionTasks = missionIdFilter ? missionTasksQuery.data?.tasks ?? [] : [];
+  const runModes = metadataQuery.data?.runModes?.length ? metadataQuery.data.runModes : DEFAULT_RUN_MODES;
+  const selectedRunMode = runModes.includes(runMode) ? runMode : metadataQuery.data?.defaultRunMode ?? "read-only";
 
   useEffect(() => {
     if (selectedAgentKey && !agentsQuery.isLoading && !compatibleAgents.some((agent) => agentKey(agent) === selectedAgentKey)) {
@@ -188,6 +193,7 @@ export function TaskCreatePage() {
         capabilityRequirements,
         inputFields,
         inputValues,
+        runMode: selectedRunMode,
         useRawInputs,
         rawInputJson,
     });
@@ -290,6 +296,32 @@ export function TaskCreatePage() {
                   rows={4}
                 />
               </label>
+            </section>
+
+            <section className={styles.panelSection}>
+              <div className={styles.sectionHeader}>
+                <div>
+                  <p className={styles.panelTitle}>Run Mode</p>
+                  <p className={styles.panelMeta}>{selectedRunMode}</p>
+                </div>
+              </div>
+              <label className={styles.field}>
+                <span className={styles.fieldLabel}>Mode</span>
+                <select
+                  className={styles.select}
+                  value={selectedRunMode}
+                  onChange={(event) => setRunMode(event.target.value as TaskWorkbenchRunMode)}
+                >
+                  {runModes.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {runModeLabel(mode)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className={selectedRunMode === "approved-write" ? styles.fieldError : styles.description}>
+                {runModeDescription(selectedRunMode)}
+              </p>
             </section>
 
             <section className={styles.panelSection}>
@@ -556,6 +588,10 @@ export function TaskCreatePage() {
                     <dd><span className={createdTask.status === "ready" ? styles.badgeSuccess : styles.badge}>{createdTask.status}</span></dd>
                   </div>
                   <div>
+                    <dt>Run mode</dt>
+                    <dd>{taskRunMode(createdTask.inputs)}</dd>
+                  </div>
+                  <div>
                     <dt>Agent</dt>
                     <dd>{createdTask.assignedAgentId ? `${createdTask.assignedAgentId}@${createdTask.assignedAgentVersion ?? "latest"}` : "Unassigned"}</dd>
                   </div>
@@ -602,4 +638,31 @@ export function TaskCreatePage() {
       ) : null}
     </section>
   );
+}
+
+function runModeLabel(mode: TaskWorkbenchRunMode): string {
+  if (mode === "read-only") {
+    return "Read-only";
+  }
+  if (mode === "propose-changes") {
+    return "Propose changes";
+  }
+  return "Approved write (unavailable)";
+}
+
+function runModeDescription(mode: TaskWorkbenchRunMode): string {
+  if (mode === "read-only") {
+    return "Runs default to read-only. File mutations are not applied automatically.";
+  }
+  if (mode === "propose-changes") {
+    return "Agents may return proposed diffs as artifacts for review; the console will not apply them.";
+  }
+  return "Write/apply mode is unavailable until approval handling exists.";
+}
+
+function taskRunMode(inputs: unknown): string {
+  if (typeof inputs === "object" && inputs !== null && !Array.isArray(inputs) && typeof (inputs as { runMode?: unknown }).runMode === "string") {
+    return (inputs as { runMode: string }).runMode;
+  }
+  return "read-only";
 }
