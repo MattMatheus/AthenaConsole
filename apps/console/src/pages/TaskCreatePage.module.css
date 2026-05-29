@@ -196,6 +196,17 @@
   color: var(--color-text);
 }
 
+.repoInputHint {
+  display: block;
+  border: 1px solid #cbdff7;
+  border-radius: 6px;
+  background: #f7fbff;
+  color: var(--color-brand-900);
+  padding: var(--space-3);
+  font-size: var(--font-size-200);
+  line-height: 1.45;
+}
+
 .primaryButton,
 .secondaryButton,
 .iconButton {

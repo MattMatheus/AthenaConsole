@@ -14,19 +14,30 @@ describe("workflow template form model", () => {
       dryRun: { type: "boolean", default: true },
       metadata: { type: "object", default: { channel: "stable" } },
       count: { type: "integer" },
+      releaseMode: { type: "enum", enum: ["dry", "ship"] },
+      repo: { type: "object", required: true },
     });
 
     const fields = workflowTemplateInputFields(template);
-    expect(fields.map((field) => field.key)).toEqual(["count", "dryRun", "metadata", "releaseName"]);
+    expect(fields.map((field) => field.key)).toEqual(["count", "dryRun", "metadata", "releaseMode", "releaseName", "repo"]);
     expect(initialWorkflowTemplateInputValues(template)).toEqual({
       count: "",
       dryRun: true,
       metadata: "{\"channel\":\"stable\"}",
+      releaseMode: "",
+      repo: "",
       releaseName: "",
     });
 
-    expect(validateWorkflowTemplateInputs(fields, { dryRun: true, metadata: "{}", releaseName: "", count: "2.5" })).toEqual({
+    expect(
+      validateWorkflowTemplateInputs(
+        fields,
+        { dryRun: true, metadata: "{}", releaseName: "", count: "2.5", releaseMode: "other" },
+        { repoContextAvailable: true },
+      ),
+    ).toEqual({
       count: "Count must be a valid integer.",
+      releaseMode: "Release Mode must be one of the available options.",
       releaseName: "Release Name is required.",
     });
 
@@ -34,9 +45,10 @@ describe("workflow template form model", () => {
       buildWorkflowTemplateInstantiateRequest(template, fields, {
         dryRun: false,
         metadata: "{\"channel\":\"beta\"}",
+        releaseMode: "ship",
         releaseName: "v1.2.0",
         count: "2",
-      }),
+      }, { repoContextAvailable: true }),
     ).toEqual({
       version: "0.1.0",
       pluginId: "test.templates",
@@ -44,10 +56,31 @@ describe("workflow template form model", () => {
       inputs: {
         dryRun: false,
         metadata: { channel: "beta" },
+        releaseMode: "ship",
         releaseName: "v1.2.0",
         count: 2,
       },
       createdBy: "console",
+    });
+  });
+
+  it("validates and builds raw JSON fallback inputs", () => {
+    const template = workflowTemplate({
+      objective: { type: "string", required: true },
+    });
+    const fields = workflowTemplateInputFields(template);
+
+    expect(validateWorkflowTemplateInputs(fields, {}, { useRawInputs: true, rawInputJson: "[]" })).toEqual({
+      __raw: "Raw inputs must be a JSON object.",
+    });
+    expect(
+      buildWorkflowTemplateInstantiateRequest(template, fields, {}, {
+        useRawInputs: true,
+        rawInputJson: "{\"objective\":\"Ship it\",\"depth\":2}",
+      }).inputs,
+    ).toEqual({
+      objective: "Ship it",
+      depth: 2,
     });
   });
 });

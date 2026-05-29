@@ -13,6 +13,7 @@ import {
 } from "../features/connected-repositories";
 import {
   buildCreateTaskRequest,
+  buildTaskInputs,
   filterCompatibleAgents,
   hasValidationErrors,
   initialInputValues,
@@ -80,6 +81,8 @@ export function TaskCreatePage() {
   const [selectedAgentKey, setSelectedAgentKey] = useState("");
   const [selectedRepositoryId, setSelectedRepositoryId] = useState("");
   const [inputValues, setInputValues] = useState<TaskInputValues>({});
+  const [useRawInputs, setUseRawInputs] = useState(false);
+  const [rawInputJson, setRawInputJson] = useState("{}");
   const [validationStatus, setValidationStatus] = useState<TaskWorkbenchTaskStatus>("draft");
   const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
   const compatibleAgents = useMemo(
@@ -102,6 +105,9 @@ export function TaskCreatePage() {
     capabilityRequirements,
     inputFields,
     inputValues,
+    useRawInputs,
+    rawInputJson,
+    repoContextAvailable: Boolean(selectedRepository),
   });
   const hasErrors = hasValidationErrors(validation);
   const displayedValidation = hasAttemptedSave ? validation : { inputs: {} };
@@ -129,7 +135,10 @@ export function TaskCreatePage() {
   }, [agentIdParam, agentVersionParam, agentsQuery.isLoading, compatibleAgents, selectedAgentKey]);
 
   useEffect(() => {
-    setInputValues(initialInputValues(inputFields));
+    const nextValues = initialInputValues(inputFields);
+    setInputValues(nextValues);
+    setRawInputJson(JSON.stringify(buildTaskInputs(inputFields, nextValues), null, 2));
+    setUseRawInputs(false);
   }, [inputFields]);
 
   function toggleCapability(capability: string): void {
@@ -164,6 +173,9 @@ export function TaskCreatePage() {
       capabilityRequirements,
       inputFields,
       inputValues,
+      useRawInputs,
+      rawInputJson,
+      repoContextAvailable: Boolean(selectedRepository),
     });
     if (hasValidationErrors(nextValidation)) {
       return;
@@ -176,6 +188,8 @@ export function TaskCreatePage() {
         capabilityRequirements,
         inputFields,
         inputValues,
+        useRawInputs,
+        rawInputJson,
     });
     request.inputs = mergeConnectedRepositoryContext(
       typeof request.inputs === "object" && request.inputs !== null && !Array.isArray(request.inputs)
@@ -303,11 +317,34 @@ export function TaskCreatePage() {
               <div className={styles.sectionHeader}>
                 <div>
                   <p className={styles.panelTitle}>Inputs</p>
-                  <p className={styles.panelMeta}>{selectedAgent ? selectedAgent.name : "No agent selected"}</p>
+                  <p className={styles.panelMeta}>{useRawInputs ? "Raw JSON" : selectedAgent ? selectedAgent.name : "No agent selected"}</p>
                 </div>
+                {selectedAgent ? (
+                  <label className={styles.checkChip}>
+                    <input
+                      type="checkbox"
+                      checked={useRawInputs}
+                      onChange={(event) => setUseRawInputs(event.target.checked)}
+                    />
+                    <span>Raw JSON</span>
+                  </label>
+                ) : null}
               </div>
               {!selectedAgent ? (
                 <p className={styles.description}>Select an agent to load its manifest inputs.</p>
+              ) : useRawInputs ? (
+                <label className={styles.field}>
+                  <span className={styles.fieldLabel}>Inputs JSON</span>
+                  <textarea
+                    className={styles.textarea}
+                    value={rawInputJson}
+                    onChange={(event) => setRawInputJson(event.target.value)}
+                    rows={8}
+                  />
+                  {displayedValidation.inputs.__raw ? (
+                    <span className={styles.fieldError}>{displayedValidation.inputs.__raw}</span>
+                  ) : null}
+                </label>
               ) : inputFields.length === 0 ? (
                 <p className={styles.description}>No manifest inputs declared.</p>
               ) : (
@@ -318,13 +355,33 @@ export function TaskCreatePage() {
                         {field.label}
                         {field.required ? <span className={styles.required}>Required</span> : null}
                       </span>
-                      {field.type === "markdown" || field.type === "json" ? (
+                      {field.description ? <span className={styles.description}>{field.description}</span> : null}
+                      {field.type === "repo" ? (
+                        <span className={styles.repoInputHint}>
+                          {selectedRepository
+                            ? `${selectedRepository.name}: ${selectedRepository.workspacePath}`
+                            : "Select repo context in the Repository panel, or switch to raw JSON for manual input."}
+                        </span>
+                      ) : field.type === "markdown" || field.type === "json" ? (
                         <textarea
                           className={styles.textarea}
                           value={String(inputValues[field.key] ?? "")}
                           onChange={(event) => updateInput(field.key, event.target.value)}
                           rows={field.type === "markdown" ? 5 : 3}
                         />
+                      ) : field.type === "enum" ? (
+                        <select
+                          className={styles.select}
+                          value={String(inputValues[field.key] ?? "")}
+                          onChange={(event) => updateInput(field.key, event.target.value)}
+                        >
+                          <option value="">Select {field.label}</option>
+                          {field.enumValues.map((value) => (
+                            <option key={value} value={value}>
+                              {value}
+                            </option>
+                          ))}
+                        </select>
                       ) : field.type === "boolean" ? (
                         <span className={styles.toggleRow}>
                           <input
@@ -337,7 +394,7 @@ export function TaskCreatePage() {
                       ) : (
                         <input
                           className={styles.input}
-                          type={field.type === "integer" || field.type === "number" ? "number" : "text"}
+                          type={field.type === "integer" || field.type === "number" ? "number" : field.type === "url" ? "url" : "text"}
                           value={String(inputValues[field.key] ?? "")}
                           onChange={(event) => updateInput(field.key, event.target.value)}
                         />

@@ -2,12 +2,20 @@ import {
   buildTaskInputs,
   initialInputValues,
   normalizeInputFields,
+  parseRawInputJson,
+  validateRawInputJson,
   type TaskInputField,
   type TaskInputValues,
 } from "../task-workbench";
 import type { WorkflowTemplateInstantiateRequest, WorkflowTemplateSummary } from "./types";
 
 export type WorkflowTemplateInputValidation = Record<string, string>;
+
+export type WorkflowTemplateInputOptions = {
+  useRawInputs?: boolean;
+  rawInputJson?: string;
+  repoContextAvailable?: boolean;
+};
 
 export function workflowTemplateInputFields(template: WorkflowTemplateSummary | undefined): TaskInputField[] {
   return normalizeInputFields(template?.metadata.inputs);
@@ -17,11 +25,26 @@ export function initialWorkflowTemplateInputValues(template: WorkflowTemplateSum
   return initialInputValues(workflowTemplateInputFields(template));
 }
 
-export function validateWorkflowTemplateInputs(fields: TaskInputField[], values: TaskInputValues): WorkflowTemplateInputValidation {
+export function validateWorkflowTemplateInputs(
+  fields: TaskInputField[],
+  values: TaskInputValues,
+  options: WorkflowTemplateInputOptions = {},
+): WorkflowTemplateInputValidation {
   const validation: WorkflowTemplateInputValidation = {};
+  if (options.useRawInputs) {
+    const rawValidation = validateRawInputJson(options.rawInputJson ?? "");
+    if (rawValidation) {
+      validation.__raw = rawValidation;
+    }
+    return validation;
+  }
   for (const field of fields) {
     const value = values[field.key];
-    if (field.required && (value === undefined || value === "")) {
+    const missing = value === undefined || value === "";
+    if (field.repoContext && options.repoContextAvailable && missing) {
+      continue;
+    }
+    if (field.required && missing) {
       validation[field.key] = `${field.label} is required.`;
     }
     if ((field.type === "integer" || field.type === "number") && value !== undefined && value !== "") {
@@ -37,6 +60,9 @@ export function validateWorkflowTemplateInputs(fields: TaskInputField[], values:
         validation[field.key] = `${field.label} must be valid JSON.`;
       }
     }
+    if (field.type === "enum" && typeof value === "string" && value.trim().length > 0 && !field.enumValues.includes(value)) {
+      validation[field.key] = `${field.label} must be one of the available options.`;
+    }
   }
   return validation;
 }
@@ -49,8 +75,9 @@ export function buildWorkflowTemplateInstantiateRequest(
   template: WorkflowTemplateSummary,
   fields: TaskInputField[],
   values: TaskInputValues,
+  options: WorkflowTemplateInputOptions = {},
 ): WorkflowTemplateInstantiateRequest {
-  const inputs = buildTaskInputs(fields, values);
+  const inputs = options.useRawInputs ? parseRawInputJson(options.rawInputJson) : buildTaskInputs(fields, values);
   return {
     version: template.version,
     pluginId: template.plugin.id,

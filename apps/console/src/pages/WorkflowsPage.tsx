@@ -5,9 +5,10 @@ import type { ProviderReadiness } from "../features/agent-catalog";
 import {
   connectedRepositoryReadinessMessage,
   mergeConnectedRepositoryContext,
+  type ConnectedRepository,
   useConnectedRepositoriesQuery,
 } from "../features/connected-repositories";
-import type { TaskInputField, TaskInputValues } from "../features/task-workbench";
+import { buildTaskInputs, type TaskInputField, type TaskInputValues } from "../features/task-workbench";
 import { useExecuteWorkflowRunMutation } from "../features/workflow-runs";
 import {
   buildWorkflowTemplateInstantiateRequest,
@@ -97,6 +98,8 @@ export function WorkflowsPage() {
   const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
   const [selectedRepositoryId, setSelectedRepositoryId] = useState("");
   const [inputValues, setInputValues] = useState<TaskInputValues>({});
+  const [useRawInputs, setUseRawInputs] = useState(false);
+  const [rawInputJson, setRawInputJson] = useState("{}");
   const [hasAttemptedInstantiate, setHasAttemptedInstantiate] = useState(false);
   const templatesQuery = useWorkflowTemplatesQuery({ includeUnavailable: true });
   const repositoriesQuery = useConnectedRepositoriesQuery();
@@ -125,7 +128,11 @@ export function WorkflowsPage() {
   const repoReadinessMessage = connectedRepositoryReadinessMessage(selectedRepository);
   const providerReadinessBlocking = isProviderReadinessBlocking(selectedTemplate?.providerReadiness);
   const inputFields = useMemo(() => workflowTemplateInputFields(selectedTemplate), [selectedTemplate]);
-  const inputValidation = validateWorkflowTemplateInputs(inputFields, inputValues);
+  const inputValidation = validateWorkflowTemplateInputs(inputFields, inputValues, {
+    useRawInputs,
+    rawInputJson,
+    repoContextAvailable: Boolean(selectedRepository),
+  });
   const displayedValidation = hasAttemptedInstantiate ? inputValidation : {};
   const availableCount = templates.filter((template) => template.available).length;
   const unavailableCount = templates.length - availableCount;
@@ -140,7 +147,10 @@ export function WorkflowsPage() {
   }, [selectedTemplate, selectedTemplateKey]);
 
   useEffect(() => {
-    setInputValues(initialWorkflowTemplateInputValues(selectedTemplate));
+    const nextValues = initialWorkflowTemplateInputValues(selectedTemplate);
+    setInputValues(nextValues);
+    setRawInputJson(JSON.stringify(buildTaskInputs(workflowTemplateInputFields(selectedTemplate), nextValues), null, 2));
+    setUseRawInputs(false);
     setHasAttemptedInstantiate(false);
   }, [selectedTemplate]);
 
@@ -169,7 +179,11 @@ export function WorkflowsPage() {
     if (hasWorkflowTemplateInputErrors(inputValidation)) {
       return;
     }
-    const request = buildWorkflowTemplateInstantiateRequest(selectedTemplate, inputFields, inputValues);
+    const request = buildWorkflowTemplateInstantiateRequest(selectedTemplate, inputFields, inputValues, {
+      useRawInputs,
+      rawInputJson,
+      repoContextAvailable: Boolean(selectedRepository),
+    });
     request.inputs = mergeConnectedRepositoryContext(request.inputs ?? {}, selectedRepository);
     instantiateMutation.mutate({
       templateId: selectedTemplate.id,
@@ -385,14 +399,35 @@ export function WorkflowsPage() {
                   <div className={styles.sectionHeader}>
                     <div>
                       <p className={styles.sectionTitle}>Inputs</p>
-                      <p className={styles.panelMeta}>{inputMeta(inputFields)}</p>
+                      <p className={styles.panelMeta}>{useRawInputs ? "Raw JSON" : inputMeta(inputFields)}</p>
                     </div>
+                    {inputFields.length > 0 ? (
+                      <label className={styles.checkChip}>
+                        <input
+                          type="checkbox"
+                          checked={useRawInputs}
+                          onChange={(event) => setUseRawInputs(event.target.checked)}
+                        />
+                        <span>Raw JSON</span>
+                      </label>
+                    ) : null}
                   </div>
                   {inputFields.length === 0 ? (
                     <p className={styles.description}>This template does not declare operator inputs.</p>
+                  ) : useRawInputs ? (
+                    <label className={styles.field}>
+                      <span className={styles.fieldLabel}>Inputs JSON</span>
+                      <textarea
+                        className={styles.textarea}
+                        value={rawInputJson}
+                        onChange={(event) => setRawInputJson(event.target.value)}
+                        rows={8}
+                      />
+                      {displayedValidation.__raw ? <span className={styles.fieldError}>{displayedValidation.__raw}</span> : null}
+                    </label>
                   ) : (
                     <div className={styles.inputGrid}>
-                      {inputFields.map((field) => renderInputField(field, inputValues, updateInput, displayedValidation))}
+                      {inputFields.map((field) => renderInputField(field, inputValues, updateInput, displayedValidation, selectedRepository))}
                     </div>
                   )}
                 </section>
@@ -567,6 +602,7 @@ function renderInputField(
   values: TaskInputValues,
   updateInput: (key: string, value: string | boolean) => void,
   validation: Record<string, string>,
+  selectedRepository: ConnectedRepository | undefined,
 ): JSX.Element {
   return (
     <label key={field.key} className={styles.field}>
@@ -574,13 +610,33 @@ function renderInputField(
         {field.label}
         {field.required ? <span className={styles.required}>Required</span> : null}
       </span>
-      {field.type === "markdown" || field.type === "json" ? (
+      {field.description ? <span className={styles.description}>{field.description}</span> : null}
+      {field.type === "repo" ? (
+        <span className={styles.repoInputHint}>
+          {selectedRepository
+            ? `${selectedRepository.name}: ${selectedRepository.workspacePath}`
+            : "Select repo context in the Repository section, or switch to raw JSON for manual input."}
+        </span>
+      ) : field.type === "markdown" || field.type === "json" ? (
         <textarea
           className={styles.textarea}
           value={String(values[field.key] ?? "")}
           onChange={(event) => updateInput(field.key, event.target.value)}
           rows={field.type === "markdown" ? 5 : 4}
         />
+      ) : field.type === "enum" ? (
+        <select
+          className={styles.select}
+          value={String(values[field.key] ?? "")}
+          onChange={(event) => updateInput(field.key, event.target.value)}
+        >
+          <option value="">Select {field.label}</option>
+          {field.enumValues.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
       ) : field.type === "boolean" ? (
         <span className={styles.toggleRow}>
           <input
@@ -593,7 +649,7 @@ function renderInputField(
       ) : (
         <input
           className={styles.input}
-          type={field.type === "integer" || field.type === "number" ? "number" : "text"}
+          type={field.type === "integer" || field.type === "number" ? "number" : field.type === "url" ? "url" : "text"}
           value={String(values[field.key] ?? "")}
           onChange={(event) => updateInput(field.key, event.target.value)}
         />

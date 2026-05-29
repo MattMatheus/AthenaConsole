@@ -25,6 +25,8 @@ export type WorkflowTemplateInputType =
   | "number"
   | "boolean"
   | "file"
+  | "url"
+  | "enum"
   | "json"
   | "object"
   | "array";
@@ -32,8 +34,10 @@ export type WorkflowTemplateInputType =
 export type WorkflowTemplateInputDefinition = {
   type?: WorkflowTemplateInputType;
   label?: string;
+  description?: string;
   required?: boolean;
   default?: unknown;
+  enum?: Array<string | number | boolean>;
 };
 
 export type WorkflowTemplateSummary = {

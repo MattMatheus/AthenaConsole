@@ -22,6 +22,7 @@ describe("task workbench form model", () => {
         type: "file",
         required: true,
         default: "/workspace",
+        description: "Repo checkout path.",
         ui: { order: 0 },
       },
       dryRun: {
@@ -36,6 +37,12 @@ describe("task workbench form model", () => {
       repositoryPath: "/workspace",
       taskBrief: "",
       dryRun: true,
+    });
+    expect(fields[0]).toMatchObject({
+      key: "repositoryPath",
+      type: "repo",
+      repoContext: true,
+      description: "Repo checkout path.",
     });
   });
 
@@ -70,6 +77,72 @@ describe("task workbench form model", () => {
     expect(validation.title).toBe("Title is required.");
     expect(validation.assignedAgent).toBe("Ready tasks require an assigned agent.");
     expect(validation.inputs.taskBrief).toBe("Task Brief is required.");
+  });
+
+  it("treats connected repo context as satisfying repo inputs", () => {
+    const inputFields = normalizeInputFields({
+      repo: {
+        type: "object",
+        required: true,
+      },
+      objective: {
+        type: "string",
+        required: true,
+      },
+    });
+
+    const validation = validateTaskForm({
+      title: "Summarize",
+      description: "",
+      status: "draft",
+      capabilityRequirements: [],
+      inputFields,
+      inputValues: {
+        objective: "Summarize the repo",
+      },
+      repoContextAvailable: true,
+    });
+
+    expect(validation.inputs).toEqual({});
+  });
+
+  it("supports enum inputs and raw JSON fallback", () => {
+    const inputFields = normalizeInputFields({
+      mode: {
+        type: "enum",
+        enum: ["fast", "careful"],
+        required: true,
+      },
+      advanced: {
+        type: "object",
+      },
+    });
+
+    expect(inputFields.map((field) => [field.key, field.type, field.enumValues])).toEqual([
+      ["advanced", "json", []],
+      ["mode", "enum", ["fast", "careful"]],
+    ]);
+    expect(validateTaskForm({
+      title: "Plan",
+      description: "",
+      status: "draft",
+      capabilityRequirements: [],
+      inputFields,
+      inputValues: { mode: "other" },
+    }).inputs.mode).toBe("Mode must be one of the available options.");
+    expect(buildCreateTaskRequest({
+      title: "Plan",
+      description: "",
+      status: "draft",
+      capabilityRequirements: [],
+      inputFields,
+      inputValues: {},
+      useRawInputs: true,
+      rawInputJson: "{\"mode\":\"careful\",\"advanced\":{\"depth\":2}}",
+    }).inputs).toEqual({
+      mode: "careful",
+      advanced: { depth: 2 },
+    });
   });
 
   it("builds task create payloads with parsed manifest inputs and assignment metadata", () => {

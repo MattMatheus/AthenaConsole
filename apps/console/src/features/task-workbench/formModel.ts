@@ -1,14 +1,17 @@
 import type { AgentCatalogAgentSummary } from "../agent-catalog";
 import type { TaskWorkbenchTaskCreateRequest, TaskWorkbenchTaskStatus } from "./types";
 
-export type TaskInputType = "string" | "markdown" | "integer" | "number" | "boolean" | "file" | "json";
+export type TaskInputType = "string" | "markdown" | "integer" | "number" | "boolean" | "file" | "url" | "enum" | "repo" | "json";
 
 export type TaskInputField = {
   key: string;
   label: string;
   type: TaskInputType;
   required: boolean;
+  description?: string;
   defaultValue: unknown;
+  enumValues: string[];
+  repoContext: boolean;
   order: number;
 };
 
@@ -22,6 +25,9 @@ export type TaskFormDraft = {
   capabilityRequirements: string[];
   inputFields: TaskInputField[];
   inputValues: TaskInputValues;
+  useRawInputs?: boolean;
+  rawInputJson?: string;
+  repoContextAvailable?: boolean;
 };
 
 export type TaskFormValidation = {
@@ -34,8 +40,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function asType(value: unknown): TaskInputType {
-  if (value === "markdown" || value === "integer" || value === "number" || value === "boolean" || value === "file") {
+function asType(value: unknown, config: Record<string, unknown>): TaskInputType {
+  if (value === "enum" && Array.isArray(config.enum)) {
+    return "enum";
+  }
+  if (value === "markdown" || value === "integer" || value === "number" || value === "boolean" || value === "file" || value === "url") {
     return value;
   }
   if (value === "object" || value === "array" || value === "json") {
@@ -53,6 +62,22 @@ function fieldOrder(config: Record<string, unknown>): number {
   return typeof ui.order === "number" && Number.isFinite(ui.order) ? ui.order : Number.MAX_SAFE_INTEGER;
 }
 
+function fieldDescription(config: Record<string, unknown>): string | undefined {
+  return typeof config.description === "string" && config.description.trim().length > 0 ? config.description.trim() : undefined;
+}
+
+function enumValues(config: Record<string, unknown>): string[] {
+  return Array.isArray(config.enum) ? config.enum.map((value) => String(value)) : [];
+}
+
+function isRepoContextInput(key: string, config: Record<string, unknown>): boolean {
+  const normalized = key.toLowerCase().replace(/[-_.]/g, "");
+  if (normalized === "repo" || normalized === "repository") {
+    return config.type === "object" || config.type === "json" || config.type === undefined;
+  }
+  return normalized === "repopath" || normalized === "repositorypath" || normalized === "workspacepath";
+}
+
 function titleize(value: string): string {
   return value
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
@@ -64,12 +89,17 @@ export function normalizeInputFields(inputs: Record<string, unknown> | undefined
   return Object.entries(inputs ?? {})
     .map(([key, value]) => {
       const config = isRecord(value) ? value : {};
+      const repoContext = isRepoContextInput(key, config);
+      const description = fieldDescription(config);
       return {
         key,
         label: fieldLabel(key, config),
-        type: asType(config.type),
+        type: repoContext ? "repo" : asType(config.type, config),
         required: config.required === true,
+        ...(description ? { description } : {}),
         defaultValue: config.default,
+        enumValues: enumValues(config),
+        repoContext,
         order: fieldOrder(config),
       };
     })
@@ -110,9 +140,20 @@ export function validateTaskForm(draft: TaskFormDraft): TaskFormValidation {
   if (draft.status === "ready" && !draft.selectedAgent) {
     validation.assignedAgent = "Ready tasks require an assigned agent.";
   }
+  if (draft.useRawInputs) {
+    const rawValidation = validateRawInputJson(draft.rawInputJson ?? "");
+    if (rawValidation) {
+      validation.inputs.__raw = rawValidation;
+    }
+    return validation;
+  }
   for (const field of draft.inputFields) {
     const value = draft.inputValues[field.key];
-    if (field.required && (value === undefined || value === "")) {
+    const missing = value === undefined || value === "";
+    if (field.repoContext && draft.repoContextAvailable && missing) {
+      continue;
+    }
+    if (field.required && missing) {
       validation.inputs[field.key] = `${field.label} is required.`;
     }
     if ((field.type === "integer" || field.type === "number") && value !== undefined && value !== "") {
@@ -127,6 +168,9 @@ export function validateTaskForm(draft: TaskFormDraft): TaskFormValidation {
       } catch {
         validation.inputs[field.key] = `${field.label} must be valid JSON.`;
       }
+    }
+    if (field.type === "enum" && typeof value === "string" && value.trim().length > 0 && !field.enumValues.includes(value)) {
+      validation.inputs[field.key] = `${field.label} must be one of the available options.`;
     }
   }
   return validation;
@@ -143,7 +187,9 @@ export function buildTaskInputs(fields: TaskInputField[], values: TaskInputValue
     if (raw === undefined || raw === "") {
       continue;
     }
-    if (field.type === "boolean") {
+    if (field.type === "repo") {
+      continue;
+    } else if (field.type === "boolean") {
       inputs[field.key] = Boolean(raw);
     } else if (field.type === "integer") {
       inputs[field.key] = Number.parseInt(String(raw), 10);
@@ -158,11 +204,29 @@ export function buildTaskInputs(fields: TaskInputField[], values: TaskInputValue
   return inputs;
 }
 
+export function parseRawInputJson(rawInputJson: string | undefined): Record<string, unknown> {
+  const raw = rawInputJson?.trim() ? rawInputJson : "{}";
+  const parsed = JSON.parse(raw) as unknown;
+  if (!isRecord(parsed)) {
+    throw new Error("Raw inputs must be a JSON object.");
+  }
+  return parsed;
+}
+
+export function validateRawInputJson(rawInputJson: string): string | undefined {
+  try {
+    parseRawInputJson(rawInputJson);
+    return undefined;
+  } catch (error) {
+    return error instanceof Error ? error.message : "Raw inputs must be valid JSON.";
+  }
+}
+
 export function buildCreateTaskRequest(draft: TaskFormDraft): TaskWorkbenchTaskCreateRequest {
   const request: TaskWorkbenchTaskCreateRequest = {
     title: draft.title.trim(),
     status: draft.status,
-    inputs: buildTaskInputs(draft.inputFields, draft.inputValues),
+    inputs: draft.useRawInputs ? parseRawInputJson(draft.rawInputJson) : buildTaskInputs(draft.inputFields, draft.inputValues),
   };
   const description = draft.description.trim();
   if (description) {
