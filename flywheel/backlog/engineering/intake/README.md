@@ -4,7 +4,10 @@ Raw engineering work enters here before PM refinement.
 
 ## Candidate Sequence
 
-No candidate engineering items.
+- `STORY-20260529-agent-catalog-operating-guidance.md`
+- `STORY-20260529-repo-wiring-guidance-surface.md`
+- `STORY-20260529-create-work-entry-points.md`
+- `STORY-20260529-first-run-to-real-repo-bridge.md`
 
 ## Refinement Rule
 

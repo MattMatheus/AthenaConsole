@@ -4,4 +4,4 @@ Raw architecture decision work enters here before refinement.
 
 ## Candidate Sequence
 
-No candidate architecture items.
+- `ARCH-20260529-repo-wiring-operating-model.md`

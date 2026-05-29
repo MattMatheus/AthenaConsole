@@ -140,6 +140,22 @@ Source epic:
 
 - `docs/product/epics/refinement/2026.24.00-epic-console-product-surface-polish.md`
 
+### 2026.25 Operator Workflow Clarity And Repo Wiring
+
+Goal: make it obvious how a local operator wires Team Orchestrator to a repository, understands where agents come from, and starts useful work without needing to author agents inside the console.
+
+Planning intake:
+
+- `flywheel/backlog/architecture/intake/ARCH-20260529-repo-wiring-operating-model.md`
+- `flywheel/backlog/engineering/intake/STORY-20260529-agent-catalog-operating-guidance.md`
+- `flywheel/backlog/engineering/intake/STORY-20260529-repo-wiring-guidance-surface.md`
+- `flywheel/backlog/engineering/intake/STORY-20260529-create-work-entry-points.md`
+- `flywheel/backlog/engineering/intake/STORY-20260529-first-run-to-real-repo-bridge.md`
+
+Source epic:
+
+- `docs/product/epics/refinement/2026.25.00-epic-operator-workflow-clarity-repo-wiring.md`
+
 ### Current Flywheel Priorities
 
 Flywheel lanes are the operational source of truth. No engineering or architecture items are active or awaiting QA right now.
@@ -186,7 +202,11 @@ Ready implementation sequence:
 
 Planning intake sequence:
 
-- No unrefined engineering or architecture intake is waiting.
+- `flywheel/backlog/architecture/intake/ARCH-20260529-repo-wiring-operating-model.md`
+- `flywheel/backlog/engineering/intake/STORY-20260529-agent-catalog-operating-guidance.md`
+- `flywheel/backlog/engineering/intake/STORY-20260529-repo-wiring-guidance-surface.md`
+- `flywheel/backlog/engineering/intake/STORY-20260529-create-work-entry-points.md`
+- `flywheel/backlog/engineering/intake/STORY-20260529-first-run-to-real-repo-bridge.md`
 
 ## Promotion Rule
 

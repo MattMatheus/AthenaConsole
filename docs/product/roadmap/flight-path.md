@@ -82,7 +82,7 @@ Ready story sequence:
 
 ### 2026.24 Console Product Surface Polish
 
-Status: Planning intake.
+Status: Complete.
 
 Goal: make the console feel like a coherent Team Orchestrator product surface after the product-direction reset and first-run work.
 
@@ -106,6 +106,35 @@ Candidate story sequence:
 2. `flywheel/backlog/engineering/done/STORY-20260528-console-navigation-surface-grouping.md`
 3. `flywheel/backlog/engineering/done/STORY-20260528-operator-dashboard-polish.md`
 4. `flywheel/backlog/engineering/done/STORY-20260528-legacy-advanced-surface-containment.md`
+
+### 2026.25 Operator Workflow Clarity And Repo Wiring
+
+Status: Planning intake.
+
+Goal: make it obvious how a local operator wires Team Orchestrator to a repository, understands where agents come from, and starts useful work without needing to author agents inside the console.
+
+Why now:
+
+- The console now presents a coherent Team Orchestrator surface.
+- Review exposed the next product gap: central primitives can be inspected and run, but the operating model is not yet obvious enough.
+- Operators need to know how to add/connect a repo, where agents come from, and which work primitive to create first.
+- Agents should remain plugin/manifest-backed; the console should explain that model rather than becoming an agent authoring IDE.
+
+Target outcome:
+
+- A local operator can move from first-run sample usage to running real work against their own repository with plugin-provided agents.
+
+Source epic:
+
+- `docs/product/epics/refinement/2026.25.00-epic-operator-workflow-clarity-repo-wiring.md`
+
+Candidate sequence:
+
+1. `flywheel/backlog/architecture/intake/ARCH-20260529-repo-wiring-operating-model.md`
+2. `flywheel/backlog/engineering/intake/STORY-20260529-agent-catalog-operating-guidance.md`
+3. `flywheel/backlog/engineering/intake/STORY-20260529-repo-wiring-guidance-surface.md`
+4. `flywheel/backlog/engineering/intake/STORY-20260529-create-work-entry-points.md`
+5. `flywheel/backlog/engineering/intake/STORY-20260529-first-run-to-real-repo-bridge.md`
 
 ## Near-Term Principles
 

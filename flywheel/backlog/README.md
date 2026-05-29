@@ -22,7 +22,11 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-No candidate engineering or architecture intake items.
+- `architecture/intake/ARCH-20260529-repo-wiring-operating-model.md`
+- `engineering/intake/STORY-20260529-agent-catalog-operating-guidance.md`
+- `engineering/intake/STORY-20260529-repo-wiring-guidance-surface.md`
+- `engineering/intake/STORY-20260529-create-work-entry-points.md`
+- `engineering/intake/STORY-20260529-first-run-to-real-repo-bridge.md`
 
 ## Done
 
