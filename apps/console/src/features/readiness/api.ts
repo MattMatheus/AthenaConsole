@@ -22,7 +22,15 @@ function checkStatus(value: unknown): ReadinessCheckStatus {
 }
 
 function checkCategory(value: unknown): ReadinessCheckCategory {
-  return value === "api" || value === "app-state" || value === "plugins" || value === "runtime" || value === "sample-demo"
+  return value === "api" ||
+    value === "app-state" ||
+    value === "storage" ||
+    value === "repos" ||
+    value === "plugins" ||
+    value === "providers" ||
+    value === "runtime" ||
+    value === "security" ||
+    value === "sample-demo"
     ? value
     : "runtime";
 }

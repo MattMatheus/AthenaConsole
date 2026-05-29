@@ -1,7 +1,10 @@
+import { accessSync, constants, mkdirSync, statSync } from "node:fs";
+import { isAbsolute, resolve } from "node:path";
 import type { AthenaConfig } from "../../shared/config.js";
 import type {
   AgentCatalogService,
   CapabilityService,
+  ModelProviderConfigService,
   ReadinessCheck,
   ReadinessReport,
   ReadinessService,
@@ -14,6 +17,7 @@ interface LocalReadinessServiceOptions {
   agentCatalogService: AgentCatalogService;
   workflowTemplateCatalogService: WorkflowTemplateCatalogService;
   capabilityService: CapabilityService;
+  modelProviderConfigService: ModelProviderConfigService;
 }
 
 export class LocalReadinessService implements ReadinessService {
@@ -26,8 +30,14 @@ export class LocalReadinessService implements ReadinessService {
     const checks = await Promise.all([
       Promise.resolve(buildApiCheck()),
       Promise.resolve(this.buildAppStateCheck()),
+      Promise.resolve(this.buildArtifactStorageCheck()),
+      Promise.resolve(this.buildManagedRepoRootCheck()),
+      Promise.resolve(this.buildPluginPathCheck()),
+      Promise.resolve(this.buildSecretRootCheck()),
+      this.buildModelProviderCheck(),
       this.buildPluginIndexCheck(),
       this.buildRuntimeCheck(),
+      Promise.resolve(this.buildServerExposureCheck()),
       this.buildSampleDemoCheck()
     ]);
     const requiredFailed = checks.filter((check) => check.required && check.status === "failed").length;
@@ -60,7 +70,7 @@ export class LocalReadinessService implements ReadinessService {
           category: "app-state",
           required: true,
           message: "SQLite app-state path is not configured.",
-          nextStep: "Check ATHENA_STATE_DIR and restart the API.",
+          nextStep: "Check the configured state directory and restart the API.",
           details: {}
         });
       }
@@ -98,6 +108,218 @@ export class LocalReadinessService implements ReadinessService {
         required: true,
         message: "SQLite app-state diagnostics could not be read.",
         nextStep: "Check local filesystem permissions and restart the API.",
+        details: {}
+      });
+    }
+  }
+
+  private buildArtifactStorageCheck(): ReadinessCheck {
+    try {
+      const diagnostics = this.options.stateDiagnosticsService.getDiagnostics();
+      const artifactStores = diagnostics.stores.filter((store) => store.category === "intentional-file-artifact");
+      const unavailable = artifactStores.filter((store) => !isWritableDirectory(store.path));
+      if (artifactStores.length === 0) {
+        return degradedCheck({
+          id: "artifact-storage",
+          label: "Artifact storage",
+          category: "storage",
+          required: true,
+          message: "No artifact storage roots are reported by diagnostics.",
+          nextStep: "Check state diagnostics and server volume mounts.",
+          details: {
+            artifactStoreCount: 0
+          }
+        });
+      }
+      if (unavailable.length > 0) {
+        return failedCheck({
+          id: "artifact-storage",
+          label: "Artifact storage",
+          category: "storage",
+          required: true,
+          message: "One or more artifact storage roots are not writable.",
+          nextStep: "Fix host volume ownership for artifact paths, then restart the API container.",
+          details: {
+            artifactStoreCount: artifactStores.length,
+            unavailableArtifactStores: unavailable.length
+          }
+        });
+      }
+      return okCheck({
+        id: "artifact-storage",
+        label: "Artifact storage",
+        category: "storage",
+        required: true,
+        message: "Artifact storage roots are writable.",
+        nextStep: "No action needed.",
+        details: {
+          artifactStoreCount: artifactStores.length,
+          writableArtifactStores: artifactStores.length
+        }
+      });
+    } catch {
+      return failedCheck({
+        id: "artifact-storage",
+        label: "Artifact storage",
+        category: "storage",
+        required: true,
+        message: "Artifact storage diagnostics could not be read.",
+        nextStep: "Check filesystem permissions and state diagnostics.",
+        details: {}
+      });
+    }
+  }
+
+  private buildManagedRepoRootCheck(): ReadinessCheck {
+    const managedRoot = resolve(this.config.workspaceRoot, "repos", "managed");
+    if (!isWritableDirectory(managedRoot)) {
+      return failedCheck({
+        id: "managed-repo-root",
+        label: "Managed repo root",
+        category: "repos",
+        required: true,
+        message: "Managed repository root is not writable.",
+        nextStep: "Fix managed repository volume ownership or mount it at the workspace repos path.",
+        details: {
+          managedRepoRoot: managedRoot
+        }
+      });
+    }
+    return okCheck({
+      id: "managed-repo-root",
+      label: "Managed repo root",
+      category: "repos",
+      required: true,
+      message: "Managed repository root is writable.",
+      nextStep: "No action needed.",
+      details: {
+        managedRepoRoot: managedRoot
+      }
+    });
+  }
+
+  private buildPluginPathCheck(): ReadinessCheck {
+    const paths = (this.config.plugins?.searchPaths ?? []).map((path) => resolveConfiguredPath(this.config.workspaceRoot, path));
+    const existing = paths.filter((path) => isReadableDirectory(path));
+    if (paths.length === 0) {
+      return failedCheck({
+        id: "plugin-paths",
+        label: "Plugin paths",
+        category: "plugins",
+        required: true,
+        message: "No plugin search paths are configured.",
+        nextStep: "Configure at least one plugin directory before expecting agents or workflows to load.",
+        details: {}
+      });
+    }
+    if (existing.length === 0) {
+      return degradedCheck({
+        id: "plugin-paths",
+        label: "Plugin paths",
+        category: "plugins",
+        required: true,
+        message: "Configured plugin search paths are not readable yet.",
+        nextStep: "Create or mount the configured plugin directories, then restart or re-index the API.",
+        details: {
+          configuredPluginPaths: paths.length,
+          readablePluginPaths: 0
+        }
+      });
+    }
+    return okCheck({
+      id: "plugin-paths",
+      label: "Plugin paths",
+      category: "plugins",
+      required: true,
+      message: "At least one configured plugin path is readable.",
+      nextStep: "No action needed.",
+      details: {
+        configuredPluginPaths: paths.length,
+        readablePluginPaths: existing.length
+      }
+    });
+  }
+
+  private buildSecretRootCheck(): ReadinessCheck {
+    const secretRoot = "/run/secrets/athena";
+    if (!isReadableDirectory(secretRoot)) {
+      return degradedCheck({
+        id: "secret-root",
+        label: "Local secret root",
+        category: "providers",
+        required: false,
+        message: "Local secret root is not mounted or readable.",
+        nextStep: "Mount the server secret directory at /run/secrets/athena when using local-file provider secrets.",
+        details: {
+          secretRootMounted: false
+        }
+      });
+    }
+    return okCheck({
+      id: "secret-root",
+      label: "Local secret root",
+      category: "providers",
+      required: false,
+      message: "Local secret root is mounted and readable.",
+      nextStep: "Configure provider secrets as local-file references when needed.",
+      details: {
+        secretRootMounted: true
+      }
+    });
+  }
+
+  private async buildModelProviderCheck(): Promise<ReadinessCheck> {
+    try {
+      const providers = await this.options.modelProviderConfigService.list();
+      const unavailable = providers.providers.filter((provider) => provider.status !== "configured");
+      if (providers.total === 0) {
+        return degradedCheck({
+          id: "model-providers",
+          label: "Model providers",
+          category: "providers",
+          required: false,
+          message: "No model provider configs are saved.",
+          nextStep: "Open Settings and add a model provider before running model-backed agents.",
+          details: {
+            totalProviders: 0,
+            unavailableProviders: 0
+          }
+        });
+      }
+      if (unavailable.length > 0) {
+        return degradedCheck({
+          id: "model-providers",
+          label: "Model providers",
+          category: "providers",
+          required: false,
+          message: "Some model provider configs are missing or invalid.",
+          nextStep: "Open Settings and test each provider without exposing secret values.",
+          details: {
+            totalProviders: providers.total,
+            unavailableProviders: unavailable.length
+          }
+        });
+      }
+      return okCheck({
+        id: "model-providers",
+        label: "Model providers",
+        category: "providers",
+        required: false,
+        message: "Saved model provider configs are configured.",
+        nextStep: "No action needed.",
+        details: {
+          totalProviders: providers.total,
+          unavailableProviders: 0
+        }
+      });
+    } catch {
+      return degradedCheck({
+        id: "model-providers",
+        label: "Model providers",
+        category: "providers",
+        required: false,
+        message: "Model provider configs could not be read.",
+        nextStep: "Check provider settings storage and API logs.",
         details: {}
       });
     }
@@ -245,6 +467,56 @@ export class LocalReadinessService implements ReadinessService {
       });
     }
   }
+
+  private buildServerExposureCheck(): ReadinessCheck {
+    const apiHost = process.env.ATHENA_DEV_API_HOST ?? "127.0.0.1";
+    const externallyReachable = isExternallyReachableHost(apiHost);
+    const authEnabled = this.config.auth?.enabled === true && Boolean(this.config.auth.apiToken);
+    const explicitLocalOverride = this.config.auth?.allowExternalUnauthenticated === true;
+    if (externallyReachable && !authEnabled && explicitLocalOverride) {
+      return degradedCheck({
+        id: "server-exposure",
+        label: "Server exposure",
+        category: "security",
+        required: true,
+        message: "API is externally bound with unauthenticated access explicitly allowed.",
+        nextStep: "Use this only for local development. Enable API token auth before exposing a local-server deployment on a LAN.",
+        details: {
+          externallyReachable,
+          authEnabled: false,
+          explicitLocalOverride: true
+        }
+      });
+    }
+    if (externallyReachable && !authEnabled) {
+      return failedCheck({
+        id: "server-exposure",
+        label: "Server exposure",
+        category: "security",
+        required: true,
+        message: "API is externally bound without server-side token auth.",
+        nextStep: "Enable API token auth, or bind the API to 127.0.0.1.",
+        details: {
+          externallyReachable,
+          authEnabled: false,
+          explicitLocalOverride: false
+        }
+      });
+    }
+    return okCheck({
+      id: "server-exposure",
+      label: "Server exposure",
+      category: "security",
+      required: true,
+      message: externallyReachable ? "API is externally bound with token auth enabled." : "API bind address is loopback/local.",
+      nextStep: "No action needed.",
+      details: {
+        externallyReachable,
+        authEnabled,
+        explicitLocalOverride
+      }
+    });
+  }
 }
 
 function buildApiCheck(): ReadinessCheck {
@@ -269,6 +541,42 @@ function degradedCheck(input: Omit<ReadinessCheck, "status">): ReadinessCheck {
 
 function failedCheck(input: Omit<ReadinessCheck, "status">): ReadinessCheck {
   return { ...input, status: "failed" };
+}
+
+function isWritableDirectory(path: string): boolean {
+  try {
+    mkdirSync(path, { recursive: true });
+    const stats = statSync(path);
+    if (!stats.isDirectory()) {
+      return false;
+    }
+    accessSync(path, constants.R_OK | constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isReadableDirectory(path: string): boolean {
+  try {
+    const stats = statSync(path);
+    if (!stats.isDirectory()) {
+      return false;
+    }
+    accessSync(path, constants.R_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function resolveConfiguredPath(workspaceRoot: string, path: string): string {
+  return isAbsolute(path) ? path : resolve(workspaceRoot, path);
+}
+
+function isExternallyReachableHost(host: string): boolean {
+  const normalized = host.trim().toLowerCase();
+  return normalized === "0.0.0.0" || normalized === "::" || normalized === "" || normalized === "*";
 }
 
 function resolveProviderPosture(config: AthenaConfig): { configured: boolean; message: string; nextStep: string } {

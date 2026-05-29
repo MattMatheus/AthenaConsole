@@ -302,7 +302,16 @@ export interface CapabilityService {
   getCapabilities(): Promise<CapabilitySet>;
 }
 
-export type ReadinessCheckCategory = "api" | "app-state" | "plugins" | "runtime" | "sample-demo";
+export type ReadinessCheckCategory =
+  | "api"
+  | "app-state"
+  | "storage"
+  | "repos"
+  | "plugins"
+  | "providers"
+  | "runtime"
+  | "security"
+  | "sample-demo";
 export type ReadinessCheckStatus = "ok" | "degraded" | "failed";
 export type ReadinessStatus = "ready" | "degraded" | "not-ready";
 

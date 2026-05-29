@@ -405,6 +405,74 @@
   padding: var(--space-3);
 }
 
+.readinessList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.readinessItem {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fbfcff;
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.readinessItemHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.readinessMeta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-100);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.readinessNextStep {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-200);
+  overflow-wrap: anywhere;
+}
+
+.readinessBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.4rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  padding: 0.16rem 0.5rem;
+  font-size: var(--font-size-100);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.readinessPass {
+  background: #ecfdf5;
+  color: var(--color-success);
+}
+
+.readinessWarn {
+  background: #fff7ed;
+  color: var(--color-warning);
+}
+
+.readinessFail {
+  background: #fef2f2;
+  color: var(--color-error);
+}
+
 .stepIcon {
   display: inline-flex;
   align-items: center;
@@ -457,6 +525,10 @@
   }
 
   .onboardingGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .readinessList {
     grid-template-columns: 1fr;
   }
 }

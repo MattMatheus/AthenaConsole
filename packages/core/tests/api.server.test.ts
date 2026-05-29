@@ -474,8 +474,14 @@ describe("api server", () => {
       expect(readinessEnvelope.data.checks.map((check) => check.id)).toEqual([
         "api",
         "app-state",
+        "artifact-storage",
+        "managed-repo-root",
+        "plugin-paths",
+        "secret-root",
+        "model-providers",
         "plugins",
         "runtime",
+        "server-exposure",
         "sample-demo"
       ]);
       expect(readinessEnvelope.data.checks.find((check) => check.id === "app-state")).toMatchObject({
@@ -488,6 +494,10 @@ describe("api server", () => {
       expect(readinessEnvelope.data.checks.find((check) => check.id === "sample-demo")).toMatchObject({
         status: "degraded",
         required: false
+      });
+      expect(readinessEnvelope.data.checks.find((check) => check.id === "server-exposure")).toMatchObject({
+        status: "ok",
+        required: true
       });
       expect(JSON.stringify(readinessEnvelope.data)).not.toContain("ATHENA_");
       expect(JSON.stringify(readinessEnvelope.data)).not.toContain("apiKey");

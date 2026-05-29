@@ -262,11 +262,13 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
   const agentCatalogService = new LocalAgentCatalogService(options.config);
   const workflowTemplateCatalogService = new LocalWorkflowTemplateCatalogService(options.config);
   const capabilityService = new LocalCapabilityService(executionBackend, fleetMetricsProvider, sandboxExecutionBackend);
+  const modelProviderConfigService = new LocalModelProviderConfigService(options.config);
   const readinessService = new LocalReadinessService(options.config, {
     stateDiagnosticsService,
     agentCatalogService,
     workflowTemplateCatalogService,
-    capabilityService
+    capabilityService,
+    modelProviderConfigService
   });
 
   return {
@@ -308,7 +310,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     missionWorkbenchService: new LocalMissionWorkbenchService(options.config),
     taskWorkbenchService: new LocalTaskWorkbenchService(options.config),
     connectedRepositoryService: new LocalConnectedRepositoryService(options.config),
-    modelProviderConfigService: new LocalModelProviderConfigService(options.config),
+    modelProviderConfigService,
     shutdown: async () => {
       if (hasShutdown(eventService)) {
         await eventService.shutdown();

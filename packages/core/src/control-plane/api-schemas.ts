@@ -1697,7 +1697,10 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
             properties: {
               id: { type: "string", minLength: 1 },
               label: { type: "string", minLength: 1 },
-              category: { type: "string", enum: ["api", "app-state", "plugins", "runtime", "sample-demo"] },
+              category: {
+                type: "string",
+                enum: ["api", "app-state", "storage", "repos", "plugins", "providers", "runtime", "security", "sample-demo"]
+              },
               status: { type: "string", enum: ["ok", "degraded", "failed"] },
               required: { type: "boolean" },
               message: { type: "string", minLength: 1 },

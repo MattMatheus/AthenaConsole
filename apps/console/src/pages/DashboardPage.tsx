@@ -2,6 +2,7 @@ import { CheckCircle2, CircleAlert, FolderGit2, RefreshCw, Route, Workflow } fro
 import { Link } from "react-router-dom";
 import { FleetDashboard } from "../features/fleet";
 import { useReadinessQuery } from "../features/readiness";
+import type { ReadinessCheck } from "../features/readiness";
 import styles from "./PageScaffold.module.css";
 
 export function DashboardPage() {
@@ -89,6 +90,14 @@ export function DashboardPage() {
             body="Open Resource Controls for the current local repo wiring model and validation checklist."
           />
         </div>
+        <div className={styles.readinessList} aria-label="Deployment readiness checks">
+          {(readiness?.checks ?? []).map((check) => (
+            <ReadinessItem key={check.id} check={check} />
+          ))}
+          {!readinessQuery.isLoading && !readiness?.checks.length ? (
+            <p className={styles.settingsMuted}>Readiness checks are unavailable until the API responds.</p>
+          ) : null}
+        </div>
         <div className={styles.onboardingActions}>
           <button
             type="button"
@@ -110,6 +119,28 @@ export function DashboardPage() {
         </div>
       </section>
     </section>
+  );
+}
+
+function ReadinessItem({ check }: { check: ReadinessCheck }) {
+  const statusLabel = check.status === "ok" ? "pass" : check.status === "degraded" ? "warn" : "fail";
+  const statusClass =
+    check.status === "ok" ? styles.readinessPass : check.status === "degraded" ? styles.readinessWarn : styles.readinessFail;
+
+  return (
+    <article className={styles.readinessItem}>
+      <div className={styles.readinessItemHeader}>
+        <div>
+          <p className={styles.value}>{check.label}</p>
+          <p className={styles.readinessMeta}>
+            {check.category} · {check.required ? "required" : "optional"}
+          </p>
+        </div>
+        <span className={`${styles.readinessBadge} ${statusClass}`}>{statusLabel}</span>
+      </div>
+      <p className={styles.settingsMuted}>{check.message}</p>
+      {check.nextStep ? <p className={styles.readinessNextStep}>Next step: {check.nextStep}</p> : null}
+    </article>
   );
 }
 

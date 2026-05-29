@@ -14,16 +14,16 @@ describe("readiness api model", () => {
       },
       checks: [
         {
-          id: "sample-demo",
-          label: "Sample demo",
-          category: "sample-demo",
+          id: "artifact-storage",
+          label: "Artifact storage",
+          category: "storage",
           status: "degraded",
-          required: false,
-          message: "No demo workflow templates are loaded.",
-          nextStep: "Refresh the workflow catalog after the sample plugin is available.",
+          required: true,
+          message: "Artifact roots are not writable.",
+          nextStep: "Fix host volume ownership.",
           details: {
-            totalWorkflowTemplates: 0,
-            availableWorkflowTemplates: 0,
+            artifactStoreCount: 1,
+            writableArtifactStores: 0,
             ignoredSecret: ["nope"],
           },
         },
@@ -33,13 +33,13 @@ describe("readiness api model", () => {
     expect(report.status).toBe("degraded");
     expect(report.summary.optionalUnavailable).toBe(1);
     expect(report.checks[0]).toMatchObject({
-      id: "sample-demo",
-      category: "sample-demo",
+      id: "artifact-storage",
+      category: "storage",
       status: "degraded",
-      required: false,
+      required: true,
       details: {
-        totalWorkflowTemplates: 0,
-        availableWorkflowTemplates: 0,
+        artifactStoreCount: 1,
+        writableArtifactStores: 0,
       },
     });
     expect(report.checks[0]?.details).not.toHaveProperty("ignoredSecret");

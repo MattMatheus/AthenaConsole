@@ -60,3 +60,4 @@ Engineering work accepted by QA.
 54. `STORY-20260529-run-readiness-gates.md`
 55. `STORY-20260529-safe-run-modes-and-proposed-changes.md`
 56. `STORY-20260529-local-server-compose-profile.md`
+57. `STORY-20260529-deployment-readiness-diagnostics.md`

@@ -1,10 +1,11 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type {
   AgentCatalogService,
   CapabilityService,
+  ModelProviderConfigService,
   StateDiagnosticsService,
   WorkflowTemplateCatalogService
 } from "../src/control-plane/interfaces.js";
@@ -15,9 +16,11 @@ describe("control-plane readiness", () => {
   it("reports required and optional first-run checks without leaking secret-shaped values", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-readiness-"));
     try {
+      mkdirSync(join(dir, "sample-plugins"), { recursive: true });
       const readiness = new LocalReadinessService(loadConfig(dir), {
         stateDiagnosticsService: stateDiagnosticsService({
-          sqlitePath: join(dir, ".athena", "team-orchestrator.sqlite")
+          sqlitePath: join(dir, ".athena", "team-orchestrator.sqlite"),
+          artifactPath: join(dir, ".athena", "run-evidence")
         }),
         agentCatalogService: agentCatalogService({
           total: 1,
@@ -27,7 +30,8 @@ describe("control-plane readiness", () => {
           total: 0,
           templates: []
         }),
-        capabilityService: capabilityService()
+        capabilityService: capabilityService(),
+        modelProviderConfigService: modelProviderConfigService({ total: 0, providers: [] })
       });
 
       const report = await readiness.getReadiness();
@@ -36,10 +40,22 @@ describe("control-plane readiness", () => {
       expect(report.summary).toEqual({
         ready: false,
         requiredFailed: 0,
-        degraded: 1,
-        optionalUnavailable: 1
+        degraded: 3,
+        optionalUnavailable: 3
       });
-      expect(report.checks.map((check) => check.id)).toEqual(["api", "app-state", "plugins", "runtime", "sample-demo"]);
+      expect(report.checks.map((check) => check.id)).toEqual([
+        "api",
+        "app-state",
+        "artifact-storage",
+        "managed-repo-root",
+        "plugin-paths",
+        "secret-root",
+        "model-providers",
+        "plugins",
+        "runtime",
+        "server-exposure",
+        "sample-demo"
+      ]);
       expect(report.checks.find((check) => check.id === "app-state")).toMatchObject({
         status: "ok",
         required: true,
@@ -54,6 +70,21 @@ describe("control-plane readiness", () => {
           providerConfigured: true
         }
       });
+      expect(report.checks.find((check) => check.id === "artifact-storage")).toMatchObject({
+        status: "ok",
+        required: true,
+        details: {
+          artifactStoreCount: 1,
+          writableArtifactStores: 1
+        }
+      });
+      expect(report.checks.find((check) => check.id === "server-exposure")).toMatchObject({
+        status: "ok",
+        required: true,
+        details: {
+          externallyReachable: false
+        }
+      });
       expect(report.checks.find((check) => check.id === "sample-demo")).toMatchObject({
         status: "degraded",
         required: false,
@@ -64,6 +95,7 @@ describe("control-plane readiness", () => {
       });
       expect(JSON.stringify(report)).not.toContain("sk-");
       expect(JSON.stringify(report)).not.toContain("apiKey");
+      expect(JSON.stringify(report)).not.toContain("ATHENA_");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -86,13 +118,14 @@ describe("control-plane readiness", () => {
           total: 1,
           templates: [{ available: true }]
         }),
-        capabilityService: capabilityService()
+        capabilityService: capabilityService(),
+        modelProviderConfigService: modelProviderConfigService({ total: 0, providers: [] })
       });
 
       const report = await readiness.getReadiness();
 
       expect(report.status).toBe("not-ready");
-      expect(report.summary.requiredFailed).toBe(1);
+      expect(report.summary.requiredFailed).toBe(2);
       expect(report.checks.find((check) => check.id === "app-state")).toMatchObject({
         status: "failed",
         required: true,
@@ -102,9 +135,63 @@ describe("control-plane readiness", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("warns when the API is externally bound with the local unauthenticated override", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-readiness-exposure-"));
+    const previousHost = process.env.ATHENA_DEV_API_HOST;
+    const previousOverride = process.env.ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED;
+    try {
+      process.env.ATHENA_DEV_API_HOST = "0.0.0.0";
+      process.env.ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED = "true";
+      const config = loadConfig(dir);
+      const readiness = new LocalReadinessService(config, {
+        stateDiagnosticsService: stateDiagnosticsService({
+          sqlitePath: join(dir, ".athena", "team-orchestrator.sqlite"),
+          artifactPath: join(dir, ".athena", "run-evidence")
+        }),
+        agentCatalogService: agentCatalogService({
+          total: 1,
+          plugins: [{ id: "demo", enabled: true, status: "loaded" }]
+        }),
+        workflowTemplateCatalogService: workflowTemplateCatalogService({
+          total: 1,
+          templates: [{ available: true }]
+        }),
+        capabilityService: capabilityService(),
+        modelProviderConfigService: modelProviderConfigService({ total: 0, providers: [] })
+      });
+
+      const report = await readiness.getReadiness();
+
+      expect(report.checks.find((check) => check.id === "server-exposure")).toMatchObject({
+        status: "degraded",
+        required: true,
+        message: "API is externally bound with unauthenticated access explicitly allowed.",
+        details: {
+          externallyReachable: true,
+          authEnabled: false,
+          explicitLocalOverride: true
+        }
+      });
+      expect(JSON.stringify(report)).not.toContain("ATHENA_");
+      expect(JSON.stringify(report)).not.toContain("apiKey");
+    } finally {
+      if (previousHost === undefined) {
+        delete process.env.ATHENA_DEV_API_HOST;
+      } else {
+        process.env.ATHENA_DEV_API_HOST = previousHost;
+      }
+      if (previousOverride === undefined) {
+        delete process.env.ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED;
+      } else {
+        process.env.ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED = previousOverride;
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
-function stateDiagnosticsService(input: { sqlitePath: string }): StateDiagnosticsService {
+function stateDiagnosticsService(input: { sqlitePath: string; artifactPath: string }): StateDiagnosticsService {
   return {
     getDiagnostics() {
       return {
@@ -118,11 +205,63 @@ function stateDiagnosticsService(input: { sqlitePath: string }): StateDiagnostic
             label: "SQLite app-state database",
             category: "sqlite-app-state",
             path: input.sqlitePath
+          },
+          {
+            id: "run-evidence",
+            label: "Run evidence",
+            category: "intentional-file-artifact",
+            path: input.artifactPath
           }
         ]
       };
     }
   };
+}
+
+function modelProviderConfigService(input: {
+  total: number;
+  providers: Array<{ id: string; status: "configured" | "missing" | "invalid" | "unsupported" }>;
+}): ModelProviderConfigService {
+  return {
+    async list() {
+      return {
+        total: input.total,
+        providers: input.providers.map((provider) => ({
+          id: provider.id,
+          name: provider.id,
+          providerKind: "openai-compatible",
+          baseUrl: "https://example.invalid/v1",
+          defaultModel: "model",
+          secret: {
+            kind: "local-file",
+            name: "redacted",
+            configured: provider.status === "configured"
+          },
+          status: provider.status,
+          createdAt: new Date(0).toISOString(),
+          updatedAt: new Date(0).toISOString()
+        }))
+      };
+    },
+    async get() {
+      throw new Error("not used");
+    },
+    async create() {
+      throw new Error("not used");
+    },
+    async update() {
+      throw new Error("not used");
+    },
+    async delete() {
+      throw new Error("not used");
+    },
+    async test() {
+      throw new Error("not used");
+    },
+    async resolveRuntimeConfig() {
+      throw new Error("not used");
+    }
+  } as ModelProviderConfigService;
 }
 
 function agentCatalogService(input: { total: number; plugins: Array<{ id: string; enabled: boolean; status: string }> }): AgentCatalogService {
