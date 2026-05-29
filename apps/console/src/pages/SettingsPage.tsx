@@ -1,5 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
+import { FlaskConical, Plus, Save, Trash2 } from "lucide-react";
 import { useProviderCostSettingsQuery, useUpdateProviderCostSettingsMutation } from "../features/fleet/queries";
+import {
+  buildProviderCreateRequest,
+  draftFromProvider,
+  emptyModelProviderDraft,
+  modelProviderStatusTone,
+  secretReferenceLabel,
+  useCreateModelProviderMutation,
+  useDeleteModelProviderMutation,
+  useModelProvidersQuery,
+  useTestModelProviderMutation,
+  useUpdateModelProviderMutation,
+  type ModelProviderConfig,
+  type ModelProviderFormDraft,
+  type ModelProviderSecretReferenceKind,
+} from "../features/model-providers";
 import { usePolicyQuery, useUpdatePolicyMutation, type PolicyDocument } from "../features/policy";
 import { ApiClientError } from "../services";
 import styles from "./PageScaffold.module.css";
@@ -213,8 +229,18 @@ export function SettingsPage() {
   const updateMutation = useUpdateProviderCostSettingsMutation();
   const policyQuery = usePolicyQuery();
   const policyUpdateMutation = useUpdatePolicyMutation();
+  const modelProvidersQuery = useModelProvidersQuery();
+  const createModelProviderMutation = useCreateModelProviderMutation();
+  const updateModelProviderMutation = useUpdateModelProviderMutation();
+  const deleteModelProviderMutation = useDeleteModelProviderMutation();
+  const testModelProviderMutation = useTestModelProviderMutation();
 
   const [rows, setRows] = useState<PricingRow[]>([]);
+  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
+  const [providerDraft, setProviderDraft] = useState<ModelProviderFormDraft>(() => emptyModelProviderDraft());
+  const [providerSaveAttempted, setProviderSaveAttempted] = useState(false);
+  const [providerSaveError, setProviderSaveError] = useState<string | null>(null);
+  const [providerActionMessage, setProviderActionMessage] = useState<string | null>(null);
   const [policyDraft, setPolicyDraft] = useState<PolicyDraft>(() => toDraft(null));
   const [auditComment, setAuditComment] = useState("");
   const [showPreview, setShowPreview] = useState(false);
@@ -248,9 +274,39 @@ export function SettingsPage() {
     () => (parsedPolicy.policy ? buildPolicyDiff(policyQuery.data ?? null, parsedPolicy.policy) : []),
     [parsedPolicy.policy, policyQuery.data]
   );
+  const selectedProvider = useMemo(
+    () => modelProvidersQuery.data?.providers.find((provider) => provider.id === selectedProviderId),
+    [modelProvidersQuery.data?.providers, selectedProviderId]
+  );
+  const parsedProvider = useMemo(() => buildProviderCreateRequest(providerDraft), [providerDraft]);
 
   function updateRow(index: number, key: keyof PricingRow, value: string): void {
     setRows((previous) => previous.map((row, rowIndex) => (rowIndex === index ? { ...row, [key]: value } : row)));
+  }
+
+  function updateProviderField(key: keyof ModelProviderFormDraft, value: string): void {
+    setProviderDraft((previous) => ({
+      ...previous,
+      [key]: value,
+    }));
+    setProviderSaveError(null);
+    setProviderActionMessage(null);
+  }
+
+  function startNewProvider(): void {
+    setSelectedProviderId(null);
+    setProviderDraft(emptyModelProviderDraft());
+    setProviderSaveAttempted(false);
+    setProviderSaveError(null);
+    setProviderActionMessage(null);
+  }
+
+  function editProvider(provider: ModelProviderConfig): void {
+    setSelectedProviderId(provider.id);
+    setProviderDraft(draftFromProvider(provider));
+    setProviderSaveAttempted(false);
+    setProviderSaveError(null);
+    setProviderActionMessage(null);
   }
 
   function updatePolicyField(key: keyof PolicyDraft, value: string): void {
@@ -282,6 +338,64 @@ export function SettingsPage() {
       .filter((row) => row.provider.length > 0);
 
     await updateMutation.mutateAsync({ providers });
+  }
+
+  async function saveProvider(): Promise<void> {
+    setProviderSaveAttempted(true);
+    setProviderSaveError(null);
+    setProviderActionMessage(null);
+
+    if (!parsedProvider.request || Object.keys(parsedProvider.errors).length > 0) {
+      setProviderSaveError("Resolve provider setup errors before saving.");
+      return;
+    }
+
+    try {
+      if (selectedProvider) {
+        const updated = await updateModelProviderMutation.mutateAsync({
+          id: selectedProvider.id,
+          request: parsedProvider.request,
+        });
+        editProvider(updated);
+        setProviderActionMessage("Provider updated. Secret reference metadata is visible; raw key values are not stored here.");
+        return;
+      }
+      const created = await createModelProviderMutation.mutateAsync(parsedProvider.request);
+      editProvider(created);
+      setProviderActionMessage("Provider saved. The console keeps only the secret reference.");
+    } catch (error) {
+      setProviderSaveError(error instanceof Error ? error.message : "Failed to save model provider.");
+    }
+  }
+
+  async function deleteSelectedProvider(): Promise<void> {
+    if (!selectedProvider) {
+      return;
+    }
+    setProviderSaveError(null);
+    setProviderActionMessage(null);
+    try {
+      await deleteModelProviderMutation.mutateAsync(selectedProvider.id);
+      startNewProvider();
+      setProviderActionMessage("Provider deleted.");
+    } catch (error) {
+      setProviderSaveError(error instanceof Error ? error.message : "Failed to delete model provider.");
+    }
+  }
+
+  async function testSelectedProvider(): Promise<void> {
+    if (!selectedProvider) {
+      setProviderSaveError("Save a provider before testing the connection.");
+      return;
+    }
+    setProviderSaveError(null);
+    setProviderActionMessage(null);
+    try {
+      const result = await testModelProviderMutation.mutateAsync(selectedProvider.id);
+      setProviderActionMessage(`${result.status}: ${result.message}`);
+    } catch (error) {
+      setProviderSaveError(error instanceof Error ? error.message : "Failed to test model provider.");
+    }
   }
 
   async function savePolicy(): Promise<void> {
@@ -321,7 +435,189 @@ export function SettingsPage() {
   return (
     <section className={styles.page}>
       <h2>Settings</h2>
-      <p className={styles.lead}>Configure usage pricing and policy guardrails for local Team Orchestrator runs.</p>
+      <p className={styles.lead}>Configure runtime model providers, usage pricing, and policy guardrails for local Team Orchestrator runs.</p>
+
+      <div className={styles.settingsPanel}>
+        <div className={styles.settingsHeader}>
+          <div>
+            <h3>Model Provider Setup</h3>
+            <p className={styles.settingsMuted}>Connect OpenAI-compatible runtime providers with env or local-file secret references.</p>
+          </div>
+          <button type="button" className={styles.settingsButton} onClick={startNewProvider}>
+            <Plus size={16} aria-hidden="true" />
+            New
+          </button>
+        </div>
+
+        <div className={styles.providerGuidanceGrid}>
+          <div className={styles.providerGuidanceItem}>
+            <strong>Secret handling</strong>
+            <span>Use an environment variable name or an absolute path to a local secret file. Do not paste API keys into this form.</span>
+          </div>
+          <div className={styles.providerGuidanceItem}>
+            <strong>Codex subscriptions</strong>
+            <span>Subscription reuse is research-only until a supported integration exists. Configure an API-compatible provider for runtime work.</span>
+          </div>
+        </div>
+
+        {modelProvidersQuery.isLoading ? <p>Loading model providers...</p> : null}
+        {modelProvidersQuery.error instanceof Error ? <p className={styles.policyFieldError}>{modelProvidersQuery.error.message}</p> : null}
+
+        <div className={styles.providerSettingsGrid}>
+          <form
+            className={styles.providerForm}
+            onSubmit={(event) => {
+              event.preventDefault();
+              void saveProvider();
+            }}
+          >
+            <label className={styles.policyField}>
+              <span>Provider name</span>
+              <input
+                value={providerDraft.name}
+                onChange={(event) => updateProviderField("name", event.target.value)}
+                className={styles.settingsInput}
+                placeholder="OpenAI production"
+              />
+              {providerSaveAttempted && parsedProvider.errors.name ? (
+                <small className={styles.policyFieldError}>{parsedProvider.errors.name}</small>
+              ) : null}
+            </label>
+
+            <label className={styles.policyField}>
+              <span>Provider ID</span>
+              <input
+                value={providerDraft.id}
+                onChange={(event) => updateProviderField("id", event.target.value)}
+                className={styles.settingsInput}
+                placeholder="generated if blank"
+                disabled={Boolean(selectedProvider)}
+              />
+            </label>
+
+            <label className={styles.policyField}>
+              <span>Base URL</span>
+              <input
+                value={providerDraft.baseUrl}
+                onChange={(event) => updateProviderField("baseUrl", event.target.value)}
+                className={styles.settingsInput}
+                placeholder="https://api.openai.com/v1"
+              />
+              {providerSaveAttempted && parsedProvider.errors.baseUrl ? (
+                <small className={styles.policyFieldError}>{parsedProvider.errors.baseUrl}</small>
+              ) : null}
+            </label>
+
+            <label className={styles.policyField}>
+              <span>Default model</span>
+              <input
+                value={providerDraft.defaultModel}
+                onChange={(event) => updateProviderField("defaultModel", event.target.value)}
+                className={styles.settingsInput}
+                placeholder="gpt-4.1-mini"
+              />
+              {providerSaveAttempted && parsedProvider.errors.defaultModel ? (
+                <small className={styles.policyFieldError}>{parsedProvider.errors.defaultModel}</small>
+              ) : null}
+            </label>
+
+            <label className={styles.policyField}>
+              <span>Secret reference type</span>
+              <select
+                value={providerDraft.secretKind}
+                onChange={(event) =>
+                  updateProviderField("secretKind", event.target.value as ModelProviderSecretReferenceKind)
+                }
+                className={styles.settingsInput}
+              >
+                <option value="env">Environment variable</option>
+                <option value="local-file">Local secret file</option>
+              </select>
+            </label>
+
+            <label className={styles.policyField}>
+              <span>{providerDraft.secretKind === "env" ? "Environment variable name" : "Absolute secret file path"}</span>
+              <input
+                value={providerDraft.secretName}
+                onChange={(event) => updateProviderField("secretName", event.target.value)}
+                className={styles.settingsInput}
+                placeholder={providerDraft.secretKind === "env" ? "OPENAI_API_KEY" : "/run/secrets/openai_api_key"}
+              />
+              <small className={styles.policyFieldHelp}>
+                Saved providers show this reference only; the raw secret value is never rendered by the console.
+              </small>
+              {providerSaveAttempted && parsedProvider.errors.secretName ? (
+                <small className={styles.policyFieldError}>{parsedProvider.errors.secretName}</small>
+              ) : null}
+            </label>
+
+            {providerSaveError ? <p className={styles.policyFieldError}>{providerSaveError}</p> : null}
+            {providerActionMessage ? <p className={styles.policySuccess}>{providerActionMessage}</p> : null}
+
+            <div className={styles.settingsActionsStart}>
+              <button
+                type="submit"
+                className={styles.settingsButtonPrimary}
+                disabled={createModelProviderMutation.isPending || updateModelProviderMutation.isPending}
+              >
+                <Save size={16} aria-hidden="true" />
+                {selectedProvider ? "Save Provider" : "Create Provider"}
+              </button>
+              <button
+                type="button"
+                className={styles.settingsButton}
+                onClick={() => void testSelectedProvider()}
+                disabled={!selectedProvider || testModelProviderMutation.isPending}
+              >
+                <FlaskConical size={16} aria-hidden="true" />
+                {testModelProviderMutation.isPending ? "Testing" : "Test"}
+              </button>
+              <button
+                type="button"
+                className={styles.settingsButton}
+                onClick={() => void deleteSelectedProvider()}
+                disabled={!selectedProvider || deleteModelProviderMutation.isPending}
+              >
+                <Trash2 size={16} aria-hidden="true" />
+                Delete
+              </button>
+            </div>
+          </form>
+
+          <div className={styles.providerList}>
+            {(modelProvidersQuery.data?.providers.length ?? 0) === 0 && !modelProvidersQuery.isLoading ? (
+              <div className={styles.repoEmptyState}>
+                <strong>No model providers configured.</strong>
+                <p className={styles.settingsMuted}>Add one provider so agents have an explicit runtime model target.</p>
+              </div>
+            ) : null}
+            {modelProvidersQuery.data?.providers.map((provider) => {
+              const tone = modelProviderStatusTone(provider.status);
+              return (
+                <button
+                  key={provider.id}
+                  type="button"
+                  className={`${styles.providerRow} ${selectedProviderId === provider.id ? styles.providerRowSelected : ""}`}
+                  onClick={() => editProvider(provider)}
+                >
+                  <span className={styles.providerRowHeader}>
+                    <strong>{provider.name}</strong>
+                    <span className={styles[tone === "ready" ? "statusReady" : tone === "degraded" ? "statusDegraded" : "statusFailed"]}>
+                      {provider.status}
+                    </span>
+                  </span>
+                  <span className={styles.providerMetaLine}>{provider.defaultModel}</span>
+                  <span className={styles.providerMetaLine}>{provider.baseUrl}</span>
+                  <span className={styles.providerMetaLine}>
+                    {secretReferenceLabel(provider.secret.kind, provider.secret.name)}
+                  </span>
+                  {provider.statusMessage ? <span className={styles.providerStatusMessage}>{provider.statusMessage}</span> : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       <div className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
@@ -417,6 +713,7 @@ export function SettingsPage() {
             onClick={() => void savePolicy()}
             disabled={policyUpdateMutation.isPending || policyQuery.isLoading}
           >
+            <Save size={16} aria-hidden="true" />
             {policyUpdateMutation.isPending ? "Saving..." : "Save Policy"}
           </button>
         </div>
@@ -429,6 +726,7 @@ export function SettingsPage() {
         <div className={styles.settingsHeader}>
           <h3>Usage Pricing per 1K Tokens (USD)</h3>
           <button type="button" className={styles.settingsButton} onClick={addRow}>
+            <Plus size={16} aria-hidden="true" />
             Add Provider
           </button>
         </div>
@@ -480,6 +778,7 @@ export function SettingsPage() {
             onClick={() => void savePricing()}
             disabled={updateMutation.isPending}
           >
+            <Save size={16} aria-hidden="true" />
             {updateMutation.isPending ? "Saving..." : "Save Pricing"}
           </button>
         </div>

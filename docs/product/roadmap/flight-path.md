@@ -174,7 +174,7 @@ Recommended sequence:
 4. `flywheel/backlog/engineering/done/STORY-20260529-repo-connection-console.md`
 5. `flywheel/backlog/engineering/done/STORY-20260529-repo-context-create-work.md`
 6. `flywheel/backlog/engineering/done/STORY-20260529-provider-config-secret-model.md`
-7. `flywheel/backlog/engineering/ready/STORY-20260529-provider-settings-console.md`
+7. `flywheel/backlog/engineering/done/STORY-20260529-provider-settings-console.md`
 8. `flywheel/backlog/engineering/ready/STORY-20260529-agent-provider-readiness.md`
 9. `flywheel/backlog/engineering/ready/STORY-20260529-agent-sdk-core-package.md`
 10. `flywheel/backlog/engineering/ready/STORY-20260529-example-repo-summary-agent.md`

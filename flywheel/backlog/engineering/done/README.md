@@ -50,3 +50,4 @@ Engineering work accepted by QA.
 44. `STORY-20260529-repo-connection-console.md`
 45. `STORY-20260529-repo-context-create-work.md`
 46. `STORY-20260529-provider-config-secret-model.md`
+47. `STORY-20260529-provider-settings-console.md`
