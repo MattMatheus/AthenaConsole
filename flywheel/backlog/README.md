@@ -22,7 +22,6 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-- `architecture/intake/ARCH-20260529-repo-wiring-operating-model.md`
 - `engineering/intake/STORY-20260529-agent-catalog-operating-guidance.md`
 - `engineering/intake/STORY-20260529-repo-wiring-guidance-surface.md`
 - `engineering/intake/STORY-20260529-create-work-entry-points.md`
@@ -32,6 +31,7 @@ Candidate work that needs PM refinement before activation:
 
 Recently completed:
 
+- `architecture/done/ARCH-20260529-repo-wiring-operating-model.md`
 - `engineering/done/STORY-20260528-console-product-identity-polish.md`
 - `engineering/done/STORY-20260528-console-navigation-surface-grouping.md`
 - `engineering/done/STORY-20260528-operator-dashboard-polish.md`
