@@ -29,19 +29,27 @@ export function RecentEventsTable({ events }: RecentEventsTableProps) {
           </tr>
         </thead>
         <tbody>
-          {events.map((event) => (
-            <tr key={event.id}>
-              <td>
-                <span
-                  className={`${styles.status ?? ""} ${statusClass(event.status)}`}
-                  aria-label={event.status}
-                  title={event.status}
-                />
+          {events.length === 0 ? (
+            <tr>
+              <td colSpan={3} className={styles.empty ?? ""}>
+                No recent activity yet. Start a task or instantiate a workflow to populate this feed.
               </td>
-              <td>{event.message}</td>
-              <td className={styles.timestamp ?? ""}>{event.timestamp}</td>
             </tr>
-          ))}
+          ) : (
+            events.map((event) => (
+              <tr key={event.id}>
+                <td>
+                  <span
+                    className={`${styles.status ?? ""} ${statusClass(event.status)}`}
+                    aria-label={event.status}
+                    title={event.status}
+                  />
+                </td>
+                <td>{event.message}</td>
+                <td className={styles.timestamp ?? ""}>{event.timestamp}</td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </Card>

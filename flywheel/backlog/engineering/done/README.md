@@ -39,3 +39,4 @@ Engineering work accepted by QA.
 33. `STORY-20260528-quickstart-demo-docs-alignment.md`
 34. `STORY-20260528-console-product-identity-polish.md`
 35. `STORY-20260528-console-navigation-surface-grouping.md`
+36. `STORY-20260528-operator-dashboard-polish.md`

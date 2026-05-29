@@ -14,23 +14,23 @@ export function DashboardPage() {
     <section className={styles.page}>
       <div className={styles.pageHeader}>
         <p className={styles.lead}>
-          Fleet health, orchestration state, and policy posture from a single control
-          plane view.
+          Local orchestration readiness, active work, and recent operator activity in one place.
         </p>
         <div className={styles.headerActions}>
           <Link to="/workflows" className={styles.secondaryCta}>
             <Workflow size={16} /> Workflows
           </Link>
-          <Link to="/mission-control" className={styles.primaryCta}>
+          <Link to="/tasks" className={styles.primaryCta}>
             <Route size={16} /> New Task
           </Link>
         </div>
       </div>
+      <FleetDashboard />
       <section className={styles.onboardingPanel}>
         <div className={styles.onboardingHeader}>
           <div>
-            <p className={styles.key}>First Run</p>
-            <h2 className={styles.onboardingTitle}>Start with a ready local console</h2>
+            <p className={styles.key}>Next Actions</p>
+            <h2 className={styles.onboardingTitle}>Keep the local console ready</h2>
           </div>
           <span className={readiness?.status === "ready" ? styles.statusReady : readiness?.status === "not-ready" ? styles.statusFailed : styles.statusDegraded}>
             {readinessQuery.isLoading ? "checking" : readiness?.status ?? "unavailable"}
@@ -54,7 +54,7 @@ export function DashboardPage() {
           <OnboardingStep
             icon={<CircleAlert size={18} />}
             title="Inspect operators"
-            body="Review indexed agents and plugins before assigning work."
+            body="Review indexed agents and plugins before assigning or resuming work."
           />
         </div>
         <div className={styles.onboardingActions}>
@@ -74,7 +74,6 @@ export function DashboardPage() {
           </Link>
         </div>
       </section>
-      <FleetDashboard />
     </section>
   );
 }

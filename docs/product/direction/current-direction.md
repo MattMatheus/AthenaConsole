@@ -133,7 +133,7 @@ Planning intake:
 
 - `flywheel/backlog/engineering/done/STORY-20260528-console-product-identity-polish.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-console-navigation-surface-grouping.md`
-- `flywheel/backlog/engineering/ready/STORY-20260528-operator-dashboard-polish.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-operator-dashboard-polish.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-legacy-advanced-surface-containment.md`
 
 Source epic:
@@ -177,10 +177,10 @@ Recently completed tracks now live in Flywheel done history:
 - `flywheel/backlog/engineering/done/STORY-20260528-quickstart-demo-docs-alignment.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-console-product-identity-polish.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-console-navigation-surface-grouping.md`
+- `flywheel/backlog/engineering/done/STORY-20260528-operator-dashboard-polish.md`
 
 Ready implementation sequence:
 
-- `flywheel/backlog/engineering/ready/STORY-20260528-operator-dashboard-polish.md`
 - `flywheel/backlog/engineering/ready/STORY-20260528-legacy-advanced-surface-containment.md`
 
 Planning intake sequence:

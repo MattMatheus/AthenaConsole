@@ -22,7 +22,7 @@ export function CostTrendChart({ costSummary }: CostTrendChartProps) {
 
   return (
     <Card className={styles.card ?? ""}>
-      <h2 className={styles.title ?? ""}>Input vs Output Token Mix</h2>
+      <h2 className={styles.title ?? ""}>Token Usage Mix</h2>
       <div className={styles.layout ?? ""}>
         <svg className={styles.donut ?? ""} viewBox="0 0 42 42" role="img" aria-label="Input and output token ratio">
           <circle className={styles.track ?? ""} cx="21" cy="21" r="15.9155" />
@@ -60,9 +60,9 @@ export function CostTrendChart({ costSummary }: CostTrendChartProps) {
             <span>Output tokens: {costSummary?.tokenMix.outputTokens ?? 0}</span>
           </div>
           <p className={styles.monthTotal ?? ""}>
-            Month total: {usdFormatter.format(costSummary?.totalEstimatedSpendUsd ?? 0)}
+            Monthly estimate: {usdFormatter.format(costSummary?.totalEstimatedSpendUsd ?? 0)}
           </p>
-          {hasAzureBillingSource ? <p className={styles.monthTotal ?? ""}>Data source: Azure Billing API</p> : null}
+          {hasAzureBillingSource ? <p className={styles.monthTotal ?? ""}>Usage source: Azure Billing API</p> : null}
         </div>
       </div>
     </Card>

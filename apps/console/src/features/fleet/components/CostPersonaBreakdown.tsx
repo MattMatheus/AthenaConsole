@@ -20,7 +20,7 @@ export function CostPersonaBreakdown({ summary, onExportCsv, exportDisabled = fa
   return (
     <Card className={styles.card ?? ""}>
       <div className={styles.headerRow ?? ""}>
-        <h2 className={styles.title ?? ""}>Persona Cost Breakdown</h2>
+        <h2 className={styles.title ?? ""}>Operator Usage Breakdown</h2>
         <button type="button" className={styles.exportButton ?? ""} onClick={onExportCsv} disabled={exportDisabled}>
           Export CSV
         </button>
@@ -28,8 +28,8 @@ export function CostPersonaBreakdown({ summary, onExportCsv, exportDisabled = fa
       <table className={styles.table ?? ""}>
         <thead>
           <tr>
-            <th>Persona</th>
-            <th>Spend (USD)</th>
+            <th>Operator</th>
+            <th>Usage Estimate</th>
             <th>Tokens</th>
           </tr>
         </thead>
@@ -37,7 +37,7 @@ export function CostPersonaBreakdown({ summary, onExportCsv, exportDisabled = fa
           {rows.length === 0 ? (
             <tr>
               <td colSpan={3} className={styles.empty ?? ""}>
-                No cost telemetry found for this month.
+                No operator usage telemetry found for this month.
               </td>
             </tr>
           ) : (

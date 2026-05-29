@@ -1,7 +1,7 @@
 ---
 kind: story
 id: STORY-20260528-operator-dashboard-polish
-status: ready
+status: done
 owner_role: Software Engineer
 source: epic
 success_metric: Dashboard reads as a practical Team Orchestrator operator home rather than a fleet/governance holdover.
@@ -14,7 +14,7 @@ ready: true
 ## Metadata
 - `id`: STORY-20260528-operator-dashboard-polish
 - `owner_role`: Software Engineer
-- `status`: ready
+- `status`: done
 - `source`: epic
 - `decision_refs`: [ADR-0006, ADR-0012]
 - `epic`: docs/product/epics/refinement/2026.24.00-epic-console-product-surface-polish.md
@@ -56,17 +56,20 @@ Use existing dashboard/readiness/fleet summary data first. Reframe visible label
 Ready after navigation grouping.
 
 ## Engineering Handoff
-- `change_summary`:
-- `validation_evidence`:
-- `qa_focus`:
-- `open_risks`:
+- `change_summary`: Reframed the dashboard lead, metrics, usage panels, recent activity empty state, and loading/error copy around local orchestration readiness, active work, recent operator activity, and next actions. Moved the readiness/first-run panel below the live dashboard summary so repeat usage is not dominated by onboarding. Kept existing data APIs and internal implementation identifiers unchanged.
+- `validation_evidence`: `npm --workspace apps/console run typecheck`; `npm --workspace apps/console run lint`; `./flywheel/tools/validate_workflow_state.sh`; `git diff --check`; visible dashboard copy scan found no old fleet/governance wording; browser smoke for `/` at desktop and 390x900 mobile confirmed updated headings/copy and no horizontal overflow.
+- `qa_focus`: Verify the dashboard reads as an operator home, first-run guidance remains available below the summary, old fleet/governance wording is not visible, and data loading/error states remain actionable.
+- `open_risks`: Internal component/API names still use the existing fleet summary contract by design because this story did not rename backend endpoints or packages.
 
 ## QA Verdict
-- `verdict`:
-- `evidence_quality`:
-- `defects`:
-- `state_transition`:
+- `verdict`: Pass
+- `evidence_quality`: Typecheck, lint, workflow validation, whitespace check, focused copy scan, and desktop/mobile browser smoke cover acceptance.
+- `defects`: None found.
+- `state_transition`: Ready to move from `qa` to `done`.
 
 ## Transition History
 - `2026-05-28T23:55:00Z`: planning intake created for operator dashboard polish
 - `2026-05-29T00:25:53Z`: `intake` -> `ready`; PM refinement complete for operator dashboard polish
+- `2026-05-29T00:58:44Z`: `ready` -> `active`; Engineering starts operator dashboard polish
+- `2026-05-29T01:01:45Z`: `active` -> `qa`; Engineering handoff ready for operator dashboard polish
+- `2026-05-29T01:02:16Z`: `qa` -> `done`; QA passed for operator dashboard polish

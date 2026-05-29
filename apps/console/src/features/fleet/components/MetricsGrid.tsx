@@ -17,7 +17,7 @@ const usdFormatter = new Intl.NumberFormat("en-US", {
 
 export function MetricsGrid({ summary }: MetricsGridProps) {
   const metrics = [
-    { label: "Running Workloads", value: String(summary.running) },
+    { label: "Active Work", value: String(summary.running) },
     {
       label: "Active Sessions",
       value: String(summary.operationalSummary?.totalActiveSessions ?? 0),
@@ -31,7 +31,7 @@ export function MetricsGrid({ summary }: MetricsGridProps) {
       value: `${percentFormatter.format(summary.operationalSummary?.aggregateResourceUsage.memoryUsage ?? 0)}%`,
     },
     {
-      label: "Est. Spend (Month)",
+      label: "Monthly Usage Estimate",
       value: usdFormatter.format(summary.costSummary?.totalEstimatedSpendUsd ?? 0),
     },
   ];
