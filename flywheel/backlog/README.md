@@ -16,7 +16,7 @@ No engineering or architecture work is awaiting QA.
 
 Refined work ready to activate:
 
-- `engineering/ready/STORY-20260528-legacy-advanced-surface-containment.md`
+No ready engineering or architecture work.
 
 ## Later
 
@@ -31,6 +31,7 @@ Recently completed:
 - `engineering/done/STORY-20260528-console-product-identity-polish.md`
 - `engineering/done/STORY-20260528-console-navigation-surface-grouping.md`
 - `engineering/done/STORY-20260528-operator-dashboard-polish.md`
+- `engineering/done/STORY-20260528-legacy-advanced-surface-containment.md`
 
 ## Rule
 

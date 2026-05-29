@@ -123,7 +123,7 @@ export function RunTemplatesPage() {
     <section className={styles.page}>
       <div className={styles.pageHeader}>
         <div>
-          <p className={styles.panelMeta}>Run Templates</p>
+          <p className={styles.panelMeta}>Advanced presets</p>
           <h2 className={styles.pageTitle}>Trigger Saved Run Presets</h2>
         </div>
         <button
@@ -144,7 +144,7 @@ export function RunTemplatesPage() {
           <span className={styles.metricValue}>{templates.length}</span>
         </div>
         <div className={styles.metric}>
-          <span className={styles.metricLabel}>Harness Profiles</span>
+          <span className={styles.metricLabel}>Runtime Profiles</span>
           <span className={styles.metricValue}>{profiles.length}</span>
         </div>
         <div className={styles.metric}>
@@ -166,13 +166,13 @@ export function RunTemplatesPage() {
               className={styles.input}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="template, harness profile, param"
+              placeholder="template, runtime profile, parameter"
               type="search"
             />
           </span>
         </label>
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Create Harness Profile</span>
+          <span className={styles.fieldLabel}>Runtime Profile</span>
           <select className={styles.select} value={harnessProfileId} onChange={(event) => setHarnessProfileId(event.target.value)}>
             {profiles.map((profile) => (
               <option key={profile.id} value={profile.id}>
@@ -210,7 +210,7 @@ export function RunTemplatesPage() {
             {templates.length === 0 ? (
               <div className={styles.stateInline}>
                 <p className={styles.stateTitle}>No Run Templates Saved</p>
-                <p className={styles.description}>Create a preset, then trigger it with parameter overrides.</p>
+                <p className={styles.description}>Create a saved run preset, then trigger it with parameter overrides.</p>
               </div>
             ) : visibleTemplates.length === 0 ? (
               <div className={styles.stateInline}>
@@ -257,13 +257,13 @@ export function RunTemplatesPage() {
               <div className={styles.formGrid}>
                 {harnessProfileId === "__manual" ? (
                   <label className={styles.field}>
-                    <span className={styles.fieldLabel}>Harness Profile Id</span>
+                    <span className={styles.fieldLabel}>Runtime Profile ID</span>
                     <input className={styles.input} value={manualHarnessProfileId} onChange={(event) => setManualHarnessProfileId(event.target.value)} />
                     {createErrors.harnessProfileId ? <span className={styles.fieldError}>{createErrors.harnessProfileId}</span> : null}
                   </label>
                 ) : (
                   <label className={styles.field}>
-                    <span className={styles.fieldLabel}>Harness Profile</span>
+                    <span className={styles.fieldLabel}>Runtime Profile</span>
                     <select className={styles.select} value={harnessProfileId} onChange={(event) => setHarnessProfileId(event.target.value)}>
                       {profiles.map((profile) => (
                         <option key={profile.id} value={profile.id}>
@@ -328,7 +328,7 @@ export function RunTemplatesPage() {
                   <p className={styles.description}>{selectedTemplate.directiveTemplate}</p>
                   <dl className={styles.kvList}>
                     <div>
-                      <dt>Harness Profile</dt>
+                      <dt>Runtime Profile</dt>
                       <dd>{selectedProfile ? profileLabel(selectedProfile) : selectedTemplate.harnessProfileId}</dd>
                     </div>
                     <div>

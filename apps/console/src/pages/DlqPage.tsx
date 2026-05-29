@@ -97,10 +97,10 @@ export function DlqPage() {
     setActionMessage(undefined);
     try {
       const result = await requeueMutation.mutateAsync(id);
-      setActionMessage(result.updated ? `Re-queued ${id}.` : `DLQ item ${id} was not found.`);
+      setActionMessage(result.updated ? `Re-queued ${id}.` : `Dead-letter queue item ${id} was not found.`);
       await refreshAfterMutation(id);
     } catch (error) {
-      setActionMessage(error instanceof Error ? error.message : "Failed to re-queue DLQ item.");
+      setActionMessage(error instanceof Error ? error.message : "Failed to re-queue dead-letter queue item.");
     } finally {
       setActiveMutationItemId(undefined);
     }
@@ -119,10 +119,10 @@ export function DlqPage() {
         id,
         request: { auditNote: trimmedNote },
       });
-      setActionMessage(result.updated ? `Discarded ${id}.` : `DLQ item ${id} was not found.`);
+      setActionMessage(result.updated ? `Discarded ${id}.` : `Dead-letter queue item ${id} was not found.`);
       await refreshAfterMutation(id);
     } catch (error) {
-      setActionMessage(error instanceof Error ? error.message : "Failed to discard DLQ item.");
+      setActionMessage(error instanceof Error ? error.message : "Failed to discard dead-letter queue item.");
     } finally {
       setActiveMutationItemId(undefined);
     }
@@ -130,15 +130,16 @@ export function DlqPage() {
 
   return (
     <section className={styles.page}>
-      <h2>Legacy A2A DLQ</h2>
+      <h2>Compatibility Delivery Queue</h2>
       <p className={styles.lead}>
-        Inspect legacy A2A delivery failures, re-queue recoverable messages, and discard with auditable notes.
+        Inspect compatibility delivery failures, re-queue recoverable messages, and discard items with audit notes.
       </p>
       <p className={styles.settingsMuted}>
-        Compatibility surface: current Team Orchestrator observability is centered on task and workflow runs, events, and artifacts.
+        This diagnostic page covers legacy agent-to-agent (A2A) messages held in a dead-letter queue (DLQ). Current Team
+        Orchestrator observability is centered on task and workflow runs, events, and artifacts.
       </p>
-      {readDenied ? <p>DLQ visibility is restricted to authorized Viewer, Operator, or Admin identities.</p> : null}
-      {writeDenied ? <p>DLQ write operations require Operator or Admin privileges.</p> : null}
+      {readDenied ? <p>Compatibility queue visibility is restricted to authorized Viewer, Operator, or Admin identities.</p> : null}
+      {writeDenied ? <p>Compatibility queue write operations require Operator or Admin privileges.</p> : null}
 
       <div className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
@@ -174,10 +175,10 @@ export function DlqPage() {
         <div className={styles.settingsHeader}>
           <h3>Queue</h3>
         </div>
-        {dlqQuery.isLoading ? <p>Loading DLQ items...</p> : null}
+        {dlqQuery.isLoading ? <p>Loading compatibility queue items...</p> : null}
         {dlqQuery.error instanceof Error && !readDenied ? <p>{dlqQuery.error.message}</p> : null}
         {visibleItems.length === 0 && !dlqQuery.isLoading && !dlqQuery.error ? (
-          <p className={styles.settingsMuted}>No DLQ records found for the selected filters.</p>
+          <p className={styles.settingsMuted}>No compatibility queue records found for the selected filters.</p>
         ) : null}
         <div className={styles.tableWrapper}>
           <table className={styles.settingsTable}>
@@ -235,7 +236,7 @@ export function DlqPage() {
         <div className={styles.settingsHeader}>
           <h3>Inspect Item</h3>
         </div>
-        {!selectedItem ? <p>Select a DLQ item to inspect payload and failure details.</p> : null}
+        {!selectedItem ? <p>Select a queue item to inspect payload and failure details.</p> : null}
         {selectedItem ? (
           <div className={styles.stack}>
             <p className={styles.settingsMuted}>

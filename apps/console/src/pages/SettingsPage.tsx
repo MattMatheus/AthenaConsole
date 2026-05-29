@@ -321,7 +321,7 @@ export function SettingsPage() {
   return (
     <section className={styles.page}>
       <h2>Settings</h2>
-      <p className={styles.lead}>Configure provider pricing and policy guardrails for fleet governance.</p>
+      <p className={styles.lead}>Configure usage pricing and policy guardrails for local Team Orchestrator runs.</p>
 
       <div className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
@@ -427,7 +427,7 @@ export function SettingsPage() {
 
       <div className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
-          <h3>Provider Cost per 1K Tokens (USD)</h3>
+          <h3>Usage Pricing per 1K Tokens (USD)</h3>
           <button type="button" className={styles.settingsButton} onClick={addRow}>
             Add Provider
           </button>

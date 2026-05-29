@@ -476,7 +476,7 @@ export function SessionsPage() {
                 value={searchPersonaId}
                 onChange={(event) => setSearchPersonaId(event.target.value)}
                 className={styles.searchInput}
-                placeholder="personaId"
+                placeholder="operator profile id"
               />
               <input
                 type="text"

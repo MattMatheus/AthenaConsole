@@ -5,7 +5,7 @@ import styles from "./PageScaffold.module.css";
 
 const CATEGORY_OPTIONS: Array<{ value: GovernanceAuditCategory; label: string }> = [
   { value: "policy", label: "Policy" },
-  { value: "rbac-role", label: "RBAC Roles" },
+  { value: "rbac-role", label: "Access Roles" },
   { value: "identity-assignment", label: "Identity Assignments" }
 ];
 
@@ -79,7 +79,7 @@ export function AuditTrailPage() {
   return (
     <section className={styles.page}>
       <h2>Audit Trail</h2>
-      <p className={styles.lead}>Immutable governance and access-control history from the persistent event store.</p>
+      <p className={styles.lead}>Immutable policy and access-control history from the local event store.</p>
       {adminDenied ? <p>Audit Trail is restricted to bootstrap or high-privilege administrators.</p> : null}
 
       <div className={styles.settingsPanel}>

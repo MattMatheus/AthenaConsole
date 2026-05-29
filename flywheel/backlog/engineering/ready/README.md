@@ -4,7 +4,7 @@ Refined engineering work can wait here before activation if the host repo uses a
 
 ## Ready Sequence
 
-1. `STORY-20260528-legacy-advanced-surface-containment.md`
+No ready engineering stories.
 
 ## Promotion Rule
 

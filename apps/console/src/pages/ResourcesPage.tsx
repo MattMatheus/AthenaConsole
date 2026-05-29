@@ -5,7 +5,7 @@ export function ResourcesPage() {
     <section className={styles.page}>
       <h2>Resource Controls</h2>
       <p className={styles.lead}>
-        Review operator-facing resource controls for directives and harness profiles as they become available.
+        Review operator-facing controls for runtime profiles, directives, and shared execution resources as they become available.
       </p>
     </section>
   );

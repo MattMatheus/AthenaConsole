@@ -40,8 +40,8 @@ const navSections: NavSection[] = [
     label: "Admin & diagnostics",
     items: [
       { path: "/audit-trail", label: "Audit Trail", match: /^\/audit-trail/ },
-      { path: "/rbac", label: "RBAC", match: /^\/rbac/ },
-      { path: "/dlq", label: "Legacy A2A DLQ", match: /^\/dlq/ },
+      { path: "/rbac", label: "Access Control", match: /^\/rbac/ },
+      { path: "/dlq", label: "Compatibility Queue", match: /^\/dlq/ },
       { path: "/settings", label: "Settings", match: /^\/settings/ },
     ],
   },

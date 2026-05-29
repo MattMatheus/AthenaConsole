@@ -67,9 +67,11 @@ export function RbacPage() {
 
   return (
     <section className={styles.page}>
-      <h2>RBAC Management</h2>
-      <p className={styles.lead}>Inspect role permissions, manage identity/service-token assignments, and audit effective access.</p>
-      {adminDenied ? <p>RBAC management is restricted to bootstrap or high-privilege administrators.</p> : null}
+      <h2>Access Control</h2>
+      <p className={styles.lead}>
+        Manage role-based access control (RBAC) for identities and service tokens, then audit the permissions an operator receives.
+      </p>
+      {adminDenied ? <p>Access control management is restricted to bootstrap or high-privilege administrators.</p> : null}
 
       <div className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
@@ -229,7 +231,7 @@ export function RbacPage() {
                 <p className={styles.scopeValue}>{String(auditMutation.data.scope.global)}</p>
               </li>
               <li>
-                <p className={styles.scopeLabel}>Personas</p>
+                <p className={styles.scopeLabel}>Operator Profiles</p>
                 <p className={styles.scopeValue}>
                   {auditMutation.data.scope.personas.length > 0 ? auditMutation.data.scope.personas.join(", ") : "none"}
                 </p>
