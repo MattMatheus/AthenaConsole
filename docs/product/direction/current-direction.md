@@ -160,7 +160,19 @@ Source epic:
 
 Flywheel lanes are the operational source of truth. No engineering or architecture items are active or awaiting QA right now.
 
-No active roadmap track is selected right now. The next major roadmap item should be selected from operator feedback, refined into an epic, and then broken down into Flywheel-ready architecture and engineering stories before implementation starts.
+The next roadmap arc is Real Work Enablement. It starts in planning/architecture because repo connection, model provider secrets, agent SDK boundaries, run safety, and local-server deployment all affect the operating model.
+
+Active refinement epics:
+
+- `docs/product/epics/refinement/2026.26.00-epic-real-work-repo-connection.md`
+- `docs/product/epics/refinement/2026.27.00-epic-model-provider-and-secrets-setup.md`
+- `docs/product/epics/refinement/2026.28.00-epic-agent-sdk-and-examples.md`
+- `docs/product/epics/refinement/2026.29.00-epic-real-work-run-loop.md`
+- `docs/product/epics/refinement/2026.30.00-epic-local-server-deployment-readiness.md`
+
+First planning item:
+
+- `flywheel/backlog/architecture/intake/ARCH-20260529-real-work-enablement-operating-model.md`
 
 Recently completed tracks now live in Flywheel done history:
 

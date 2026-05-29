@@ -134,15 +134,57 @@ Completed story sequence:
 4. `flywheel/backlog/engineering/done/STORY-20260529-create-work-entry-points.md`
 5. `flywheel/backlog/engineering/done/STORY-20260529-first-run-to-real-repo-bridge.md`
 
+## Next Roadmap Arc
+
+### 2026.26-2026.30 Real Work Enablement
+
+Status: Planning intake.
+
+Goal: let a local operator connect a repository, connect an AI model provider, add useful plugin-backed agents, run real work safely, and prove the system on a local server.
+
+Why now:
+
+- The first-run and operator-clarity tracks made the system understandable.
+- Using environment variables for repo wiring is still too manual for normal operators.
+- Agents are visible, but model/provider setup and API key wiring are not yet operator-facing.
+- The product needs an SDK/example path so operators can create useful generic agents without authoring agents in the console.
+- A local-server deployment is the right end-of-arc proving ground for a durable real-work loop.
+
+Target outcome:
+
+- An operator can deploy Team Orchestrator locally or on a local server, connect a repo, configure a model provider, load or build a useful agent, run work with clear inputs and safety gates, and inspect the result.
+
+Source epics:
+
+1. `docs/product/epics/refinement/2026.26.00-epic-real-work-repo-connection.md`
+2. `docs/product/epics/refinement/2026.27.00-epic-model-provider-and-secrets-setup.md`
+3. `docs/product/epics/refinement/2026.28.00-epic-agent-sdk-and-examples.md`
+4. `docs/product/epics/refinement/2026.29.00-epic-real-work-run-loop.md`
+5. `docs/product/epics/refinement/2026.30.00-epic-local-server-deployment-readiness.md`
+
+First planning item:
+
+- `flywheel/backlog/architecture/intake/ARCH-20260529-real-work-enablement-operating-model.md`
+
+Recommended sequence:
+
+1. Real-work enablement operating model across repos, providers, secrets, SDK, run safety, and server deployment.
+2. Repo connection and inspection.
+3. Model provider and secret setup.
+4. Agent SDK plus useful example agents.
+5. Structured real-work run loop with safety gates.
+6. Local-server deployment readiness as the end-to-end proof.
+
 ## Near-Term Principles
 
-No active roadmap track is selected right now. The next major roadmap item should be shaped from operator feedback and then broken into Flywheel-ready architecture and engineering stories before implementation starts.
+The next roadmap arc is selected but not yet refined into engineering-ready stories. Start with architecture, then turn the epics into Flywheel-ready architecture and engineering stories before implementation starts.
 
 - Prefer complete local operator loops over new isolated backend features.
 - Keep the first-run path honest: only document and expose workflows that actually work in the current product.
 - Treat docs, console empty states, diagnostics, and sample data as product surfaces.
 - Do not reintroduce legacy compatibility shims for removed control-plane paths.
 - Keep Flywheel as the operational source of truth for active and queued work.
+- Keep the real-work loop centered on explicit repo context, explicit provider configuration, and explicit approvals before mutations or external side effects.
 
 ## Archived Roadmap Context
 

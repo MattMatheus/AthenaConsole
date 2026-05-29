@@ -4,4 +4,4 @@ Raw architecture decision work enters here before refinement.
 
 ## Candidate Sequence
 
-No architecture intake items.
+1. `ARCH-20260529-real-work-enablement-operating-model.md`
