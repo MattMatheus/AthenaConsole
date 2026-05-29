@@ -41,3 +41,4 @@ Engineering work accepted by QA.
 35. `STORY-20260528-console-navigation-surface-grouping.md`
 36. `STORY-20260528-operator-dashboard-polish.md`
 37. `STORY-20260528-legacy-advanced-surface-containment.md`
+38. `STORY-20260529-agent-catalog-operating-guidance.md`

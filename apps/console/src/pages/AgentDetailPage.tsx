@@ -1,4 +1,4 @@
-import { ArrowLeft, FileText, ShieldCheck } from "lucide-react";
+import { ArrowLeft, FileText, Play, ShieldCheck } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   useAgentCatalogAgentsQuery,
@@ -177,6 +177,23 @@ export function AgentDetailPage() {
 
       {agent.metadata.description ? <p className={styles.lead}>{agent.metadata.description}</p> : null}
 
+      <section className={styles.nextActionPanel}>
+        <div>
+          <p className={styles.panelTitle}>Use this agent</p>
+          <p className={styles.description}>
+            This agent is supplied by {agent.plugin.name}. Start work by creating a task with run context or by choosing a workflow template that uses compatible capabilities.
+          </p>
+        </div>
+        <div className={styles.actionBarEnd}>
+          <Link className={styles.primaryLink} to="/tasks">
+            <Play size={15} /> New task
+          </Link>
+          <Link className={styles.detailLink} to="/workflows">
+            Workflow templates
+          </Link>
+        </div>
+      </section>
+
       <div className={styles.detailGrid}>
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
@@ -213,6 +230,9 @@ export function AgentDetailPage() {
             <p className={styles.pluginName}>{agent.plugin.name}</p>
             <p className={styles.mono}>{agent.plugin.id}@{agent.plugin.version}</p>
             {plugin?.metadata.description ? <p className={styles.description}>{plugin.metadata.description}</p> : null}
+            <p className={styles.description}>
+              Plugin manifests on disk define this agent's capabilities, inputs, permissions, and runtime contract.
+            </p>
             <div className={styles.badgeRow}>
               <span className={agent.plugin.enabled ? styles.badgeSuccess : styles.badgeDanger}>
                 {agent.plugin.enabled ? "Enabled" : "Disabled"}

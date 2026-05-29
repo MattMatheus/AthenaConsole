@@ -147,7 +147,7 @@ Goal: make it obvious how a local operator wires Team Orchestrator to a reposito
 Planning intake:
 
 - `flywheel/backlog/architecture/done/ARCH-20260529-repo-wiring-operating-model.md`
-- `flywheel/backlog/engineering/intake/STORY-20260529-agent-catalog-operating-guidance.md`
+- `flywheel/backlog/engineering/done/STORY-20260529-agent-catalog-operating-guidance.md`
 - `flywheel/backlog/engineering/intake/STORY-20260529-repo-wiring-guidance-surface.md`
 - `flywheel/backlog/engineering/intake/STORY-20260529-create-work-entry-points.md`
 - `flywheel/backlog/engineering/intake/STORY-20260529-first-run-to-real-repo-bridge.md`
@@ -196,6 +196,7 @@ Recently completed tracks now live in Flywheel done history:
 - `flywheel/backlog/engineering/done/STORY-20260528-operator-dashboard-polish.md`
 - `flywheel/backlog/engineering/done/STORY-20260528-legacy-advanced-surface-containment.md`
 - `flywheel/backlog/architecture/done/ARCH-20260529-repo-wiring-operating-model.md`
+- `flywheel/backlog/engineering/done/STORY-20260529-agent-catalog-operating-guidance.md`
 
 Ready implementation sequence:
 
@@ -203,7 +204,6 @@ Ready implementation sequence:
 
 Planning intake sequence:
 
-- `flywheel/backlog/engineering/intake/STORY-20260529-agent-catalog-operating-guidance.md`
 - `flywheel/backlog/engineering/intake/STORY-20260529-repo-wiring-guidance-surface.md`
 - `flywheel/backlog/engineering/intake/STORY-20260529-create-work-entry-points.md`
 - `flywheel/backlog/engineering/intake/STORY-20260529-first-run-to-real-repo-bridge.md`

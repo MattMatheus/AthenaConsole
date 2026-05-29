@@ -1,4 +1,4 @@
-import { RefreshCw, Search } from "lucide-react";
+import { FileCode2, FolderCog, RefreshCw, Search, Wrench } from "lucide-react";
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -107,6 +107,9 @@ function renderPluginValidation(plugin: AgentCatalogPluginSummary): JSX.Element 
       {plugin.validationErrors.length > 3 ? (
         <li className={styles.validationItem}>{plugin.validationErrors.length - 3} more validation issues</li>
       ) : null}
+      <li className={styles.validationHelp}>
+        Fix the plugin manifest or referenced source files on disk, then refresh the catalog.
+      </li>
     </ul>
   );
 }
@@ -167,7 +170,7 @@ export function AgentCatalogPage() {
     <section className={styles.page}>
       <div className={styles.pageHeader}>
         <p className={styles.lead}>
-          Browse manifest-backed agents from indexed workspace and system plugins, inspect catalog readiness, and filter by declared capabilities.
+          Browse plugin-backed agents loaded from local manifests, inspect catalog readiness, and choose an existing capability for tasks or workflows.
         </p>
         <button
           type="button"
@@ -180,6 +183,29 @@ export function AgentCatalogPage() {
           <RefreshCw size={16} />
         </button>
       </div>
+
+      <section className={styles.guidanceBand} aria-labelledby="agent-catalog-operating-model">
+        <div>
+          <p id="agent-catalog-operating-model" className={styles.panelTitle}>How agents arrive here</p>
+          <p className={styles.description}>
+            Agents are provided by local plugin packages discovered from configured plugin paths. To add or change agents, update plugin files on disk and refresh the catalog.
+          </p>
+        </div>
+        <div className={styles.guidanceGrid}>
+          <div className={styles.guidanceItem}>
+            <FolderCog size={18} />
+            <span>Workspace plugin paths provide operator-local agents.</span>
+          </div>
+          <div className={styles.guidanceItem}>
+            <FileCode2 size={18} />
+            <span>Manifests define capabilities, inputs, permissions, and runtime contracts.</span>
+          </div>
+          <div className={styles.guidanceItem}>
+            <Wrench size={18} />
+            <span>Run context, including target repo details, is supplied when work starts.</span>
+          </div>
+        </div>
+      </section>
 
       <div className={styles.summaryGrid}>
         <div className={styles.metric}>
@@ -258,13 +284,16 @@ export function AgentCatalogPage() {
         <div className={styles.state}>
           <p className={styles.stateTitle}>Unable To Load Agent Catalog</p>
           <p className={styles.errorText}>{error.message}</p>
+          <p className={styles.description}>Check that local plugin paths are readable and manifests are valid, then refresh the catalog.</p>
         </div>
       ) : null}
 
       {!isLoading && !error && plugins.length === 0 && allAgents.length === 0 ? (
         <div className={styles.state}>
           <p className={styles.stateTitle}>No Agents Indexed</p>
-          <p className={styles.description}>Refresh the catalog after local plugins load, then open workflow templates to start the demo.</p>
+          <p className={styles.description}>
+            Add plugin packages to the configured workspace or system plugin paths, then refresh the catalog. Sample agents are also loaded this way.
+          </p>
           <div className={styles.actionBarStart}>
             <Link className={styles.detailLink} to="/workflows">
               Workflow templates
@@ -319,7 +348,9 @@ export function AgentCatalogPage() {
             {visibleAgents.length === 0 ? (
               <div className={styles.state}>
                 <p className={styles.stateTitle}>No Agents Match Filters</p>
-                <p className={styles.description}>Adjust the search, source, state, or capability filter.</p>
+                <p className={styles.description}>
+                  Adjust the search, source, state, or capability filter. If an expected agent is missing, confirm its plugin path and manifest validation status.
+                </p>
               </div>
             ) : (
               <div className={styles.tableWrap}>
