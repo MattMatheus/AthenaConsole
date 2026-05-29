@@ -4,7 +4,7 @@ Raw engineering work enters here before PM refinement.
 
 ## Candidate Sequence
 
-- `STORY-20260529-first-run-to-real-repo-bridge.md`
+No engineering intake items.
 
 ## Refinement Rule
 

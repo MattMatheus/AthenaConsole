@@ -49,6 +49,8 @@ The quickstart covers one supported local path:
 
 The first-run demo uses the local sample plugin in `sample-plugins/first-run-demo` and the default mock provider, so no OpenAI or Azure setup is required for the initial validation loop.
 
+After the demo, use the repo wiring path in [GETTING_STARTED.md](GETTING_STARTED.md#6-move-from-demo-to-real-repo-work) to expose a local target repo, confirm plugin-backed agents, and start a real task or workflow with repo context.
+
 ## Local Development
 
 Run the API and console directly during development:

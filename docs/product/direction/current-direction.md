@@ -150,7 +150,7 @@ Planning intake:
 - `flywheel/backlog/engineering/done/STORY-20260529-agent-catalog-operating-guidance.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-repo-wiring-guidance-surface.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-create-work-entry-points.md`
-- `flywheel/backlog/engineering/intake/STORY-20260529-first-run-to-real-repo-bridge.md`
+- `flywheel/backlog/engineering/done/STORY-20260529-first-run-to-real-repo-bridge.md`
 
 Source epic:
 
@@ -199,6 +199,7 @@ Recently completed tracks now live in Flywheel done history:
 - `flywheel/backlog/engineering/done/STORY-20260529-agent-catalog-operating-guidance.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-repo-wiring-guidance-surface.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-create-work-entry-points.md`
+- `flywheel/backlog/engineering/done/STORY-20260529-first-run-to-real-repo-bridge.md`
 
 Ready implementation sequence:
 
@@ -206,7 +207,7 @@ Ready implementation sequence:
 
 Planning intake sequence:
 
-- `flywheel/backlog/engineering/intake/STORY-20260529-first-run-to-real-repo-bridge.md`
+- No planning intake remains for the current epic.
 
 ## Promotion Rule
 

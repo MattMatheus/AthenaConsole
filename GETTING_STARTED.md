@@ -197,7 +197,21 @@ curl http://127.0.0.1:8787/api/v1/task-runs/<task-run-id>
 
 The sample artifact uses `memory://first-run-demo/...` storage metadata and does not contain external credentials.
 
-## 6. Stop The Local Stack
+## 6. Move From Demo To Real Repo Work
+
+The first-run demo proves that plugins, agents, workflow templates, task runs, events, and artifact metadata are working locally. Real repository work follows the same operator loop, but uses your repo as run context and plugin-backed agents that know how to operate on that repo.
+
+Use this path:
+
+1. Choose the local repository you want Team Orchestrator to operate on.
+2. If you use `docker-compose.local.yml`, expose that repo with `ATHENA_REPO_HOST_PATH` and use `ATHENA_REPO_CONTAINER_PATH` or `/workspace/target-repo` inside task or workflow inputs.
+3. Add plugin packages that provide the agents or workflow templates you need through `ATHENA_PLUGIN_PATHS` or `ATHENA_SYSTEM_PLUGIN_PATHS`.
+4. Open `http://127.0.0.1:5173/resources` for repo wiring guidance and `http://127.0.0.1:5173/agents` to confirm agents are loaded.
+5. Start real work from `http://127.0.0.1:5173/tasks` for one agent and one objective, or `http://127.0.0.1:5173/workflows` for a plugin-provided workflow template.
+
+Team Orchestrator does not save repository records or create agents in the console today. The workspace owns app state and plugin discovery; the target repo is supplied through configuration or run inputs when work starts.
+
+## 7. Stop The Local Stack
 
 ```bash
 podman compose -f docker-compose.local.yml down
