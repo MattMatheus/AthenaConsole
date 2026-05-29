@@ -78,6 +78,7 @@ export const API_V1_ROUTES: ApiRouteDefinition[] = [
   { method: "POST", path: `${API_V1_PREFIX}/tasks`, operationId: "createTask" },
   { method: "GET", path: `${API_V1_PREFIX}/tasks/:id`, operationId: "getTask" },
   { method: "PUT", path: `${API_V1_PREFIX}/tasks/:id`, operationId: "updateTask" },
+  { method: "GET", path: `${API_V1_PREFIX}/tasks/:id/run-readiness`, operationId: "getTaskRunReadiness" },
   { method: "POST", path: `${API_V1_PREFIX}/tasks/:id/run`, operationId: "runTask" },
   { method: "GET", path: `${API_V1_PREFIX}/task-runs/:runId`, operationId: "getTaskRun" },
   { method: "POST", path: `${API_V1_PREFIX}/task-runs/:runId/cancel`, operationId: "cancelTaskRun" },

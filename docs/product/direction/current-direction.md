@@ -188,7 +188,7 @@ Ready implementation sequence:
 - `flywheel/backlog/engineering/done/STORY-20260529-example-generic-research-agents.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-build-your-first-agent-guide.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-manifest-input-schema-forms.md`
-- `flywheel/backlog/engineering/ready/STORY-20260529-run-readiness-gates.md`
+- `flywheel/backlog/engineering/done/STORY-20260529-run-readiness-gates.md`
 - `flywheel/backlog/engineering/ready/STORY-20260529-safe-run-modes-and-proposed-changes.md`
 - `flywheel/backlog/engineering/ready/STORY-20260529-local-server-compose-profile.md`
 - `flywheel/backlog/engineering/ready/STORY-20260529-deployment-readiness-diagnostics.md`

@@ -26,6 +26,27 @@ export type TaskWorkbenchTask = {
   createdAt: string;
   updatedAt: string;
   archivedAt?: string;
+  runReadiness?: TaskWorkbenchRunReadiness;
+};
+
+export type TaskWorkbenchRunReadinessStatus = "ready" | "ready-with-warnings" | "blocked";
+export type TaskWorkbenchRunReadinessCheckStatus = "ok" | "warning" | "blocked";
+export type TaskWorkbenchRunReadinessCheckCategory = "repo" | "provider" | "agent" | "runtime" | "permissions";
+
+export type TaskWorkbenchRunReadinessCheck = {
+  id: string;
+  category: TaskWorkbenchRunReadinessCheckCategory;
+  status: TaskWorkbenchRunReadinessCheckStatus;
+  label: string;
+  message: string;
+  nextStep: string;
+};
+
+export type TaskWorkbenchRunReadiness = {
+  status: TaskWorkbenchRunReadinessStatus;
+  ready: boolean;
+  summary: string;
+  checks: TaskWorkbenchRunReadinessCheck[];
 };
 
 export type TaskWorkbenchTaskListQuery = {

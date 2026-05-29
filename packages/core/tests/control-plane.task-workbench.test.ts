@@ -394,6 +394,115 @@ process.stdin.on("end", () => {
     }
   });
 
+  it("reports run readiness gates for repo, provider, runtime, and permissions without exposing secrets", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-readiness-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(join(pluginDir, "success.js"), "process.exit(0);", "utf8");
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "success.js", {
+          approvalRequiredFor: ["network-write"],
+          modelProvider: {
+            required: true,
+            providerId: "openai-main",
+            providerKind: "openai-compatible",
+            model: "gpt-4.1-mini"
+          }
+        });
+        appState.connectedRepositories.create({
+          id: "repo-missing",
+          name: "Missing Repo",
+          sourceType: "existing-path",
+          workspacePath: join(dir, "missing-repo"),
+          status: "missing",
+          statusMessage: "Path does not exist."
+        });
+        appState.tasks.create({
+          id: "task-run-readiness-blocked",
+          title: "Run readiness blocked",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: {
+            taskBrief: "Patch the API",
+            repo: {
+              id: "repo-missing",
+              name: "Missing Repo",
+              workspacePath: join(dir, "missing-repo"),
+              status: "missing"
+            },
+            repoPath: join(dir, "missing-repo")
+          }
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+
+        const task = await service.get("task-run-readiness-blocked");
+        const readiness = await service.getRunReadiness("task-run-readiness-blocked");
+
+        expect(task.runReadiness).toEqual(readiness);
+        expect(readiness).toMatchObject({
+          status: "blocked",
+          ready: false
+        });
+        expect(readiness.checks).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ id: "repo-context", category: "repo", status: "blocked" }),
+            expect.objectContaining({ id: "model-provider", category: "provider", status: "blocked" }),
+            expect.objectContaining({ id: "runtime", category: "runtime", status: "ok" }),
+            expect.objectContaining({ id: "permissions", category: "permissions", status: "warning" })
+          ])
+        );
+        expect(JSON.stringify(readiness)).not.toContain("OPENAI_API_KEY");
+        await expect(service.runTask("task-run-readiness-blocked")).rejects.toThrow("Run readiness blocked");
+        expect(appState.runs.list({ targetType: "task", targetId: "task-run-readiness-blocked" })).toEqual([]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("blocks runs when the assigned agent has no runnable runtime", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-readiness-runtime-"));
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        seedCatalog(appState);
+        appState.tasks.create({
+          id: "task-run-no-runtime",
+          title: "Run no runtime",
+          status: "ready",
+          assignedAgentId: "software.fix.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: {}
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+
+        const readiness = await service.getRunReadiness("task-run-no-runtime");
+
+        expect(readiness).toMatchObject({
+          status: "blocked",
+          ready: false
+        });
+        expect(readiness.checks).toEqual(
+          expect.arrayContaining([expect.objectContaining({ id: "runtime", category: "runtime", status: "blocked" })])
+        );
+        await expect(service.runTask("task-run-no-runtime")).rejects.toThrow("Task runs currently require");
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("runs a ready container-command task and persists events, output, artifacts, and status transitions", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-container-run-"));
     try {
@@ -1451,7 +1560,12 @@ function seedRunnableCatalog(
   appState: ReturnType<typeof openAppStateDatabase>,
   pluginDir: string,
   scriptName: string,
-  options: { limits?: Record<string, unknown>; approvalRequiredFor?: string[]; policyPackId?: string } = {}
+  options: {
+    limits?: Record<string, unknown>;
+    approvalRequiredFor?: string[];
+    policyPackId?: string;
+    modelProvider?: Record<string, unknown>;
+  } = {}
 ): void {
   appState.plugins.upsert({
     id: "team-orchestrator.test.runnable",
@@ -1495,7 +1609,8 @@ function seedRunnableCatalog(
         runtime: {
           preferredBackend: "local-process",
           workingDirectory: ".",
-          ...(options.policyPackId ? { policyPackId: options.policyPackId } : {})
+          ...(options.policyPackId ? { policyPackId: options.policyPackId } : {}),
+          ...(options.modelProvider ? { modelProvider: options.modelProvider } : {})
         },
         ...(options.limits ? { limits: options.limits } : {}),
         ...(options.approvalRequiredFor ? { permissions: { approvalRequiredFor: options.approvalRequiredFor } } : {})

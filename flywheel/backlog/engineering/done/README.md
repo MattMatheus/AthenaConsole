@@ -57,3 +57,4 @@ Engineering work accepted by QA.
 51. `STORY-20260529-example-generic-research-agents.md`
 52. `STORY-20260529-build-your-first-agent-guide.md`
 53. `STORY-20260529-manifest-input-schema-forms.md`
+54. `STORY-20260529-run-readiness-gates.md`

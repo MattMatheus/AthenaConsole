@@ -14,6 +14,7 @@ export const TASK_ROUTES = defineApiRoutes("tasks", [
   { method: "POST", path: "/api/v1/tasks", handler: handleCreateTaskRoute },
   { method: "GET", path: "/api/v1/tasks/:id", handler: handleGetTaskRoute },
   { method: "PUT", path: "/api/v1/tasks/:id", handler: handleUpdateTaskRoute },
+  { method: "GET", path: "/api/v1/tasks/:id/run-readiness", handler: handleGetTaskRunReadinessRoute },
   { method: "POST", path: "/api/v1/tasks/:id/run", handler: handleRunTaskRoute },
   { method: "GET", path: "/api/v1/task-runs/:runId", handler: handleGetTaskRunRoute },
   { method: "POST", path: "/api/v1/task-runs/:runId/cancel", handler: handleCancelTaskRunRoute }
@@ -53,6 +54,15 @@ async function handleUpdateTaskRoute(context: ApiRouteContext): Promise<void> {
     "updateTask",
     200,
     await context.services.taskWorkbenchService.update(requireRouteParam(context, "id"), parseTaskWorkbenchUpdateRequest(body))
+  );
+}
+
+async function handleGetTaskRunReadinessRoute(context: ApiRouteContext): Promise<void> {
+  writeSuccess(
+    context.res,
+    "getTaskRunReadiness",
+    200,
+    await context.services.taskWorkbenchService.getRunReadiness(requireRouteParam(context, "id"))
   );
 }
 

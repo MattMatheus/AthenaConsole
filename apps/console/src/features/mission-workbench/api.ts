@@ -17,6 +17,7 @@ import type {
   TaskWorkbenchTaskStatus,
   TaskWorkbenchRunStatus,
 } from "../task-workbench";
+import { parseRunReadiness } from "../task-workbench/api";
 
 type RecordValue = Record<string, unknown>;
 
@@ -52,6 +53,7 @@ function parseMission(value: unknown): MissionWorkbenchMission {
     createdAt: typeof value.createdAt === "string" ? value.createdAt : new Date(0).toISOString(),
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : new Date(0).toISOString(),
     ...(typeof value.archivedAt === "string" ? { archivedAt: value.archivedAt } : {}),
+    ...(isRecord(value.runReadiness) ? { runReadiness: parseRunReadiness(value.runReadiness) } : {}),
   };
 }
 

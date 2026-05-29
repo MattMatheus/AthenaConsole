@@ -24,7 +24,7 @@ import type {
 import type { AppStateDatabase, MissionRecord, RunEventRecord, RunRecord, TaskRecord } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
 import type { MissionWorkbenchService } from "../interfaces.js";
-import { LocalTaskWorkbenchService } from "./task-workbench.js";
+import { evaluateTaskRunReadiness, LocalTaskWorkbenchService } from "./task-workbench.js";
 
 export interface LocalMissionWorkbenchServiceOptions {
   appState?: AppStateDatabase;
@@ -330,7 +330,7 @@ function missionTaskListResult(appState: AppStateDatabase, mission: MissionRecor
     }
   }
   const unorderedTasks = [...tasksById.values()].sort(compareTasksDeterministically);
-  const tasks = [...orderedTasks, ...unorderedTasks].map(mapTaskRecord);
+  const tasks = [...orderedTasks, ...unorderedTasks].map((task) => mapTaskRecord(task, appState));
   return {
     mission: mapMissionRecord(mission),
     tasks,
@@ -426,7 +426,7 @@ function mapMissionRecord(record: MissionRecord): MissionWorkbenchMission {
   };
 }
 
-function mapTaskRecord(record: TaskRecord): TaskWorkbenchTask {
+function mapTaskRecord(record: TaskRecord, appState?: AppStateDatabase): TaskWorkbenchTask {
   return {
     id: record.id,
     title: record.title,
@@ -443,7 +443,8 @@ function mapTaskRecord(record: TaskRecord): TaskWorkbenchTask {
     ...(record.createdBy ? { createdBy: record.createdBy } : {}),
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
-    ...(record.archivedAt ? { archivedAt: record.archivedAt } : {})
+    ...(record.archivedAt ? { archivedAt: record.archivedAt } : {}),
+    ...(appState ? { runReadiness: evaluateTaskRunReadiness(appState, record) } : {})
   };
 }
 

@@ -5,9 +5,12 @@ import { AthenaError } from "../../runtime/errors.js";
 import type { AthenaConfig } from "../../shared/config.js";
 import type { VerificationPolicyFailure } from "../../shared/contracts/harness.js";
 import type {
+  ProviderReadiness,
   TaskWorkbenchMetadata,
   TaskWorkbenchArtifactMetadata,
   TaskWorkbenchRunEvent,
+  TaskWorkbenchRunReadiness,
+  TaskWorkbenchRunReadinessCheck,
   TaskWorkbenchTask,
   TaskWorkbenchTaskCreateRequest,
   TaskWorkbenchTaskListQuery,
@@ -33,6 +36,7 @@ import type {
 } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
 import type { TaskWorkbenchService } from "../interfaces.js";
+import { evaluateProviderReadiness, normalizeModelProviderRequirement } from "./provider-readiness.js";
 import { LocalWorkflowStateService } from "./workflow-state.js";
 
 export interface LocalTaskWorkbenchServiceOptions {
@@ -106,6 +110,7 @@ interface AgentManifestDocument {
       workingDirectory?: string;
       environment?: Record<string, unknown>;
       policyPackId?: unknown;
+      modelProvider?: unknown;
     };
     permissions?: {
       containers?: string;
@@ -207,7 +212,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
 
   async list(query: TaskWorkbenchTaskListQuery = {}): Promise<TaskWorkbenchTaskListResult> {
     return this.withAppState((appState) => {
-      const tasks = appState.tasks.list(query).map(mapTaskRecord);
+      const tasks = appState.tasks.list(query).map((task) => mapTaskRecord(task, appState));
       return {
         tasks,
         total: tasks.length,
@@ -222,7 +227,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       if (!task) {
         throw new AthenaError("PROVIDER_NOT_FOUND", `Task not found: ${id}`);
       }
-      return mapTaskRecord(task);
+      return mapTaskRecord(task, appState);
     });
   }
 
@@ -231,8 +236,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       validateReadyAssignment(request.status ?? "draft", request.assignedAgentId);
       validateCompatibleAssignment(appState, request.assignedAgentId, request.assignedAgentVersion, request.capabilityRequirements ?? []);
       try {
-        return mapTaskRecord(
-          appState.tasks.create({
+        const created = appState.tasks.create({
             id: request.id ?? `task-${randomUUID()}`,
             title: request.title,
             ...(request.description !== undefined ? { description: request.description } : {}),
@@ -246,8 +250,8 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
             ...(request.sourceRunId !== undefined ? { sourceRunId: request.sourceRunId } : {}),
             ...(request.provenance !== undefined ? { provenance: request.provenance } : {}),
             ...(request.createdBy !== undefined ? { createdBy: request.createdBy } : {})
-          })
-        );
+          });
+        return mapTaskRecord(created, appState);
       } catch (error) {
         throw normalizeTaskRepositoryError(error);
       }
@@ -267,7 +271,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       validateReadyAssignment(nextStatus, nextAssignedAgentId);
       validateCompatibleAssignment(appState, nextAssignedAgentId, nextAssignedAgentVersion, nextCapabilities);
       try {
-        return mapTaskRecord(appState.tasks.update(id, request));
+        return mapTaskRecord(appState.tasks.update(id, request), appState);
       } catch (error) {
         throw normalizeTaskRepositoryError(error);
       }
@@ -283,7 +287,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       const task = appState.tasks.get(run.targetId);
       return {
         run: mapRunRecord(run),
-        ...(task ? { task: mapTaskRecord(task) } : {}),
+        ...(task ? { task: mapTaskRecord(task, appState) } : {}),
         events: appState.runEvents.listForRun(run.id).map(mapRunEventRecord),
         artifacts: appState.artifacts.listForRun(run.id).map(mapArtifactMetadataRecord)
       };
@@ -293,6 +297,10 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
   async runTask(id: string, request: TaskWorkbenchTaskRunRequest = {}): Promise<TaskWorkbenchTaskRun> {
     return this.withAppStateAsync(async (appState) => {
       const task = requireTask(appState, id);
+      const readiness = evaluateTaskRunReadiness(appState, task);
+      if (!readiness.ready) {
+        throw new AthenaError("CONFIG_ERROR", readiness.summary);
+      }
       if (task.status !== "ready") {
         throw new AthenaError("CONFIG_ERROR", `Task ${id} must be ready before it can run.`);
       }
@@ -492,6 +500,10 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       });
       return mapRunRecord(run);
     });
+  }
+
+  async getRunReadiness(id: string): Promise<TaskWorkbenchRunReadiness> {
+    return this.withAppState((appState) => evaluateTaskRunReadiness(appState, requireTask(appState, id)));
   }
 
   private async runHttpApiTask(
@@ -1436,7 +1448,286 @@ function isPathInside(parent: string, child: string): boolean {
   return child === parent || child.startsWith(normalizedParent);
 }
 
-function mapTaskRecord(record: TaskRecord): TaskWorkbenchTask {
+export function evaluateTaskRunReadiness(appState: AppStateDatabase, task: TaskRecord): TaskWorkbenchRunReadiness {
+  const checks: TaskWorkbenchRunReadinessCheck[] = [];
+  const addCheck = (check: TaskWorkbenchRunReadinessCheck) => checks.push(check);
+
+  if (task.status !== "ready") {
+    addCheck({
+      id: "task-status",
+      category: "agent",
+      status: "blocked",
+      label: "Task Status",
+      message: `Task is ${task.status}.`,
+      nextStep: "Move the task to ready before starting a run."
+    });
+  }
+
+  if (!task.assignedAgentId) {
+    addCheck({
+      id: "assigned-agent",
+      category: "agent",
+      status: "blocked",
+      label: "Assigned Agent",
+      message: "No agent is assigned.",
+      nextStep: "Assign a loaded agent that satisfies the task capability requirements."
+    });
+    addRepoReadinessChecks(appState, task, addCheck);
+    return summarizeRunReadiness(checks);
+  }
+
+  const assignment = resolveAssignedAgentForReadiness(appState, task.assignedAgentId, task.assignedAgentVersion);
+  if (!assignment) {
+    addCheck({
+      id: "assigned-agent",
+      category: "agent",
+      status: "blocked",
+      label: "Assigned Agent",
+      message: `Assigned agent is unavailable: ${task.assignedAgentId}.`,
+      nextStep: "Reload plugins or assign a loaded agent before starting the run."
+    });
+    addRepoReadinessChecks(appState, task, addCheck);
+    return summarizeRunReadiness(checks);
+  }
+
+  const { agent, plugin } = assignment;
+  const missingCapabilities = task.capabilityRequirements.filter((capability) => !agent.capabilities.includes(capability));
+  addCheck({
+    id: "assigned-agent",
+    category: "agent",
+    status: missingCapabilities.length > 0 ? "blocked" : "ok",
+    label: "Assigned Agent",
+    message:
+      missingCapabilities.length > 0
+        ? `Assigned agent does not satisfy: ${missingCapabilities.join(", ")}.`
+        : `Assigned agent is loaded: ${agent.name}.`,
+    nextStep:
+      missingCapabilities.length > 0
+        ? "Assign an agent with the required capabilities."
+        : "No action needed."
+  });
+
+  const manifest = normalizeAgentManifest(agent.manifest);
+  addProviderReadinessCheck(evaluateAgentProviderReadiness(appState, manifest), addCheck);
+  addInputReadinessCheck(manifest, task, addCheck);
+  addRepoReadinessChecks(appState, task, addCheck);
+  addRuntimeReadinessCheck(manifest, plugin, addCheck);
+  addPermissionReadinessCheck(manifest, addCheck);
+
+  return summarizeRunReadiness(checks);
+}
+
+function resolveAssignedAgentForReadiness(
+  appState: AppStateDatabase,
+  assignedAgentId: string,
+  assignedAgentVersion: string | undefined
+): { agent: AgentIndexRecord; plugin: PluginIndexRecord } | undefined {
+  const agent = appState.agents
+    .list()
+    .find((candidate) => candidate.id === assignedAgentId && (!assignedAgentVersion || candidate.version === assignedAgentVersion));
+  if (!agent) {
+    return undefined;
+  }
+  const plugin = appState.plugins.get(agent.pluginId, agent.pluginVersion);
+  if (!plugin || !plugin.enabled || plugin.status !== "loaded" || agent.status !== "loaded") {
+    return undefined;
+  }
+  return { agent, plugin };
+}
+
+function evaluateAgentProviderReadiness(appState: AppStateDatabase, manifest: AgentManifestDocument): ProviderReadiness {
+  const requirement = normalizeModelProviderRequirement(manifest.agent?.runtime?.modelProvider);
+  return evaluateProviderReadiness(requirement ? [requirement] : [], appState.modelProviderConfigs.list());
+}
+
+function addProviderReadinessCheck(
+  readiness: ProviderReadiness,
+  addCheck: (check: TaskWorkbenchRunReadinessCheck) => void
+): void {
+  const blocking = readiness.required && (readiness.status === "missing" || readiness.status === "invalid");
+  addCheck({
+    id: "model-provider",
+    category: "provider",
+    status: blocking ? "blocked" : readiness.status === "configured" || readiness.status === "untested" ? "ok" : "warning",
+    label: "Model Provider",
+    message: readiness.message,
+    nextStep: blocking ? "Configure a valid model provider in Settings before starting the run." : "No action needed."
+  });
+}
+
+function addInputReadinessCheck(
+  manifest: AgentManifestDocument,
+  task: TaskRecord,
+  addCheck: (check: TaskWorkbenchRunReadinessCheck) => void
+): void {
+  try {
+    validateTaskInputs(manifest.agent?.inputs, task.inputs);
+    addCheck({
+      id: "task-inputs",
+      category: "agent",
+      status: "ok",
+      label: "Task Inputs",
+      message: "Task inputs satisfy the assigned agent manifest.",
+      nextStep: "No action needed."
+    });
+  } catch (error) {
+    addCheck({
+      id: "task-inputs",
+      category: "agent",
+      status: "blocked",
+      label: "Task Inputs",
+      message: error instanceof Error ? error.message : "Task inputs are invalid.",
+      nextStep: "Update task inputs so every required manifest input is present and correctly typed."
+    });
+  }
+}
+
+function addRepoReadinessChecks(
+  appState: AppStateDatabase,
+  task: TaskRecord,
+  addCheck: (check: TaskWorkbenchRunReadinessCheck) => void
+): void {
+  const inputs = isRecord(task.inputs) ? task.inputs : {};
+  const repo = isRecord(inputs.repo) ? inputs.repo : undefined;
+  const repoId = typeof repo?.id === "string" ? repo.id : undefined;
+  const repoPath = typeof inputs.repoPath === "string" ? inputs.repoPath : typeof repo?.workspacePath === "string" ? repo.workspacePath : undefined;
+  if (!repoId && !repoPath) {
+    addCheck({
+      id: "repo-context",
+      category: "repo",
+      status: "warning",
+      label: "Repository Context",
+      message: "No connected repository context is attached to this task.",
+      nextStep: "Attach a connected repository when the agent needs local repo files."
+    });
+    return;
+  }
+
+  const record = repoId
+    ? appState.connectedRepositories.get(repoId)
+    : appState.connectedRepositories.list().find((candidate) => candidate.workspacePath === repoPath);
+  const status = record?.status ?? (typeof repo?.status === "string" ? repo.status : undefined);
+  if (!record && repoId) {
+    addCheck({
+      id: "repo-context",
+      category: "repo",
+      status: "blocked",
+      label: "Repository Context",
+      message: `Connected repository is missing: ${repoId}.`,
+      nextStep: "Reconnect the repository or update the task repo context before starting the run."
+    });
+    return;
+  }
+  if (status && status !== "ready") {
+    addCheck({
+      id: "repo-context",
+      category: "repo",
+      status: "blocked",
+      label: "Repository Context",
+      message: `Connected repository is ${status}.`,
+      nextStep: "Inspect or fix the repository connection before starting the run."
+    });
+    return;
+  }
+  addCheck({
+    id: "repo-context",
+    category: "repo",
+    status: "ok",
+    label: "Repository Context",
+    message: record ? `Repository is ready: ${record.name}.` : `Repository path is supplied: ${repoPath}.`,
+    nextStep: "No action needed."
+  });
+}
+
+function addRuntimeReadinessCheck(
+  manifest: AgentManifestDocument,
+  plugin: PluginIndexRecord,
+  addCheck: (check: TaskWorkbenchRunReadinessCheck) => void
+): void {
+  try {
+    const execution = resolveTaskExecution(manifest, plugin);
+    resolveTaskRunSafety(manifest, execution.backend);
+    addCheck({
+      id: "runtime",
+      category: "runtime",
+      status: "ok",
+      label: "Runtime",
+      message: `${backendLabel(execution.backend)} runtime can start this agent.`,
+      nextStep: "No action needed."
+    });
+  } catch (error) {
+    addCheck({
+      id: "runtime",
+      category: "runtime",
+      status: "blocked",
+      label: "Runtime",
+      message: error instanceof Error ? error.message : "Runtime requirements are invalid.",
+      nextStep: "Fix the agent implementation/runtime manifest before starting the run."
+    });
+  }
+}
+
+function addPermissionReadinessCheck(
+  manifest: AgentManifestDocument,
+  addCheck: (check: TaskWorkbenchRunReadinessCheck) => void
+): void {
+  const safety = (() => {
+    try {
+      return resolveTaskRunSafety(manifest, resolveDeclaredBackend(manifest));
+    } catch {
+      return undefined;
+    }
+  })();
+  const required = safety?.approvalRequiredFor ?? normalizeStringArray(manifest.agent?.permissions?.approvalRequiredFor, "permissions.approvalRequiredFor");
+  addCheck({
+    id: "permissions",
+    category: "permissions",
+    status: required.length > 0 ? "warning" : "ok",
+    label: "Permissions",
+    message: required.length > 0 ? `Run may require approval for: ${required.join(", ")}.` : "No approval-gated permissions declared.",
+    nextStep: required.length > 0 ? "Review the agent permission requirements before starting the run." : "No action needed."
+  });
+}
+
+function resolveDeclaredBackend(manifest: AgentManifestDocument): TaskExecutionBackend {
+  const type = manifest.agent?.implementation?.type;
+  if (type === "container-command") {
+    return "container-command";
+  }
+  if (type === "http" || type === "http-api") {
+    return "http-api";
+  }
+  return "local-process";
+}
+
+function summarizeRunReadiness(checks: TaskWorkbenchRunReadinessCheck[]): TaskWorkbenchRunReadiness {
+  const blocked = checks.filter((check) => check.status === "blocked");
+  const warnings = checks.filter((check) => check.status === "warning");
+  if (blocked.length > 0) {
+    return {
+      status: "blocked",
+      ready: false,
+      summary: `Run readiness blocked: ${blocked.map((check) => check.message).join(" ")}`,
+      checks
+    };
+  }
+  if (warnings.length > 0) {
+    return {
+      status: "ready-with-warnings",
+      ready: true,
+      summary: `Run readiness has ${warnings.length} warning${warnings.length === 1 ? "" : "s"}.`,
+      checks
+    };
+  }
+  return {
+    status: "ready",
+    ready: true,
+    summary: "Run readiness checks passed.",
+    checks
+  };
+}
+
+function mapTaskRecord(record: TaskRecord, appState?: AppStateDatabase): TaskWorkbenchTask {
   return {
     id: record.id,
     title: record.title,
@@ -1453,7 +1744,8 @@ function mapTaskRecord(record: TaskRecord): TaskWorkbenchTask {
     ...(record.createdBy ? { createdBy: record.createdBy } : {}),
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
-    ...(record.archivedAt ? { archivedAt: record.archivedAt } : {})
+    ...(record.archivedAt ? { archivedAt: record.archivedAt } : {}),
+    ...(appState ? { runReadiness: evaluateTaskRunReadiness(appState, record) } : {})
   };
 }
 

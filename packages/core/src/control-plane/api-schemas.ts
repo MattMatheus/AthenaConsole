@@ -593,9 +593,37 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       createdBy: { type: "string", minLength: 1 },
       createdAt: { type: "string", format: "date-time" },
       updatedAt: { type: "string", format: "date-time" },
-      archivedAt: { type: "string", format: "date-time" }
+      archivedAt: { type: "string", format: "date-time" },
+      runReadiness: { $ref: "#/components/schemas/TaskWorkbenchRunReadiness" }
     },
     required: ["id", "title", "description", "status", "capabilityRequirements", "inputs", "dependsOn", "createdAt", "updatedAt"]
+  },
+  TaskWorkbenchRunReadinessCheck: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      category: { type: "string", enum: ["repo", "provider", "agent", "runtime", "permissions"] },
+      status: { type: "string", enum: ["ok", "warning", "blocked"] },
+      label: { type: "string", minLength: 1 },
+      message: { type: "string", minLength: 1 },
+      nextStep: { type: "string", minLength: 1 }
+    },
+    required: ["id", "category", "status", "label", "message", "nextStep"]
+  },
+  TaskWorkbenchRunReadiness: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      status: { type: "string", enum: ["ready", "ready-with-warnings", "blocked"] },
+      ready: { type: "boolean" },
+      summary: { type: "string", minLength: 1 },
+      checks: {
+        type: "array",
+        items: { $ref: "#/components/schemas/TaskWorkbenchRunReadinessCheck" }
+      }
+    },
+    required: ["status", "ready", "summary", "checks"]
   },
   TaskWorkbenchTaskListResult: {
     type: "object",
@@ -2085,6 +2113,20 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
     },
     requestBodySchema: taskMutationRequestSchema(),
     responseSchema: { $ref: "#/components/schemas/TaskWorkbenchTask" }
+  },
+  getTaskRunReadiness: {
+    operationId: "getTaskRunReadiness",
+    method: "GET",
+    path: "/api/v1/tasks/:id/run-readiness",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        id: STRING_SCHEMA
+      },
+      required: ["id"]
+    },
+    responseSchema: { $ref: "#/components/schemas/TaskWorkbenchRunReadiness" }
   },
   runTask: {
     operationId: "runTask",

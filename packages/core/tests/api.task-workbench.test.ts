@@ -111,6 +111,27 @@ process.stdin.on("end", () => {
         assignedAgentId: "software.fix.local"
       });
 
+      const readinessResponse = await fetch(`${base}/api/v1/tasks/${encodeURIComponent("task-api-draft")}/run-readiness`);
+      expect(readinessResponse.status).toBe(200);
+      const readinessEnvelope = (await readinessResponse.json()) as {
+        ok: boolean;
+        data: { status: string; ready: boolean; checks: Array<{ id: string; status: string }> };
+      };
+      expect(readinessEnvelope).toMatchObject({
+        ok: true,
+        data: {
+          status: "ready-with-warnings",
+          ready: true
+        }
+      });
+      expect(readinessEnvelope.data.checks).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: "assigned-agent", status: "ok" }),
+          expect.objectContaining({ id: "runtime", status: "ok" }),
+          expect.objectContaining({ id: "repo-context", status: "warning" })
+        ])
+      );
+
       const listResponse = await fetch(`${base}/api/v1/tasks?status=ready`);
       expect(listResponse.status).toBe(200);
       const listEnvelope = (await listResponse.json()) as {

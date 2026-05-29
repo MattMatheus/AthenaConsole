@@ -13,7 +13,7 @@ import {
   type MissionWorkbenchMission,
   type MissionWorkbenchMissionRunSummary,
 } from "../features/mission-workbench";
-import type { TaskWorkbenchTask } from "../features/task-workbench";
+import type { TaskWorkbenchRunReadinessStatus, TaskWorkbenchTask } from "../features/task-workbench";
 import styles from "./MissionsPage.module.css";
 
 const EMPTY_MISSIONS: MissionWorkbenchMission[] = [];
@@ -53,6 +53,46 @@ function statusClass(status: MissionWorkbenchMission["status"] | TaskWorkbenchTa
   return styles.badgeMuted ?? "";
 }
 
+function readinessClass(status: TaskWorkbenchRunReadinessStatus | undefined): string {
+  if (status === "ready") {
+    return styles.badgeSuccess ?? "";
+  }
+  if (status === "blocked") {
+    return styles.badgeDanger ?? "";
+  }
+  return styles.badgeWarning ?? "";
+}
+
+function taskRunReadiness(task: TaskWorkbenchTask): TaskWorkbenchTask["runReadiness"] {
+  if (task.runReadiness) {
+    return task.runReadiness;
+  }
+  const inputs = typeof task.inputs === "object" && task.inputs !== null && !Array.isArray(task.inputs)
+    ? task.inputs as Record<string, unknown>
+    : {};
+  const repo = typeof inputs.repo === "object" && inputs.repo !== null && !Array.isArray(inputs.repo)
+    ? inputs.repo as Record<string, unknown>
+    : undefined;
+  if (typeof repo?.status === "string" && repo.status !== "ready") {
+    return {
+      status: "blocked",
+      ready: false,
+      summary: `Run readiness blocked: connected repository is ${repo.status}.`,
+      checks: [
+        {
+          id: "repo-context",
+          category: "repo",
+          status: "blocked",
+          label: "Repository Context",
+          message: `Connected repository is ${repo.status}.`,
+          nextStep: "Inspect or fix the repository connection before starting the run.",
+        },
+      ],
+    };
+  }
+  return task.runReadiness;
+}
+
 function matchesSearch(mission: MissionWorkbenchMission, search: string): boolean {
   if (!search) {
     return true;
@@ -85,7 +125,13 @@ export function MissionsPage() {
   const tasks = missionTasksQuery.data?.tasks ?? EMPTY_TASKS;
   const missionRuns = missionRunsQuery.data?.runs ?? EMPTY_RUNS;
   const orderedTasks = useMemo(() => orderedMissionTasks(selectedMission, tasks), [selectedMission, tasks]);
-  const canRunMission = selectedMission?.status === "ready";
+  const blockedReadiness = orderedTasks.flatMap((task) =>
+    taskRunReadiness(task)?.checks.filter((check) => check.status === "blocked").map((check) => ({ task, check })) ?? [],
+  );
+  const warningReadiness = orderedTasks.flatMap((task) =>
+    taskRunReadiness(task)?.checks.filter((check) => check.status === "warning").map((check) => ({ task, check })) ?? [],
+  );
+  const canRunMission = selectedMission?.status === "ready" && blockedReadiness.length === 0;
 
   useEffect(() => {
     if (requestedMissionId) {
@@ -269,8 +315,42 @@ export function MissionsPage() {
                       <summary>Context Preview</summary>
                       <pre className={styles.codeBlock}>{formatJson(selectedMission.context)}</pre>
                     </details>
-                    {!canRunMission ? <p className={styles.description}>Only ready missions can start a sequential run.</p> : null}
+                    {!canRunMission ? (
+                      <p className={styles.description}>
+                        {selectedMission.status !== "ready"
+                          ? "Only ready missions can start a sequential run."
+                          : "Resolve blocked run readiness checks before starting this mission."}
+                      </p>
+                    ) : null}
                     {runMissionMutation.error instanceof Error ? <p className={styles.errorText}>{runMissionMutation.error.message}</p> : null}
+                  </section>
+
+                  <section className={styles.section}>
+                    <div className={styles.sectionHeader}>
+                      <div>
+                        <p className={styles.sectionTitle}>Run Readiness</p>
+                        <p className={styles.panelMeta}>{blockedReadiness.length} blocked, {warningReadiness.length} warnings</p>
+                      </div>
+                    </div>
+                    {orderedTasks.length === 0 ? <p className={styles.description}>No tasks loaded for readiness checks.</p> : null}
+                    {blockedReadiness.length === 0 && warningReadiness.length === 0 && orderedTasks.length > 0 ? (
+                      <p className={styles.description}>All loaded task readiness checks passed.</p>
+                    ) : null}
+                    <div className={styles.taskList}>
+                      {[...blockedReadiness, ...warningReadiness].slice(0, 6).map(({ task, check }) => (
+                        <article key={`${task.id}-${check.id}`} className={styles.taskItem}>
+                          <div className={styles.rowTop}>
+                            <div>
+                              <p className={styles.missionName}>{check.label}</p>
+                              <p className={styles.mono}>{task.id}</p>
+                            </div>
+                            <span className={readinessClass(check.status === "blocked" ? "blocked" : "ready-with-warnings")}>{check.status}</span>
+                          </div>
+                          <p className={styles.description}>{check.message}</p>
+                          <p className={styles.description}>{check.nextStep}</p>
+                        </article>
+                      ))}
+                    </div>
                   </section>
 
                   <section className={styles.section}>
@@ -298,6 +378,9 @@ export function MissionsPage() {
                               <span key={capability} className={styles.badge}>{capability}</span>
                             ))}
                             {task.dependsOn.length > 0 ? <span className={styles.badgeMuted}>depends on {task.dependsOn.join(", ")}</span> : null}
+                            {taskRunReadiness(task) ? (
+                              <span className={readinessClass(taskRunReadiness(task)?.status)}>run {taskRunReadiness(task)?.status}</span>
+                            ) : null}
                           </div>
                         </article>
                       ))}

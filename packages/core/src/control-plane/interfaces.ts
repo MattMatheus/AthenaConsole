@@ -19,6 +19,7 @@ import type {
   TaskWorkbenchTaskListQuery,
   TaskWorkbenchTaskListResult,
   TaskWorkbenchTaskRun,
+  TaskWorkbenchRunReadiness,
   TaskWorkbenchTaskRunCancelRequest,
   TaskWorkbenchTaskRunCancelResult,
   TaskWorkbenchTaskRunDetail,
@@ -364,6 +365,7 @@ export interface TaskWorkbenchService {
   create(request: TaskWorkbenchTaskCreateRequest): Promise<TaskWorkbenchTask>;
   update(id: string, request: TaskWorkbenchTaskUpdateRequest): Promise<TaskWorkbenchTask>;
   getRun(runId: string): Promise<TaskWorkbenchTaskRunDetail>;
+  getRunReadiness(id: string): Promise<TaskWorkbenchRunReadiness>;
   runTask(id: string, request?: TaskWorkbenchTaskRunRequest): Promise<TaskWorkbenchTaskRun>;
   cancelRun(runId: string, request?: TaskWorkbenchTaskRunCancelRequest): Promise<TaskWorkbenchTaskRunCancelResult>;
 }

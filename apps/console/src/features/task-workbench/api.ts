@@ -3,6 +3,11 @@ import type {
   TaskWorkbenchMetadata,
   TaskWorkbenchArtifactMetadata,
   TaskWorkbenchRunEvent,
+  TaskWorkbenchRunReadiness,
+  TaskWorkbenchRunReadinessCheck,
+  TaskWorkbenchRunReadinessCheckCategory,
+  TaskWorkbenchRunReadinessCheckStatus,
+  TaskWorkbenchRunReadinessStatus,
   TaskWorkbenchRunStatus,
   TaskWorkbenchTask,
   TaskWorkbenchTaskCreateRequest,
@@ -29,6 +34,20 @@ function toStringArray(value: unknown): string[] {
 
 function parseStatus(value: unknown): TaskWorkbenchTaskStatus {
   return typeof value === "string" ? (value as TaskWorkbenchTaskStatus) : "draft";
+}
+
+function parseReadinessStatus(value: unknown): TaskWorkbenchRunReadinessStatus {
+  return value === "ready" || value === "ready-with-warnings" || value === "blocked" ? value : "blocked";
+}
+
+function parseReadinessCheckStatus(value: unknown): TaskWorkbenchRunReadinessCheckStatus {
+  return value === "ok" || value === "warning" || value === "blocked" ? value : "blocked";
+}
+
+function parseReadinessCheckCategory(value: unknown): TaskWorkbenchRunReadinessCheckCategory {
+  return value === "repo" || value === "provider" || value === "agent" || value === "runtime" || value === "permissions"
+    ? value
+    : "runtime";
 }
 
 function parseRunStatus(value: unknown): TaskWorkbenchRunStatus {
@@ -86,6 +105,33 @@ function parseTask(value: unknown): TaskWorkbenchTask {
     createdAt: typeof value.createdAt === "string" ? value.createdAt : new Date(0).toISOString(),
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : new Date(0).toISOString(),
     ...(typeof value.archivedAt === "string" ? { archivedAt: value.archivedAt } : {}),
+    ...(isRecord(value.runReadiness) ? { runReadiness: parseRunReadiness(value.runReadiness) } : {}),
+  };
+}
+
+export function parseRunReadinessCheck(value: unknown): TaskWorkbenchRunReadinessCheck | undefined {
+  if (!isRecord(value) || typeof value.id !== "string" || typeof value.label !== "string") {
+    return undefined;
+  }
+  return {
+    id: value.id,
+    category: parseReadinessCheckCategory(value.category),
+    status: parseReadinessCheckStatus(value.status),
+    label: value.label,
+    message: typeof value.message === "string" ? value.message : "",
+    nextStep: typeof value.nextStep === "string" ? value.nextStep : "",
+  };
+}
+
+export function parseRunReadiness(value: unknown): TaskWorkbenchRunReadiness {
+  const record = isRecord(value) ? value : {};
+  return {
+    status: parseReadinessStatus(record.status),
+    ready: Boolean(record.ready),
+    summary: typeof record.summary === "string" ? record.summary : "Run readiness unavailable.",
+    checks: Array.isArray(record.checks)
+      ? record.checks.map(parseRunReadinessCheck).filter((check): check is TaskWorkbenchRunReadinessCheck => check !== undefined)
+      : [],
   };
 }
 

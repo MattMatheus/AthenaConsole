@@ -92,6 +92,16 @@ function providerReadinessClass(readiness: ProviderReadiness): string {
   return styles.badgeMuted ?? "";
 }
 
+function runReadinessClass(status: "ready" | "ready-with-warnings" | "blocked" | undefined): string {
+  if (status === "ready") {
+    return styles.badgeSuccess ?? "";
+  }
+  if (status === "blocked") {
+    return styles.badgeWarning ?? "";
+  }
+  return styles.badgeMuted ?? "";
+}
+
 export function WorkflowsPage() {
   const [search, setSearch] = useState("");
   const [availability, setAvailability] = useState<AvailabilityFilter>("all");
@@ -127,6 +137,13 @@ export function WorkflowsPage() {
   const selectedRepository = repositories.find((repository) => repository.id === selectedRepositoryId);
   const repoReadinessMessage = connectedRepositoryReadinessMessage(selectedRepository);
   const providerReadinessBlocking = isProviderReadinessBlocking(selectedTemplate?.providerReadiness);
+  const instantiatedReadinessChecks =
+    instantiateMutation.data?.tasks.flatMap((task) =>
+      task.runReadiness?.checks
+        .filter((check) => check.status === "blocked" || check.status === "warning")
+        .map((check) => ({ task, check })) ?? [],
+    ) ?? [];
+  const instantiatedReadinessBlocked = instantiatedReadinessChecks.some(({ check }) => check.status === "blocked");
   const inputFields = useMemo(() => workflowTemplateInputFields(selectedTemplate), [selectedTemplate]);
   const inputValidation = validateWorkflowTemplateInputs(inputFields, inputValues, {
     useRawInputs,
@@ -534,7 +551,7 @@ export function WorkflowsPage() {
                         type="button"
                         className={styles.primaryButton}
                         onClick={() => executeWorkflowRunMutation.mutate(instantiateMutation.data.workflowDagRun!.id)}
-                        disabled={executeWorkflowRunMutation.isPending}
+                        disabled={executeWorkflowRunMutation.isPending || instantiatedReadinessBlocked}
                       >
                         <Play size={16} /> Run workflow
                       </button>
@@ -548,6 +565,9 @@ export function WorkflowsPage() {
                   ) : null}
                   {executeWorkflowRunMutation.error instanceof Error ? (
                     <p className={styles.errorText}>{executeWorkflowRunMutation.error.message}</p>
+                  ) : null}
+                  {instantiatedReadinessBlocked ? (
+                    <p className={styles.errorText}>Resolve blocked task readiness checks before running this workflow.</p>
                   ) : null}
                   {executeWorkflowRunMutation.data ? (
                     <p className={styles.description}>
@@ -570,6 +590,21 @@ export function WorkflowsPage() {
                       <dd>{instantiateMutation.data.tasks.length}</dd>
                     </div>
                   </dl>
+                  {instantiatedReadinessChecks.length > 0 ? (
+                    <div className={styles.taskList}>
+                      {instantiatedReadinessChecks.slice(0, 6).map(({ task, check }) => (
+                        <div key={`${task.id}-${check.id}`} className={styles.taskItem}>
+                          <p className={styles.templateName}>{check.label}</p>
+                          <p className={styles.mono}>{task.id}</p>
+                          <p className={styles.description}>{check.message}</p>
+                          <p className={styles.description}>{check.nextStep}</p>
+                          <span className={runReadinessClass(check.status === "blocked" ? "blocked" : "ready-with-warnings")}>
+                            {check.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                   <div className={styles.taskList}>
                     {instantiateMutation.data.tasks.map((task) => (
                       <div key={task.id} className={styles.taskItem}>
@@ -577,6 +612,9 @@ export function WorkflowsPage() {
                         <p className={styles.mono}>{task.id}</p>
                         <div className={styles.badgeRow}>
                           <span className={task.status === "ready" ? styles.badgeSuccess : styles.badgeMuted}>{task.status}</span>
+                          {task.runReadiness ? (
+                            <span className={runReadinessClass(task.runReadiness.status)}>run {task.runReadiness.status}</span>
+                          ) : null}
                           {task.dependsOn.length > 0 ? <span className={styles.badgeMuted}>depends on {task.dependsOn.join(", ")}</span> : null}
                         </div>
                       </div>
