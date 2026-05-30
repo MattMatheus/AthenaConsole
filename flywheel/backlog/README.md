@@ -28,6 +28,7 @@ No candidate engineering or architecture intake items.
 
 Recently completed:
 
+- `engineering/done/STORY-20260530-in-product-documentation-guide.md`
 - `engineering/done/STORY-20260530-comprehensive-user-guide.md`
 - `engineering/done/BUG-20260530-product-docs-state-sync.md`
 - `engineering/done/STORY-20260530-product-readiness-smoke-suite.md`

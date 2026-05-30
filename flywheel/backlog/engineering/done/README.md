@@ -75,3 +75,4 @@ Engineering work accepted by QA.
 69. `STORY-20260530-product-readiness-smoke-suite.md`
 70. `BUG-20260530-product-docs-state-sync.md`
 71. `STORY-20260530-comprehensive-user-guide.md`
+72. `STORY-20260530-in-product-documentation-guide.md`

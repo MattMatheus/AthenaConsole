@@ -1,196 +1,208 @@
 import {
+  AlertCircle,
   BookOpenText,
   CheckCircle2,
   Code2,
-  Copy,
+  Database,
   FileCode2,
   FolderGit2,
+  GitBranch,
   KeyRound,
+  ListChecks,
+  PackageOpen,
   PlayCircle,
   PlugZap,
-  RefreshCw,
   Route,
+  ScrollText,
+  ShieldCheck,
+  Sparkles,
+  Workflow,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import styles from "./PageScaffold.module.css";
 
-type DocStep = {
+type GuideCard = {
   title: string;
   body: string;
+  icon: typeof BookOpenText;
   link?: string;
   linkLabel?: string;
-  icon: typeof BookOpenText;
 };
 
-const firstRunSteps: DocStep[] = [
+type GuideStep = {
+  label: string;
+  detail: string;
+};
+
+const conceptCards: GuideCard[] = [
   {
-    title: "Connect a model provider",
-    body: "Add an OpenAI-compatible provider with a base URL, model name, and secret reference. For DeepSeek, use its OpenAI-compatible API endpoint and your DeepSeek API key reference.",
-    link: "/settings",
-    linkLabel: "Open settings",
-    icon: KeyRound,
+    title: "Plugins",
+    body: "Local packages that provide agents, workflow templates, schemas, docs, fixtures, and tests. A plugin.yaml file tells Team Orchestrator what is inside.",
+    icon: PackageOpen,
   },
   {
-    title: "Create a plugin package",
-    body: "Put a plugin folder under .athena/plugins or another configured plugin path. Each plugin has one plugin.yaml plus one or more agent manifests and runner files.",
-    icon: FolderGit2,
-  },
-  {
-    title: "Define the agent manifest",
-    body: "Declare the agent id, inputs, capabilities, implementation command, permissions, limits, and optional model provider requirement.",
-    icon: FileCode2,
-  },
-  {
-    title: "Restart and inspect",
-    body: "Restart the API after adding plugin files, then confirm the plugin and agent appear in the catalog before creating a task.",
+    title: "Agents",
+    body: "Formal executable units with manifests. Agents declare inputs, outputs, runtime, permissions, limits, and provider requirements.",
+    icon: PlugZap,
     link: "/agents",
     linkLabel: "Open agents",
-    icon: RefreshCw,
   },
   {
-    title: "Run a task",
-    body: "Create a task from the agent, fill the generated input form, choose repo context or run mode when required, and inspect the run output.",
+    title: "Tasks",
+    body: "One unit of work assigned to one compatible agent. Running a task creates inspectable task-run history.",
+    icon: ListChecks,
     link: "/tasks",
-    linkLabel: "New task",
+    linkLabel: "Create task",
+  },
+  {
+    title: "Missions",
+    body: "Groups of related tasks under a shared goal. Use them when work has multiple steps or agents.",
+    icon: Route,
+    link: "/missions",
+    linkLabel: "Open missions",
+  },
+  {
+    title: "Workflow templates",
+    body: "Repeatable plans supplied by plugins. They can instantiate missions and dependency-aware workflow runs.",
+    icon: Workflow,
+    link: "/workflows",
+    linkLabel: "Open workflows",
+  },
+  {
+    title: "Runs",
+    body: "Execution records that explain status, backend, events, outputs, artifacts, and why work stopped.",
     icon: PlayCircle,
   },
-];
-
-const sampleReferences: DocStep[] = [
   {
-    title: "Model provider smoke agent",
-    body: "sample-plugins/model-provider-smoke proves DeepSeek or any OpenAI-compatible provider can be passed into a local agent and used for a real prompt.",
-    icon: KeyRound,
+    title: "Artifacts",
+    body: "Inspectable outputs such as model responses, markdown reports, evidence, transcripts, or proposed changes.",
+    icon: ScrollText,
   },
   {
-    title: "Repo summary agent",
-    body: "sample-plugins/repo-summary shows a read-only local agent with structured repo input, manifest validation, and markdown artifact output.",
-    icon: Route,
-  },
-  {
-    title: "Generic research agents",
-    body: "sample-plugins/generic-research shows article summarization and shopping research planning agents built with @athena/pdk helpers.",
-    icon: PlugZap,
-  },
-  {
-    title: "PDK helpers",
-    body: "@athena/pdk parses task envelopes, validates manifest-shaped inputs, and serializes output/artifact envelopes for local-command agents.",
-    icon: Code2,
+    title: "Safety controls",
+    body: "Manifest permissions, runtime policy packs, limits, approvals, read-only modes, and proposed-change artifacts keep work bounded.",
+    icon: ShieldCheck,
   },
 ];
 
-const copyChecklist = [
+const firstRunSteps: GuideStep[] = [
   {
-    label: "Plugin identity",
-    detail: "Change plugin.id, plugin.name, and plugin.agents[0].id in plugin.yaml.",
+    label: "Start the local stack",
+    detail: "Run the local compose profile, then open the console at http://127.0.0.1:5173.",
   },
   {
-    label: "Agent identity",
-    detail: "Change agent.id and agent.name in agents/model-prompt.agent.yaml. The agent id must match plugin.yaml.",
+    label: "Check readiness",
+    detail: "Use the dashboard or /api/v1/readiness. Degraded optional provider checks do not block the credential-free demo.",
   },
   {
-    label: "Artifact namespace",
-    detail: "Change memory://model-provider-smoke/... in the runner to a namespace for the copied plugin.",
+    label: "Run the demo workflow",
+    detail: "Open Workflows and instantiate first-run.demo.workflow from the checked-in sample plugin.",
   },
   {
-    label: "Docs labels",
-    detail: "Update docs/README.md so the catalog docs, agent name, and run instructions match the copied agent.",
-  },
-  {
-    label: "Catalog restart",
-    detail: "Restart the API, open Agents, and fix any duplicate plugin id or agent id validation messages before running tasks.",
+    label: "Inspect the result",
+    detail: "Open the workflow run graph, confirm prepare and verify completed, then follow task-run artifact metadata.",
   },
 ];
 
-const copyCommands = `cp -R sample-plugins/model-provider-smoke sample-plugins/local-user-test
+const realWorkSteps: GuideStep[] = [
+  {
+    label: "Choose a target repo",
+    detail: "Use a connected repository, a managed clone, or an explicitly mounted local path for compose-based runs.",
+  },
+  {
+    label: "Load useful agents",
+    detail: "Confirm plugin-backed agents appear in Agents before starting work. Fix catalog validation warnings first.",
+  },
+  {
+    label: "Configure providers when needed",
+    detail: "Model-backed agents require provider records and secret references. Local demo agents do not.",
+  },
+  {
+    label: "Start small",
+    detail: "Run one read-only or proposed-change task, inspect artifacts, then widen permissions only when the loop is clear.",
+  },
+];
 
-# Restart after editing plugin.yaml, the agent manifest, runner namespace, and docs.
-ATHENA_WORKSPACE_ROOT="$PWD" npm --workspace @athena/api run dev
+const authorSteps: GuideStep[] = [
+  {
+    label: "Scaffold",
+    detail: "Run npm --workspace @athena/core run athena -- agent scaffold --name \"Research Planner\".",
+  },
+  {
+    label: "Read the manifest",
+    detail: "The agent manifest defines inputs, runtime, permissions, limits, and expected artifacts.",
+  },
+  {
+    label: "Edit the runner",
+    detail: "The runner reads a task envelope from stdin and writes a serialized output envelope to stdout.",
+  },
+  {
+    label: "Validate and restart",
+    detail: "Run manifest validation, restart the API, then confirm the new agent appears in the catalog.",
+  },
+];
 
-# Catalog checks
-curl "http://127.0.0.1:8787/api/v1/agent-catalog/agents"
-curl "http://127.0.0.1:8787/api/v1/agent-catalog/plugins"`;
+const troubleshooting: GuideStep[] = [
+  {
+    label: "API will not start",
+    detail: "Check Node 20+, npm install, port conflicts, and ATHENA_WORKSPACE_ROOT when running the API directly.",
+  },
+  {
+    label: "Console cannot reach API",
+    detail: "Confirm http://127.0.0.1:8787/api/v1/health responds and the local stack started both services.",
+  },
+  {
+    label: "Readiness is degraded",
+    detail: "Read each check's nextStep. Missing optional providers can be acceptable; required app-state or plugin failures are not.",
+  },
+  {
+    label: "Agent is missing",
+    detail: "Check plugin.yaml, matching agent ids, duplicate id diagnostics, plugin paths, and whether the API was restarted.",
+  },
+  {
+    label: "Provider-backed run is blocked",
+    detail: "Check provider kind, secret name, environment availability, and agent provider requirements.",
+  },
+  {
+    label: "Artifact preview fails",
+    detail: "Artifact metadata can exist even when the payload is memory-backed, file-backed outside an allowed root, or unsupported for preview.",
+  },
+];
 
-const pluginYaml = `schemaVersion: 1
-plugin:
-  id: my.first.plugin
-  name: My First Plugin
-  version: 0.1.0
-  agents:
-    - path: agents/my-agent.agent.yaml
-      id: my.agent.local
-      version: 0.1.0
-  compatibility:
-    teamOrchestrator: ">=0.1.0"
-    manifestSchema: team-orchestrator.manifests.v1
-    runtimeBackends: [local-process]
-    platforms: [any]
-  permissions:
-    network: deny
-    filesystem: scoped
-    shell: allow
-    credentials: deny`;
+const glossary: GuideStep[] = [
+  { label: "Agent", detail: "A manifest-backed executable unit supplied by a plugin." },
+  { label: "Backend", detail: "The execution mechanism for an agent, such as local process, container command, or HTTP/API." },
+  { label: "Event", detail: "A structured record of something that happened during execution." },
+  { label: "Provider", detail: "A configured model or API backend used by model-backed agents." },
+  { label: "Readiness", detail: "Diagnostics that explain whether required local systems are usable." },
+  { label: "Workflow run", detail: "A dependency-aware execution record created from a workflow template." },
+];
 
-const agentYaml = `schemaVersion: 1
-agent:
-  id: my.agent.local
-  name: My Local Agent
-  version: 0.1.0
-  description: Produces a short answer from structured task input.
-  capabilities:
-    - text.summarize
-    - artifacts.produce
-  inputs:
-    objective:
-      type: markdown
-      required: true
-      label: Objective
-  implementation:
-    type: local-command
-    command: node
-    args: [agents/my-agent-runner.mjs]
-  runtime:
-    preferredBackend: local-process
-    backendPreferences: [local-process]
-    workingDirectory: .
-    modelProvider:
-      required: false
-      providerKind: openai-compatible
-      label: Optional model provider
-  permissions:
-    network: deny
-    filesystem: scoped
-    shell: allow
-    credentials: deny
-  limits:
-    maxRuntimeSeconds: 60
-    maxToolCalls: 0`;
+const smokeCommands = `curl http://127.0.0.1:8787/api/v1/health
+curl http://127.0.0.1:8787/api/v1/readiness
+npm run smoke:product`;
 
-const runner = `import {
-  createAgentRunOutput,
-  parseAgentEnvelopeInputs,
-  parseAgentTaskRunEnvelope,
-  serializeAgentRunOutput
-} from "@athena/pdk";
+const firstRunApi = `curl "http://127.0.0.1:8787/api/v1/workflow-templates?pluginId=team-orchestrator.samples.first-run"
 
-const inputContract = {
-  objective: { type: "markdown", required: true }
-};
+curl -X POST http://127.0.0.1:8787/api/v1/workflow-templates/first-run.demo.workflow/instantiate \\
+  -H "content-type: application/json" \\
+  -d '{"missionId":"mission-first-run-demo","taskIdPrefix":"first-run-demo","inputs":{"demoName":"First-Run Demo"}}'
 
-let stdin = "";
-process.stdin.setEncoding("utf8");
-for await (const chunk of process.stdin) stdin += chunk;
+curl -X POST http://127.0.0.1:8787/api/v1/workflow-runs/workflow-run-mission-first-run-demo/execute
+curl http://127.0.0.1:8787/api/v1/workflow-runs/workflow-run-mission-first-run-demo/status`;
 
-const envelope = parseAgentTaskRunEnvelope(stdin);
-const inputs = parseAgentEnvelopeInputs(envelope, inputContract);
+const providerEnv = `ATHENA_DEFAULT_PROVIDER=openai
+ATHENA_OPENAI_API_KEY=your_api_key_here
 
-process.stdout.write(
-  serializeAgentRunOutput(
-    createAgentRunOutput({
-      summary: \`Received objective: \${inputs.objective}\`
-    })
-  )
-);`;
+# Azure AI Foundry local development can use Entra ID after az login:
+ATHENA_DEFAULT_PROVIDER=foundry
+ATHENA_FOUNDRY_ENABLED=true
+ATHENA_FOUNDRY_PROJECT_ENDPOINT=https://<your-project>.services.ai.azure.com
+ATHENA_FOUNDRY_DEPLOYMENT=<your-deployment-name>`;
+
+const scaffoldCommand = `npm --workspace @athena/core run build
+npm --workspace @athena/core run athena -- agent scaffold --name "Research Planner"
+npm --workspace @athena/core run validate:manifests`;
 
 export function DocumentationPage() {
   return (
@@ -198,150 +210,243 @@ export function DocumentationPage() {
       <div className={styles.pageHeader}>
         <div>
           <p className={styles.key}>Documentation</p>
-          <h2 className={styles.pageTitle}>Build and run your first agent</h2>
+          <h2 className={styles.pageTitle}>Learn Team Orchestrator</h2>
         </div>
         <div className={styles.headerActions}>
-          <Link to="/settings" className={styles.secondaryCta}>
-            <KeyRound size={16} /> Providers
+          <Link to="/workflows" className={styles.secondaryCta}>
+            <Workflow size={16} /> Run Demo
           </Link>
           <Link to="/tasks" className={styles.primaryCta}>
-            <PlayCircle size={16} /> New Task
+            <PlayCircle size={16} /> Create Task
           </Link>
         </div>
       </div>
 
       <p className={styles.lead}>
-        Agents are loaded from local plugin packages. A user creates files on disk, restarts the API so the catalog indexes
-        the plugin, then runs the agent from the console with structured inputs and explicit safety limits.
+        This page is the in-product guide. You should be able to understand the system, run the built-in demo, connect real
+        work, inspect outputs, and create a plugin-backed agent without opening the source repository.
       </p>
 
       <section className={styles.docsBand}>
         <div className={styles.settingsHeader}>
           <div>
-            <p className={styles.key}>Copy A Working Agent</p>
-            <h3 className={styles.resourceTitle}>Turn model-provider-smoke into your own agent</h3>
+            <p className={styles.key}>Start Here</p>
+            <h3 className={styles.resourceTitle}>What the product is for</h3>
           </div>
-          <Copy size={18} />
+          <Sparkles size={18} />
         </div>
         <p className={styles.settingsMuted}>
-          Start with sample-plugins/model-provider-smoke when you want a known-good OpenAI-compatible provider runner. Rename every copy-sensitive field before restarting the API.
+          Team Orchestrator turns agent work into explicit, inspectable operations. Instead of a loose prompt and a
+          disappearing answer, you get plugin-backed agents, structured task inputs, run history, events, artifacts,
+          provider readiness, and safety limits.
         </p>
-        <div className={styles.docsSplit}>
-          <ul className={styles.docsList}>
-            {copyChecklist.map((item) => (
-              <li key={item.label}>
-                <strong>{item.label}</strong>
-                <span>{item.detail}</span>
-              </li>
-            ))}
-          </ul>
-          <pre className={styles.docsCode}>{copyCommands}</pre>
+        <div className={styles.docsReferenceGrid}>
+          <GuideCard
+            step={{
+              title: "For operators",
+              body: "Start with the first-run demo, then connect a repository and run one small read-only task.",
+              icon: PlayCircle,
+              link: "/workflows",
+              linkLabel: "Open workflows",
+            }}
+          />
+          <GuideCard
+            step={{
+              title: "For agent authors",
+              body: "Scaffold a local plugin, edit the manifest and runner, validate, then run it from Tasks.",
+              icon: Code2,
+              link: "/docs#agent-authoring",
+              linkLabel: "Read authoring path",
+            }}
+          />
+          <GuideCard
+            step={{
+              title: "For admins",
+              body: "Use readiness, provider settings, resource controls, and local-server paths to keep the instance healthy.",
+              icon: Database,
+              link: "/settings",
+              linkLabel: "Open settings",
+            }}
+          />
         </div>
-        <p className={styles.settingsMuted}>
-          A copied agent should appear in Agents without duplicate-id warnings, run from Tasks, and produce an inspectable Model Response artifact on the run detail page.
-        </p>
       </section>
 
       <section className={styles.docsBand}>
         <div>
-          <p className={styles.key}>Quick Path</p>
-          <h3 className={styles.resourceTitle}>From provider to task run</h3>
+          <p className={styles.key}>Mental Model</p>
+          <h3 className={styles.resourceTitle}>The core nouns</h3>
         </div>
-        <div className={styles.docsStepGrid}>
-          {firstRunSteps.map((step) => (
-            <DocStepCard key={step.title} step={step} />
+        <div className={styles.docsReferenceGrid}>
+          {conceptCards.map((step) => (
+            <GuideCard key={step.title} step={step} />
           ))}
         </div>
       </section>
 
       <section className={styles.docsSplit}>
         <div className={styles.docsBand}>
-          <p className={styles.key}>Plugin File</p>
-          <h3 className={styles.resourceTitle}>.athena/plugins/my-first-plugin/plugin.yaml</h3>
-          <pre className={styles.docsCode}>{pluginYaml}</pre>
-        </div>
-        <div className={styles.docsBand}>
-          <p className={styles.key}>Agent Manifest</p>
-          <h3 className={styles.resourceTitle}>agents/my-agent.agent.yaml</h3>
-          <pre className={styles.docsCode}>{agentYaml}</pre>
-        </div>
-      </section>
-
-      <section className={styles.docsBand}>
-        <p className={styles.key}>Runner</p>
-        <h3 className={styles.resourceTitle}>agents/my-agent-runner.mjs</h3>
-        <p className={styles.settingsMuted}>
-          The runner reads a Team Orchestrator task envelope from stdin and writes a serialized agent output envelope to stdout.
-        </p>
-        <pre className={styles.docsCode}>{runner}</pre>
-      </section>
-
-      <section className={styles.docsSplit}>
-        <div className={styles.docsBand}>
           <div className={styles.settingsHeader}>
             <div>
-              <p className={styles.key}>Provider Notes</p>
-              <h3 className={styles.resourceTitle}>DeepSeek and OpenAI-compatible APIs</h3>
-            </div>
-            <KeyRound size={18} />
-          </div>
-          <ul className={styles.docsList}>
-            <li>
-              <strong>Provider kind</strong>
-              <span>Use openai-compatible for DeepSeek, OpenAI-compatible gateways, and local model gateways that expose the same API shape.</span>
-            </li>
-            <li>
-              <strong>Base URL</strong>
-              <span>DeepSeek documents https://api.deepseek.com as its OpenAI-compatible base URL; confirm the current model id in provider docs.</span>
-            </li>
-            <li>
-              <strong>Secret reference</strong>
-              <span>Prefer an environment variable such as DEEPSEEK_API_KEY or a local secret file. The console stores the reference, not the raw key.</span>
-            </li>
-          </ul>
-        </div>
-
-        <div className={styles.docsBand}>
-          <div className={styles.settingsHeader}>
-            <div>
-              <p className={styles.key}>Validate</p>
-              <h3 className={styles.resourceTitle}>Before handing it to a user</h3>
+              <p className={styles.key}>First Run</p>
+              <h3 className={styles.resourceTitle}>Prove the system without credentials</h3>
             </div>
             <CheckCircle2 size={18} />
           </div>
-          <ul className={styles.docsList}>
-            <li>
-              <strong>Manifest validation</strong>
-              <span>Run npm --workspace @athena/core run validate:manifests.</span>
-            </li>
-            <li>
-              <strong>Catalog check</strong>
-              <span>Open Agents and confirm the plugin status is loaded with no validation errors.</span>
-            </li>
-            <li>
-              <strong>Task smoke</strong>
-              <span>Create a small task, run it, and inspect the run result before adding broader permissions.</span>
-            </li>
-          </ul>
+          <GuideList items={firstRunSteps} />
+          <pre className={styles.docsCode}>{firstRunApi}</pre>
+        </div>
+
+        <div className={styles.docsBand}>
+          <div className={styles.settingsHeader}>
+            <div>
+              <p className={styles.key}>Real Work</p>
+              <h3 className={styles.resourceTitle}>Move from demo to your repository</h3>
+            </div>
+            <FolderGit2 size={18} />
+          </div>
+          <GuideList items={realWorkSteps} />
+          <div className={styles.headerActions}>
+            <Link to="/resources" className={styles.secondaryCta}>
+              <FolderGit2 size={16} /> Resource Controls
+            </Link>
+            <Link to="/agents" className={styles.secondaryCta}>
+              <PlugZap size={16} /> Agent Catalog
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.docsSplit}>
+        <div className={styles.docsBand}>
+          <div className={styles.settingsHeader}>
+            <div>
+              <p className={styles.key}>Providers</p>
+              <h3 className={styles.resourceTitle}>When an agent needs a model</h3>
+            </div>
+            <KeyRound size={18} />
+          </div>
+          <p className={styles.settingsMuted}>
+            The first-run demo uses the mock provider. Model-backed agents need provider configuration and a secret
+            reference. The console stores the reference, not the raw secret.
+          </p>
+          <pre className={styles.docsCode}>{providerEnv}</pre>
+          <Link to="/settings" className={styles.inlineAction}>
+            Open provider settings
+          </Link>
+        </div>
+
+        <div className={styles.docsBand} id="agent-authoring">
+          <div className={styles.settingsHeader}>
+            <div>
+              <p className={styles.key}>Agent Authoring</p>
+              <h3 className={styles.resourceTitle}>Create a plugin-backed agent</h3>
+            </div>
+            <FileCode2 size={18} />
+          </div>
+          <GuideList items={authorSteps} />
+          <pre className={styles.docsCode}>{scaffoldCommand}</pre>
+        </div>
+      </section>
+
+      <section className={styles.docsBand}>
+        <div className={styles.settingsHeader}>
+          <div>
+            <p className={styles.key}>Inspectability</p>
+            <h3 className={styles.resourceTitle}>How to know what happened</h3>
+          </div>
+          <GitBranch size={18} />
+        </div>
+        <div className={styles.docsReferenceGrid}>
+          <GuideCard
+            step={{
+              title: "Workflow graph",
+              body: "Use workflow run detail to see dependency steps, progress, completed nodes, failures, and linked task-run ids.",
+              icon: Workflow,
+              link: "/workflows",
+              linkLabel: "Open workflows",
+            }}
+          />
+          <GuideCard
+            step={{
+              title: "Task run detail",
+              body: "Inspect terminal status, resolved backend, inputs, events, output, verification, and artifact metadata.",
+              icon: ScrollText,
+              link: "/tasks",
+              linkLabel: "Open tasks",
+            }}
+          />
+          <GuideCard
+            step={{
+              title: "Product smoke",
+              body: "Run one command when you need a fast confidence check before handing the product to someone else.",
+              icon: CheckCircle2,
+            }}
+          />
+        </div>
+        <pre className={styles.docsCode}>{smokeCommands}</pre>
+      </section>
+
+      <section className={styles.docsSplit}>
+        <div className={styles.docsBand}>
+          <div className={styles.settingsHeader}>
+            <div>
+              <p className={styles.key}>Troubleshooting</p>
+              <h3 className={styles.resourceTitle}>Common failures and where to look</h3>
+            </div>
+            <AlertCircle size={18} />
+          </div>
+          <GuideList items={troubleshooting} />
+        </div>
+
+        <div className={styles.docsBand}>
+          <div>
+            <p className={styles.key}>Glossary</p>
+            <h3 className={styles.resourceTitle}>Terms you will see in the console</h3>
+          </div>
+          <GuideList items={glossary} />
         </div>
       </section>
 
       <section className={styles.docsBand}>
         <div>
-          <p className={styles.key}>Examples To Copy</p>
-          <h3 className={styles.resourceTitle}>Start from working samples</h3>
+          <p className={styles.key}>Next Paths</p>
+          <h3 className={styles.resourceTitle}>Where to go from here</h3>
         </div>
         <div className={styles.docsReferenceGrid}>
-          {sampleReferences.map((step) => (
-            <DocStepCard key={step.title} step={step} />
-          ))}
+          <GuideCard
+            step={{
+              title: "Run a workflow",
+              body: "Use a workflow template when a plugin already knows the repeatable task sequence.",
+              icon: Workflow,
+              link: "/workflows",
+              linkLabel: "Open workflows",
+            }}
+          />
+          <GuideCard
+            step={{
+              title: "Run one task",
+              body: "Use a task when you know the exact agent and objective you want to run.",
+              icon: PlayCircle,
+              link: "/tasks",
+              linkLabel: "Create task",
+            }}
+          />
+          <GuideCard
+            step={{
+              title: "Fix setup",
+              body: "Use Settings, Resources, and readiness diagnostics when agents or providers are unavailable.",
+              icon: ShieldCheck,
+              link: "/settings",
+              linkLabel: "Open settings",
+            }}
+          />
         </div>
       </section>
     </section>
   );
 }
 
-function DocStepCard({ step }: { step: DocStep }) {
+function GuideCard({ step }: { step: GuideCard }) {
   const Icon = step.icon;
   return (
     <article className={styles.docsStepCard}>
@@ -358,5 +463,18 @@ function DocStepCard({ step }: { step: DocStep }) {
         ) : null}
       </div>
     </article>
+  );
+}
+
+function GuideList({ items }: { items: GuideStep[] }) {
+  return (
+    <ul className={styles.docsList}>
+      {items.map((item) => (
+        <li key={item.label}>
+          <strong>{item.label}</strong>
+          <span>{item.detail}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
