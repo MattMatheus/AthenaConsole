@@ -118,3 +118,62 @@ test("runs agent handlers with parsed and typed inputs", async () => {
     artifacts: []
   });
 });
+
+test("covers the documented plugin-backed agent helper path", async () => {
+  const runOutput = await runAgentHandler(
+    async ({ inputs, agent, run }) =>
+      createAgentRunOutput(
+        {
+          agentId: agent.id,
+          topic: inputs.topic,
+          maxItems: inputs.maxItems,
+          summary: `Prepared ${inputs.maxItems} notes for ${inputs.topic}.`
+        },
+        {
+          artifacts: [
+            createAgentArtifact({
+              id: `research-plan-${run.id}`,
+              label: "Research Plan",
+              kind: "primary",
+              format: "markdown",
+              storageUri: `memory://demo-research/${encodeURIComponent(run.id)}/plan.md`,
+              metadata: {
+                generatedBy: agent.id,
+                deterministic: true
+              }
+            })
+          ]
+        }
+      ),
+    {
+      envelope: JSON.stringify(envelope),
+      inputContract: {
+        topic: { type: "string", required: true, label: "Topic" },
+        maxItems: { type: "integer", default: 3, label: "Max items" }
+      }
+    }
+  );
+
+  assert.deepEqual(runOutput, {
+    output: {
+      agentId: "demo.article-summarizer",
+      topic: "workspace notes",
+      maxItems: 3,
+      summary: "Prepared 3 notes for workspace notes."
+    },
+    artifacts: [
+      {
+        id: "research-plan-run-1",
+        label: "Research Plan",
+        kind: "primary",
+        format: "markdown",
+        storageUri: "memory://demo-research/run-1/plan.md",
+        metadata: {
+          generatedBy: "demo.article-summarizer",
+          deterministic: true
+        }
+      }
+    ]
+  });
+  assert.equal(serializeAgentRunOutput(runOutput), `${JSON.stringify(runOutput)}\n`);
+});

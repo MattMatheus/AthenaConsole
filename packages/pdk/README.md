@@ -1,41 +1,99 @@
-# @athena/pdk
+# Agent Developer Kit
 
-Typed development kit for Team Orchestrator plugin and agent authors.
+`@athena/pdk` is the code-level Agent Developer Kit for Team Orchestrator plugin authors.
 
-## Scope
+Use it when you are writing a plugin-backed agent runner that needs to read a task/run envelope, validate task inputs declared in an agent manifest, return structured output, and report artifact metadata in the shape the runtime expects.
 
-This package provides:
+The package name remains `@athena/pdk` for now, but the supported product concept is the Agent Developer Kit.
 
-- Agent task/run envelope parsing (`parseAgentTaskRunEnvelope`)
-- Manifest-shaped agent input validation (`parseAgentInputs`, `parseAgentEnvelopeInputs`)
-- Agent run output and artifact builders (`createAgentRunOutput`, `createAgentArtifact`)
-- Minimal agent handler test helper (`runAgentHandler`)
-- Stable specialist authoring contracts (`PersonaDefinition`, `Context`, `Skill`)
-- Typed specialist run input/output envelopes (`PersonaRunInput`, `PersonaRunOutput`)
-- Runtime validation helper (`definePersona` / `defineSpecialist`) with deterministic error messages
-- Local specialist unit-test harness (`PersonaTestHarness`) with deterministic `MockRuntime`
+## What It Provides
 
-## Compatibility Boundaries
+- Task/run envelope parsing with `parseAgentTaskRunEnvelope`.
+- Manifest-shaped input validation with `parseAgentInputs` and `parseAgentEnvelopeInputs`.
+- Typed agent handler execution with `runAgentHandler`.
+- Run output and artifact builders with `createAgentRunOutput` and `createAgentArtifact`.
+- Output serialization with `serializeAgentRunOutput`.
+- Compatibility exports for older specialist/persona helpers.
 
-- Agent input validation intentionally follows the current `agent.inputs` manifest shape. It does not generate manifests or replace manifest validation.
-- Agent output helpers produce the run envelope consumed by local-command, container-command, and HTTP/API task execution.
-- `PersonaDefinition` is aligned to the current `specialists/<id>/manifest.json` runtime contract.
-- Validation is additive and fail-closed for malformed required fields.
-- Unknown additional properties are currently allowed for forward compatibility.
+## Plugin-Backed Agent Shape
 
-## Minimal Agent Example
+A Team Orchestrator agent lives in a plugin package on disk:
 
-```ts
+```text
+plugin.yaml
+agents/
+  research.agent.yaml
+  research-runner.mjs
+docs/
+  README.md
+```
+
+The plugin manifest points at the agent manifest:
+
+```yaml
+schemaVersion: 1
+plugin:
+  id: local.examples.research
+  name: Research Agent
+  version: 0.1.0
+  agents:
+    - path: agents/research.agent.yaml
+      id: local.research.plan
+      version: 0.1.0
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    manifestSchema: team-orchestrator.manifests.v1
+```
+
+The agent manifest declares the task-facing contract:
+
+```yaml
+schemaVersion: 1
+agent:
+  id: local.research.plan
+  name: Research Planner
+  version: 0.1.0
+  description: Produces a small research plan artifact from a topic.
+  inputs:
+    topic:
+      type: string
+      required: true
+      label: Topic
+    maxItems:
+      type: integer
+      required: false
+      default: 3
+      label: Max items
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: plan
+        label: Research Plan
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - agents/research-runner.mjs
+  runtime:
+    preferredBackend: local-process
+```
+
+## Runner Example
+
+This runner reads the envelope from stdin, validates manifest-shaped inputs, creates an artifact metadata record, and writes the serialized run output to stdout.
+
+```js
 import {
   createAgentArtifact,
   createAgentRunOutput,
   parseAgentEnvelopeInputs,
   parseAgentTaskRunEnvelope,
-  serializeAgentRunOutput,
-  type AgentInputContract
+  serializeAgentRunOutput
 } from "@athena/pdk";
 
-const inputs = {
+const inputContract = {
   topic: {
     type: "string",
     required: true,
@@ -43,66 +101,142 @@ const inputs = {
   },
   maxItems: {
     type: "integer",
-    default: 5
+    default: 3,
+    label: "Max items"
   }
-} satisfies AgentInputContract;
+};
 
-const stdin = await new Promise<string>((resolve, reject) => {
+try {
+  const envelope = parseAgentTaskRunEnvelope(await readStdin());
+  const inputs = parseAgentEnvelopeInputs(envelope, inputContract);
+  const markdown = renderPlan(inputs.topic, inputs.maxItems);
+
+  const output = createAgentRunOutput(
+    {
+      topic: inputs.topic,
+      maxItems: inputs.maxItems,
+      summary: `Prepared ${inputs.maxItems} research items for ${inputs.topic}.`
+    },
+    {
+      artifacts: [
+        createAgentArtifact({
+          id: `research-plan-${envelope.run.id}`,
+          label: "Research Plan",
+          kind: "primary",
+          format: "markdown",
+          storageUri: `memory://local-research/${encodeURIComponent(envelope.run.id)}/plan.md`,
+          metadata: {
+            generatedBy: envelope.agent.id,
+            preview: markdown.slice(0, 120)
+          }
+        })
+      ]
+    }
+  );
+
+  process.stdout.write(serializeAgentRunOutput(output));
+} catch (error) {
+  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  process.exitCode = 1;
+}
+
+async function readStdin() {
   let body = "";
   process.stdin.setEncoding("utf8");
-  process.stdin.on("data", (chunk) => {
+  for await (const chunk of process.stdin) {
     body += chunk;
-  });
-  process.stdin.on("end", () => resolve(body));
-  process.stdin.on("error", reject);
+  }
+  return body;
+}
+
+function renderPlan(topic, maxItems) {
+  return [`# Research Plan`, "", `Topic: ${topic}`, "", `Items: ${maxItems}`].join("\n");
+}
+```
+
+For a full file-by-file tutorial, use [Build Your First Agent](../core/docs/user/07-pdk-guide.md). For a model-backed starting point, use [Copy The Model Provider Smoke Agent](../core/docs/user/10-copy-sample-agent.md).
+
+## Handler Test Example
+
+`runAgentHandler` lets tests exercise the same envelope parsing and input validation path without spawning a child process.
+
+```js
+import assert from "node:assert/strict";
+import test from "node:test";
+import {
+  createAgentArtifact,
+  createAgentRunOutput,
+  runAgentHandler,
+  serializeAgentRunOutput
+} from "@athena/pdk";
+
+test("research runner output shape", async () => {
+  const envelope = {
+    task: {
+      id: "task-1",
+      inputs: {
+        topic: "workspace notes"
+      }
+    },
+    agent: {
+      id: "local.research.plan",
+      version: "0.1.0"
+    },
+    run: {
+      id: "run-1"
+    }
+  };
+
+  const result = await runAgentHandler(
+    async ({ inputs, agent, run }) =>
+      createAgentRunOutput(
+        {
+          agentId: agent.id,
+          topic: inputs.topic,
+          maxItems: inputs.maxItems
+        },
+        {
+          artifacts: [
+            createAgentArtifact({
+              id: `research-plan-${run.id}`,
+              label: "Research Plan",
+              kind: "primary",
+              format: "markdown",
+              storageUri: `memory://local-research/${encodeURIComponent(run.id)}/plan.md`
+            })
+          ]
+        }
+      ),
+    {
+      envelope: JSON.stringify(envelope),
+      inputContract: {
+        topic: { type: "string", required: true },
+        maxItems: { type: "integer", default: 3 }
+      }
+    }
+  );
+
+  assert.equal(result.output.topic, "workspace notes");
+  assert.equal(result.output.maxItems, 3);
+  assert.equal(result.artifacts[0].storageUri, "memory://local-research/run-1/plan.md");
+  assert.equal(serializeAgentRunOutput(result), `${JSON.stringify(result)}\n`);
 });
-
-const envelope = parseAgentTaskRunEnvelope(stdin);
-const taskInputs = parseAgentEnvelopeInputs<{
-  topic: string;
-  maxItems: number;
-}>(envelope, inputs);
-
-const result = createAgentRunOutput(
-  {
-    summary: `Prepared research plan for ${taskInputs.topic}.`,
-    maxItems: taskInputs.maxItems
-  },
-  {
-    artifacts: [
-      createAgentArtifact({
-        label: "Research Plan",
-        kind: "primary",
-        format: "markdown",
-        storageUri: "artifacts/research-plan.md"
-      })
-    ]
-  }
-);
-
-process.stdout.write(serializeAgentRunOutput(result));
 ```
 
-## Persona Usage
+## Compatibility Boundaries
 
-```ts
-import { definePersona, type PersonaDefinition } from "@athena/pdk";
+The Agent Developer Kit intentionally stays small:
 
-const persona = definePersona({
-  schemaVersion: 1,
-  id: "code-review",
-  description: "Reviews git changes and emits structured findings.",
-  context: {
-    promptFiles: ["prompt.md"],
-    skillFiles: ["skills.md"],
-    docFiles: ["docs.md"],
-    maxFileChars: 20_000,
-    maxTotalChars: 120_000
-  }
-} satisfies PersonaDefinition);
-```
+- It validates task inputs against the current `agent.inputs` manifest field shape, but it does not generate manifests.
+- It does not replace plugin package validation. Use `validatePluginPackage` from `@athena/core` or `npm --workspace @athena/core run validate:manifests` for package-level manifest checks.
+- It builds the output envelope consumed by local-command, container-command, and HTTP/API task execution, but it does not write artifact payload files for you.
+- It does not manage provider credentials, model calls, approvals, or runtime backend selection.
+- Unknown additional properties are allowed where the runtime envelope is expected to evolve.
+- Validation is additive and fail-closed for malformed required fields.
 
-## API
+## API Reference
+
+Current agent-authoring exports:
 
 - `parseAgentTaskRunEnvelope(value: string | unknown): AgentTaskRunEnvelope`
 - `parseAgentInputs(contract, inputs): Record<string, unknown>`
@@ -111,6 +245,16 @@ const persona = definePersona({
 - `createAgentRunOutput(output, options): AgentRunOutputEnvelope`
 - `serializeAgentRunOutput(envelope): string`
 - `runAgentHandler(handler, options): Promise<AgentRunOutputEnvelope>`
+- `AgentSdkValidationError`
+- `AgentInputContract`
+- `AgentTaskRunEnvelope`
+- `AgentRunArtifact`
+- `AgentRunOutputEnvelope`
+
+## Compatibility Exports
+
+These exports support older specialist/persona code paths and local tests. They are retained for compatibility, but they are not the first-stop API for new plugin-backed agents:
+
 - `definePersona(definition: PersonaDefinition): PersonaDefinition`
 - `defineSpecialist(definition: PersonaDefinition): PersonaDefinition`
 - `SPECIALISTS_DIRNAME` / `SPECIALIST_MANIFEST_FILENAME`
@@ -121,63 +265,7 @@ const persona = definePersona({
 - `new MockGitService({ diff, changedFiles })`
 - `new PersonaTestHarness({ persona, runtime, fileStateStore, gitService, ... })`
 
-## Persona Harness Example (Vitest or Jest)
-
-```ts
-import {
-  MockFileStateStore,
-  MockGitService,
-  MockRuntime,
-  PersonaTestHarness,
-  definePersona
-} from "@athena/pdk";
-
-const persona = definePersona({
-  schemaVersion: 1,
-  id: "code-review",
-  context: {
-    promptFiles: ["prompt.md"],
-    skillFiles: ["skills.md"],
-    docFiles: ["docs.md"]
-  }
-});
-
-const runtime = new MockRuntime({
-  resolveResponse: (request) =>
-    request.metadata.trigger === "persona:run"
-      ? JSON.stringify({
-          schemaVersion: 1,
-          mergeGate: "pass",
-          reportMarkdown: "# ok",
-          findings: []
-        })
-      : undefined
-});
-
-const harness = new PersonaTestHarness({
-  persona,
-  runtime,
-  fileStateStore: new MockFileStateStore({
-    files: {
-      "prompt.md": "System prompt",
-      "skills.md": "Skill list",
-      "docs.md": "Doc context"
-    }
-  }),
-  gitService: new MockGitService({
-    changedFiles: ["src/a.ts"],
-    diff: "diff --git a/src/a.ts b/src/a.ts"
-  })
-});
-
-const result = await harness.run();
-expect(result.contextPack.includedFiles).toEqual(["prompt.md", "skills.md", "docs.md"]);
-expect(result.prompt).toContain("Changed files (bounded):");
-expect(result.parsedOutput.parsed).toBe(true);
-expect(result.runOutput.mergeGate).toBe("pass");
-```
-
-## Build
+## Validate Changes
 
 ```bash
 npm --workspace @athena/pdk run typecheck

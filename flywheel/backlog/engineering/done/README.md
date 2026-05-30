@@ -70,3 +70,4 @@ Engineering work accepted by QA.
 64. `STORY-20260530-remove-stale-marketing-app.md`
 65. `BUG-20260530-package-docs-map-link.md`
 66. `STORY-20260530-docs-information-architecture.md`
+67. `STORY-20260530-agent-developer-kit-hardening.md`
