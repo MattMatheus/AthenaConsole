@@ -215,13 +215,13 @@ Source epic:
 
 ### 2026.32 Comprehensive User Documentation
 
-Status: Intake.
+Status: Complete.
 
 Goal: make Team Orchestrator learnable from documentation alone for motivated users who want to operate the system or author agents without reading source code.
 
-First candidate:
+Completed story:
 
-- `flywheel/backlog/engineering/intake/STORY-20260530-comprehensive-user-guide.md`
+- `flywheel/backlog/engineering/done/STORY-20260530-comprehensive-user-guide.md`
 
 Source epic:
 
@@ -231,7 +231,7 @@ Source epic:
 
 Flywheel lanes are the operational source of truth. No engineering or architecture work is currently active or awaiting QA.
 
-The recommended next move is to refine and implement a comprehensive user documentation guide so motivated users can learn the system without reading source code.
+The recommended next move is to run user testing against the improved documentation and create explicit Flywheel intake items for observed gaps.
 
 Recently completed tracks now live in Flywheel done history:
 

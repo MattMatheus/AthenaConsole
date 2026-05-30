@@ -2,6 +2,8 @@
 
 Use this guide to start Team Orchestrator locally, check readiness, run the built-in demo workflow, and inspect the result.
 
+For a fuller explanation of the product model, operator workflows, agent authoring, troubleshooting, and examples, read the [Team Orchestrator User Guide](docs/user-guide/README.md).
+
 ## Prerequisites
 
 Install:

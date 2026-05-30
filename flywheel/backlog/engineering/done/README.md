@@ -74,3 +74,4 @@ Engineering work accepted by QA.
 68. `STORY-20260530-agent-scaffold-command.md`
 69. `STORY-20260530-product-readiness-smoke-suite.md`
 70. `BUG-20260530-product-docs-state-sync.md`
+71. `STORY-20260530-comprehensive-user-guide.md`

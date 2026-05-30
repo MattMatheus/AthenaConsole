@@ -1,7 +1,7 @@
 ---
 kind: story
 id: STORY-20260530-comprehensive-user-guide
-status: intake
+status: done
 owner_role: Technical Writer
 source: planning
 success_metric: A motivated new user can learn, run, inspect, troubleshoot, and extend Team Orchestrator from documentation without reading source code.
@@ -14,7 +14,7 @@ ready: false
 ## Metadata
 - `id`: STORY-20260530-comprehensive-user-guide
 - `owner_role`: Technical Writer
-- `status`: intake
+- `status`: done
 - `source`: planning
 - `decision_refs`: [0006, 0007, 0008, 0009, 0010, 0011, 0012, 0013, 0014, 0015, 0016]
 - `success_metric`: A motivated new user can learn, run, inspect, troubleshoot, and extend Team Orchestrator from documentation without reading source code.
@@ -68,5 +68,29 @@ The docs are now more accurate and findable, but the main user-facing path is st
 - Should screenshots be added in the first pass, or should the first story focus on text and runnable examples?
 - Should user testing run before or immediately after the first guide pass?
 
+## PM Refinement
+- `what_changed`: Refined this into a first comprehensive guide implementation slice: create `docs/user-guide/README.md` as the durable user-facing learning path, link it from top-level entry points, and keep the existing quickstart concise.
+- `why_it_matters`: The product is now capable enough for outside learning, but the docs still ask users to infer too much from terse commands and internal maps. The first guide should explain the system model, teach the main workflows, and make common failures recoverable.
+- `acceptance_criteria`: The guide covers product purpose, core concepts, local startup, first-run demo, real repo work, provider-backed work, agent authoring/scaffolding, run/artifact inspection, product smoke, troubleshooting, glossary, and next paths; root README, `GETTING_STARTED.md`, and `docs/README.md` link to it; examples are reviewed against current commands/routes.
+- `risks_and_assumptions`: Keep screenshots out of the first pass so the guide remains durable and can ship quickly; reuse smoke-tested commands where possible; do not implement product behavior as part of docs.
+- `next_state_recommendation`: Move to engineering active.
+
+## Engineering Handoff
+- `change_summary`: Added `docs/user-guide/README.md` as a comprehensive user-facing learning path. The guide explains the product model, local startup, first-run demo, console surfaces, product smoke, real repo work, provider configuration, agent scaffolding, manifest basics, result inspection, troubleshooting, glossary, and next paths. Linked it from the root README, `GETTING_STARTED.md`, and docs map, and synchronized Flywheel/current direction with the active docs work.
+- `validation_evidence`: `./flywheel/tools/validate_workflow_state.sh --format json`; `git diff --check`; local markdown link/path check across `README.md`, `GETTING_STARTED.md`, `docs/README.md`, and `docs/user-guide/README.md`; command/API reference review against existing smoke, workflow-template, task-run, scaffold, provider, and manifest-validation docs.
+- `qa_focus`: Confirm the guide teaches rather than merely indexes, entry-point links are prominent, examples match current supported commands/routes, troubleshooting covers common setup failures, and the quickstart remains concise.
+- `open_risks`: Screenshots and a multi-page chapter split remain future improvements; this first pass is text and runnable examples only.
+
+## QA Verdict
+- `verdict`: Pass.
+- `evidence_quality`: Required checks passed in QA: `./flywheel/tools/validate_workflow_state.sh --format json`, `git diff --check`, local markdown link/path check for touched entry docs and the guide, guide content review against acceptance criteria, and command/API reference review against current docs and package scripts.
+- `defects`: None found.
+- `state_transition`: Ready for engineering done.
+
 ## Next Step
 - PM refinement should choose the guide structure and split strategy, then activate the first docs implementation slice.
+
+## Transition History
+- `2026-05-30T23:13:28Z`: `intake` -> `active`; PM refined comprehensive user guide
+- `2026-05-30T23:16:21Z`: `active` -> `qa`; comprehensive user guide handoff ready
+- `2026-05-30T23:16:56Z`: `qa` -> `done`; QA passed comprehensive user guide

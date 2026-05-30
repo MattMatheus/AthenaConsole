@@ -8,9 +8,10 @@ This is the canonical documentation map for the repo. Start here when deciding w
 
 Use these when you want to install Team Orchestrator, start the console, connect a provider, connect a repo, run work, and inspect results.
 
-1. [Getting Started](../GETTING_STARTED.md)
-2. [Copy The Model Provider Smoke Agent](../packages/core/docs/user/10-copy-sample-agent.md)
-3. [Fresh Server Real-Work Walkthrough](developer/product-dev-guides/fresh-server-real-work-walkthrough.md)
+1. [Team Orchestrator User Guide](user-guide/README.md)
+2. [Getting Started](../GETTING_STARTED.md)
+3. [Copy The Model Provider Smoke Agent](../packages/core/docs/user/10-copy-sample-agent.md)
+4. [Fresh Server Real-Work Walkthrough](developer/product-dev-guides/fresh-server-real-work-walkthrough.md)
 
 ## Local Server Admin
 
@@ -24,9 +25,10 @@ Use these when you want a durable trusted-LAN install with persistent state, plu
 
 Use these when you want to create or adapt a plugin-backed agent.
 
-1. [Build Your First Agent](../packages/core/docs/user/07-pdk-guide.md)
-2. [Copy The Model Provider Smoke Agent](../packages/core/docs/user/10-copy-sample-agent.md)
-3. [Agent Developer Kit Package](../packages/pdk/README.md)
+1. [Team Orchestrator User Guide](user-guide/README.md#create-a-plugin-backed-agent)
+2. [Build Your First Agent](../packages/core/docs/user/07-pdk-guide.md)
+3. [Copy The Model Provider Smoke Agent](../packages/core/docs/user/10-copy-sample-agent.md)
+4. [Agent Developer Kit Package](../packages/pdk/README.md)
 4. Sample plugins:
    - `sample-plugins/first-run-demo/`
    - `sample-plugins/model-provider-smoke/`

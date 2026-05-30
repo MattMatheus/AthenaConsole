@@ -38,6 +38,7 @@ The project intentionally does not maintain legacy compatibility shims for depre
 Start here:
 
 - [GETTING_STARTED.md](GETTING_STARTED.md)
+- [Team Orchestrator User Guide](docs/user-guide/README.md)
 
 The quickstart covers one supported local path:
 
@@ -122,6 +123,7 @@ The current product direction lives in:
 Key docs:
 
 - [Documentation Map](docs/README.md)
+- [User Guide](docs/user-guide/README.md)
 - [Getting Started](GETTING_STARTED.md)
 - [Product Direction](docs/product/direction/current-direction.md)
 - [Roadmap Flight Path](docs/product/roadmap/flight-path.md)
