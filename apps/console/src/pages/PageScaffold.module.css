@@ -371,6 +371,100 @@
   margin-top: 0.1rem;
 }
 
+.docsBand {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: white;
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.docsStepGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.docsStepCard {
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent);
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: var(--space-3);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: start;
+}
+
+.docsStepCard h4 {
+  margin: 0;
+  color: var(--color-brand-900);
+  font-size: var(--font-size-300);
+  line-height: 1.25;
+}
+
+.docsStepCard p {
+  margin: var(--space-1) 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-200);
+  line-height: 1.5;
+}
+
+.docsSplit {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.docsReferenceGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.docsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.docsList li {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+  padding-bottom: var(--space-2);
+  display: grid;
+  gap: 0.2rem;
+}
+
+.docsList strong {
+  color: var(--color-text);
+}
+
+.docsList span {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-200);
+  line-height: 1.45;
+}
+
+.docsCode {
+  margin: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+  border: 1px solid #dce9ff;
+  border-radius: 8px;
+  background: #f7faff;
+  color: var(--color-text);
+  padding: var(--space-3);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-200);
+  line-height: 1.5;
+}
+
 .onboardingPanel {
   display: grid;
   gap: var(--space-3);
@@ -525,6 +619,12 @@
   }
 
   .onboardingGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .docsStepGrid,
+  .docsSplit,
+  .docsReferenceGrid {
     grid-template-columns: 1fr;
   }
 

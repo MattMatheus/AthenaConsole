@@ -58,6 +58,11 @@ export interface PluginIndexOptions {
   systemPluginPaths?: string[];
 }
 
+interface IndexedPluginPackageOptions {
+  additionalIssues?: ManifestValidationIssue[];
+  pluginRecordId?: string;
+}
+
 interface PluginResourceReference {
   path: string;
   id?: string;
@@ -90,6 +95,25 @@ interface WorkflowTemplateManifestDocument {
     description?: string;
     tasks?: unknown[];
   };
+}
+
+interface DiscoveredPluginRoot {
+  root: string;
+  sourceType: IndexedPluginSourceType;
+}
+
+interface PluginIdentityEntry {
+  root: string;
+  file: string;
+  id: string;
+  version: string;
+}
+
+interface AgentIdentityEntry {
+  root: string;
+  file: string;
+  id: string;
+  version: string;
 }
 
 export function resolveConfiguredPluginSearchPaths(
@@ -130,7 +154,7 @@ export function indexConfiguredLocalPlugins(config: AthenaConfig, options: Plugi
   try {
     const searchPaths = resolveConfiguredPluginSearchPaths(config, options);
     const seenPluginRoots = new Set<string>();
-    const plugins: IndexedPluginSummary[] = [];
+    const discoveredPlugins: DiscoveredPluginRoot[] = [];
 
     for (const searchPath of searchPaths) {
       for (const pluginRoot of discoverLocalPluginRoots(searchPath.path)) {
@@ -139,9 +163,22 @@ export function indexConfiguredLocalPlugins(config: AthenaConfig, options: Plugi
           continue;
         }
         seenPluginRoots.add(resolvedRoot);
-        plugins.push(indexLocalPluginPackage(appState, resolvedRoot, searchPath.sourceType));
+        discoveredPlugins.push({
+          root: resolvedRoot,
+          sourceType: searchPath.sourceType
+        });
       }
     }
+
+    const collisionIssues = detectPluginIndexCollisions(discoveredPlugins);
+    const plugins = discoveredPlugins.map((plugin) => {
+      const issues = collisionIssues.get(plugin.root) ?? [];
+      const hasDuplicatePluginId = issues.some((issue) => issue.path === "$.plugin.id");
+      return indexLocalPluginPackage(appState, plugin.root, plugin.sourceType, {
+        additionalIssues: issues,
+        ...(hasDuplicatePluginId ? { pluginRecordId: createInvalidPluginId(plugin.root) } : {})
+      });
+    });
 
     return { plugins };
   } finally {
@@ -154,14 +191,15 @@ export function indexConfiguredLocalPlugins(config: AthenaConfig, options: Plugi
 export function indexLocalPluginPackage(
   appState: AppStateDatabase,
   pluginRoot: string,
-  sourceType: IndexedPluginSourceType = "local"
+  sourceType: IndexedPluginSourceType = "local",
+  options: IndexedPluginPackageOptions = {}
 ): IndexedPluginSummary {
   const pluginPath = resolve(pluginRoot);
   const pluginManifestPath = resolve(pluginPath, PLUGIN_MANIFEST_FILENAME);
   const pluginValidation = validateManifestFile("plugin", pluginManifestPath);
-  const issues: ManifestValidationIssue[] = [...pluginValidation.issues];
+  const issues: ManifestValidationIssue[] = [...pluginValidation.issues, ...(options.additionalIssues ?? [])];
   const pluginManifest = loadManifestIfPossible<PluginManifestDocument>(pluginManifestPath);
-  const pluginId = pluginManifest?.plugin?.id ?? createInvalidPluginId(pluginPath);
+  const pluginId = options.pluginRecordId ?? pluginManifest?.plugin?.id ?? createInvalidPluginId(pluginPath);
   const pluginVersion = pluginManifest?.plugin?.version ?? "0.0.0";
   const agents: IndexedAgentSummary[] = [];
   const workflowTemplates: IndexedWorkflowTemplateSummary[] = [];
@@ -372,6 +410,93 @@ function reconcileIndexedWorkflowTemplates(
 
 function resourceKey(id: string, version: string): string {
   return `${id}@${version}`;
+}
+
+function detectPluginIndexCollisions(discoveredPlugins: DiscoveredPluginRoot[]): Map<string, ManifestValidationIssue[]> {
+  const issuesByRoot = new Map<string, ManifestValidationIssue[]>();
+  const pluginIdentities = new Map<string, PluginIdentityEntry[]>();
+  const agentIdentities = new Map<string, AgentIdentityEntry[]>();
+
+  for (const plugin of discoveredPlugins) {
+    const pluginRoot = resolve(plugin.root);
+    const pluginManifestPath = resolve(pluginRoot, PLUGIN_MANIFEST_FILENAME);
+    const pluginManifest = loadManifestIfPossible<PluginManifestDocument>(pluginManifestPath);
+    const pluginId = pluginManifest?.plugin?.id;
+    const pluginVersion = pluginManifest?.plugin?.version ?? "0.0.0";
+    if (pluginId) {
+      appendIdentity(pluginIdentities, resourceKey(pluginId, pluginVersion), {
+        root: pluginRoot,
+        file: pluginManifestPath,
+        id: pluginId,
+        version: pluginVersion
+      });
+    }
+
+    for (const reference of pluginManifest?.plugin?.agents ?? []) {
+      const normalizedReference = normalizeResourceReference(reference);
+      if (!normalizedReference) {
+        continue;
+      }
+      const agentPath = resolvePathInside(pluginRoot, normalizedReference.path);
+      if (!agentPath) {
+        continue;
+      }
+      const agentManifest = loadManifestIfPossible<AgentManifestDocument>(agentPath);
+      const agentId = agentManifest?.agent?.id;
+      const agentVersion = agentManifest?.agent?.version ?? "0.0.0";
+      if (!agentId) {
+        continue;
+      }
+      appendIdentity(agentIdentities, resourceKey(agentId, agentVersion), {
+        root: pluginRoot,
+        file: agentPath,
+        id: agentId,
+        version: agentVersion
+      });
+    }
+  }
+
+  for (const entries of pluginIdentities.values()) {
+    if (entries.length < 2) {
+      continue;
+    }
+    const first = entries[0]!;
+    for (const duplicate of entries.slice(1)) {
+      appendCollisionIssue(issuesByRoot, duplicate.root, {
+        file: duplicate.file,
+        path: "$.plugin.id",
+        message: `duplicate plugin id/version '${duplicate.id}@${duplicate.version}' also declared in ${first.file}`
+      });
+    }
+  }
+
+  for (const entries of agentIdentities.values()) {
+    if (entries.length < 2) {
+      continue;
+    }
+    const files = entries.map((entry) => entry.file).sort();
+    for (const entry of entries) {
+      appendCollisionIssue(issuesByRoot, entry.root, {
+        file: entry.file,
+        path: "$.agent.id",
+        message: `duplicate agent id/version '${entry.id}@${entry.version}' declared in ${files.join(", ")}`
+      });
+    }
+  }
+
+  return issuesByRoot;
+}
+
+function appendIdentity<T>(map: Map<string, T[]>, key: string, value: T): void {
+  map.set(key, [...(map.get(key) ?? []), value]);
+}
+
+function appendCollisionIssue(
+  issuesByRoot: Map<string, ManifestValidationIssue[]>,
+  root: string,
+  issue: ManifestValidationIssue
+): void {
+  issuesByRoot.set(root, [...(issuesByRoot.get(root) ?? []), issue]);
 }
 
 function resolveConfiguredPath(config: AthenaConfig, path: string): string {

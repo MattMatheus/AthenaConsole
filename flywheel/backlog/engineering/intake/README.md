@@ -4,7 +4,9 @@ Raw engineering work enters here before PM refinement.
 
 ## Candidate Sequence
 
-No engineering intake items.
+1. `STORY-20260530-agent-developer-kit-hardening.md`
+2. `STORY-20260530-agent-scaffold-command.md`
+3. `STORY-20260530-product-readiness-smoke-suite.md`
 
 ## Refinement Rule
 

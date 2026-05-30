@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AgentCatalogAgentSummary } from "../agent-catalog";
+import type { TaskWorkbenchRunStatus } from "./types";
 import {
   buildCreateTaskRequest,
   filterCompatibleAgents,
@@ -7,6 +8,7 @@ import {
   initialInputValues,
   normalizeInputFields,
   validateTaskForm,
+  taskActionState,
 } from "./formModel";
 
 describe("task workbench form model", () => {
@@ -186,7 +188,33 @@ describe("task workbench form model", () => {
       },
     });
   });
+
+  it("maps task status and latest run into available actions", () => {
+    expect(taskActionState({ status: "ready" })).toEqual({
+      canRun: true,
+      canOpenLatestRun: false,
+    });
+    expect(taskActionState({ status: "completed", latestRun: runSummary("run-1", "completed") })).toEqual({
+      canRun: false,
+      canOpenLatestRun: true,
+      latestRunId: "run-1",
+    });
+    expect(taskActionState({ status: "running", latestRun: runSummary("run-2", "running") })).toEqual({
+      canRun: false,
+      canOpenLatestRun: true,
+      latestRunId: "run-2",
+    });
+  });
 });
+
+function runSummary(id: string, status: TaskWorkbenchRunStatus) {
+  return {
+    id,
+    status,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  };
+}
 
 function agent(id: string, available: boolean, capabilities: string[]): AgentCatalogAgentSummary {
   return {

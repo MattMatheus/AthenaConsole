@@ -138,7 +138,7 @@ Completed story sequence:
 
 ### 2026.26-2026.30 Real Work Enablement
 
-Status: Planning intake.
+Status: Complete.
 
 Goal: let a local operator connect a repository, connect an AI model provider, add useful plugin-backed agents, run real work safely, and prove the system on a local server.
 
@@ -166,7 +166,7 @@ Completed architecture item:
 
 - `flywheel/backlog/architecture/done/ARCH-20260529-real-work-enablement-operating-model.md`
 
-Recommended sequence:
+Completed sequence:
 
 1. `flywheel/backlog/architecture/done/ARCH-20260529-real-work-enablement-operating-model.md`
 2. `flywheel/backlog/engineering/done/STORY-20260529-repo-app-state-inspection.md`
@@ -181,15 +181,45 @@ Recommended sequence:
 11. `flywheel/backlog/engineering/done/STORY-20260529-example-generic-research-agents.md`
 12. `flywheel/backlog/engineering/done/STORY-20260529-build-your-first-agent-guide.md`
 13. `flywheel/backlog/engineering/done/STORY-20260529-manifest-input-schema-forms.md`
-14. `flywheel/backlog/engineering/ready/STORY-20260529-run-readiness-gates.md`
-15. `flywheel/backlog/engineering/ready/STORY-20260529-safe-run-modes-and-proposed-changes.md`
-16. `flywheel/backlog/engineering/ready/STORY-20260529-local-server-compose-profile.md`
-17. `flywheel/backlog/engineering/ready/STORY-20260529-deployment-readiness-diagnostics.md`
-18. `flywheel/backlog/engineering/ready/STORY-20260529-fresh-server-real-work-walkthrough.md`
+14. `flywheel/backlog/engineering/done/STORY-20260529-run-readiness-gates.md`
+15. `flywheel/backlog/engineering/done/STORY-20260529-safe-run-modes-and-proposed-changes.md`
+16. `flywheel/backlog/engineering/done/STORY-20260529-local-server-compose-profile.md`
+17. `flywheel/backlog/engineering/done/STORY-20260529-deployment-readiness-diagnostics.md`
+18. `flywheel/backlog/engineering/done/STORY-20260529-fresh-server-real-work-walkthrough.md`
+
+## Next Roadmap Arc
+
+### 2026.31 Productization, Documentation, And Agent Developer Kit
+
+Status: Refinement.
+
+Goal: move Team Orchestrator from a working local prototype into a product a new operator or agent author can understand, run, extend, and trust without relying on project-history context.
+
+Why now:
+
+- The real-work path now works locally: repo connection, provider setup, model-backed agents, task runs, artifact inspection, and local-server deployment.
+- Review surfaced repo/documentation debt from the product realignment.
+- Users need a canonical path to create their own agents, not just copy existing samples.
+- The existing `@athena/pdk` package should be hardened into a coherent Agent Developer Kit surface.
+
+Target outcome:
+
+- A new user can start the project, find the right docs, create or scaffold an agent, run a product smoke path, and understand which repo areas are canonical versus historical.
+
+Source epic:
+
+- `docs/product/epics/refinement/2026.31.00-epic-productization-docs-and-agent-developer-kit.md`
+
+Candidate sequence:
+
+1. `flywheel/backlog/engineering/done/STORY-20260530-repo-cleanup-audit.md`
+2. `flywheel/backlog/engineering/done/STORY-20260530-remove-stale-marketing-app.md`
+3. `flywheel/backlog/engineering/qa/STORY-20260530-docs-information-architecture.md`
+4. `flywheel/backlog/engineering/intake/STORY-20260530-agent-developer-kit-hardening.md`
+5. `flywheel/backlog/engineering/intake/STORY-20260530-agent-scaffold-command.md`
+6. `flywheel/backlog/engineering/intake/STORY-20260530-product-readiness-smoke-suite.md`
 
 ## Near-Term Principles
-
-The next roadmap arc is refined into ready engineering stories. Promote one story at a time through Flywheel, starting with repository app-state and inspection.
 
 - Prefer complete local operator loops over new isolated backend features.
 - Keep the first-run path honest: only document and expose workflows that actually work in the current product.
@@ -197,6 +227,7 @@ The next roadmap arc is refined into ready engineering stories. Promote one stor
 - Do not reintroduce legacy compatibility shims for removed control-plane paths.
 - Keep Flywheel as the operational source of truth for active and queued work.
 - Keep the real-work loop centered on explicit repo context, explicit provider configuration, and explicit approvals before mutations or external side effects.
+- When review exposes gaps, create explicit Flywheel intake items instead of reviving stale roadmap entries.
 
 ## Archived Roadmap Context
 

@@ -78,4 +78,39 @@ describe("model provider config service", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("resolves env secret references from workspace .env without exposing raw values", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-model-provider-env-"));
+    writeFileSync(join(dir, ".env"), "DEEPSEEK_API_KEY=sk-deepseek-test\n", "utf8");
+    try {
+      const service = new LocalModelProviderConfigService(loadConfig(dir));
+      const provider = await service.create({
+        id: "provider-deepseek",
+        name: "DeepSeek",
+        providerKind: "openai-compatible",
+        baseUrl: "https://api.deepseek.com",
+        defaultModel: "deepseek-chat",
+        secret: {
+          kind: "env",
+          name: "DEEPSEEK_API_KEY"
+        }
+      });
+
+      expect(provider).toMatchObject({
+        id: "provider-deepseek",
+        status: "configured",
+        secret: {
+          kind: "env",
+          name: "DEEPSEEK_API_KEY",
+          configured: true
+        }
+      });
+      expect(JSON.stringify(provider)).not.toContain("sk-deepseek-test");
+
+      const runtime = await service.resolveRuntimeConfig("provider-deepseek");
+      expect(runtime.apiKey).toBe("sk-deepseek-test");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

@@ -1,0 +1,33 @@
+schemaVersion: 1
+plugin:
+  id: team-orchestrator.samples.local-user-test
+  name: local user test
+  version: 0.1.0
+  description: Minimal read-only agent that calls a configured OpenAI-compatible model provider.
+  authors:
+    - name: Team Orchestrator
+  agents:
+    - path: agents/model-prompt.agent.yaml
+      id: local.user.test
+      version: 0.1.0
+  docs:
+    readme: docs/README.md
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    manifestSchema: team-orchestrator.manifests.v1
+    runtimeBackends:
+      - local-process
+    platforms:
+      - any
+  permissions:
+    network: allow
+    filesystem: none
+    shell: allow
+    credentials: scoped
+  ui:
+    icon: message-circle-code
+    color: "#536dfe"
+    tags:
+      - sample
+      - model-provider
+      - smoke-test

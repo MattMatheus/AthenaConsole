@@ -24,6 +24,7 @@ Pre-reset refinement records were moved to:
 - `docs/product/epics/refinement/2026.28.00-epic-agent-sdk-and-examples.md`
 - `docs/product/epics/refinement/2026.29.00-epic-real-work-run-loop.md`
 - `docs/product/epics/refinement/2026.30.00-epic-local-server-deployment-readiness.md`
+- `docs/product/epics/refinement/2026.31.00-epic-productization-docs-and-agent-developer-kit.md`
 
 ## Completed Refinement Tracks
 

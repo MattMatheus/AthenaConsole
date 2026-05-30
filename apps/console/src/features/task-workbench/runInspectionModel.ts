@@ -20,6 +20,22 @@ export type ProposedChangeArtifact = {
   }>;
 };
 
+export type ModelProviderRunMetadata = {
+  providerId?: string;
+  providerKind?: string;
+  baseUrl?: string;
+  model?: string;
+};
+
+export type ModelRunOutput = {
+  providerId?: string;
+  providerKind?: string;
+  model?: string;
+  response?: string;
+  responseMarkdown?: string;
+  usage?: unknown;
+};
+
 export function classifyRunEvent(event: Pick<TaskWorkbenchRunEvent, "type">): RunEventKind {
   if (event.type === "run.log") {
     return "log";
@@ -128,6 +144,37 @@ export function proposedChangeArtifact(artifact: Pick<TaskWorkbenchArtifactMetad
     applyAvailable: metadata.applyAvailable === true,
     changes: rawChanges.map(normalizeProposedChange).filter((change): change is ProposedChangeArtifact["changes"][number] => Boolean(change)),
   };
+}
+
+export function modelProviderRunMetadata(events: Array<Pick<TaskWorkbenchRunEvent, "type" | "payload">>): ModelProviderRunMetadata | undefined {
+  const event = events.find((item) => item.type === "run.model_provider");
+  const payload = event ? asRecord(event.payload) : undefined;
+  if (!payload) {
+    return undefined;
+  }
+  const metadata: ModelProviderRunMetadata = {
+    ...(typeof payload.providerId === "string" ? { providerId: payload.providerId } : {}),
+    ...(typeof payload.providerKind === "string" ? { providerKind: payload.providerKind } : {}),
+    ...(typeof payload.baseUrl === "string" ? { baseUrl: payload.baseUrl } : {}),
+    ...(typeof payload.model === "string" ? { model: payload.model } : {}),
+  };
+  return Object.keys(metadata).length > 0 ? metadata : undefined;
+}
+
+export function modelRunOutput(value: unknown): ModelRunOutput | undefined {
+  const record = asRecord(value);
+  if (!record) {
+    return undefined;
+  }
+  const output: ModelRunOutput = {
+    ...(typeof record.providerId === "string" ? { providerId: record.providerId } : {}),
+    ...(typeof record.providerKind === "string" ? { providerKind: record.providerKind } : {}),
+    ...(typeof record.model === "string" ? { model: record.model } : {}),
+    ...(typeof record.response === "string" ? { response: record.response } : {}),
+    ...(typeof record.responseMarkdown === "string" ? { responseMarkdown: record.responseMarkdown } : {}),
+    ...(record.usage !== undefined ? { usage: record.usage } : {}),
+  };
+  return output.response || output.responseMarkdown || output.model || output.providerId ? output : undefined;
 }
 
 function normalizeProposedChange(value: unknown): ProposedChangeArtifact["changes"][number] | undefined {

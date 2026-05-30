@@ -81,6 +81,7 @@ export const API_V1_ROUTES: ApiRouteDefinition[] = [
   { method: "GET", path: `${API_V1_PREFIX}/tasks/:id/run-readiness`, operationId: "getTaskRunReadiness" },
   { method: "POST", path: `${API_V1_PREFIX}/tasks/:id/run`, operationId: "runTask" },
   { method: "GET", path: `${API_V1_PREFIX}/task-runs/:runId`, operationId: "getTaskRun" },
+  { method: "GET", path: `${API_V1_PREFIX}/task-runs/:runId/artifacts/:artifactId`, operationId: "getTaskRunArtifact" },
   { method: "POST", path: `${API_V1_PREFIX}/task-runs/:runId/cancel`, operationId: "cancelTaskRun" },
   { method: "POST", path: `${API_V1_PREFIX}/runs`, operationId: "createRun" },
   { method: "GET", path: `${API_V1_PREFIX}/runs/active`, operationId: "listActiveRuns", queryMode: "cursor-page" },

@@ -210,6 +210,91 @@ describe("local plugin loader and indexer", () => {
     }
   });
 
+  it("records duplicate plugin id diagnostics without hiding the first valid plugin", () => {
+    const dir = mkdtemp("athena-plugin-duplicate-plugin-");
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_PLUGIN_PATHS=plugins\n", "utf8");
+      writePluginPackage(join(dir, "plugins", "original"), {
+        pluginId: "team-orchestrator.test.duplicate-plugin",
+        agentId: "duplicate.plugin.original"
+      });
+      writePluginPackage(join(dir, "plugins", "copy"), {
+        pluginId: "team-orchestrator.test.duplicate-plugin",
+        agentId: "duplicate.plugin.copy"
+      });
+
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        const result = indexConfiguredLocalPlugins(config, { appState });
+        const indexedPlugins = result.plugins;
+        const loadedPlugin = indexedPlugins.find((plugin) => plugin.status === "loaded");
+        const invalidPlugin = indexedPlugins.find((plugin) => plugin.status === "invalid");
+
+        expect(indexedPlugins).toHaveLength(2);
+        expect(loadedPlugin).toMatchObject({
+          id: "team-orchestrator.test.duplicate-plugin",
+          status: "loaded"
+        });
+        expect(invalidPlugin).toMatchObject({
+          status: "invalid"
+        });
+        expect(invalidPlugin?.id).toMatch(/^invalid\./);
+        expect(invalidPlugin?.validationErrors).toEqual([
+          expect.objectContaining({
+            path: "$.plugin.id",
+            message: expect.stringContaining("duplicate plugin id/version 'team-orchestrator.test.duplicate-plugin@0.1.0'")
+          })
+        ]);
+
+        expect(appState.plugins.list().map((plugin) => plugin.status).sort()).toEqual(["invalid", "loaded"]);
+        expect(appState.agents.list().map((agent) => agent.id)).toHaveLength(1);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("records duplicate agent id diagnostics on each colliding plugin", () => {
+    const dir = mkdtemp("athena-plugin-duplicate-agent-");
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_PLUGIN_PATHS=plugins\n", "utf8");
+      writePluginPackage(join(dir, "plugins", "alpha"), {
+        pluginId: "team-orchestrator.test.alpha",
+        agentId: "duplicate.agent.shared"
+      });
+      writePluginPackage(join(dir, "plugins", "beta"), {
+        pluginId: "team-orchestrator.test.beta",
+        agentId: "duplicate.agent.shared"
+      });
+
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        const result = indexConfiguredLocalPlugins(config, { appState });
+
+        expect(result.plugins).toHaveLength(2);
+        expect(result.plugins.every((plugin) => plugin.status === "invalid")).toBe(true);
+        expect(result.plugins.every((plugin) => plugin.agents.length === 0)).toBe(true);
+        for (const plugin of result.plugins) {
+          expect(plugin.validationErrors).toEqual([
+            expect.objectContaining({
+              path: "$.agent.id",
+              message: expect.stringContaining("duplicate agent id/version 'duplicate.agent.shared@0.1.0'")
+            })
+          ]);
+        }
+        expect(appState.agents.list()).toEqual([]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("captures workflow template validation errors and avoids indexing templates for invalid plugins", () => {
     const dir = mkdtemp("athena-plugin-invalid-workflow-");
     try {

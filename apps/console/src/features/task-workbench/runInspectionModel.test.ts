@@ -5,6 +5,8 @@ import {
   formatUnknown,
   formatVerificationFailureDetails,
   isProposedChangeArtifact,
+  modelProviderRunMetadata,
+  modelRunOutput,
   proposedChangeArtifact,
   runStatusTone,
   verificationStatusLabel,
@@ -83,6 +85,44 @@ describe("task run inspection model", () => {
           diff: "@@ -1 +1 @@\n-old\n+new",
         },
       ],
+    });
+  });
+
+  it("extracts model provider metadata and model output without secrets", () => {
+    expect(
+      modelProviderRunMetadata([
+        {
+          type: "run.model_provider",
+          payload: {
+            providerId: "deepseek-local",
+            providerKind: "openai-compatible",
+            baseUrl: "https://api.deepseek.com",
+            model: "deepseek-chat",
+            apiKey: "should-not-be-read",
+          },
+        },
+      ])
+    ).toEqual({
+      providerId: "deepseek-local",
+      providerKind: "openai-compatible",
+      baseUrl: "https://api.deepseek.com",
+      model: "deepseek-chat",
+    });
+
+    expect(
+      modelRunOutput({
+        providerId: "deepseek-local",
+        providerKind: "openai-compatible",
+        model: "deepseek-chat",
+        response: "Hello from the model.",
+        usage: { total_tokens: 12 },
+      })
+    ).toEqual({
+      providerId: "deepseek-local",
+      providerKind: "openai-compatible",
+      model: "deepseek-chat",
+      response: "Hello from the model.",
+      usage: { total_tokens: 12 },
     });
   });
 });

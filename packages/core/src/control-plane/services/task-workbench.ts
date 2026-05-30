@@ -1,14 +1,19 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { AthenaError } from "../../runtime/errors.js";
 import type { AthenaConfig } from "../../shared/config.js";
 import type { VerificationPolicyFailure } from "../../shared/contracts/harness.js";
 import type {
+  ModelProviderRequirement,
   ProviderReadiness,
   TaskWorkbenchRunMode,
   TaskWorkbenchMetadata,
+  TaskWorkbenchArtifactContent,
   TaskWorkbenchArtifactMetadata,
+  TaskWorkbenchArtifactRecord,
   TaskWorkbenchRunEvent,
   TaskWorkbenchRunReadiness,
   TaskWorkbenchRunReadinessCheck,
@@ -17,6 +22,7 @@ import type {
   TaskWorkbenchTaskListQuery,
   TaskWorkbenchTaskListResult,
   TaskWorkbenchTaskRun,
+  TaskWorkbenchTaskRunSummary,
   TaskWorkbenchTaskRunCancelRequest,
   TaskWorkbenchTaskRunCancelResult,
   TaskWorkbenchTaskRunDetail,
@@ -24,6 +30,7 @@ import type {
   TaskWorkbenchTaskUpdateRequest
 } from "../../shared/contracts.js";
 import { DEFAULT_TASK_WORKBENCH_RUN_MODE, TASK_WORKBENCH_RUN_MODES, TASK_WORKBENCH_STATUSES } from "../../shared/contracts.js";
+import type { ModelProviderRuntimeConfig } from "../../shared/contracts/model-providers.js";
 import type {
   AgentIndexRecord,
   AppStateDatabase,
@@ -37,6 +44,7 @@ import type {
 } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
 import type { TaskWorkbenchService } from "../interfaces.js";
+import { LocalModelProviderConfigService } from "./model-providers.js";
 import { evaluateProviderReadiness, normalizeModelProviderRequirement } from "./provider-readiness.js";
 import { LocalWorkflowStateService } from "./workflow-state.js";
 
@@ -301,6 +309,23 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
     });
   }
 
+  async getRunArtifact(runId: string, artifactId: string): Promise<TaskWorkbenchArtifactRecord> {
+    return this.withAppState((appState) => {
+      const run = appState.runs.get(runId);
+      if (!run || run.targetType !== "task") {
+        throw new AthenaError("PROVIDER_NOT_FOUND", `Task run not found: ${runId}`);
+      }
+      const artifact = appState.artifacts.listForRun(run.id).find((item) => item.id === artifactId);
+      if (!artifact) {
+        throw new AthenaError("PROVIDER_NOT_FOUND", `Task run artifact not found: ${artifactId}`);
+      }
+      return {
+        ...mapArtifactMetadataRecord(artifact),
+        content: resolveTaskRunArtifactContent(appState, run, artifact)
+      };
+    });
+  }
+
   async runTask(id: string, request: TaskWorkbenchTaskRunRequest = {}): Promise<TaskWorkbenchTaskRun> {
     return this.withAppStateAsync(async (appState) => {
       const task = requireTask(appState, id);
@@ -320,6 +345,10 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       validateTaskInputs(manifest.agent?.inputs, task.inputs);
       const execution = resolveTaskExecution(manifest, plugin);
       const safety = resolveTaskRunSafety(manifest, execution.backend);
+      const modelProviderRequirement = normalizeModelProviderRequirement(manifest.agent?.runtime?.modelProvider);
+      const modelProvider = modelProviderRequirement
+        ? await resolveTaskModelProvider(this.config, appState, modelProviderRequirement)
+        : undefined;
       const runId = request.runId ?? `run-${randomUUID()}`;
       const startedAt = new Date().toISOString();
       let run = appState.runs.create({
@@ -346,6 +375,14 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         limits: safety.limits,
         approvalRequiredFor: safety.approvalRequiredFor
       });
+      if (modelProvider) {
+        appendRunEvent(appState, run.id, task, agent.id, "run.model_provider", "Model provider resolved for task run.", {
+          providerId: modelProvider.id,
+          providerKind: modelProvider.providerKind,
+          baseUrl: modelProvider.baseUrl,
+          model: modelProvider.defaultModel
+        });
+      }
       appendApprovalRequiredEvents(appState, run, task, agent.id, execution.backend, safety);
       appendRunEvent(appState, run.id, task, agent.id, "run.started", `${backendLabel(execution.backend)} task run started.`, {
         backend: execution.backend,
@@ -391,7 +428,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
           stream: "stderr"
         });
       });
-      child.stdin.end(JSON.stringify({ task, agent: { id: agent.id, version: agent.version }, run: { id: run.id } }));
+      child.stdin.end(JSON.stringify(createAgentTaskRunEnvelope(task, agent, run, modelProvider)));
 
       let exit: { code: number | null; signal: NodeJS.Signals | null; safetyStop?: TaskRunSafetyStop };
       try {
@@ -550,7 +587,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
           accept: "application/json, text/plain",
           ...request.headers
         },
-        body: JSON.stringify({ task, agent: { id: agent.id, version: agent.version }, run: { id: run.id } }),
+        body: JSON.stringify(createAgentTaskRunEnvelope(task, agent, run)),
         signal: abortController.signal
       });
       responseText = await response.text();
@@ -1569,6 +1606,36 @@ function evaluateAgentProviderReadiness(appState: AppStateDatabase, manifest: Ag
   return evaluateProviderReadiness(requirement ? [requirement] : [], appState.modelProviderConfigs.list());
 }
 
+async function resolveTaskModelProvider(
+  config: AthenaConfig,
+  appState: AppStateDatabase,
+  requirement: ModelProviderRequirement
+): Promise<ModelProviderRuntimeConfig | undefined> {
+  const readiness = evaluateProviderReadiness([requirement], appState.modelProviderConfigs.list());
+  if (readiness.status !== "configured" || !readiness.providerId) {
+    return undefined;
+  }
+  const runtimeConfig = await new LocalModelProviderConfigService(config).resolveRuntimeConfig(readiness.providerId);
+  return {
+    ...runtimeConfig,
+    defaultModel: readiness.model ?? runtimeConfig.defaultModel
+  };
+}
+
+function createAgentTaskRunEnvelope(
+  task: TaskRecord,
+  agent: AgentIndexRecord,
+  run: RunRecord,
+  modelProvider?: ModelProviderRuntimeConfig
+): Record<string, unknown> {
+  return {
+    task,
+    agent: { id: agent.id, version: agent.version },
+    run: { id: run.id },
+    ...(modelProvider ? { modelProvider } : {})
+  };
+}
+
 function addProviderReadinessCheck(
   readiness: ProviderReadiness,
   addCheck: (check: TaskWorkbenchRunReadinessCheck) => void
@@ -1804,6 +1871,7 @@ function summarizeRunReadiness(checks: TaskWorkbenchRunReadinessCheck[]): TaskWo
 }
 
 function mapTaskRecord(record: TaskRecord, appState?: AppStateDatabase): TaskWorkbenchTask {
+  const latestRun = appState?.runs.list({ targetType: "task", targetId: record.id, limit: 1 })[0];
   return {
     id: record.id,
     title: record.title,
@@ -1821,7 +1889,22 @@ function mapTaskRecord(record: TaskRecord, appState?: AppStateDatabase): TaskWor
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     ...(record.archivedAt ? { archivedAt: record.archivedAt } : {}),
-    ...(appState ? { runReadiness: evaluateTaskRunReadiness(appState, record) } : {})
+    ...(appState ? { runReadiness: evaluateTaskRunReadiness(appState, record) } : {}),
+    ...(latestRun ? { latestRun: mapRunSummaryRecord(latestRun) } : {})
+  };
+}
+
+function mapRunSummaryRecord(record: RunRecord): TaskWorkbenchTaskRunSummary {
+  return {
+    id: record.id,
+    status: record.status,
+    ...(record.backend ? { backend: record.backend } : {}),
+    ...(record.agentId ? { agentId: record.agentId } : {}),
+    ...(record.agentVersion ? { agentVersion: record.agentVersion } : {}),
+    ...(record.startedAt ? { startedAt: record.startedAt } : {}),
+    ...(record.endedAt ? { endedAt: record.endedAt } : {}),
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt
   };
 }
 
@@ -1879,6 +1962,132 @@ function mapArtifactMetadataRecord(record: ArtifactMetadataRecord): TaskWorkbenc
     ...(record.schemaValidation !== undefined ? { schemaValidation: record.schemaValidation } : {}),
     createdAt: record.createdAt
   };
+}
+
+function resolveTaskRunArtifactContent(
+  appState: AppStateDatabase,
+  run: RunRecord,
+  artifact: ArtifactMetadataRecord
+): TaskWorkbenchArtifactContent {
+  if (!artifact.storageUri.startsWith("memory://")) {
+    return resolveLocalFileArtifactContent(appState, run, artifact);
+  }
+  if (!isSafeMemoryArtifactUri(artifact.storageUri)) {
+    throw new AthenaError("CONFIG_ERROR", "Artifact storageUri is not a supported memory artifact URI.");
+  }
+  return mapArtifactContent(selectMemoryArtifactContent(isRecord(run.output) ? run.output : {}, artifact), artifact);
+}
+
+function resolveLocalFileArtifactContent(
+  appState: AppStateDatabase,
+  run: RunRecord,
+  artifact: ArtifactMetadataRecord
+): TaskWorkbenchArtifactContent {
+  if (!isLocalFileArtifactUri(artifact.storageUri)) {
+    const scheme = artifact.storageUri.includes(":") ? artifact.storageUri.split(":", 1)[0] : "unknown";
+    throw new AthenaError("CONFIG_ERROR", `Artifact content is not available for storage URI scheme '${scheme}'.`);
+  }
+  if (!run.agentId) {
+    throw new AthenaError("CONFIG_ERROR", "Artifact content cannot be resolved without a producing agent.");
+  }
+  const agent = appState.agents
+    .list()
+    .find((candidate) => candidate.id === run.agentId && (!run.agentVersion || candidate.version === run.agentVersion));
+  if (!agent) {
+    throw new AthenaError("CONFIG_ERROR", `producing agent not found: ${run.agentId}`);
+  }
+  const plugin = appState.plugins.get(agent.pluginId, agent.pluginVersion);
+  if (!plugin) {
+    throw new AthenaError("CONFIG_ERROR", `producing plugin not found: ${agent.pluginId}@${agent.pluginVersion}`);
+  }
+  const artifactPath = resolveLocalArtifactPath(plugin, artifact.storageUri);
+  const content = readFileSync(artifactPath, "utf8");
+  return mapArtifactContent(content, artifact);
+}
+
+function mapArtifactContent(content: unknown, artifact: ArtifactMetadataRecord): TaskWorkbenchArtifactContent {
+  if (content === undefined) {
+    throw new AthenaError("PROVIDER_NOT_FOUND", `Artifact content not found for ${artifact.id}.`);
+  }
+  if (artifact.format === "json" || isJsonLike(content)) {
+    return {
+      kind: "json",
+      value: typeof content === "string" ? JSON.parse(content) as unknown : content,
+      mediaType: "application/json"
+    };
+  }
+  return {
+    kind: "text",
+    text: typeof content === "string" ? content : JSON.stringify(content, null, 2),
+    mediaType: mediaTypeForArtifactFormat(artifact.format)
+  };
+}
+
+function isLocalFileArtifactUri(value: string): boolean {
+  return value.startsWith("file://") || (!value.includes(":") && !isAbsolute(value));
+}
+
+function resolveLocalArtifactPath(plugin: PluginIndexRecord, storageUri: string): string {
+  const pluginRoot = resolve(plugin.path);
+  const relativeArtifactPath = storageUri.startsWith("file://") ? fileURLToPath(storageUri) : storageUri;
+  if (isAbsolute(relativeArtifactPath)) {
+    const resolvedFilePath = resolve(relativeArtifactPath);
+    if (!isPathInside(pluginRoot, resolvedFilePath)) {
+      throw new AthenaError("CONFIG_ERROR", "Artifact file URI must stay inside the producing plugin directory.");
+    }
+    return resolvedFilePath;
+  }
+  const resolvedRelativePath = resolve(pluginRoot, relativeArtifactPath);
+  const boundedArtifactRoot = resolve(pluginRoot, "artifacts");
+  if (!isPathInside(boundedArtifactRoot, resolvedRelativePath)) {
+    throw new AthenaError("CONFIG_ERROR", "Artifact storageUri must stay inside the producing plugin artifacts directory.");
+  }
+  return resolvedRelativePath;
+}
+
+function selectMemoryArtifactContent(output: Record<string, unknown>, artifact: ArtifactMetadataRecord): unknown {
+  const metadata = isRecord(artifact.metadata) ? artifact.metadata : {};
+  const contentKey = typeof metadata.contentKey === "string" ? metadata.contentKey : undefined;
+  if (contentKey && output[contentKey] !== undefined) {
+    return output[contentKey];
+  }
+  if (artifact.format === "markdown") {
+    for (const key of ["responseMarkdown", "summaryMarkdown", "markdown"]) {
+      if (typeof output[key] === "string") {
+        return output[key];
+      }
+    }
+  }
+  if (artifact.format === "json" && output.artifact !== undefined) {
+    return output.artifact;
+  }
+  return undefined;
+}
+
+function isSafeMemoryArtifactUri(value: string): boolean {
+  if (value.includes("/../") || value.endsWith("/..")) {
+    return false;
+  }
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "memory:" && parsed.hostname.length > 0 && !parsed.pathname.split("/").some((part) => part === "..");
+  } catch {
+    return false;
+  }
+}
+
+function isJsonLike(value: unknown): boolean {
+  return typeof value === "object" && value !== null;
+}
+
+function mediaTypeForArtifactFormat(format: string): string {
+  if (format === "markdown") {
+    return "text/markdown";
+  }
+  if (format === "diff" || format === "patch") {
+    return "text/x-diff";
+  }
+  return "text/plain";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

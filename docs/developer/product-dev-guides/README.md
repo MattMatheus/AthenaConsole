@@ -4,6 +4,8 @@
 
 Developer-oriented guides for setup, contribution, and implementation standards.
 
+For the repo-wide audience map, start at `docs/README.md`.
+
 ## Core Operating Documents
 
 - Onboarding: `docs/developer/product-dev-guides/00-onboarding.md`

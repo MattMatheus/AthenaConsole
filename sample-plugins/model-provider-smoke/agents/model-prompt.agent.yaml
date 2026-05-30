@@ -1,0 +1,81 @@
+schemaVersion: 1
+agent:
+  id: model.prompt.smoke
+  name: Model Prompt Smoke Agent
+  version: 0.1.0
+  description: Sends a short prompt to the configured OpenAI-compatible provider and returns the model response.
+  capabilities:
+    - model.prompt
+    - text.generate
+    - artifacts.produce
+  inputs:
+    prompt:
+      type: markdown
+      required: true
+      label: Prompt
+      description: Short prompt to send to the configured model provider.
+      ui:
+        widget: markdown
+        placeholder: Ask for a two sentence summary of Team Orchestrator.
+    systemPrompt:
+      type: markdown
+      required: false
+      label: System prompt
+      description: Optional system instruction for the model.
+      default: You are a concise assistant testing Team Orchestrator model-provider wiring.
+      ui:
+        widget: markdown
+    maxTokens:
+      type: integer
+      required: false
+      default: 300
+      label: Max tokens
+    temperature:
+      type: number
+      required: false
+      default: 0.2
+      label: Temperature
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: modelResponse
+        label: Model Response
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - agents/model-prompt-runner.mjs
+  runtime:
+    preferredBackend: local-process
+    backendPreferences:
+      - local-process
+    workingDirectory: .
+    modelProvider:
+      required: true
+      providerKind: openai-compatible
+      label: OpenAI-compatible provider
+  permissions:
+    network: allow
+    filesystem: none
+    shell: allow
+    credentials: scoped
+  limits:
+    maxRuntimeSeconds: 90
+    maxToolCalls: 1
+    maxRepeatedActions: 1
+    maxRetries: 0
+    maxFollowUpTasks: 0
+    maxOutputBytes: 65536
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+    eventHints:
+      - run.started
+      - run.model_provider
+      - artifact.created
+      - run.completed
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    pluginApi: team-orchestrator.manifests.v1

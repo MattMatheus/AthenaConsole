@@ -62,3 +62,9 @@ Engineering work accepted by QA.
 56. `STORY-20260529-local-server-compose-profile.md`
 57. `STORY-20260529-deployment-readiness-diagnostics.md`
 58. `STORY-20260529-fresh-server-real-work-walkthrough.md`
+59. `STORY-20260530-artifact-content-inspection.md`
+60. `STORY-20260530-agent-id-collision-diagnostics.md`
+61. `STORY-20260530-task-run-history-actions.md`
+62. `STORY-20260530-user-agent-copy-guide.md`
+63. `STORY-20260530-repo-cleanup-audit.md`
+64. `STORY-20260530-remove-stale-marketing-app.md`

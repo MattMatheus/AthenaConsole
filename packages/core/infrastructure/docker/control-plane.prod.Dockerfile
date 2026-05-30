@@ -4,7 +4,6 @@ WORKDIR /workspace
 COPY package*.json ./
 COPY apps/api/package*.json ./apps/api/
 COPY apps/console/package*.json ./apps/console/
-COPY apps/marketing/package*.json ./apps/marketing/
 COPY packages/core/package*.json ./packages/core/
 COPY packages/pdk/package*.json ./packages/pdk/
 RUN npm ci

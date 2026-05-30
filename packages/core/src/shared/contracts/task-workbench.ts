@@ -46,6 +46,7 @@ export interface TaskWorkbenchTask {
   updatedAt: string;
   archivedAt?: string;
   runReadiness?: TaskWorkbenchRunReadiness;
+  latestRun?: TaskWorkbenchTaskRunSummary;
 }
 
 export type TaskWorkbenchRunReadinessStatus = "ready" | "ready-with-warnings" | "blocked";
@@ -130,6 +131,18 @@ export type TaskWorkbenchRunStatus =
   | "stopped-by-limit";
 export type TaskWorkbenchVerificationStatus = "passed" | "verification-failed";
 
+export interface TaskWorkbenchTaskRunSummary {
+  id: string;
+  status: TaskWorkbenchRunStatus;
+  backend?: string;
+  agentId?: string;
+  agentVersion?: string;
+  startedAt?: string;
+  endedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface TaskWorkbenchTaskRun {
   id: string;
   targetType: "task";
@@ -178,6 +191,22 @@ export interface TaskWorkbenchArtifactMetadata {
   metadata: unknown;
   schemaValidation?: unknown;
   createdAt: string;
+}
+
+export type TaskWorkbenchArtifactContent =
+  | {
+      kind: "text";
+      text: string;
+      mediaType: string;
+    }
+  | {
+      kind: "json";
+      value: unknown;
+      mediaType: "application/json";
+    };
+
+export interface TaskWorkbenchArtifactRecord extends TaskWorkbenchArtifactMetadata {
+  content: TaskWorkbenchArtifactContent;
 }
 
 export interface TaskWorkbenchTaskRunDetail {

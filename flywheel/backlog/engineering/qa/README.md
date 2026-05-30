@@ -4,4 +4,4 @@ Engineering work waiting for QA review.
 
 ## QA Sequence
 
-No engineering stories are waiting for QA.
+1. `STORY-20260530-docs-information-architecture.md`

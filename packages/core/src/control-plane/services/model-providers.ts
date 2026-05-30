@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { isAbsolute } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { AthenaError } from "../../runtime/errors.js";
 import type { AthenaConfig } from "../../shared/config.js";
@@ -127,7 +127,7 @@ export class LocalModelProviderConfigService implements ModelProviderConfigServi
       if (record.providerKind !== "openai-compatible") {
         throw new AthenaError("CONFIG_ERROR", `Unsupported model provider kind: ${record.providerKind}`);
       }
-      const apiKey = resolveSecret(record.secretRef);
+      const apiKey = resolveSecret(record.secretRef, this.config);
       return {
         id: record.id,
         providerKind: record.providerKind,
@@ -149,7 +149,7 @@ export class LocalModelProviderConfigService implements ModelProviderConfigServi
 
   private evaluateSecret(secret: ModelProviderSecretReference): { status: ModelProviderSecretStatus; message: string } {
     try {
-      resolveSecret(secret);
+      resolveSecret(secret, this.config);
       return {
         status: "configured",
         message: `${secret.kind} secret reference is configured.`
@@ -194,9 +194,9 @@ function secretMetadata(secret: ModelProviderSecretReference, configured: boolea
   };
 }
 
-function resolveSecret(secret: ModelProviderSecretReference): string {
+function resolveSecret(secret: ModelProviderSecretReference, config: AthenaConfig): string {
   if (secret.kind === "env") {
-    const value = process.env[secret.name];
+    const value = process.env[secret.name] ?? readDotEnvValue(config.workspaceRoot, secret.name);
     if (!value) {
       throw new AthenaError("CONFIG_ERROR", `Environment secret is not configured: ${secret.name}`);
     }
@@ -216,6 +216,30 @@ function resolveSecret(secret: ModelProviderSecretReference): string {
     return value;
   }
   throw new AthenaError("CONFIG_ERROR", "Unsupported secret reference kind.");
+}
+
+function readDotEnvValue(workspaceRoot: string, key: string): string | undefined {
+  const envPath = resolve(workspaceRoot, ".env");
+  if (!existsSync(envPath)) {
+    return undefined;
+  }
+  const content = readFileSync(envPath, "utf8");
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
+    const eqIndex = line.indexOf("=");
+    if (eqIndex <= 0) {
+      continue;
+    }
+    const name = line.slice(0, eqIndex).trim();
+    if (name !== key) {
+      continue;
+    }
+    return line.slice(eqIndex + 1).trim().replace(/^['"]|['"]$/g, "");
+  }
+  return undefined;
 }
 
 function normalizeProviderConfigError(error: unknown): AthenaError {

@@ -3,6 +3,7 @@ import { AppLayout } from "../layout/AppLayout";
 import { AgentCatalogPage } from "../pages/AgentCatalogPage";
 import { AgentDetailPage } from "../pages/AgentDetailPage";
 import { DashboardPage } from "../pages/DashboardPage";
+import { DocumentationPage } from "../pages/DocumentationPage";
 import { MissionControlPage } from "../pages/MissionControlPage";
 import { MissionsPage } from "../pages/MissionsPage";
 import { DlqPage } from "../pages/DlqPage";
@@ -78,6 +79,10 @@ export const router = createBrowserRouter([
       {
         path: "resources",
         element: <ResourcesPage />,
+      },
+      {
+        path: "docs",
+        element: <DocumentationPage />,
       },
       {
         path: "rbac",

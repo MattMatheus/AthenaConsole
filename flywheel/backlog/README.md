@@ -10,7 +10,7 @@ No active engineering or architecture work.
 
 Work currently awaiting QA:
 
-No engineering or architecture work is awaiting QA.
+- `engineering/qa/STORY-20260530-docs-information-architecture.md`
 
 ## Next
 
@@ -22,12 +22,20 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-No candidate engineering or architecture intake items.
+- `engineering/intake/STORY-20260530-agent-developer-kit-hardening.md`
+- `engineering/intake/STORY-20260530-agent-scaffold-command.md`
+- `engineering/intake/STORY-20260530-product-readiness-smoke-suite.md`
 
 ## Done
 
 Recently completed:
 
+- `engineering/done/STORY-20260530-remove-stale-marketing-app.md`
+- `engineering/done/STORY-20260530-repo-cleanup-audit.md`
+- `engineering/done/STORY-20260530-task-run-history-actions.md`
+- `engineering/done/STORY-20260530-user-agent-copy-guide.md`
+- `engineering/done/STORY-20260530-artifact-content-inspection.md`
+- `engineering/done/STORY-20260530-agent-id-collision-diagnostics.md`
 - `engineering/done/STORY-20260529-fresh-server-real-work-walkthrough.md`
 - `engineering/done/STORY-20260529-deployment-readiness-diagnostics.md`
 - `engineering/done/STORY-20260529-local-server-compose-profile.md`

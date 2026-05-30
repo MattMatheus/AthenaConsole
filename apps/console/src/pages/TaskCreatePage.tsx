@@ -1,6 +1,6 @@
-import { CheckCircle2, RefreshCw, Save } from "lucide-react";
+import { CheckCircle2, FileSearch, Play, RefreshCw, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   useAgentCatalogAgentsQuery,
   type AgentCatalogAgentSummary,
@@ -18,18 +18,22 @@ import {
   hasValidationErrors,
   initialInputValues,
   normalizeInputFields,
+  taskActionState,
   useCreateTaskMutation,
+  useRunTaskMutation,
   useTasksQuery,
   useTaskWorkbenchMetadataQuery,
   validateTaskForm,
   type TaskInputValues,
   type TaskWorkbenchRunMode,
+  type TaskWorkbenchTask,
   type TaskWorkbenchTaskStatus,
 } from "../features/task-workbench";
 import styles from "./TaskCreatePage.module.css";
 
 const EMPTY_AGENTS: AgentCatalogAgentSummary[] = [];
 const DEFAULT_RUN_MODES: TaskWorkbenchRunMode[] = ["read-only", "propose-changes", "approved-write"];
+const TASK_STATUS_FILTERS: Array<"all" | TaskWorkbenchTaskStatus> = ["all", "ready", "running", "completed", "failed", "cancelled"];
 
 function agentKey(agent: AgentCatalogAgentSummary): string {
   return `${agent.id}@${agent.version}`;
@@ -64,16 +68,31 @@ function providerReadinessClass(readiness: ProviderReadiness): string {
   return styles.badge ?? "";
 }
 
+function taskStatusClass(status: TaskWorkbenchTaskStatus): string {
+  if (status === "ready" || status === "completed") {
+    return styles.badgeSuccess ?? "";
+  }
+  if (status === "failed" || status === "cancelled") {
+    return styles.badgeWarning ?? "";
+  }
+  return styles.badge ?? "";
+}
+
+function taskAgentLabel(task: TaskWorkbenchTask): string {
+  return task.assignedAgentId ? `${task.assignedAgentId}@${task.assignedAgentVersion ?? "latest"}` : "Unassigned";
+}
+
 export function TaskCreatePage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const missionIdFilter = searchParams.get("missionId")?.trim() ?? "";
   const agentIdParam = searchParams.get("agentId")?.trim() ?? "";
   const agentVersionParam = searchParams.get("version")?.trim() ?? "";
   const agentsQuery = useAgentCatalogAgentsQuery();
   const metadataQuery = useTaskWorkbenchMetadataQuery();
-  const missionTasksQuery = useTasksQuery(missionIdFilter ? { missionId: missionIdFilter } : {});
   const repositoriesQuery = useConnectedRepositoriesQuery();
   const createTaskMutation = useCreateTaskMutation();
+  const runTaskMutation = useRunTaskMutation();
   const agents = agentsQuery.data?.agents ?? EMPTY_AGENTS;
   const repositories = repositoriesQuery.data?.repositories ?? [];
   const capabilityOptions = useMemo(() => uniqueCapabilities(agents), [agents]);
@@ -88,6 +107,13 @@ export function TaskCreatePage() {
   const [rawInputJson, setRawInputJson] = useState("{}");
   const [validationStatus, setValidationStatus] = useState<TaskWorkbenchTaskStatus>("draft");
   const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
+  const [taskStatusFilter, setTaskStatusFilter] = useState<"all" | TaskWorkbenchTaskStatus>("all");
+  const taskListQuery = missionIdFilter
+    ? { missionId: missionIdFilter }
+    : taskStatusFilter === "all"
+      ? {}
+      : { status: taskStatusFilter };
+  const tasksQuery = useTasksQuery(taskListQuery);
   const compatibleAgents = useMemo(
     () => filterCompatibleAgents(agents, capabilityRequirements),
     [agents, capabilityRequirements],
@@ -117,7 +143,8 @@ export function TaskCreatePage() {
   const isLoading = agentsQuery.isLoading || metadataQuery.isLoading || repositoriesQuery.isLoading;
   const error = agentsQuery.error ?? metadataQuery.error ?? repositoriesQuery.error;
   const createdTask = createTaskMutation.data;
-  const missionTasks = missionIdFilter ? missionTasksQuery.data?.tasks ?? [] : [];
+  const listedTasks = tasksQuery.data?.tasks ?? [];
+  const visibleTasks = listedTasks.slice(0, 12);
   const runModes = metadataQuery.data?.runModes?.length ? metadataQuery.data.runModes : DEFAULT_RUN_MODES;
   const selectedRunMode = runModes.includes(runMode) ? runMode : metadataQuery.data?.defaultRunMode ?? "read-only";
 
@@ -206,12 +233,21 @@ export function TaskCreatePage() {
     createTaskMutation.mutate(request);
   }
 
+  function runTaskById(taskId: string): void {
+    if (!taskId) {
+      return;
+    }
+    runTaskMutation.mutate(taskId, {
+      onSuccess: (run) => navigate(`/tasks/runs/${encodeURIComponent(run.id)}`),
+    });
+  }
+
   async function refresh(): Promise<void> {
     await Promise.all([
       agentsQuery.refetch(),
       metadataQuery.refetch(),
       repositoriesQuery.refetch(),
-      missionIdFilter ? missionTasksQuery.refetch() : Promise.resolve(),
+      tasksQuery.refetch(),
     ]);
   }
 
@@ -261,6 +297,52 @@ export function TaskCreatePage() {
       ) : null}
 
       {!isLoading && !error ? (
+        <>
+        <section className={styles.panelSection}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <p className={styles.panelTitle}>{missionIdFilter ? "Mission Tasks" : "Existing Tasks"}</p>
+              <p className={styles.panelMeta}>{tasksQuery.data?.total ?? 0} found</p>
+            </div>
+          </div>
+          {!missionIdFilter ? (
+            <div className={styles.segmentedControl} role="tablist" aria-label="Task status filter">
+              {TASK_STATUS_FILTERS.map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  className={taskStatusFilter === status ? styles.segmentActive : styles.segment}
+                  onClick={() => setTaskStatusFilter(status)}
+                >
+                  {status === "all" ? "All" : status}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className={styles.mono}>{missionIdFilter}</p>
+          )}
+          {tasksQuery.error instanceof Error ? <p className={styles.errorText}>{tasksQuery.error.message}</p> : null}
+          {tasksQuery.isLoading ? <p className={styles.description}>Loading tasks.</p> : null}
+          {!tasksQuery.isLoading && visibleTasks.length === 0 ? (
+            <p className={styles.description}>
+              {missionIdFilter ? "No tasks found for this mission." : "No tasks match the selected status."}
+            </p>
+          ) : null}
+          {visibleTasks.length > 0 ? (
+            <div className={styles.taskList}>
+              {visibleTasks.map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  isRunning={runTaskMutation.isPending}
+                  onOpenRun={(runId) => navigate(`/tasks/runs/${encodeURIComponent(runId)}`)}
+                  onRun={runTaskById}
+                />
+              ))}
+            </div>
+          ) : null}
+        </section>
+
         <div className={styles.layout}>
           <form
             className={styles.formPanel}
@@ -578,65 +660,115 @@ export function TaskCreatePage() {
                 </div>
               </div>
               {createdTask ? (
-                <dl className={styles.kvList}>
-                  <div>
-                    <dt>ID</dt>
-                    <dd className={styles.mono}>{createdTask.id}</dd>
-                  </div>
-                  <div>
-                    <dt>Status</dt>
-                    <dd><span className={createdTask.status === "ready" ? styles.badgeSuccess : styles.badge}>{createdTask.status}</span></dd>
-                  </div>
-                  <div>
-                    <dt>Run mode</dt>
-                    <dd>{taskRunMode(createdTask.inputs)}</dd>
-                  </div>
-                  <div>
-                    <dt>Agent</dt>
-                    <dd>{createdTask.assignedAgentId ? `${createdTask.assignedAgentId}@${createdTask.assignedAgentVersion ?? "latest"}` : "Unassigned"}</dd>
-                  </div>
-                  <div>
-                    <dt>Updated</dt>
-                    <dd>{formatDate(createdTask.updatedAt)}</dd>
-                  </div>
-                </dl>
+                <>
+                  <dl className={styles.kvList}>
+                    <div>
+                      <dt>ID</dt>
+                      <dd className={styles.mono}>{createdTask.id}</dd>
+                    </div>
+                    <div>
+                      <dt>Status</dt>
+                      <dd><span className={createdTask.status === "ready" ? styles.badgeSuccess : styles.badge}>{createdTask.status}</span></dd>
+                    </div>
+                    <div>
+                      <dt>Run mode</dt>
+                      <dd>{taskRunMode(createdTask.inputs)}</dd>
+                    </div>
+                    <div>
+                      <dt>Agent</dt>
+                      <dd>{createdTask.assignedAgentId ? `${createdTask.assignedAgentId}@${createdTask.assignedAgentVersion ?? "latest"}` : "Unassigned"}</dd>
+                    </div>
+                    <div>
+                      <dt>Updated</dt>
+                      <dd>{formatDate(createdTask.updatedAt)}</dd>
+                    </div>
+                  </dl>
+                  {createdTask.status === "ready" ? (
+                    <div className={styles.actionBar}>
+                      <button
+                        className={styles.primaryButton}
+                        type="button"
+                        onClick={() => runTaskById(createdTask.id)}
+                        disabled={runTaskMutation.isPending}
+                      >
+                        <Play size={16} /> Run Task
+                      </button>
+                    </div>
+                  ) : null}
+                  {runTaskMutation.error instanceof Error ? <p className={styles.errorText}>{runTaskMutation.error.message}</p> : null}
+                </>
               ) : (
                 <p className={styles.description}>No task saved in this session.</p>
               )}
             </section>
 
-            {missionIdFilter ? (
-              <section className={styles.panelSection}>
-                <div className={styles.sectionHeader}>
-                  <div>
-                    <p className={styles.panelTitle}>Mission Tasks</p>
-                    <p className={styles.panelMeta}>{missionTasks.length} for selected mission</p>
-                  </div>
-                </div>
-                <p className={styles.mono}>{missionIdFilter}</p>
-                {missionTasksQuery.error instanceof Error ? <p className={styles.errorText}>{missionTasksQuery.error.message}</p> : null}
-                {missionTasksQuery.isLoading ? <p className={styles.description}>Loading mission tasks.</p> : null}
-                {!missionTasksQuery.isLoading && missionTasks.length === 0 ? (
-                  <p className={styles.description}>No tasks found for this mission.</p>
-                ) : (
-                  <dl className={styles.kvList}>
-                    {missionTasks.map((task) => (
-                      <div key={task.id}>
-                        <dt>{task.title}</dt>
-                        <dd>
-                          <span className={styles.mono}>{task.id}</span>
-                          <span className={task.status === "ready" ? styles.badgeSuccess : styles.badge}>{task.status}</span>
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                )}
-              </section>
-            ) : null}
           </aside>
         </div>
+        </>
       ) : null}
     </section>
+  );
+}
+
+function TaskRow({
+  isRunning,
+  onOpenRun,
+  onRun,
+  task,
+}: {
+  isRunning: boolean;
+  onOpenRun: (runId: string) => void;
+  onRun: (taskId: string) => void;
+  task: TaskWorkbenchTask;
+}) {
+  const actions = taskActionState(task);
+  return (
+    <article className={styles.taskItem}>
+      <div className={styles.taskItemHeader}>
+        <div>
+          <p className={styles.taskTitle}>{task.title}</p>
+          <p className={styles.mono}>{task.id}</p>
+        </div>
+        <span className={taskStatusClass(task.status)}>{task.status}</span>
+      </div>
+      <dl className={styles.taskFacts}>
+        <div>
+          <dt>Agent</dt>
+          <dd>{taskAgentLabel(task)}</dd>
+        </div>
+        <div>
+          <dt>Updated</dt>
+          <dd>{formatDate(task.updatedAt)}</dd>
+        </div>
+        <div>
+          <dt>Latest run</dt>
+          <dd>{task.latestRun ? `${task.latestRun.id} (${task.latestRun.status})` : "none"}</dd>
+        </div>
+      </dl>
+      <div className={styles.taskActions}>
+        {actions.canRun ? (
+          <button
+            aria-label={`Run ${task.title}`}
+            className={styles.primaryButton}
+            disabled={isRunning}
+            onClick={() => onRun(task.id)}
+            type="button"
+          >
+            <Play size={16} aria-hidden="true" /> Run
+          </button>
+        ) : null}
+        {actions.latestRunId ? (
+          <button
+            aria-label={`Open latest run for ${task.title}`}
+            className={styles.secondaryButton}
+            onClick={() => onOpenRun(actions.latestRunId ?? "")}
+            type="button"
+          >
+            <FileSearch size={16} aria-hidden="true" /> Open Run
+          </button>
+        ) : null}
+      </div>
+    </article>
   );
 }
 

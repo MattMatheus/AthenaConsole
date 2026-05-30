@@ -34,6 +34,7 @@ const navSections: NavSection[] = [
       { path: "/mission-control", label: "Mission Control", match: /^\/mission-control/ },
       { path: "/run-templates", label: "Run Templates", match: /^\/run-templates/ },
       { path: "/resources", label: "Resource Controls", match: /^\/resources/ },
+      { path: "/docs", label: "Documentation", match: /^\/docs/ },
     ],
   },
   {

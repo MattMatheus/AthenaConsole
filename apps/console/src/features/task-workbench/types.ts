@@ -29,6 +29,7 @@ export type TaskWorkbenchTask = {
   updatedAt: string;
   archivedAt?: string;
   runReadiness?: TaskWorkbenchRunReadiness;
+  latestRun?: TaskWorkbenchTaskRunSummary;
 };
 
 export type TaskWorkbenchRunReadinessStatus = "ready" | "ready-with-warnings" | "blocked";
@@ -89,6 +90,18 @@ export type TaskWorkbenchVerificationFailure = {
   details?: Record<string, string>;
 };
 
+export type TaskWorkbenchTaskRunSummary = {
+  id: string;
+  status: TaskWorkbenchRunStatus;
+  backend?: string;
+  agentId?: string;
+  agentVersion?: string;
+  startedAt?: string;
+  endedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type TaskWorkbenchTaskRun = {
   id: string;
   targetType: "task";
@@ -137,6 +150,22 @@ export type TaskWorkbenchArtifactMetadata = {
   metadata: unknown;
   schemaValidation?: unknown;
   createdAt: string;
+};
+
+export type TaskWorkbenchArtifactContent =
+  | {
+      kind: "text";
+      text: string;
+      mediaType: string;
+    }
+  | {
+      kind: "json";
+      value: unknown;
+      mediaType: "application/json";
+    };
+
+export type TaskWorkbenchArtifactRecord = TaskWorkbenchArtifactMetadata & {
+  content: TaskWorkbenchArtifactContent;
 };
 
 export type TaskWorkbenchTaskRunDetail = {

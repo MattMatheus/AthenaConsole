@@ -1,4 +1,6 @@
-import { ArrowLeft, Box, Clock3, FileText, RefreshCw, ShieldCheck, TerminalSquare } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Box, BrainCircuit, Clock3, FileText, RefreshCw, ShieldCheck, TerminalSquare } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { Link, useParams } from "react-router-dom";
 import {
   classifyRunEvent,
@@ -6,11 +8,15 @@ import {
   formatUnknown,
   formatVerificationFailureDetails,
   isProposedChangeArtifact,
+  modelProviderRunMetadata,
+  modelRunOutput,
   proposedChangeArtifact,
   runStatusTone,
   verificationStatusLabel,
   verificationStatusTone,
+  useTaskRunArtifactQuery,
   useTaskRunDetailQuery,
+  type TaskWorkbenchArtifactRecord,
   type TaskWorkbenchRunEvent,
   type TaskWorkbenchRunStatus,
   type TaskWorkbenchArtifactMetadata,
@@ -129,11 +135,54 @@ function renderArtifactBody(artifact: TaskWorkbenchArtifactMetadata): JSX.Elemen
   );
 }
 
+function renderArtifactContent(artifact: TaskWorkbenchArtifactRecord): JSX.Element {
+  if (artifact.content.kind === "json") {
+    return <pre className={styles.codeBlock}>{formatUnknown(artifact.content.value)}</pre>;
+  }
+  if (artifact.format === "markdown" || artifact.content.mediaType === "text/markdown") {
+    return (
+      <div className={styles.markdownPreview}>
+        <ReactMarkdown>{artifact.content.text}</ReactMarkdown>
+      </div>
+    );
+  }
+  return <pre className={artifact.format === "diff" ? styles.diffBlock : styles.codeBlock}>{artifact.content.text}</pre>;
+}
+
+function ArtifactPreview({ artifactId, runId }: { artifactId: string; runId: string | undefined }): JSX.Element {
+  const artifactQuery = useTaskRunArtifactQuery(runId, artifactId);
+
+  if (artifactQuery.isLoading) {
+    return <p className={styles.description}>Loading artifact content.</p>;
+  }
+
+  if (artifactQuery.error instanceof Error) {
+    return <p className={styles.errorText}>{artifactQuery.error.message}</p>;
+  }
+
+  if (!artifactQuery.data) {
+    return <p className={styles.description}>Artifact content is not available.</p>;
+  }
+
+  return (
+    <div className={styles.artifactPreview}>
+      <div className={styles.artifactPreviewHeader}>
+        <p className={styles.panelMeta}>{artifactQuery.data.content.mediaType}</p>
+        <span className={styles.badge}>{artifactQuery.data.content.kind}</span>
+      </div>
+      {renderArtifactContent(artifactQuery.data)}
+    </div>
+  );
+}
+
 export function TaskRunDetailPage() {
   const params = useParams<{ runId: string }>();
   const runId = params.runId;
+  const [openArtifactId, setOpenArtifactId] = useState<string | undefined>();
   const runQuery = useTaskRunDetailQuery(runId);
   const detail = runQuery.data;
+  const modelProvider = detail ? modelProviderRunMetadata(detail.events) : undefined;
+  const modelOutput = detail ? modelRunOutput(detail.run.output) : undefined;
 
   return (
     <section className={styles.page}>
@@ -237,6 +286,52 @@ export function TaskRunDetailPage() {
             </section>
           </div>
 
+          {modelProvider || modelOutput ? (
+            <section className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <div>
+                  <p className={styles.panelTitle}>Model Result</p>
+                  <p className={styles.panelMeta}>Provider-backed output</p>
+                </div>
+                <BrainCircuit size={18} />
+              </div>
+              <div className={styles.modelResultGrid}>
+                <div className={styles.modelResponse}>
+                  <p className={styles.modelResponseTitle}>Response</p>
+                  {modelOutput?.response ? (
+                    <p className={styles.modelResponseText}>{modelOutput.response}</p>
+                  ) : modelOutput?.responseMarkdown ? (
+                    <pre className={styles.markdownBlock}>{modelOutput.responseMarkdown}</pre>
+                  ) : (
+                    <p className={styles.description}>No model response field was recorded.</p>
+                  )}
+                </div>
+                <dl className={styles.compactKv}>
+                  <div>
+                    <dt>Provider</dt>
+                    <dd>{modelOutput?.providerId ?? modelProvider?.providerId ?? "not recorded"}</dd>
+                  </div>
+                  <div>
+                    <dt>Kind</dt>
+                    <dd>{modelOutput?.providerKind ?? modelProvider?.providerKind ?? "not recorded"}</dd>
+                  </div>
+                  <div>
+                    <dt>Model</dt>
+                    <dd>{modelOutput?.model ?? modelProvider?.model ?? "not recorded"}</dd>
+                  </div>
+                  <div>
+                    <dt>Base URL</dt>
+                    <dd>{modelProvider?.baseUrl ?? "not recorded"}</dd>
+                  </div>
+                  <div>
+                    <dt>Usage</dt>
+                    <dd>{modelOutput?.usage !== undefined ? formatUnknown(modelOutput.usage) : "not recorded"}</dd>
+                  </div>
+                </dl>
+              </div>
+            </section>
+          ) : null}
+
           <section className={styles.panel}>
             <div className={styles.panelHeader}>
               <div>
@@ -304,7 +399,12 @@ export function TaskRunDetailPage() {
                           <span className={styles.eventTime}>{formatDate(event.timestamp)}</span>
                         </div>
                         {event.message ? <p className={styles.eventMessage}>{event.message}</p> : null}
-                        {formatUnknown(event.payload) ? <pre className={styles.eventPayload}>{formatUnknown(event.payload)}</pre> : null}
+                        {formatUnknown(event.payload) ? (
+                          <details className={styles.payloadDetails}>
+                            <summary>Payload</summary>
+                            <pre className={styles.eventPayload}>{formatUnknown(event.payload)}</pre>
+                          </details>
+                        ) : null}
                       </div>
                     </li>
                   ))}
@@ -321,7 +421,12 @@ export function TaskRunDetailPage() {
                   </div>
                   <FileText size={18} />
                 </div>
-                {detail.run.output !== undefined ? (
+                {modelOutput ? (
+                  <details className={styles.payloadDetails}>
+                    <summary>Raw output</summary>
+                    <pre className={styles.codeBlock}>{formatUnknown(detail.run.output)}</pre>
+                  </details>
+                ) : detail.run.output !== undefined ? (
                   <pre className={styles.codeBlock}>{formatUnknown(detail.run.output)}</pre>
                 ) : (
                   <p className={styles.description}>No final output recorded.</p>
@@ -343,11 +448,21 @@ export function TaskRunDetailPage() {
                       <article key={artifact.id} className={styles.artifact}>
                         <div className={styles.artifactHeader}>
                           <p className={styles.artifactTitle}>{artifact.label}</p>
-                          <span className={isProposedChangeArtifact(artifact) ? styles.badgeWarning : styles.badge}>
-                            {isProposedChangeArtifact(artifact) ? "proposed change" : artifact.format}
-                          </span>
+                          <div className={styles.artifactActions}>
+                            <span className={isProposedChangeArtifact(artifact) ? styles.badgeWarning : styles.badge}>
+                              {isProposedChangeArtifact(artifact) ? "proposed change" : artifact.format}
+                            </span>
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              onClick={() => setOpenArtifactId((current) => (current === artifact.id ? undefined : artifact.id))}
+                            >
+                              {openArtifactId === artifact.id ? "Close" : "Open"}
+                            </button>
+                          </div>
                         </div>
                         {renderArtifactBody(artifact)}
+                        {openArtifactId === artifact.id ? <ArtifactPreview artifactId={artifact.id} runId={runId} /> : null}
                       </article>
                     ))}
                   </div>

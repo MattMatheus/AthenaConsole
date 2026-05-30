@@ -2,6 +2,8 @@ import { apiClient } from "../../services";
 import type {
   TaskWorkbenchMetadata,
   TaskWorkbenchArtifactMetadata,
+  TaskWorkbenchArtifactContent,
+  TaskWorkbenchArtifactRecord,
   TaskWorkbenchRunEvent,
   TaskWorkbenchRunReadiness,
   TaskWorkbenchRunReadinessCheck,
@@ -88,6 +90,7 @@ function parseTask(value: unknown): TaskWorkbenchTask {
   if (!isRecord(value) || typeof value.id !== "string" || typeof value.title !== "string") {
     throw new Error("Task payload is invalid.");
   }
+  const latestRun = isRecord(value.latestRun) ? parseRunSummary(value.latestRun) : undefined;
   return {
     id: value.id,
     title: value.title,
@@ -106,6 +109,7 @@ function parseTask(value: unknown): TaskWorkbenchTask {
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : new Date(0).toISOString(),
     ...(typeof value.archivedAt === "string" ? { archivedAt: value.archivedAt } : {}),
     ...(isRecord(value.runReadiness) ? { runReadiness: parseRunReadiness(value.runReadiness) } : {}),
+    ...(latestRun ? { latestRun } : {}),
   };
 }
 
@@ -166,6 +170,23 @@ function parseRun(value: unknown): TaskWorkbenchTaskRun {
   };
 }
 
+function parseRunSummary(value: unknown): TaskWorkbenchTask["latestRun"] {
+  if (!isRecord(value) || typeof value.id !== "string") {
+    return undefined;
+  }
+  return {
+    id: value.id,
+    status: parseRunStatus(value.status),
+    ...(typeof value.backend === "string" ? { backend: value.backend } : {}),
+    ...(typeof value.agentId === "string" ? { agentId: value.agentId } : {}),
+    ...(typeof value.agentVersion === "string" ? { agentVersion: value.agentVersion } : {}),
+    ...(typeof value.startedAt === "string" ? { startedAt: value.startedAt } : {}),
+    ...(typeof value.endedAt === "string" ? { endedAt: value.endedAt } : {}),
+    createdAt: typeof value.createdAt === "string" ? value.createdAt : new Date(0).toISOString(),
+    updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : new Date(0).toISOString(),
+  };
+}
+
 function parseRunEvent(value: unknown): TaskWorkbenchRunEvent | undefined {
   if (!isRecord(value) || typeof value.id !== "string" || typeof value.runId !== "string" || typeof value.type !== "string") {
     return undefined;
@@ -204,6 +225,38 @@ function parseArtifact(value: unknown): TaskWorkbenchArtifactMetadata | undefine
     metadata: value.metadata ?? {},
     ...(value.schemaValidation !== undefined ? { schemaValidation: value.schemaValidation } : {}),
     createdAt: typeof value.createdAt === "string" ? value.createdAt : new Date(0).toISOString(),
+  };
+}
+
+function parseArtifactContent(value: unknown): TaskWorkbenchArtifactContent {
+  if (!isRecord(value) || typeof value.kind !== "string" || typeof value.mediaType !== "string") {
+    throw new Error("Artifact content payload is invalid.");
+  }
+  if (value.kind === "text" && typeof value.text === "string") {
+    return {
+      kind: "text",
+      text: value.text,
+      mediaType: value.mediaType,
+    };
+  }
+  if (value.kind === "json") {
+    return {
+      kind: "json",
+      value: value.value,
+      mediaType: "application/json",
+    };
+  }
+  throw new Error("Artifact content payload is invalid.");
+}
+
+function parseArtifactRecord(value: unknown): TaskWorkbenchArtifactRecord {
+  const artifact = parseArtifact(value);
+  if (!artifact || !isRecord(value)) {
+    throw new Error("Task artifact payload is invalid.");
+  }
+  return {
+    ...artifact,
+    content: parseArtifactContent(value.content),
   };
 }
 
@@ -267,6 +320,16 @@ export async function createTask(request: TaskWorkbenchTaskCreateRequest): Promi
   return parseTask(await apiClient.post<unknown>("/v1/tasks", request));
 }
 
+export async function runTask(taskId: string): Promise<TaskWorkbenchTaskRun> {
+  return parseRun(await apiClient.post<unknown>(`/v1/tasks/${encodeURIComponent(taskId)}/run`, {}));
+}
+
 export async function fetchTaskRunDetail(runId: string): Promise<TaskWorkbenchTaskRunDetail> {
   return parseRunDetail(await apiClient.get<unknown>(`/v1/task-runs/${encodeURIComponent(runId)}`));
+}
+
+export async function fetchTaskRunArtifact(runId: string, artifactId: string): Promise<TaskWorkbenchArtifactRecord> {
+  return parseArtifactRecord(
+    await apiClient.get<unknown>(`/v1/task-runs/${encodeURIComponent(runId)}/artifacts/${encodeURIComponent(artifactId)}`),
+  );
 }

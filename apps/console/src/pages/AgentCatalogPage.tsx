@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import {
   useAgentCatalogAgentsQuery,
   useAgentCatalogPluginsQuery,
+  type AgentCatalogValidationIssue,
   type AgentCatalogAgentSummary,
   type AgentCatalogPluginSourceScope,
   type AgentCatalogPluginSummary,
@@ -97,6 +98,14 @@ function countValidationIssues(plugins: AgentCatalogPluginSummary[]): number {
   return plugins.reduce((total, plugin) => total + plugin.validationErrors.length, 0);
 }
 
+function isDuplicateIdIssue(issue: AgentCatalogValidationIssue): boolean {
+  return issue.message.toLowerCase().includes("duplicate") && issue.message.toLowerCase().includes("id/version");
+}
+
+function countDuplicateIdIssues(plugins: AgentCatalogPluginSummary[]): number {
+  return plugins.reduce((total, plugin) => total + plugin.validationErrors.filter(isDuplicateIdIssue).length, 0);
+}
+
 function parseSourceFilter(value: string | null): SourceFilter {
   return value === "workspace" || value === "system" ? value : "all";
 }
@@ -120,6 +129,7 @@ function renderPluginValidation(plugin: AgentCatalogPluginSummary): JSX.Element 
       {plugin.validationErrors.slice(0, 3).map((issue, index) => (
         <li key={`${plugin.id}-${issue.path}-${index}`} className={styles.validationItem}>
           <strong>{issue.resourceType}</strong> {issue.path}: {issue.message}
+          {issue.file ? <span className={styles.validationFile}>{issue.file}</span> : null}
         </li>
       ))}
       {plugin.validationErrors.length > 3 ? (
@@ -169,6 +179,7 @@ export function AgentCatalogPage() {
   const workspacePlugins = plugins.filter((plugin) => plugin.sourceScope === "workspace").length;
   const systemPlugins = plugins.filter((plugin) => plugin.sourceScope === "system").length;
   const validationIssues = countValidationIssues(plugins);
+  const duplicateIdIssues = countDuplicateIdIssues(plugins);
 
   async function handleRefresh(): Promise<void> {
     await Promise.all([pluginsQuery.refetch(), agentsQuery.refetch()]);
@@ -227,6 +238,20 @@ export function AgentCatalogPage() {
           </div>
         </div>
       </section>
+
+      {duplicateIdIssues > 0 ? (
+        <section className={styles.warningBand} aria-labelledby="agent-catalog-duplicate-id-warning">
+          <div>
+            <p id="agent-catalog-duplicate-id-warning" className={styles.panelTitle}>Duplicate Plugin Or Agent Ids</p>
+            <p className={styles.description}>
+              {duplicateIdIssues} duplicate id issue{duplicateIdIssues === 1 ? "" : "s"} found. Copied plugins need unique plugin ids and agent ids before their agents can be indexed.
+            </p>
+          </div>
+          <Link className={styles.detailLink} to="/docs">
+            Agent docs
+          </Link>
+        </section>
+      ) : null}
 
       <div className={styles.summaryGrid}>
         <div className={styles.metric}>

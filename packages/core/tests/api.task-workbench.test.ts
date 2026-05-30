@@ -15,12 +15,56 @@ describe("task workbench api", () => {
     writeFileSync(
       join(pluginDir, "api-run.js"),
       `
+const { mkdirSync, writeFileSync } = require("node:fs");
 let raw = "";
 process.stdin.on("data", (chunk) => { raw += chunk; });
 process.stdin.on("end", () => {
   const envelope = JSON.parse(raw);
+  mkdirSync("artifacts/api-run-1", { recursive: true });
+  writeFileSync("artifacts/api-run-1/file.md", "# File Artifact\\n\\nfrom disk", "utf8");
   process.stdout.write(JSON.stringify({
-    output: { brief: envelope.task.inputs.brief, taskId: envelope.task.id }
+    output: {
+      brief: envelope.task.inputs.brief,
+      taskId: envelope.task.id,
+      responseMarkdown: "# API Artifact\\n\\nartifact produced"
+    },
+    artifacts: [
+      {
+        id: "artifact-good",
+        label: "Good Artifact",
+        kind: "primary",
+        format: "markdown",
+        storageUri: "memory://api-run/api-run-1/good.md"
+      },
+      {
+        id: "artifact-file",
+        label: "File Artifact",
+        kind: "supporting",
+        format: "markdown",
+        storageUri: "artifacts/api-run-1/file.md"
+      },
+      {
+        id: "artifact-unsupported",
+        label: "Unsupported Artifact",
+        kind: "supporting",
+        format: "markdown",
+        storageUri: "file:///tmp/unsafe.md"
+      },
+      {
+        id: "artifact-traversal",
+        label: "Traversal Artifact",
+        kind: "supporting",
+        format: "markdown",
+        storageUri: "memory://api-run/api-run-1/../secret.md"
+      },
+      {
+        id: "artifact-local-traversal",
+        label: "Local Traversal Artifact",
+        kind: "supporting",
+        format: "markdown",
+        storageUri: "../secret.md"
+      }
+    ]
   }));
 });
 `,
@@ -173,10 +217,29 @@ process.stdin.on("end", () => {
           targetId: "task-api-draft",
           output: {
             brief: "Wire task APIs",
-            taskId: "task-api-draft"
+            taskId: "task-api-draft",
+            responseMarkdown: "# API Artifact\n\nartifact produced"
           }
         }
       });
+
+      const completedListResponse = await fetch(`${base}/api/v1/tasks?status=completed`);
+      expect(completedListResponse.status).toBe(200);
+      const completedListEnvelope = (await completedListResponse.json()) as {
+        ok: boolean;
+        data: { tasks: Array<{ id: string; latestRun?: { id: string; status: string } }> };
+      };
+      expect(completedListEnvelope.data.tasks).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "task-api-draft",
+            latestRun: expect.objectContaining({
+              id: "api-run-1",
+              status: "completed"
+            })
+          })
+        ])
+      );
 
       const runDetailResponse = await fetch(`${base}/api/v1/task-runs/${encodeURIComponent("api-run-1")}`);
       expect(runDetailResponse.status).toBe(200);
@@ -195,18 +258,76 @@ process.stdin.on("end", () => {
           status: "completed",
           output: {
             brief: "Wire task APIs",
-            taskId: "task-api-draft"
+            taskId: "task-api-draft",
+            responseMarkdown: "# API Artifact\n\nartifact produced"
           }
         },
         task: {
           id: "task-api-draft",
           status: "completed"
         },
-        artifacts: []
+        artifacts: [
+          expect.objectContaining({ id: "artifact-good", storageUri: "memory://api-run/api-run-1/good.md" }),
+          expect.objectContaining({ id: "artifact-file", storageUri: "artifacts/api-run-1/file.md" }),
+          expect.objectContaining({ id: "artifact-unsupported", storageUri: "file:///tmp/unsafe.md" }),
+          expect.objectContaining({ id: "artifact-traversal", storageUri: "memory://api-run/api-run-1/../secret.md" }),
+          expect.objectContaining({ id: "artifact-local-traversal", storageUri: "../secret.md" })
+        ]
       });
       expect(runDetailEnvelope.data.events.map((event) => event.type)).toEqual(
         expect.arrayContaining(["run.validated", "run.started", "run.log", "run.completed"])
       );
+
+      const artifactResponse = await fetch(`${base}/api/v1/task-runs/${encodeURIComponent("api-run-1")}/artifacts/artifact-good`);
+      expect(artifactResponse.status).toBe(200);
+      const artifactEnvelope = (await artifactResponse.json()) as {
+        ok: boolean;
+        data: { id: string; content: { kind: string; text?: string; mediaType?: string } };
+      };
+      expect(artifactEnvelope).toMatchObject({
+        ok: true,
+        data: {
+          id: "artifact-good",
+          content: {
+            kind: "text",
+            text: "# API Artifact\n\nartifact produced",
+            mediaType: "text/markdown"
+          }
+        }
+      });
+
+      const fileArtifactResponse = await fetch(`${base}/api/v1/task-runs/${encodeURIComponent("api-run-1")}/artifacts/artifact-file`);
+      expect(fileArtifactResponse.status).toBe(200);
+      const fileArtifactEnvelope = (await fileArtifactResponse.json()) as {
+        ok: boolean;
+        data: { id: string; content: { kind: string; text?: string; mediaType?: string } };
+      };
+      expect(fileArtifactEnvelope).toMatchObject({
+        ok: true,
+        data: {
+          id: "artifact-file",
+          content: {
+            kind: "text",
+            text: "# File Artifact\n\nfrom disk",
+            mediaType: "text/markdown"
+          }
+        }
+      });
+
+      const unsupportedResponse = await fetch(
+        `${base}/api/v1/task-runs/${encodeURIComponent("api-run-1")}/artifacts/artifact-unsupported`
+      );
+      expect(unsupportedResponse.status).toBe(400);
+
+      const traversalResponse = await fetch(
+        `${base}/api/v1/task-runs/${encodeURIComponent("api-run-1")}/artifacts/artifact-traversal`
+      );
+      expect(traversalResponse.status).toBe(400);
+
+      const localTraversalResponse = await fetch(
+        `${base}/api/v1/task-runs/${encodeURIComponent("api-run-1")}/artifacts/artifact-local-traversal`
+      );
+      expect(localTraversalResponse.status).toBe(400);
     } finally {
       await server.stop();
       rmSync(dir, { recursive: true, force: true });

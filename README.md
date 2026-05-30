@@ -56,9 +56,17 @@ After the demo, use the repo wiring path in [GETTING_STARTED.md](GETTING_STARTED
 Run the API and console directly during development:
 
 ```bash
+./dev.sh
+```
+
+Or run the two processes yourself:
+
+```bash
 npm --workspace @athena/api run dev
 npm --workspace @athena/console run dev
 ```
+
+The `dev.sh` script is macOS-compatible, starts both processes, uses `ATHENA_WORKSPACE_ROOT` for local config/state resolution, and stops both servers when you press `Ctrl+C`.
 
 Common validation commands:
 
@@ -83,7 +91,6 @@ npm --workspace @athena/console run test
 apps/
   api/          API server entry point
   console/      React operator console
-  marketing/    Public documentation and marketing site
 
 packages/
   core/         Core orchestration, API contracts, state, runtime, CLI
@@ -114,6 +121,7 @@ The current product direction lives in:
 
 Key docs:
 
+- [Documentation Map](docs/README.md)
 - [Getting Started](GETTING_STARTED.md)
 - [Product Direction](docs/product/direction/current-direction.md)
 - [Roadmap Flight Path](docs/product/roadmap/flight-path.md)

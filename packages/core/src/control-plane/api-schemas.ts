@@ -594,7 +594,8 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       createdAt: { type: "string", format: "date-time" },
       updatedAt: { type: "string", format: "date-time" },
       archivedAt: { type: "string", format: "date-time" },
-      runReadiness: { $ref: "#/components/schemas/TaskWorkbenchRunReadiness" }
+      runReadiness: { $ref: "#/components/schemas/TaskWorkbenchRunReadiness" },
+      latestRun: { $ref: "#/components/schemas/TaskWorkbenchTaskRunSummary" }
     },
     required: ["id", "title", "description", "status", "capabilityRequirements", "inputs", "dependsOn", "createdAt", "updatedAt"]
   },
@@ -645,6 +646,25 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       }
     },
     required: ["tasks", "total", "filters"]
+  },
+  TaskWorkbenchTaskRunSummary: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      status: {
+        type: "string",
+        enum: ["queued", "validating", "running", "waiting-for-approval", "completed", "failed", "cancelled", "stopped-by-limit"]
+      },
+      backend: { type: "string", minLength: 1 },
+      agentId: { type: "string", minLength: 1 },
+      agentVersion: { type: "string", minLength: 1 },
+      startedAt: { type: "string", format: "date-time" },
+      endedAt: { type: "string", format: "date-time" },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: ["id", "status", "createdAt", "updatedAt"]
   },
   MissionWorkbenchMission: {
     type: "object",
@@ -867,6 +887,51 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       createdAt: { type: "string", format: "date-time" }
     },
     required: ["id", "runId", "label", "kind", "format", "storageUri", "metadata", "createdAt"]
+  },
+  TaskWorkbenchArtifactContent: {
+    anyOf: [
+      {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          kind: { type: "string", enum: ["text"] },
+          text: { type: "string" },
+          mediaType: { type: "string", minLength: 1 }
+        },
+        required: ["kind", "text", "mediaType"]
+      },
+      {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          kind: { type: "string", enum: ["json"] },
+          value: JSON_VALUE_SCHEMA,
+          mediaType: { type: "string", enum: ["application/json"] }
+        },
+        required: ["kind", "value", "mediaType"]
+      }
+    ]
+  },
+  TaskWorkbenchArtifactRecord: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      runId: { type: "string", minLength: 1 },
+      taskId: { type: "string", minLength: 1 },
+      agentId: { type: "string", minLength: 1 },
+      label: { type: "string", minLength: 1 },
+      kind: { type: "string", minLength: 1 },
+      format: { type: "string", minLength: 1 },
+      storageUri: { type: "string", minLength: 1 },
+      sizeBytes: { type: "integer", minimum: 0 },
+      hash: { type: "string", minLength: 1 },
+      metadata: JSON_VALUE_SCHEMA,
+      schemaValidation: JSON_VALUE_SCHEMA,
+      createdAt: { type: "string", format: "date-time" },
+      content: { $ref: "#/components/schemas/TaskWorkbenchArtifactContent" }
+    },
+    required: ["id", "runId", "label", "kind", "format", "storageUri", "metadata", "createdAt", "content"]
   },
   TaskWorkbenchTaskRunDetail: {
     type: "object",
@@ -2170,6 +2235,21 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       required: ["runId"]
     },
     responseSchema: { $ref: "#/components/schemas/TaskWorkbenchTaskRunDetail" }
+  },
+  getTaskRunArtifact: {
+    operationId: "getTaskRunArtifact",
+    method: "GET",
+    path: "/api/v1/task-runs/:runId/artifacts/:artifactId",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        runId: STRING_SCHEMA,
+        artifactId: STRING_SCHEMA
+      },
+      required: ["runId", "artifactId"]
+    },
+    responseSchema: { $ref: "#/components/schemas/TaskWorkbenchArtifactRecord" }
   },
   cancelTaskRun: {
     operationId: "cancelTaskRun",

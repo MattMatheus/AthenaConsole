@@ -156,25 +156,17 @@ Source epic:
 
 - `docs/product/epics/refinement/2026.25.00-epic-operator-workflow-clarity-repo-wiring.md`
 
-### Current Flywheel Priorities
+### 2026.26-2026.30 Real Work Enablement
 
-Flywheel lanes are the operational source of truth. No engineering or architecture items are active or awaiting QA right now.
+Goal: let a local operator connect a repository, connect an AI model provider, add useful plugin-backed agents, run real work safely, and prove the system on a local server.
 
-The next roadmap arc is Real Work Enablement. It starts in planning/architecture because repo connection, model provider secrets, agent SDK boundaries, run safety, and local-server deployment all affect the operating model.
-
-Active refinement epics:
-
-- `docs/product/epics/refinement/2026.26.00-epic-real-work-repo-connection.md`
-- `docs/product/epics/refinement/2026.27.00-epic-model-provider-and-secrets-setup.md`
-- `docs/product/epics/refinement/2026.28.00-epic-agent-sdk-and-examples.md`
-- `docs/product/epics/refinement/2026.29.00-epic-real-work-run-loop.md`
-- `docs/product/epics/refinement/2026.30.00-epic-local-server-deployment-readiness.md`
+Status: Complete.
 
 Completed architecture item:
 
 - `flywheel/backlog/architecture/done/ARCH-20260529-real-work-enablement-operating-model.md`
 
-Ready implementation sequence:
+Completed implementation sequence:
 
 - `flywheel/backlog/engineering/done/STORY-20260529-repo-app-state-inspection.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-repo-managed-clone-flow.md`
@@ -193,6 +185,39 @@ Ready implementation sequence:
 - `flywheel/backlog/engineering/done/STORY-20260529-local-server-compose-profile.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-deployment-readiness-diagnostics.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-fresh-server-real-work-walkthrough.md`
+
+Source epics:
+
+- `docs/product/epics/refinement/2026.26.00-epic-real-work-repo-connection.md`
+- `docs/product/epics/refinement/2026.27.00-epic-model-provider-and-secrets-setup.md`
+- `docs/product/epics/refinement/2026.28.00-epic-agent-sdk-and-examples.md`
+- `docs/product/epics/refinement/2026.29.00-epic-real-work-run-loop.md`
+- `docs/product/epics/refinement/2026.30.00-epic-local-server-deployment-readiness.md`
+
+### 2026.31 Productization, Documentation, And Agent Developer Kit
+
+Status: Refinement.
+
+Goal: move Team Orchestrator from a working local prototype into a product a new operator or agent author can understand, run, extend, and trust without relying on project-history context.
+
+Candidate sequence:
+
+- `flywheel/backlog/engineering/done/STORY-20260530-repo-cleanup-audit.md`
+- `flywheel/backlog/engineering/done/STORY-20260530-remove-stale-marketing-app.md`
+- `flywheel/backlog/engineering/qa/STORY-20260530-docs-information-architecture.md`
+- `flywheel/backlog/engineering/intake/STORY-20260530-agent-developer-kit-hardening.md`
+- `flywheel/backlog/engineering/intake/STORY-20260530-agent-scaffold-command.md`
+- `flywheel/backlog/engineering/intake/STORY-20260530-product-readiness-smoke-suite.md`
+
+Source epic:
+
+- `docs/product/epics/refinement/2026.31.00-epic-productization-docs-and-agent-developer-kit.md`
+
+### Current Flywheel Priorities
+
+Flywheel lanes are the operational source of truth. No engineering or architecture items are active or awaiting QA right now.
+
+The recommended next move is the productization arc: first audit and classify repo/docs debt, then build a canonical docs map, harden the Agent Developer Kit path, add scaffolding, and finish with a repeatable product-readiness smoke suite.
 
 Recently completed tracks now live in Flywheel done history:
 
@@ -235,7 +260,7 @@ Recently completed tracks now live in Flywheel done history:
 - `flywheel/backlog/engineering/done/STORY-20260529-create-work-entry-points.md`
 - `flywheel/backlog/engineering/done/STORY-20260529-first-run-to-real-repo-bridge.md`
 
-Ready implementation sequence:
+Queue status:
 
 - No refined engineering or architecture work is waiting.
 

@@ -10,6 +10,7 @@ Start here:
 - `architecture/decisions/`
 - `epics/refinement/`
 - `roadmap/`
+- `audits/2026-05-30-repo-cleanup-audit.md`
 - `history/`
 
 Active work process belongs in `flywheel/`, not in product docs.

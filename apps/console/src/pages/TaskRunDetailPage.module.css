@@ -15,7 +15,8 @@
 }
 
 .backLink,
-.iconButton {
+.iconButton,
+.secondaryButton {
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background: #fff;
@@ -46,6 +47,17 @@
   opacity: 0.55;
 }
 
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.85rem;
+  padding: 0.3rem 0.55rem;
+  cursor: pointer;
+  font-size: var(--font-size-200);
+  font-weight: 700;
+}
+
 .title {
   margin: 0;
   color: var(--color-brand-900);
@@ -71,7 +83,8 @@
 .panel,
 .state,
 .artifactList,
-.diffList {
+.diffList,
+.modelResultGrid {
   display: grid;
   gap: var(--space-4);
 }
@@ -204,7 +217,6 @@
 .eventPayload,
 .diffBlock {
   margin: 0;
-  overflow: auto;
   border: 1px solid #dbe4ee;
   border-radius: 6px;
   background: #0f172a;
@@ -213,20 +225,33 @@
   font-size: var(--font-size-200);
   line-height: 1.5;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .codeBlock {
-  max-height: 28rem;
   padding: var(--space-4);
 }
 
+.markdownBlock {
+  margin: 0;
+  border: 1px solid #dbe4ee;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: var(--color-text);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-200);
+  line-height: 1.5;
+  padding: var(--space-3);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .eventPayload {
-  max-height: 14rem;
   padding: var(--space-3);
 }
 
 .diffBlock {
-  max-height: 20rem;
+  overflow-x: auto;
   padding: var(--space-3);
   white-space: pre;
 }
@@ -304,6 +329,46 @@
   overflow-wrap: anywhere;
 }
 
+.payloadDetails {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.payloadDetails summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--color-brand-900);
+  font-size: var(--font-size-200);
+  font-weight: 700;
+}
+
+.modelResultGrid {
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+  align-items: start;
+}
+
+.modelResponse {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.modelResponseTitle {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-200);
+  font-weight: 700;
+}
+
+.modelResponseText {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-300);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .artifact {
   display: grid;
   gap: var(--space-3);
@@ -311,6 +376,48 @@
   border-radius: 8px;
   background: #fff;
   padding: var(--space-3);
+}
+
+.artifactActions,
+.artifactPreviewHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.artifactPreview {
+  display: grid;
+  gap: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-3);
+}
+
+.artifactPreviewHeader {
+  justify-content: space-between;
+}
+
+.markdownPreview {
+  border: 1px solid #dbe4ee;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: var(--color-text);
+  font-size: var(--font-size-200);
+  line-height: 1.55;
+  padding: var(--space-3);
+}
+
+.markdownPreview :where(h1, h2, h3, p, ul, ol, pre) {
+  margin-top: 0;
+}
+
+.markdownPreview :where(h1, h2, h3, p, ul, ol, pre):last-child {
+  margin-bottom: 0;
+}
+
+.markdownPreview pre {
+  overflow-x: auto;
 }
 
 .diffItem {
@@ -338,7 +445,6 @@
 
 .failureDetails {
   margin: 0;
-  overflow: auto;
   border: 1px solid #fecaca;
   border-radius: 6px;
   background: #fff;
@@ -348,11 +454,13 @@
   line-height: 1.5;
   padding: var(--space-3);
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 1120px) {
   .summaryGrid,
-  .detailGrid {
+  .detailGrid,
+  .modelResultGrid {
     grid-template-columns: 1fr;
   }
 }
@@ -365,6 +473,11 @@
   .artifactHeader {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .artifactActions,
+  .artifactPreviewHeader {
+    justify-content: flex-start;
   }
 
   .eventTime {

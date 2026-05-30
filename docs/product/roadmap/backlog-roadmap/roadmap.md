@@ -108,14 +108,15 @@ Goal: Make workflow templates practical to instantiate, run, schedule, and inspe
 
 ## Current Milestone
 
-### Milestone 8: Workflow DAG Engine
+No implementation milestone is active.
 
-Goal: evolve workflow templates from sequential mission creation into restart-safe, DAG-capable workflow execution.
+The Workflow DAG Engine, State Ownership and SQLite Migration, Operator Readiness, Console Product Surface Polish, Operator Workflow Clarity and Repo Wiring, and Real Work Enablement arcs are complete. The operational Flywheel lanes currently contain no active, ready, QA, or intake items.
 
-- Refinement epic: `docs/product/epics/refinement/2026.17.00-epic-workflow-dag-engine.md`
-- Completed: `docs/product/history/completed-stories/2026.17.01-implement-workflow-dag-definition-parser.md`
-- Active: `flywheel/backlog/engineering/active/STORY-20260528-workflow-state-store-resumption.md`
-- Candidate next: visualizer-friendly workflow status API.
+Current direction and near-term review guidance live in:
+
+- `docs/product/direction/current-direction.md`
+- `docs/product/roadmap/flight-path.md`
+- `flywheel/backlog/README.md`
 
 ## Deferred
 

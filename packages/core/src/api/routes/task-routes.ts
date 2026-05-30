@@ -17,6 +17,7 @@ export const TASK_ROUTES = defineApiRoutes("tasks", [
   { method: "GET", path: "/api/v1/tasks/:id/run-readiness", handler: handleGetTaskRunReadinessRoute },
   { method: "POST", path: "/api/v1/tasks/:id/run", handler: handleRunTaskRoute },
   { method: "GET", path: "/api/v1/task-runs/:runId", handler: handleGetTaskRunRoute },
+  { method: "GET", path: "/api/v1/task-runs/:runId/artifacts/:artifactId", handler: handleGetTaskRunArtifactRoute },
   { method: "POST", path: "/api/v1/task-runs/:runId/cancel", handler: handleCancelTaskRunRoute }
 ]);
 
@@ -82,6 +83,18 @@ async function handleGetTaskRunRoute(context: ApiRouteContext): Promise<void> {
     "getTaskRun",
     200,
     await context.services.taskWorkbenchService.getRun(requireRouteParam(context, "runId"))
+  );
+}
+
+async function handleGetTaskRunArtifactRoute(context: ApiRouteContext): Promise<void> {
+  writeSuccess(
+    context.res,
+    "getTaskRunArtifact",
+    200,
+    await context.services.taskWorkbenchService.getRunArtifact(
+      requireRouteParam(context, "runId"),
+      requireRouteParam(context, "artifactId")
+    )
   );
 }
 

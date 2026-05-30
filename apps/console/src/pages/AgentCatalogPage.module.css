@@ -61,6 +61,7 @@
 }
 
 .guidanceBand,
+.warningBand,
 .nextActionPanel {
   border: 1px solid var(--color-border);
   border-radius: 8px;
@@ -71,6 +72,7 @@
 }
 
 .guidanceBand > *,
+.warningBand > *,
 .nextActionPanel > * {
   min-width: 0;
 }
@@ -78,6 +80,13 @@
 .guidanceBand {
   grid-template-columns: minmax(18rem, 0.9fr) minmax(0, 1.1fr);
   align-items: start;
+}
+
+.warningBand {
+  border-color: color-mix(in srgb, var(--color-warning) 36%, var(--color-border));
+  background: #fffaf3;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
 }
 
 .nextActionPanel {
@@ -345,6 +354,14 @@
   line-height: 1.35;
 }
 
+.validationFile {
+  display: block;
+  color: var(--color-text-muted);
+  font-family: var(--font-family-mono);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
 .validationHelp {
   color: var(--color-text-muted);
   font-size: var(--font-size-200);
@@ -545,7 +562,8 @@
   .summaryGrid,
   .filters,
   .layout,
-  .guidanceBand {
+  .guidanceBand,
+  .warningBand {
     grid-template-columns: 1fr 1fr;
   }
 
@@ -565,6 +583,7 @@
   .layout,
   .detailGrid,
   .guidanceBand,
+  .warningBand,
   .nextActionPanel {
     grid-template-columns: 1fr;
   }

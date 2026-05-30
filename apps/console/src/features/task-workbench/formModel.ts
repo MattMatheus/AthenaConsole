@@ -1,5 +1,5 @@
 import type { AgentCatalogAgentSummary } from "../agent-catalog";
-import type { TaskWorkbenchRunMode, TaskWorkbenchTaskCreateRequest, TaskWorkbenchTaskStatus } from "./types";
+import type { TaskWorkbenchRunMode, TaskWorkbenchTask, TaskWorkbenchTaskCreateRequest, TaskWorkbenchTaskStatus } from "./types";
 
 export type TaskInputType = "string" | "markdown" | "integer" | "number" | "boolean" | "file" | "url" | "enum" | "repo" | "json";
 
@@ -37,6 +37,12 @@ export type TaskFormValidation = {
   title?: string;
   assignedAgent?: string;
   inputs: Record<string, string>;
+};
+
+export type TaskActionState = {
+  canRun: boolean;
+  canOpenLatestRun: boolean;
+  latestRunId?: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -247,4 +253,12 @@ export function buildCreateTaskRequest(draft: TaskFormDraft): TaskWorkbenchTaskC
     request.assignedAgentVersion = draft.selectedAgent.version;
   }
   return request;
+}
+
+export function taskActionState(task: Pick<TaskWorkbenchTask, "status" | "latestRun">): TaskActionState {
+  return {
+    canRun: task.status === "ready",
+    canOpenLatestRun: Boolean(task.latestRun?.id),
+    ...(task.latestRun?.id ? { latestRunId: task.latestRun.id } : {}),
+  };
 }

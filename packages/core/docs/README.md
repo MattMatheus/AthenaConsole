@@ -1,28 +1,26 @@
-# Team Orchestrator Public Documentation
+# Team Orchestrator Package Docs
 
-Team Orchestrator is a standalone, extensible agent runtime designed for robust and reliable AI agent orchestration.
-Current implementation stage: Stage 8 (in progress).
+These package-level docs are being consolidated into the repo-level documentation map at [`../../docs/README.md`](../../docs/README.md).
 
-## 📖 User Guide
+Use this index for package-adjacent references and current agent-author guides. Some older pages in this folder still describe Project Athena, fleet, or persona-era workflows; treat those as legacy context until they are refreshed or archived by the documentation information architecture work.
 
-For users looking to install and use Team Orchestrator.
+## Current User Paths
 
-- [**Quickstart**](user/00-quickstart.md) - The fastest way to get Team Orchestrator up and running.
-- [**Introduction**](user/01-introduction.md) - Overview of core concepts and architecture.
-- [**Installation**](user/02-installation.md) - Prerequisites and setup instructions.
-- [**Basic Usage**](user/03-basic-usage.md) - Current CLI and API usage patterns.
-- [**API Server**](user/04-api-server.md) - Interacting with the Team Orchestrator API.
-- [**Advanced Usage**](user/05-advanced-usage.md) - Complex workflows and configurations.
-- [**API Examples**](user/06-api-examples.md) - Practical examples of API requests.
-- [**Build Your First Agent**](user/07-pdk-guide.md) - Create a local plugin-backed agent with the Team Orchestrator PDK.
-- [**Athena Console**](user/08-console-ui.md) - Web console for agents, tasks, workflows, runs, and artifacts.
-- [**Symbolic Navigation**](user/09-symbolic-navigation.md) - Semantic code reasoning using LSP tools.
+- [Copy The Model Provider Smoke Agent](user/10-copy-sample-agent.md) - Safely copy, rename, restart, and test a model-backed sample agent.
+- [Build Your First Agent](user/07-pdk-guide.md) - Create a local plugin-backed agent with the Team Orchestrator PDK.
+- [API Examples](user/06-api-examples.md) - Practical examples of API requests.
 
-## 📂 Other Resources
+## Legacy Or Needs Refresh
 
-- [**Personas**](personas/README.md) - Legacy specialist/persona documentation.
-- [**Getting Started**](getting-started/README.md) - Initial onboarding for new users.
+These pages are retained for reference but should not be the first stop for a new user:
 
----
-
-*For internal project documentation, see `planning/README.md`.*
+- [Quickstart](user/00-quickstart.md)
+- [Introduction](user/01-introduction.md)
+- [Installation](user/02-installation.md)
+- [Basic Usage](user/03-basic-usage.md)
+- [API Server](user/04-api-server.md)
+- [Advanced Usage](user/05-advanced-usage.md)
+- [Console UI](user/08-console-ui.md)
+- [Symbolic Navigation](user/09-symbolic-navigation.md)
+- [Package Getting Started](getting-started/README.md)
+- [Personas](personas/README.md)
