@@ -207,7 +207,7 @@ Candidate sequence:
 - `flywheel/backlog/engineering/done/STORY-20260530-docs-information-architecture.md`
 - `flywheel/backlog/engineering/done/STORY-20260530-agent-developer-kit-hardening.md`
 - `flywheel/backlog/engineering/done/STORY-20260530-agent-scaffold-command.md`
-- `flywheel/backlog/engineering/intake/STORY-20260530-product-readiness-smoke-suite.md`
+- `flywheel/backlog/engineering/done/STORY-20260530-product-readiness-smoke-suite.md`
 
 Source epic:
 
@@ -215,9 +215,9 @@ Source epic:
 
 ### Current Flywheel Priorities
 
-Flywheel lanes are the operational source of truth. No engineering or architecture items are active or awaiting QA right now.
+Flywheel lanes are the operational source of truth. No productization engineering or architecture work is currently active or awaiting QA.
 
-The recommended next move is the repeatable product-readiness smoke suite.
+The recommended next move is to re-evaluate the productization backlog and choose the next refinement slice before activating more work.
 
 Recently completed tracks now live in Flywheel done history:
 

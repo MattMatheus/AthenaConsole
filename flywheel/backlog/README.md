@@ -22,12 +22,13 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-- `engineering/intake/STORY-20260530-product-readiness-smoke-suite.md`
+No candidate engineering or architecture intake items.
 
 ## Done
 
 Recently completed:
 
+- `engineering/done/STORY-20260530-product-readiness-smoke-suite.md`
 - `engineering/done/STORY-20260530-agent-scaffold-command.md`
 - `engineering/done/STORY-20260530-agent-developer-kit-hardening.md`
 - `engineering/done/STORY-20260530-docs-information-architecture.md`

@@ -4,7 +4,7 @@ Raw engineering work enters here before PM refinement.
 
 ## Candidate Sequence
 
-1. `STORY-20260530-product-readiness-smoke-suite.md`
+No candidate engineering items.
 
 ## Refinement Rule
 

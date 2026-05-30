@@ -1,0 +1,126 @@
+{
+  "cycle_id": "20260530-product-readiness-smoke-suite",
+  "generated_at_utc": "2026-05-30T22:53:26Z",
+  "branch": "main",
+  "story_path": "flywheel/backlog/engineering/done/STORY-20260530-product-readiness-smoke-suite.md",
+  "actor": "Codex",
+  "stage_trace": [
+    "PM refinement -> engineering active -> QA -> done"
+  ],
+  "diff_inventory": [
+    "A\tflywheel/backlog/engineering/done/STORY-20260530-product-readiness-smoke-suite.md",
+    "A\tscripts/product-readiness-smoke.mjs",
+    "D\tflywheel/backlog/engineering/intake/STORY-20260530-product-readiness-smoke-suite.md",
+    "M\tGETTING_STARTED.md",
+    "M\tdocs/product/direction/current-direction.md",
+    "M\tflywheel/backlog/README.md",
+    "M\tflywheel/backlog/engineering/done/README.md",
+    "M\tflywheel/backlog/engineering/intake/README.md",
+    "M\tflywheel/backlog/engineering/qa/README.md",
+    "M\tpackage.json"
+  ],
+  "objective": {
+    "intended_outcome": "Add and document a repeatable local product readiness smoke path that proves startup, readiness, catalog visibility, first-run workflow execution, workflow status, and task-run artifact metadata before external review.",
+    "scope_boundary": "Credential-free API smoke plus documented optional provider/manual checks; no full browser E2E automation, hosted deployment certification, or load testing."
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [
+      "AGENTS.md",
+      "planning/vision/handoff.md",
+      "planning/backlog/active/README.md",
+      "planning/prompts/active/next-agent-seed-prompt.md",
+      "GETTING_STARTED.md",
+      "first-run sample plugin/workflow APIs",
+      "readiness tests",
+      "active Flywheel backlog lanes"
+    ],
+    "tools_used": [
+      "flywheel_state.sh",
+      "validate_workflow_state.sh",
+      "run_observer_cycle.sh",
+      "npm",
+      "node",
+      "local API dev server"
+    ],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [
+      "scripts/product-readiness-smoke.mjs",
+      "package.json",
+      "GETTING_STARTED.md",
+      "docs/product/direction/current-direction.md",
+      "flywheel/backlog/README.md",
+      "flywheel/backlog/engineering/done/README.md",
+      "flywheel/backlog/engineering/intake/README.md",
+      "flywheel/backlog/engineering/qa/README.md",
+      "flywheel/backlog/engineering/done/STORY-20260530-product-readiness-smoke-suite.md",
+      "flywheel/artifacts/observer/OBSERVER-REPORT-20260530-product-readiness-smoke-suite.md",
+      "flywheel/artifacts/observer/OBSERVER-REPORT-20260530-product-readiness-smoke-suite.json"
+    ],
+    "state_transitions": [
+      "STORY-20260530-product-readiness-smoke-suite: intake -> active",
+      "STORY-20260530-product-readiness-smoke-suite: active -> qa",
+      "STORY-20260530-product-readiness-smoke-suite: qa -> done"
+    ],
+    "non_file_actions": [
+      "Ran the smoke command against a local API on http://127.0.0.1:18788",
+      "Stopped the local API listener after QA"
+    ]
+  },
+  "validation": {
+    "checks_run": [
+      "node --check scripts/product-readiness-smoke.mjs",
+      "npm run typecheck",
+      "npm --workspace @athena/core run test:unit -- control-plane.readiness",
+      "npm run smoke:product -- --api-base-url http://127.0.0.1:18788 --run-id qa-smoke-final",
+      "./flywheel/tools/validate_workflow_state.sh --format json",
+      "git diff --check"
+    ],
+    "results": [
+      "All checks passed",
+      "Live smoke verified health, readiness with required checks passing, first-run demo catalog visibility, workflow template availability, workflow instantiation, completed workflow execution, completed workflow status, and two task-run artifact metadata records"
+    ],
+    "checks_not_run": [
+      "Browser console artifact-preview QA remains documented as a manual optional check for a future UI automation slice"
+    ]
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": true,
+    "prompts_updated_if_stage_behavior_changed": true,
+    "process_docs_updated_if_contracts_or_gates_changed": true,
+    "queue_order_and_state_synchronized": true
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [
+      "Full browser E2E coverage is still outside this story"
+    ],
+    "assumptions_carried": [
+      "Local API must already be running for npm run smoke:product",
+      "Credential-free first-run sample data remains available in the default workspace"
+    ],
+    "warnings": [
+      "Readiness may be degraded when optional providers are not configured; the smoke script accepts this only when required readiness checks do not fail"
+    ]
+  },
+  "action_record": {
+    "highest_action_class": "Local repository write and local process validation",
+    "approval_required": "No",
+    "approval_reference": "Not applicable"
+  },
+  "next_step": {
+    "recommended_next_state": "Cycle complete; re-evaluate the productization backlog before activating another story",
+    "follow_up_work": [
+      "Consider a future browser smoke that opens the console run/artifact path"
+    ],
+    "durable_promotions": [
+      "Keep npm run smoke:product as the repeatable local product readiness gate"
+    ]
+  },
+  "release_impact": {
+    "release_scope": "required",
+    "additional_release_actions": [
+      "Run npm run smoke:product as part of local release-readiness checks after starting the API"
+    ]
+  }
+}

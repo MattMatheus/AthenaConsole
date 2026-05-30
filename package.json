@@ -12,7 +12,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "dev": "turbo run dev",
-    "athena": "node packages/core/dist/src/cli/main.js"
+    "athena": "node packages/core/dist/src/cli/main.js",
+    "smoke:product": "node scripts/product-readiness-smoke.mjs"
   },
   "devDependencies": {
     "turbo": "^2.4.4"

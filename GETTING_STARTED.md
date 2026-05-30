@@ -197,6 +197,30 @@ curl http://127.0.0.1:8787/api/v1/task-runs/<task-run-id>
 
 The sample artifact uses `memory://first-run-demo/...` storage metadata and does not contain external credentials.
 
+## Product Readiness Smoke
+
+After the local stack is running, use the repeatable smoke command when you want one pass/fail check before sharing the product or handing it to another reviewer:
+
+```bash
+npm run smoke:product
+```
+
+The smoke command checks:
+
+- API health and readiness.
+- First-run demo agents in the catalog.
+- First-run workflow template availability.
+- Workflow instantiation and execution.
+- Workflow status and linked task-run artifact metadata.
+
+If your API is not at `http://127.0.0.1:8787`, pass:
+
+```bash
+npm run smoke:product -- --api-base-url http://127.0.0.1:<port>
+```
+
+For a provider-backed manual smoke, configure a provider in Settings, run a model-backed agent task, then inspect the task run detail and artifact preview in the console. The scripted smoke path remains credential-free.
+
 ## 6. Move From Demo To Real Repo Work
 
 The first-run demo proves that plugins, agents, workflow templates, task runs, events, and artifact metadata are working locally. Real repository work follows the same operator loop, but uses your repo as run context and plugin-backed agents that know how to operate on that repo.

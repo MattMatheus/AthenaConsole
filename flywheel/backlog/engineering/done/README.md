@@ -72,3 +72,4 @@ Engineering work accepted by QA.
 66. `STORY-20260530-docs-information-architecture.md`
 67. `STORY-20260530-agent-developer-kit-hardening.md`
 68. `STORY-20260530-agent-scaffold-command.md`
+69. `STORY-20260530-product-readiness-smoke-suite.md`
