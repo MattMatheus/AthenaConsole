@@ -19,12 +19,7 @@ Pre-reset refinement records were moved to:
 
 ## Active Refinement Tracks
 
-- `docs/product/epics/refinement/2026.26.00-epic-real-work-repo-connection.md`
-- `docs/product/epics/refinement/2026.27.00-epic-model-provider-and-secrets-setup.md`
-- `docs/product/epics/refinement/2026.28.00-epic-agent-sdk-and-examples.md`
-- `docs/product/epics/refinement/2026.29.00-epic-real-work-run-loop.md`
-- `docs/product/epics/refinement/2026.30.00-epic-local-server-deployment-readiness.md`
-- `docs/product/epics/refinement/2026.31.00-epic-productization-docs-and-agent-developer-kit.md`
+- `docs/product/epics/refinement/2026.32.00-epic-comprehensive-user-documentation.md`
 
 ## Completed Refinement Tracks
 
@@ -33,3 +28,9 @@ Pre-reset refinement records were moved to:
 - `docs/product/epics/refinement/2026.23.00-epic-operator-readiness-first-run.md`
 - `docs/product/epics/refinement/2026.24.00-epic-console-product-surface-polish.md`
 - `docs/product/epics/refinement/2026.25.00-epic-operator-workflow-clarity-repo-wiring.md`
+- `docs/product/epics/refinement/2026.26.00-epic-real-work-repo-connection.md`
+- `docs/product/epics/refinement/2026.27.00-epic-model-provider-and-secrets-setup.md`
+- `docs/product/epics/refinement/2026.28.00-epic-agent-sdk-and-examples.md`
+- `docs/product/epics/refinement/2026.29.00-epic-real-work-run-loop.md`
+- `docs/product/epics/refinement/2026.30.00-epic-local-server-deployment-readiness.md`
+- `docs/product/epics/refinement/2026.31.00-epic-productization-docs-and-agent-developer-kit.md`

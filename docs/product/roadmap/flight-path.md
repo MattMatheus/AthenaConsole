@@ -187,11 +187,11 @@ Completed sequence:
 17. `flywheel/backlog/engineering/done/STORY-20260529-deployment-readiness-diagnostics.md`
 18. `flywheel/backlog/engineering/done/STORY-20260529-fresh-server-real-work-walkthrough.md`
 
-## Next Roadmap Arc
+## Completed Roadmap Arc
 
 ### 2026.31 Productization, Documentation, And Agent Developer Kit
 
-Status: Refinement.
+Status: Complete.
 
 Goal: move Team Orchestrator from a working local prototype into a product a new operator or agent author can understand, run, extend, and trust without relying on project-history context.
 
@@ -210,14 +210,36 @@ Source epic:
 
 - `docs/product/epics/refinement/2026.31.00-epic-productization-docs-and-agent-developer-kit.md`
 
-Candidate sequence:
+Completed sequence:
 
 1. `flywheel/backlog/engineering/done/STORY-20260530-repo-cleanup-audit.md`
 2. `flywheel/backlog/engineering/done/STORY-20260530-remove-stale-marketing-app.md`
-3. `flywheel/backlog/engineering/qa/STORY-20260530-docs-information-architecture.md`
-4. `flywheel/backlog/engineering/intake/STORY-20260530-agent-developer-kit-hardening.md`
-5. `flywheel/backlog/engineering/intake/STORY-20260530-agent-scaffold-command.md`
-6. `flywheel/backlog/engineering/intake/STORY-20260530-product-readiness-smoke-suite.md`
+3. `flywheel/backlog/engineering/done/STORY-20260530-docs-information-architecture.md`
+4. `flywheel/backlog/engineering/done/STORY-20260530-agent-developer-kit-hardening.md`
+5. `flywheel/backlog/engineering/done/STORY-20260530-agent-scaffold-command.md`
+6. `flywheel/backlog/engineering/done/STORY-20260530-product-readiness-smoke-suite.md`
+
+## Next Roadmap Arc
+
+### 2026.32 Comprehensive User Documentation
+
+Status: Intake.
+
+Goal: turn the current dense quickstart and docs map into a learnable user guide with narrative explanations, concepts, workflows, examples, and troubleshooting paths for operators and agent authors.
+
+Why now:
+
+- The product can now run the first-run demo, real repo work, provider-backed agents, scaffolded agents, and a readiness smoke path.
+- The existing docs are accurate enough for maintainers, but too compressed for a new user trying to build a mental model.
+- User testing should happen against docs that explain the product without requiring code reading.
+
+Target outcome:
+
+- A motivated user can learn what Team Orchestrator is, start it, understand its core concepts, run useful work, create an agent, inspect results, and recover from common failures using docs alone.
+
+First candidate:
+
+1. `flywheel/backlog/engineering/intake/STORY-20260530-comprehensive-user-guide.md`
 
 ## Near-Term Principles
 

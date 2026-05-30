@@ -1,0 +1,118 @@
+{
+  "cycle_id": "20260530-product-docs-state-sync",
+  "generated_at_utc": "2026-05-30T23:08:36Z",
+  "branch": "main",
+  "story_path": "flywheel/backlog/engineering/done/BUG-20260530-product-docs-state-sync.md",
+  "actor": "Codex",
+  "stage_trace": [
+    "active bug -> QA -> done"
+  ],
+  "diff_inventory": [
+    "A\tdocs/product/epics/refinement/2026.32.00-epic-comprehensive-user-documentation.md",
+    "A\tflywheel/backlog/engineering/done/BUG-20260530-product-docs-state-sync.md",
+    "A\tflywheel/backlog/engineering/intake/STORY-20260530-comprehensive-user-guide.md",
+    "M\tdocs/product/direction/current-direction.md",
+    "M\tdocs/product/epics/refinement/2026.31.00-epic-productization-docs-and-agent-developer-kit.md",
+    "M\tdocs/product/epics/refinement/README.md",
+    "M\tdocs/product/roadmap/flight-path.md",
+    "M\tflywheel/backlog/README.md",
+    "M\tflywheel/backlog/engineering/done/README.md",
+    "M\tflywheel/backlog/engineering/intake/README.md"
+  ],
+  "objective": {
+    "intended_outcome": "Fix stale product-doc state after the 2026.31 productization sequence completed and make the requested comprehensive user documentation upgrade visible as the next Flywheel candidate.",
+    "scope_boundary": "Docs state, roadmap/refinement metadata, and intake planning only; no comprehensive guide implementation and no product behavior changes."
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [
+      "docs/product/direction/current-direction.md",
+      "docs/product/roadmap/flight-path.md",
+      "docs/product/epics/refinement/README.md",
+      "docs/product/epics/refinement/2026.31.00-epic-productization-docs-and-agent-developer-kit.md",
+      "flywheel/backlog/README.md",
+      "Flywheel lane READMEs"
+    ],
+    "tools_used": [
+      "flywheel_state.sh",
+      "validate_workflow_state.sh",
+      "run_observer_cycle.sh",
+      "rg",
+      "git diff --check"
+    ],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [
+      "docs/product/direction/current-direction.md",
+      "docs/product/roadmap/flight-path.md",
+      "docs/product/epics/refinement/README.md",
+      "docs/product/epics/refinement/2026.31.00-epic-productization-docs-and-agent-developer-kit.md",
+      "docs/product/epics/refinement/2026.32.00-epic-comprehensive-user-documentation.md",
+      "flywheel/backlog/README.md",
+      "flywheel/backlog/engineering/done/README.md",
+      "flywheel/backlog/engineering/intake/README.md",
+      "flywheel/backlog/engineering/done/BUG-20260530-product-docs-state-sync.md",
+      "flywheel/backlog/engineering/intake/STORY-20260530-comprehensive-user-guide.md",
+      "flywheel/artifacts/observer/OBSERVER-REPORT-20260530-product-docs-state-sync.md",
+      "flywheel/artifacts/observer/OBSERVER-REPORT-20260530-product-docs-state-sync.json"
+    ],
+    "state_transitions": [
+      "BUG-20260530-product-docs-state-sync: active -> qa",
+      "BUG-20260530-product-docs-state-sync: qa -> done"
+    ],
+    "non_file_actions": [
+      "Performed targeted stale-reference scans for completed 2026.31 stories pointing at QA/intake lanes"
+    ]
+  },
+  "validation": {
+    "checks_run": [
+      "./flywheel/tools/validate_workflow_state.sh --format json",
+      "git diff --check",
+      "targeted stale-lane reference scan",
+      "spot-check of 2026.26-2026.30 epic status values"
+    ],
+    "results": [
+      "All checks passed",
+      "2026.31 is marked complete",
+      "stale QA/intake story references are removed from current roadmap docs",
+      "active refinement now points at 2026.32",
+      "the comprehensive guide is visible in engineering intake"
+    ],
+    "checks_not_run": [
+      "Full documentation rewrite was intentionally not run or implemented in this state-sync cycle"
+    ]
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": true,
+    "prompts_updated_if_stage_behavior_changed": true,
+    "process_docs_updated_if_contracts_or_gates_changed": true,
+    "queue_order_and_state_synchronized": true
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [
+      "The user documentation remains too sparse until STORY-20260530-comprehensive-user-guide is refined and implemented"
+    ],
+    "assumptions_carried": [
+      "The comprehensive guide should be the next docs arc before broad user testing"
+    ],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "Local repository documentation write",
+    "approval_required": "No",
+    "approval_reference": "Not applicable"
+  },
+  "next_step": {
+    "recommended_next_state": "Refine and activate STORY-20260530-comprehensive-user-guide",
+    "follow_up_work": [
+      "Build the comprehensive user guide with explanations, examples, troubleshooting, and entry-point links"
+    ],
+    "durable_promotions": [
+      "Treat 2026.32 Comprehensive User Documentation as the active refinement arc"
+    ]
+  },
+  "release_impact": {
+    "release_scope": "required",
+    "additional_release_actions": []
+  }
+}

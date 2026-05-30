@@ -4,7 +4,7 @@ Raw engineering work enters here before PM refinement.
 
 ## Candidate Sequence
 
-No candidate engineering items.
+1. `STORY-20260530-comprehensive-user-guide.md`
 
 ## Refinement Rule
 

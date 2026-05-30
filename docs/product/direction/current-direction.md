@@ -196,11 +196,11 @@ Source epics:
 
 ### 2026.31 Productization, Documentation, And Agent Developer Kit
 
-Status: Refinement.
+Status: Complete.
 
 Goal: move Team Orchestrator from a working local prototype into a product a new operator or agent author can understand, run, extend, and trust without relying on project-history context.
 
-Candidate sequence:
+Completed sequence:
 
 - `flywheel/backlog/engineering/done/STORY-20260530-repo-cleanup-audit.md`
 - `flywheel/backlog/engineering/done/STORY-20260530-remove-stale-marketing-app.md`
@@ -213,11 +213,25 @@ Source epic:
 
 - `docs/product/epics/refinement/2026.31.00-epic-productization-docs-and-agent-developer-kit.md`
 
+### 2026.32 Comprehensive User Documentation
+
+Status: Intake.
+
+Goal: make Team Orchestrator learnable from documentation alone for motivated users who want to operate the system or author agents without reading source code.
+
+First candidate:
+
+- `flywheel/backlog/engineering/intake/STORY-20260530-comprehensive-user-guide.md`
+
+Source epic:
+
+- `docs/product/epics/refinement/2026.32.00-epic-comprehensive-user-documentation.md`
+
 ### Current Flywheel Priorities
 
-Flywheel lanes are the operational source of truth. No productization engineering or architecture work is currently active or awaiting QA.
+Flywheel lanes are the operational source of truth. No engineering or architecture work is currently active or awaiting QA.
 
-The recommended next move is to re-evaluate the productization backlog and choose the next refinement slice before activating more work.
+The recommended next move is to refine and implement a comprehensive user documentation guide so motivated users can learn the system without reading source code.
 
 Recently completed tracks now live in Flywheel done history:
 
