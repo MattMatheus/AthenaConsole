@@ -4,8 +4,7 @@ Raw engineering work enters here before PM refinement.
 
 ## Candidate Sequence
 
-1. `STORY-20260530-agent-scaffold-command.md`
-2. `STORY-20260530-product-readiness-smoke-suite.md`
+1. `STORY-20260530-product-readiness-smoke-suite.md`
 
 ## Refinement Rule
 

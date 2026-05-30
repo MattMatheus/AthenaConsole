@@ -28,6 +28,15 @@ docs/
   README.md
 ```
 
+You can create this shape with the core CLI:
+
+```bash
+npm --workspace @athena/core run build
+npm --workspace @athena/core run athena -- agent scaffold --name "Research Planner"
+```
+
+By default, the command writes to `.athena/plugins/`, which is already in the default local plugin search path. Use `--plugins-dir <path>`, `--plugin-id <id>`, or `--agent-id <id>` when you need explicit placement or identities.
+
 The plugin manifest points at the agent manifest:
 
 ```yaml

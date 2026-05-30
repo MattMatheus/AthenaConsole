@@ -206,7 +206,7 @@ Candidate sequence:
 - `flywheel/backlog/engineering/done/STORY-20260530-remove-stale-marketing-app.md`
 - `flywheel/backlog/engineering/done/STORY-20260530-docs-information-architecture.md`
 - `flywheel/backlog/engineering/done/STORY-20260530-agent-developer-kit-hardening.md`
-- `flywheel/backlog/engineering/intake/STORY-20260530-agent-scaffold-command.md`
+- `flywheel/backlog/engineering/done/STORY-20260530-agent-scaffold-command.md`
 - `flywheel/backlog/engineering/intake/STORY-20260530-product-readiness-smoke-suite.md`
 
 Source epic:
@@ -217,7 +217,7 @@ Source epic:
 
 Flywheel lanes are the operational source of truth. No engineering or architecture items are active or awaiting QA right now.
 
-The recommended next move is the productization arc: add scaffolding, then finish with a repeatable product-readiness smoke suite.
+The recommended next move is the repeatable product-readiness smoke suite.
 
 Recently completed tracks now live in Flywheel done history:
 

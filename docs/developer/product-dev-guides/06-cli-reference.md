@@ -16,6 +16,22 @@ npm run athena -- <command> [options]
 npm run athena -- run --session <session_id> --input "<your_input>"
 ```
 
+## Agent Scaffolding
+
+Create a local plugin-backed agent in the default `.athena/plugins/` search path:
+
+```bash
+npm run athena -- agent scaffold --name "Research Planner"
+```
+
+Use explicit ids or a different plugin directory when needed:
+
+```bash
+npm run athena -- agent scaffold --name "Research Planner" --plugins-dir plugins --plugin-id local.research-planner --agent-id local.research-planner.agent
+```
+
+The command generates `plugin.yaml`, an agent manifest, a local runner, and plugin README, then validates the generated plugin package before exiting.
+
 ## Persona Management
 
 ### Run a Persona

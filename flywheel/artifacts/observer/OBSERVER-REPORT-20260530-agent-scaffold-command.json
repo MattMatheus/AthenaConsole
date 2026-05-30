@@ -1,0 +1,129 @@
+{
+  "cycle_id": "20260530-agent-scaffold-command",
+  "generated_at_utc": "2026-05-30T22:44:22Z",
+  "branch": "main",
+  "story_path": "flywheel/backlog/engineering/done/STORY-20260530-agent-scaffold-command.md",
+  "actor": "Codex",
+  "stage_trace": [],
+  "diff_inventory": [
+    "A\tflywheel/backlog/engineering/done/STORY-20260530-agent-scaffold-command.md",
+    "A\tpackages/core/src/cli/commands/agent.ts",
+    "A\tpackages/core/src/control-plane/agent-scaffold.ts",
+    "A\tpackages/core/tests/agent-scaffold.test.ts",
+    "D\tflywheel/backlog/engineering/intake/STORY-20260530-agent-scaffold-command.md",
+    "M\tdocs/developer/product-dev-guides/06-cli-reference.md",
+    "M\tdocs/product/direction/current-direction.md",
+    "M\tflywheel/backlog/README.md",
+    "M\tflywheel/backlog/engineering/done/README.md",
+    "M\tflywheel/backlog/engineering/intake/README.md",
+    "M\tpackages/core/src/cli/helpers/usage.ts",
+    "M\tpackages/core/src/cli/index.ts",
+    "M\tpackages/pdk/README.md"
+  ],
+  "objective": {
+    "intended_outcome": "Refine, activate, implement, QA, and close the local agent scaffold command story.",
+    "scope_boundary": "Core CLI scaffold command, generated plugin template, scaffold validation, focused tests, docs discoverability, and Flywheel queue synchronization only; no marketplace, graphical builder, remote publishing, or model-provider template."
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [
+      "flywheel/backlog/engineering/intake/STORY-20260530-agent-scaffold-command.md",
+      "packages/core/src/cli/index.ts",
+      "packages/core/src/cli/helpers/usage.ts",
+      "packages/core/src/personas/scaffold.ts",
+      "packages/core/src/control-plane/manifests/validation.ts",
+      "sample plugin manifests",
+      "packages/pdk/README.md",
+      "docs/developer/product-dev-guides/06-cli-reference.md"
+    ],
+    "tools_used": [
+      "./flywheel/tools/launch_stage.sh pm --format json",
+      "./flywheel/tools/launch_stage.sh engineering --format json",
+      "./flywheel/tools/launch_stage.sh qa --format json",
+      "./flywheel/tools/flywheel_state.sh move ...",
+      "npm --workspace @athena/core run typecheck",
+      "npm --workspace @athena/core run test:unit -- agent-scaffold",
+      "npm --workspace @athena/core run build",
+      "npm --workspace @athena/core run validate:manifests",
+      "built CLI temp-dir scaffold smoke",
+      "scaffold docs markdown link/path review",
+      "./flywheel/tools/validate_workflow_state.sh --format json",
+      "git diff --check"
+    ],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [
+      "packages/core/src/control-plane/agent-scaffold.ts",
+      "packages/core/src/cli/commands/agent.ts",
+      "packages/core/src/cli/index.ts",
+      "packages/core/src/cli/helpers/usage.ts",
+      "packages/core/tests/agent-scaffold.test.ts",
+      "packages/pdk/README.md",
+      "docs/developer/product-dev-guides/06-cli-reference.md",
+      "docs/product/direction/current-direction.md",
+      "Flywheel backlog files"
+    ],
+    "state_transitions": [
+      "STORY-20260530-agent-scaffold-command: intake -> active -> qa -> done"
+    ],
+    "non_file_actions": [
+      "PM refined command placement.",
+      "Engineering implemented the scaffold command and tests.",
+      "QA validated command output and manifest validity."
+    ]
+  },
+  "validation": {
+    "checks_run": [
+      "npm --workspace @athena/core run typecheck",
+      "npm --workspace @athena/core run test:unit -- agent-scaffold",
+      "npm --workspace @athena/core run build",
+      "npm --workspace @athena/core run validate:manifests",
+      "built CLI temp-dir scaffold smoke plus direct validatePluginPackage",
+      "scaffold docs markdown link/path review",
+      "./flywheel/tools/validate_workflow_state.sh --format json",
+      "git diff --check"
+    ],
+    "results": [
+      "Core typecheck passed",
+      "Focused scaffold tests passed with 3 tests",
+      "Core build passed",
+      "Bundled/sample manifest validation passed",
+      "Generated smoke plugin validated with no issues",
+      "Docs links resolve",
+      "Workflow state passes",
+      "Whitespace diff check passes"
+    ],
+    "checks_not_run": []
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": true,
+    "prompts_updated_if_stage_behavior_changed": true,
+    "process_docs_updated_if_contracts_or_gates_changed": true,
+    "queue_order_and_state_synchronized": true
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [
+      "The first scaffold template is local-process/no-network only; model-provider-backed scaffolds remain future work."
+    ],
+    "assumptions_carried": [
+      "Generated plugins default to .athena/plugins/, which is already in the default local plugin search path."
+    ],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "local write",
+    "approval_required": "no",
+    "approval_reference": "none"
+  },
+  "next_step": {
+    "recommended_next_state": "PM refine or activate STORY-20260530-product-readiness-smoke-suite.",
+    "follow_up_work": [
+      "STORY-20260530-product-readiness-smoke-suite"
+    ],
+    "durable_promotions": []
+  },
+  "release_impact": {
+    "release_scope": "required productization story completed",
+    "additional_release_actions": []
+  }
+}

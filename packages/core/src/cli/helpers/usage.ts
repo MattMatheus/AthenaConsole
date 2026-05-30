@@ -9,6 +9,7 @@ export function usage(): string {
     "  athena specialist init <id> [--role <text>] [--description <text>]",
     "  athena specialist validate <id>",
     "  athena persona ... (alias for specialist ...)",
+    "  athena agent scaffold --name <display-name> [--plugins-dir <path>] [--plugin-id <id>] [--agent-id <id>] [--description <text>]",
     "  athena work enqueue --session <id> --input <text> [--mode followup|collect] [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",
     "  athena work drain --session <id> [--provider <id>] [--model <id>] [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",
     "  athena work status --session <id> [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",

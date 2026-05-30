@@ -1,4 +1,5 @@
 import { loadConfig } from "../shared/config.js";
+import { runAgentCli } from "./commands/agent.js";
 import { runApiCli } from "./commands/api.js";
 import { runCancelCli } from "./commands/cancel.js";
 import { runMemoryCli } from "./commands/memory.js";
@@ -43,6 +44,9 @@ export async function runCli(argv: string[], options: CliOptions = {}): Promise<
     }
     if (parsed.command === "api") {
       return runApiCli(argv.slice(1), options);
+    }
+    if (parsed.command === "agent") {
+      return runAgentCli(argv.slice(1), options);
     }
     throw new Error(`Unknown command '${parsed.command}'.\n${usage()}`);
   }
