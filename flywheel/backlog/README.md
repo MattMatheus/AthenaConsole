@@ -10,7 +10,7 @@ No active engineering or architecture work.
 
 Work currently awaiting QA:
 
-- `engineering/qa/STORY-20260530-docs-information-architecture.md`
+No engineering or architecture work awaiting QA.
 
 ## Next
 
@@ -30,6 +30,8 @@ Candidate work that needs PM refinement before activation:
 
 Recently completed:
 
+- `engineering/done/STORY-20260530-docs-information-architecture.md`
+- `engineering/done/BUG-20260530-package-docs-map-link.md`
 - `engineering/done/STORY-20260530-remove-stale-marketing-app.md`
 - `engineering/done/STORY-20260530-repo-cleanup-audit.md`
 - `engineering/done/STORY-20260530-task-run-history-actions.md`

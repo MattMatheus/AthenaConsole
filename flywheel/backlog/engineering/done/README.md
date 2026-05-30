@@ -68,3 +68,5 @@ Engineering work accepted by QA.
 62. `STORY-20260530-user-agent-copy-guide.md`
 63. `STORY-20260530-repo-cleanup-audit.md`
 64. `STORY-20260530-remove-stale-marketing-app.md`
+65. `BUG-20260530-package-docs-map-link.md`
+66. `STORY-20260530-docs-information-architecture.md`

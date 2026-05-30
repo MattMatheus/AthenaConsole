@@ -1,6 +1,6 @@
 # Team Orchestrator Package Docs
 
-These package-level docs are being consolidated into the repo-level documentation map at [`../../docs/README.md`](../../docs/README.md).
+These package-level docs are being consolidated into the repo-level documentation map at [`../../../docs/README.md`](../../../docs/README.md).
 
 Use this index for package-adjacent references and current agent-author guides. Some older pages in this folder still describe Project Athena, fleet, or persona-era workflows; treat those as legacy context until they are refreshed or archived by the documentation information architecture work.
 

@@ -1,0 +1,116 @@
+{
+  "cycle_id": "20260530-docs-information-architecture",
+  "generated_at_utc": "2026-05-30T22:19:02Z",
+  "branch": "main",
+  "story_path": "flywheel/backlog/engineering/done/STORY-20260530-docs-information-architecture.md",
+  "actor": "Codex",
+  "stage_trace": [],
+  "diff_inventory": [
+    "A\tflywheel/backlog/engineering/done/BUG-20260530-package-docs-map-link.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260530-docs-information-architecture.md",
+    "D\tflywheel/backlog/engineering/qa/STORY-20260530-docs-information-architecture.md",
+    "M\tdocs/product/direction/current-direction.md",
+    "M\tflywheel/backlog/README.md",
+    "M\tflywheel/backlog/engineering/done/README.md",
+    "M\tflywheel/backlog/engineering/qa/README.md",
+    "M\tpackages/core/docs/README.md",
+    "M\tpackages/core/docs/user/10-copy-sample-agent.md"
+  ],
+  "objective": {
+    "intended_outcome": "Complete QA for the documentation information architecture story and leave canonical docs, package docs links, and Flywheel queues synchronized.",
+    "scope_boundary": "Documentation IA, QA evidence, Flywheel backlog state, and cycle closure artifacts only; no runtime behavior changes."
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [
+      "docs/README.md",
+      "README.md",
+      "GETTING_STARTED.md",
+      "docs/developer/product-dev-guides/README.md",
+      "packages/core/docs/README.md",
+      "packages/core/docs/user/07-pdk-guide.md",
+      "packages/core/docs/user/10-copy-sample-agent.md",
+      "packages/pdk/README.md",
+      "flywheel/backlog/engineering/done/STORY-20260530-docs-information-architecture.md"
+    ],
+    "tools_used": [
+      "./flywheel/tools/launch_stage.sh qa --format json",
+      "./flywheel/tools/launch_stage.sh engineering --format json",
+      "./flywheel/tools/flywheel_state.sh move ...",
+      "./flywheel/tools/validate_workflow_state.sh --format json",
+      "git diff --check",
+      "rg stale-title scan",
+      "node markdown link review"
+    ],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [
+      "packages/core/docs/README.md",
+      "packages/core/docs/user/10-copy-sample-agent.md",
+      "docs/product/direction/current-direction.md",
+      "flywheel/backlog/README.md",
+      "flywheel/backlog/engineering/done/README.md",
+      "flywheel/backlog/engineering/qa/README.md",
+      "flywheel/backlog/engineering/done/STORY-20260530-docs-information-architecture.md",
+      "flywheel/backlog/engineering/done/BUG-20260530-package-docs-map-link.md"
+    ],
+    "state_transitions": [
+      "STORY-20260530-docs-information-architecture: qa -> active -> qa -> done",
+      "BUG-20260530-package-docs-map-link: intake -> active -> qa -> done"
+    ],
+    "non_file_actions": [
+      "QA failed the initial story for a broken package-docs map link.",
+      "Engineering fixed the link and current-guide related link.",
+      "QA revalidated and passed the story."
+    ]
+  },
+  "validation": {
+    "checks_run": [
+      "first-stop markdown link/path review",
+      "stale-title scan over current first-stop docs",
+      "./flywheel/tools/validate_workflow_state.sh --format json",
+      "git diff --check"
+    ],
+    "results": [
+      "first-stop markdown links resolve",
+      "stale-title scan only reports the intentional pre-reset archive note in the internal developer index",
+      "workflow state passes",
+      "whitespace diff check passes"
+    ],
+    "checks_not_run": []
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": true,
+    "prompts_updated_if_stage_behavior_changed": true,
+    "process_docs_updated_if_contracts_or_gates_changed": true,
+    "queue_order_and_state_synchronized": true
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [
+      "Package-level legacy docs remain intentionally labeled as legacy/needs-refresh rather than fully rewritten."
+    ],
+    "assumptions_carried": [
+      "README.md and GETTING_STARTED.md remain the main repo entry points.",
+      "Product planning and Flywheel docs remain internal."
+    ],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "local write",
+    "approval_required": "no",
+    "approval_reference": "none"
+  },
+  "next_step": {
+    "recommended_next_state": "PM refinement or activation for STORY-20260530-agent-developer-kit-hardening.",
+    "follow_up_work": [
+      "STORY-20260530-agent-developer-kit-hardening",
+      "STORY-20260530-agent-scaffold-command",
+      "STORY-20260530-product-readiness-smoke-suite"
+    ],
+    "durable_promotions": []
+  },
+  "release_impact": {
+    "release_scope": "required documentation productization story completed",
+    "additional_release_actions": []
+  }
+}

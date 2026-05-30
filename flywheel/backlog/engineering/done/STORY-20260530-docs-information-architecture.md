@@ -1,7 +1,7 @@
 ---
 kind: story
 id: STORY-20260530-docs-information-architecture
-status: qa
+status: done
 owner_role: Technical Writer
 source: planning
 success_metric: New users can find operator, admin, contributor, and agent-author docs from one canonical index.
@@ -14,7 +14,7 @@ ready: false
 ## Metadata
 - `id`: STORY-20260530-docs-information-architecture
 - `owner_role`: Technical Writer
-- `status`: qa
+- `status`: done
 - `source`: planning
 - `decision_refs`: [0006, 0007, 0008, 0009, 0018]
 - `success_metric`: New users can find operator, admin, contributor, and agent-author docs from one canonical index.
@@ -57,11 +57,21 @@ Docs exist, but they are split across root files, product docs, developer guides
 
 ## Engineering Handoff
 
-- `change_summary`: Made `docs/README.md` the canonical audience-based documentation map for local operators, local-server admins, agent authors, contributors, internal workflow, and historical context. Linked the docs map from the root README. Reframed `packages/core/docs/README.md` as package-level docs with current agent-author paths and a clear legacy/needs-refresh section for older Athena/fleet/persona-era pages. Added a repo-wide docs pointer to the developer guides index.
-- `validation_evidence`: Verified all linked first-stop files exist with shell path checks; ran stale-title scan against updated top-level docs; ran `./flywheel/tools/validate_workflow_state.sh --format json`; ran `git diff --check`.
-- `qa_focus`: Confirm a new reader can choose the correct path for operator setup, local-server administration, agent authoring, and contributing from `docs/README.md`; confirm older package docs are visibly marked as legacy or needs-refresh rather than presented as canonical.
+- `change_summary`: Made `docs/README.md` the canonical audience-based documentation map for local operators, local-server admins, agent authors, contributors, internal workflow, and historical context. Linked the docs map from the root README. Reframed `packages/core/docs/README.md` as package-level docs with current agent-author paths and a clear legacy/needs-refresh section for older Athena/fleet/persona-era pages. Added a repo-wide docs pointer to the developer guides index. Rework pass fixed the package-docs relative link to the repo-level docs map and redirected the current copied-agent related guide away from the legacy console page.
+- `validation_evidence`: Verified first-stop markdown links across `README.md`, `docs/README.md`, developer/package docs indexes, current agent-author guides, and PDK docs resolve; stale-title scan over those current docs now only reports the intentional pre-reset archive note in the internal developer index; ran `./flywheel/tools/validate_workflow_state.sh --format json`; ran `git diff --check`.
+- `qa_focus`: Confirm a new reader can choose the correct path for operator setup, local-server administration, agent authoring, and contributing from `docs/README.md`; confirm older package docs are visibly marked as legacy or needs-refresh rather than presented as canonical; confirm `packages/core/docs/README.md` reaches `docs/README.md`.
 - `open_risks`: This story maps and labels the docs; it does not rewrite every stale package-level user page. Those refreshes remain follow-up work.
+
+## QA Verdict
+
+- `verdict`: Pass.
+- `evidence_quality`: Link/path review over the canonical docs map, repo README, developer/package docs indexes, current agent-author guides, and PDK docs passed. Stale-title scan over those current docs only reports the intentional pre-reset archive note in the internal developer index. Workflow state validation and `git diff --check` passed.
+- `defects`: `BUG-20260530-package-docs-map-link.md` was filed, fixed, verified, and moved to done.
+- `state_transition`: Ready for engineering done.
 
 ## Transition History
 - `2026-05-30T03:47:56Z`: `intake` -> `active`; final evening docs IA story
 - `2026-05-30T03:49:41Z`: `active` -> `qa`; documentation information architecture implemented
+- `2026-05-30T22:15:36Z`: `qa` -> `active`; QA found blocking package docs map link defect
+- `2026-05-30T22:17:44Z`: `active` -> `qa`; documentation IA rework handoff ready
+- `2026-05-30T22:18:12Z`: `qa` -> `done`; QA passed documentation information architecture

@@ -149,4 +149,4 @@ The successful run proves the provider, agent manifest, runner, artifact metadat
 ## Related Guides
 
 - [Build Your First Agent](07-pdk-guide.md)
-- [Athena Console](08-console-ui.md)
+- [Team Orchestrator Documentation Map](../../../../docs/README.md)
