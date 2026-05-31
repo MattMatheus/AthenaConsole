@@ -7,6 +7,7 @@ describe("workflow run status api parser", () => {
       run: {
         id: "workflow-dag-run-1",
         status: "running",
+        failure: null,
         workflowTemplate: {
           id: "release.workflow",
           version: "1.0.0",
@@ -42,7 +43,22 @@ describe("workflow run status api parser", () => {
             startedAt: "2026-05-28T12:00:01.000Z",
             finishedAt: "2026-05-28T12:00:05.000Z",
           },
+          failure: null,
           output: { taskRunId: "run-build" },
+          taskRunEvidence: {
+            id: "run-build",
+            status: "completed",
+            outputSummary: "Build completed.",
+            artifactCount: 1,
+            artifacts: [
+              {
+                id: "artifact-build-log",
+                label: "Build log",
+                kind: "log",
+                format: "text",
+              },
+            ],
+          },
         },
         {
           id: "verify",
@@ -82,9 +98,18 @@ describe("workflow run status api parser", () => {
     });
 
     expect(status.run.id).toBe("workflow-dag-run-1");
+    expect(status.run.failure).toBeUndefined();
     expect(status.run.workflowTemplate.pluginId).toBe("release.plugin");
     expect(status.progress.percentComplete).toBe(33);
     expect(status.nodes[1]?.dependencies).toEqual(["build"]);
+    expect(status.nodes[0]?.taskRunEvidence).toMatchObject({
+      id: "run-build",
+      status: "completed",
+      outputSummary: "Build completed.",
+      artifactCount: 1,
+      artifacts: [{ id: "artifact-build-log", label: "Build log", kind: "log", format: "text" }],
+    });
+    expect(status.nodes[0]?.failure).toBeUndefined();
     expect(status.edges).toEqual([{ from: "build", to: "verify" }]);
     expect(status.polling.recommendedIntervalMs).toBe(2500);
   });

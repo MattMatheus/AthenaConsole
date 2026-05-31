@@ -87,3 +87,24 @@ export function taskRunIdFromWorkflowNodeOutput(output: unknown): string | undef
   const record = output as Record<string, unknown>;
   return typeof record.taskRunId === "string" && record.taskRunId.trim().length > 0 ? record.taskRunId : undefined;
 }
+
+export function workflowNodeOutputSummary(node: Pick<WorkflowRunStatusNode, "output" | "taskRunEvidence">): string {
+  if (node.taskRunEvidence?.outputSummary) {
+    return node.taskRunEvidence.outputSummary;
+  }
+  if (taskRunIdFromWorkflowNodeOutput(node.output)) {
+    return "This workflow step produced a linked task run. Open the task evidence to inspect output and artifacts.";
+  }
+  if (node.output === undefined) {
+    return "No workflow step output was recorded yet.";
+  }
+  return formatWorkflowRunUnknown(node.output);
+}
+
+export function workflowNodeArtifactSummary(node: Pick<WorkflowRunStatusNode, "taskRunEvidence">): string {
+  const artifactCount = node.taskRunEvidence?.artifactCount ?? 0;
+  if (artifactCount === 0) {
+    return "No artifacts recorded";
+  }
+  return artifactCount === 1 ? "1 artifact recorded" : `${artifactCount} artifacts recorded`;
+}

@@ -27,7 +27,25 @@ describe("workflow run graph status", () => {
         });
 
         stateService.startStep("workflow-run-status", "extract");
-        stateService.completeStep("workflow-run-status", "extract", { artifactRef: "artifact-extract" });
+        appState.runs.create({
+          id: "run-extract",
+          targetType: "task",
+          targetId: "task-extract",
+          status: "completed",
+          output: {
+            message: "Extracted repository context for review.",
+            filesScanned: 12
+          }
+        });
+        appState.artifacts.create({
+          id: "artifact-extract-summary",
+          runId: "run-extract",
+          label: "Extract summary",
+          kind: "report",
+          format: "markdown",
+          storageUri: "artifacts/run-extract/summary.md"
+        });
+        stateService.completeStep("workflow-run-status", "extract", { taskRunId: "run-extract" });
         stateService.startStep("workflow-run-status", "transform");
         stateService.failStep("workflow-run-status", "transform", { code: "MODEL_TIMEOUT", message: "Timed out" });
 
@@ -58,7 +76,21 @@ describe("workflow run graph status", () => {
         expect(status.nodes.find((node) => node.id === "extract")).toMatchObject({
           status: "completed",
           dependents: ["transform"],
-          output: { artifactRef: "artifact-extract" }
+          output: { taskRunId: "run-extract" },
+          taskRunEvidence: {
+            id: "run-extract",
+            status: "completed",
+            outputSummary: "Extracted repository context for review.",
+            artifactCount: 1,
+            artifacts: [
+              {
+                id: "artifact-extract-summary",
+                label: "Extract summary",
+                kind: "report",
+                format: "markdown"
+              }
+            ]
+          }
         });
         expect(status.nodes.find((node) => node.id === "transform")).toMatchObject({
           status: "failed",
@@ -109,8 +141,23 @@ describe("workflow run graph status", () => {
         workflowTemplateId: "api.status.workflow",
         tasks: [{ id: "plan" }, { id: "review", dependsOn: ["plan"] }]
       });
+      appState.runs.create({
+        id: "run-plan",
+        targetType: "task",
+        targetId: "task-plan",
+        status: "completed",
+        output: { summary: "Plan completed with one follow-up artifact." }
+      });
+      appState.artifacts.create({
+        id: "artifact-plan-report",
+        runId: "run-plan",
+        label: "Plan report",
+        kind: "report",
+        format: "markdown",
+        storageUri: "artifacts/run-plan/report.md"
+      });
       stateService.startStep("workflow-run-api-status", "plan");
-      stateService.completeStep("workflow-run-api-status", "plan", { artifactRef: "artifact-plan" });
+      stateService.completeStep("workflow-run-api-status", "plan", { taskRunId: "run-plan" });
     } finally {
       appState.close();
     }
@@ -140,7 +187,12 @@ describe("workflow run graph status", () => {
         ok: boolean;
         data: {
           run: { id: string; workflowTemplate: { id: string } };
-          nodes: Array<{ id: string; ready: boolean; dependencies: string[] }>;
+          nodes: Array<{
+            id: string;
+            ready: boolean;
+            dependencies: string[];
+            taskRunEvidence?: { id: string; status: string; outputSummary?: string; artifactCount: number };
+          }>;
           edges: Array<{ from: string; to: string }>;
           polling: { recommendedIntervalMs: number; etag: string };
         };
@@ -163,6 +215,14 @@ describe("workflow run graph status", () => {
       expect(envelope.data.nodes.find((node) => node.id === "review")).toMatchObject({
         ready: true,
         dependencies: ["plan"]
+      });
+      expect(envelope.data.nodes.find((node) => node.id === "plan")).toMatchObject({
+        taskRunEvidence: {
+          id: "run-plan",
+          status: "completed",
+          outputSummary: "Plan completed with one follow-up artifact.",
+          artifactCount: 1
+        }
       });
     } finally {
       await server.stop();

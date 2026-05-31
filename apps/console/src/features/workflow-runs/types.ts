@@ -29,6 +29,21 @@ export type WorkflowRunStatusProgress = {
   percentComplete: number;
 };
 
+export type WorkflowRunStatusTaskArtifactSummary = {
+  id: string;
+  label: string;
+  kind: string;
+  format: string;
+};
+
+export type WorkflowRunStatusTaskRunEvidence = {
+  id: string;
+  status: string;
+  outputSummary?: string;
+  artifactCount: number;
+  artifacts: WorkflowRunStatusTaskArtifactSummary[];
+};
+
 export type WorkflowRunStatusNode = {
   id: string;
   status: WorkflowRunGraphStepStatus;
@@ -52,6 +67,7 @@ export type WorkflowRunStatusNode = {
     resumable: boolean;
     reason?: "failed" | "stale-running-step";
   };
+  taskRunEvidence?: WorkflowRunStatusTaskRunEvidence;
   output?: unknown;
 };
 

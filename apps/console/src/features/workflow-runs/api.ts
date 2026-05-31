@@ -10,6 +10,7 @@ import type {
   WorkflowRunStatusNode,
   WorkflowRunStatusProgress,
   WorkflowRunStatusSummary,
+  WorkflowRunStatusTaskRunEvidence,
 } from "./types";
 
 type RecordValue = Record<string, unknown>;
@@ -56,7 +57,7 @@ function parseRun(value: unknown): WorkflowRunStatusSummary {
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : new Date(0).toISOString(),
     ...(typeof value.startedAt === "string" ? { startedAt: value.startedAt } : {}),
     ...(typeof value.finishedAt === "string" ? { finishedAt: value.finishedAt } : {}),
-    ...(value.failure !== undefined ? { failure: value.failure } : {}),
+    ...(value.failure !== undefined && value.failure !== null ? { failure: value.failure } : {}),
   };
 }
 
@@ -74,6 +75,28 @@ function parseProgress(value: unknown): WorkflowRunStatusProgress {
   };
 }
 
+function parseTaskRunEvidence(value: unknown): WorkflowRunStatusTaskRunEvidence | undefined {
+  if (!isRecord(value) || typeof value.id !== "string") {
+    return undefined;
+  }
+  return {
+    id: value.id,
+    status: typeof value.status === "string" ? value.status : "unknown",
+    ...(typeof value.outputSummary === "string" ? { outputSummary: value.outputSummary } : {}),
+    artifactCount: numberValue(value.artifactCount),
+    artifacts: Array.isArray(value.artifacts)
+      ? value.artifacts
+          .filter((artifact): artifact is RecordValue => isRecord(artifact) && typeof artifact.id === "string")
+          .map((artifact) => ({
+            id: artifact.id as string,
+            label: typeof artifact.label === "string" ? artifact.label : String(artifact.id),
+            kind: typeof artifact.kind === "string" ? artifact.kind : "artifact",
+            format: typeof artifact.format === "string" ? artifact.format : "unknown",
+          }))
+      : [],
+  };
+}
+
 function parseNode(value: unknown): WorkflowRunStatusNode {
   if (!isRecord(value) || typeof value.id !== "string") {
     throw new Error("Workflow run node payload is invalid.");
@@ -81,6 +104,7 @@ function parseNode(value: unknown): WorkflowRunStatusNode {
   const readiness = isRecord(value.readiness) ? value.readiness : {};
   const timestamps = isRecord(value.timestamps) ? value.timestamps : {};
   const recovery = isRecord(value.recovery) ? value.recovery : undefined;
+  const taskRunEvidence = parseTaskRunEvidence(value.taskRunEvidence);
   return {
     id: value.id,
     status: stepStatus(value.status),
@@ -99,7 +123,7 @@ function parseNode(value: unknown): WorkflowRunStatusNode {
       ...(typeof timestamps.startedAt === "string" ? { startedAt: timestamps.startedAt } : {}),
       ...(typeof timestamps.finishedAt === "string" ? { finishedAt: timestamps.finishedAt } : {}),
     },
-    ...(value.failure !== undefined ? { failure: value.failure } : {}),
+    ...(value.failure !== undefined && value.failure !== null ? { failure: value.failure } : {}),
     ...(recovery
       ? {
           recovery: {
@@ -108,6 +132,7 @@ function parseNode(value: unknown): WorkflowRunStatusNode {
           },
         }
       : {}),
+    ...(taskRunEvidence ? { taskRunEvidence } : {}),
     ...(value.output !== undefined ? { output: value.output } : {}),
   };
 }

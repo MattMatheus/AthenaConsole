@@ -1,4 +1,4 @@
-import { ArrowLeft, Clock3, GitBranch, RefreshCw, RotateCw, TerminalSquare } from "lucide-react";
+import { ArrowLeft, Clock3, ExternalLink, FileText, GitBranch, RefreshCw, RotateCw, TerminalSquare } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import {
   dependencyLabel,
@@ -8,6 +8,8 @@ import {
   readinessLabel,
   taskRunIdFromWorkflowNodeOutput,
   useWorkflowRunStatusQuery,
+  workflowNodeArtifactSummary,
+  workflowNodeOutputSummary,
   workflowRunStatusTone,
   type WorkflowRunGraphEventLevel,
   type WorkflowRunGraphRunStatus,
@@ -276,7 +278,8 @@ function Metric({ label, value }: { label: string; value: number }) {
 }
 
 function StepRow({ node }: { node: WorkflowRunStatusNode }) {
-  const taskRunId = taskRunIdFromWorkflowNodeOutput(node.output);
+  const taskRunId = node.taskRunEvidence?.id ?? taskRunIdFromWorkflowNodeOutput(node.output);
+  const hasStepDetail = node.failure !== undefined || node.output !== undefined || node.taskRunEvidence !== undefined;
   return (
     <article className={styles.stepRow}>
       <div className={styles.stepIdentity}>
@@ -309,15 +312,49 @@ function StepRow({ node }: { node: WorkflowRunStatusNode }) {
           <dd>{formatWorkflowRunDate(node.timestamps.finishedAt)}</dd>
         </div>
       </dl>
-      {node.failure !== undefined || node.output !== undefined ? (
+      {hasStepDetail ? (
         <details className={styles.details}>
-          <summary>{node.failure !== undefined ? "Failure" : "Output"}</summary>
-          {taskRunId ? (
+          <summary>{node.failure !== undefined ? "Failure" : node.taskRunEvidence ? "Task evidence" : "Output"}</summary>
+          {node.taskRunEvidence ? (
+            <div className={styles.evidencePanel}>
+              <div className={styles.evidenceHeader}>
+                <div>
+                  <p className={styles.rowTitle}>Task run {node.taskRunEvidence.id}</p>
+                  <p className={styles.description}>{workflowNodeOutputSummary(node)}</p>
+                </div>
+                <div className={styles.badgeRow}>
+                  <span className={styles.badge}>{node.taskRunEvidence.status}</span>
+                  <span className={styles.badgeMuted}>{workflowNodeArtifactSummary(node)}</span>
+                </div>
+              </div>
+              {node.taskRunEvidence.artifacts.length > 0 ? (
+                <ul className={styles.artifactList}>
+                  {node.taskRunEvidence.artifacts.slice(0, 4).map((artifact) => (
+                    <li key={artifact.id}>
+                      <FileText size={14} aria-hidden="true" />
+                      <span>{artifact.label}</span>
+                      <span className={styles.panelMeta}>
+                        {artifact.kind} / {artifact.format}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <Link className={styles.inlineLink} to={`/tasks/runs/${encodeURIComponent(node.taskRunEvidence.id)}`}>
+                <ExternalLink size={14} /> Open task output and artifacts
+              </Link>
+            </div>
+          ) : null}
+          {taskRunId && !node.taskRunEvidence ? (
             <Link className={styles.inlineLink} to={`/tasks/runs/${encodeURIComponent(taskRunId)}`}>
-              Inspect task run artifacts
+              <ExternalLink size={14} /> Open linked task run
             </Link>
           ) : null}
-          <pre className={styles.codeBlock}>{formatWorkflowRunUnknown(node.failure ?? node.output)}</pre>
+          {node.failure !== undefined ? (
+            <pre className={styles.codeBlock}>{formatWorkflowRunUnknown(node.failure)}</pre>
+          ) : node.taskRunEvidence ? null : (
+            <pre className={styles.codeBlock}>{workflowNodeOutputSummary(node)}</pre>
+          )}
         </details>
       ) : null}
       <span className={styles.srOnly}>{dependencyLabel(node)}</span>

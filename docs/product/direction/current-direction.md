@@ -239,7 +239,7 @@ Candidate engineering sequence:
 - `flywheel/backlog/engineering/done/STORY-20260531-repo-task-input-contract.md`
 - `flywheel/backlog/engineering/done/STORY-20260531-advanced-surface-empty-states.md`
 - `flywheel/backlog/engineering/done/STORY-20260531-demo-artifact-preview-confidence.md`
-- `flywheel/backlog/engineering/intake/STORY-20260531-workflow-run-output-bridge.md`
+- `flywheel/backlog/engineering/done/STORY-20260531-workflow-run-output-bridge.md`
 - `flywheel/backlog/engineering/intake/STORY-20260531-readiness-first-run-clarity.md`
 
 Source epic:
@@ -250,7 +250,7 @@ Source epic:
 
 Flywheel lanes are the operational source of truth. No 2026.33 story is currently active.
 
-The recommended next move is PM refinement of the remaining 2026.33 first-real-work confidence intake items.
+The recommended next move is PM refinement of the remaining 2026.33 first-real-work confidence intake item.
 
 Recently completed tracks now live in Flywheel done history:
 
@@ -295,13 +295,12 @@ Recently completed tracks now live in Flywheel done history:
 
 Queue status:
 
-- The 2026.33 repo-backed task input contract, advanced surface empty-state, and demo artifact preview confidence repairs are complete.
-- Engineering intake contains the remaining 2026.33 user-testing repair candidates after the active artifact-preview story.
+- The 2026.33 repo-backed task input contract, advanced surface empty-state, demo artifact preview confidence, and workflow output bridge repairs are complete.
+- Engineering intake contains the remaining 2026.33 user-testing repair candidate.
 - No architecture work is active, ready, or awaiting QA.
 
 Planning intake sequence:
 
-- `flywheel/backlog/engineering/intake/STORY-20260531-workflow-run-output-bridge.md`
 - `flywheel/backlog/engineering/intake/STORY-20260531-readiness-first-run-clarity.md`
 
 ## Promotion Rule

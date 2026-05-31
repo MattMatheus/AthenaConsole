@@ -305,6 +305,8 @@
 
 .inlineLink {
   display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   width: fit-content;
   margin: var(--space-2) 0;
   color: var(--color-brand-700);
@@ -315,6 +317,45 @@
 .inlineLink:hover {
   color: var(--color-brand-900);
   text-decoration: underline;
+}
+
+.evidencePanel {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  border: 1px solid #dbe4ee;
+  border-radius: 6px;
+  background: #f8fafc;
+  padding: var(--space-3);
+}
+
+.evidenceHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.artifactList {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.artifactList li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-200);
+}
+
+.artifactList span {
+  overflow-wrap: anywhere;
 }
 
 .codeBlock,
@@ -449,5 +490,17 @@
 
   .eventTime {
     white-space: normal;
+  }
+
+  .evidenceHeader {
+    flex-direction: column;
+  }
+
+  .artifactList li {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .artifactList .panelMeta {
+    grid-column: 2;
   }
 }

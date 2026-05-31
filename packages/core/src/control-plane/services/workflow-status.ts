@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { AthenaError } from "../../runtime/errors.js";
 import type { AthenaConfig } from "../../shared/config.js";
-import type { WorkflowRunGraphStatus, WorkflowRunStatusNode } from "../../shared/contracts.js";
+import type { WorkflowRunGraphStatus, WorkflowRunStatusNode, WorkflowRunStatusTaskRunEvidence } from "../../shared/contracts.js";
 import { openAppStateDatabase, type AppStateDatabase, type WorkflowDagRunSnapshot } from "../app-state/index.js";
 
 export interface LocalWorkflowStatusServiceOptions {
@@ -20,7 +20,7 @@ export class LocalWorkflowStatusService {
       if (!snapshot) {
         throw new AthenaError("CONFIG_ERROR", `workflowRuns.status.runId must reference an existing workflow run. Received: ${runId}.`);
       }
-      return buildWorkflowRunGraphStatus(snapshot);
+      return buildWorkflowRunGraphStatus(snapshot, appState);
     });
   }
 
@@ -37,7 +37,7 @@ export class LocalWorkflowStatusService {
   }
 }
 
-export function buildWorkflowRunGraphStatus(snapshot: WorkflowDagRunSnapshot): WorkflowRunGraphStatus {
+export function buildWorkflowRunGraphStatus(snapshot: WorkflowDagRunSnapshot, appState?: AppStateDatabase): WorkflowRunGraphStatus {
   const dependentsByStepId = buildDependentsByStepId(snapshot);
   const nodes: WorkflowRunStatusNode[] = snapshot.run.stepOrder.map((stepId) => {
     const step = snapshot.steps.find((candidate) => candidate.stepId === stepId);
@@ -72,6 +72,7 @@ export function buildWorkflowRunGraphStatus(snapshot: WorkflowDagRunSnapshot): W
             }
           }
         : {}),
+      ...(appState ? taskRunEvidenceForStep(appState, step.output) : {}),
       ...(step.output !== undefined ? { output: step.output } : {})
     };
   });
@@ -140,6 +141,65 @@ export function buildWorkflowRunGraphStatus(snapshot: WorkflowDagRunSnapshot): W
     }
   };
   return status;
+}
+
+function taskRunEvidenceForStep(appState: AppStateDatabase, output: unknown): { taskRunEvidence?: WorkflowRunStatusTaskRunEvidence } {
+  const taskRunId = taskRunIdFromStepOutput(output);
+  if (!taskRunId) {
+    return {};
+  }
+  const run = appState.runs.get(taskRunId);
+  if (!run) {
+    return {};
+  }
+  const artifacts = appState.artifacts.listForRun(taskRunId).map((artifact) => ({
+    id: artifact.id,
+    label: artifact.label,
+    kind: artifact.kind,
+    format: artifact.format
+  }));
+  return {
+    taskRunEvidence: {
+      id: run.id,
+      status: run.status,
+      ...(run.output !== undefined ? { outputSummary: summarizeTaskRunOutput(run.output) } : {}),
+      artifactCount: artifacts.length,
+      artifacts
+    }
+  };
+}
+
+function taskRunIdFromStepOutput(output: unknown): string | undefined {
+  if (!output || typeof output !== "object" || Array.isArray(output)) {
+    return undefined;
+  }
+  const taskRunId = (output as { taskRunId?: unknown }).taskRunId;
+  return typeof taskRunId === "string" && taskRunId.trim().length > 0 ? taskRunId : undefined;
+}
+
+function summarizeTaskRunOutput(output: unknown): string {
+  if (typeof output === "string") {
+    return truncateSummary(output);
+  }
+  if (typeof output === "number" || typeof output === "boolean") {
+    return String(output);
+  }
+  if (!output || typeof output !== "object" || Array.isArray(output)) {
+    return truncateSummary(JSON.stringify(output));
+  }
+  const record = output as Record<string, unknown>;
+  for (const key of ["summary", "message", "result", "stepPurpose", "objective"]) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim().length > 0) {
+      return truncateSummary(value);
+    }
+  }
+  return truncateSummary(JSON.stringify(output));
+}
+
+function truncateSummary(value: string): string {
+  const trimmed = value.trim();
+  return trimmed.length > 220 ? `${trimmed.slice(0, 217)}...` : trimmed;
 }
 
 function buildDependentsByStepId(snapshot: WorkflowDagRunSnapshot): Map<string, string[]> {

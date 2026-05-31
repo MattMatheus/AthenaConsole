@@ -5,6 +5,8 @@ import {
   readinessLabel,
   shouldPollWorkflowRun,
   taskRunIdFromWorkflowNodeOutput,
+  workflowNodeArtifactSummary,
+  workflowNodeOutputSummary,
   workflowRunStatusTone,
 } from "./runGraphModel";
 
@@ -42,5 +44,35 @@ describe("workflow run graph model", () => {
     expect(taskRunIdFromWorkflowNodeOutput({ taskRunId: "run-task-1" })).toBe("run-task-1");
     expect(taskRunIdFromWorkflowNodeOutput({ taskRunId: "" })).toBeUndefined();
     expect(taskRunIdFromWorkflowNodeOutput("not output")).toBeUndefined();
+  });
+
+  it("summarizes linked task run evidence and dependency-only output", () => {
+    expect(
+      workflowNodeOutputSummary({
+        output: { taskRunId: "run-task-1" },
+        taskRunEvidence: {
+          id: "run-task-1",
+          status: "completed",
+          outputSummary: "Task completed with evidence.",
+          artifactCount: 2,
+          artifacts: [],
+        },
+      }),
+    ).toBe("Task completed with evidence.");
+    expect(workflowNodeOutputSummary({ output: { taskRunId: "run-task-1" } })).toBe(
+      "This workflow step produced a linked task run. Open the task evidence to inspect output and artifacts.",
+    );
+    expect(workflowNodeOutputSummary({ output: undefined })).toBe("No workflow step output was recorded yet.");
+    expect(workflowNodeArtifactSummary({})).toBe("No artifacts recorded");
+    expect(
+      workflowNodeArtifactSummary({
+        taskRunEvidence: {
+          id: "run-task-1",
+          status: "completed",
+          artifactCount: 2,
+          artifacts: [],
+        },
+      }),
+    ).toBe("2 artifacts recorded");
   });
 });
