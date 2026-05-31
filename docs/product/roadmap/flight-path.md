@@ -219,27 +219,50 @@ Completed sequence:
 5. `flywheel/backlog/engineering/done/STORY-20260530-agent-scaffold-command.md`
 6. `flywheel/backlog/engineering/done/STORY-20260530-product-readiness-smoke-suite.md`
 
-## Next Roadmap Arc
+## Completed Roadmap Arc
 
 ### 2026.32 Comprehensive User Documentation
 
-Status: Intake.
+Status: Complete.
 
-Goal: turn the current dense quickstart and docs map into a learnable user guide with narrative explanations, concepts, workflows, examples, and troubleshooting paths for operators and agent authors.
+Goal: make Team Orchestrator learnable from documentation alone for motivated users who want to operate the system or author agents without reading source code.
 
-Why now:
+Outcome: the product now has a comprehensive user guide and in-product documentation guide entry points that explain core concepts, common workflows, troubleshooting paths, and agent-authoring flows without requiring source-code reading.
 
-- The product can now run the first-run demo, real repo work, provider-backed agents, scaffolded agents, and a readiness smoke path.
-- The existing docs are accurate enough for maintainers, but too compressed for a new user trying to build a mental model.
-- User testing should happen against docs that explain the product without requiring code reading.
+Source epic:
 
-Target outcome:
+- `docs/product/epics/refinement/2026.32.00-epic-comprehensive-user-documentation.md`
 
-- A motivated user can learn what Team Orchestrator is, start it, understand its core concepts, run useful work, create an agent, inspect results, and recover from common failures using docs alone.
+Completed sequence:
 
-First candidate:
+1. `flywheel/backlog/engineering/done/STORY-20260530-comprehensive-user-guide.md`
+2. `flywheel/backlog/engineering/done/STORY-20260530-in-product-documentation-guide.md`
 
-1. `flywheel/backlog/engineering/intake/STORY-20260530-comprehensive-user-guide.md`
+### 2026.33 First Real Work Confidence
+
+Status: Complete.
+
+Goal: repair user-testing gaps that prevented a new single-user or small-team operator from confidently moving from the first-run demo to useful repository work.
+
+Outcome: the first real-work path now has a normalized repo task input contract, clearer advanced-surface empty states, demo artifact preview confidence, workflow task-run evidence in workflow context, and readiness lanes that separate demo readiness from provider/server-hardening warnings.
+
+Source epic:
+
+- `docs/product/epics/refinement/2026.33.00-epic-first-real-work-confidence.md`
+
+Completed sequence:
+
+1. `flywheel/backlog/engineering/done/STORY-20260531-repo-task-input-contract.md`
+2. `flywheel/backlog/engineering/done/STORY-20260531-advanced-surface-empty-states.md`
+3. `flywheel/backlog/engineering/done/STORY-20260531-demo-artifact-preview-confidence.md`
+4. `flywheel/backlog/engineering/done/STORY-20260531-workflow-run-output-bridge.md`
+5. `flywheel/backlog/engineering/done/STORY-20260531-readiness-first-run-clarity.md`
+
+## Current Flywheel Priorities
+
+Flywheel lanes are the operational source of truth. No engineering or architecture story is currently active.
+
+The recommended next move is PM intake for any newly discovered first-real-work confidence gaps or the next product arc.
 
 ## Near-Term Principles
 

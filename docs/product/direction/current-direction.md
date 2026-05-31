@@ -230,11 +230,11 @@ Source epic:
 
 ### 2026.33 First Real Work Confidence
 
-Status: Intake.
+Status: Complete.
 
 Goal: repair user-testing gaps that prevent a new single-user or small-team operator from confidently moving from the first-run demo to useful repository work.
 
-Candidate engineering sequence:
+Completed engineering sequence:
 
 - `flywheel/backlog/engineering/done/STORY-20260531-repo-task-input-contract.md`
 - `flywheel/backlog/engineering/done/STORY-20260531-advanced-surface-empty-states.md`
@@ -250,7 +250,7 @@ Source epic:
 
 Flywheel lanes are the operational source of truth. No 2026.33 story is currently active.
 
-The recommended next move is PM intake for any newly discovered first-real-work confidence gaps.
+The recommended next move is PM intake for any newly discovered first-real-work confidence gaps or the next product arc.
 
 Recently completed tracks now live in Flywheel done history:
 
