@@ -1,7 +1,19 @@
-import type { ProviderCostSettings } from "@athena/core/control-plane/api-contracts";
 import type { OperationsSummary } from "../../services/OperationsApiService";
 
-export type { OperationsSummary, ProviderCostSettings };
+export type { OperationsSummary };
+
+export interface ProviderTokenPricing {
+  provider: string;
+  inputCostPer1kTokensUsd: number;
+  outputCostPer1kTokensUsd: number;
+  updatedAt: string;
+}
+
+export interface ProviderCostSettings {
+  schemaVersion: 1;
+  updatedAt: string;
+  providers: ProviderTokenPricing[];
+}
 
 export type EventStatus = "success" | "warning" | "error";
 

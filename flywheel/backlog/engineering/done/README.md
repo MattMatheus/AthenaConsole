@@ -94,3 +94,4 @@ Engineering work accepted by QA.
 88. `STORY-20260531-workflow-run-output-bridge.md`
 89. `STORY-20260531-readiness-first-run-clarity.md`
 90. `STORY-20260531-release-readiness-cleanup.md`
+91. `BUG-20260531-console-ci-typecheck.md`
