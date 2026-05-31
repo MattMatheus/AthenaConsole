@@ -2079,13 +2079,16 @@ function resolveLocalFileArtifactContent(
     throw new AthenaError("CONFIG_ERROR", `producing plugin not found: ${agent.pluginId}@${agent.pluginVersion}`);
   }
   const artifactPath = resolveLocalArtifactPath(plugin, artifact.storageUri);
+  if (!existsSync(artifactPath)) {
+    throw new AthenaError("PROVIDER_NOT_FOUND", `Artifact file content not found for ${artifact.id}.`);
+  }
   const content = readFileSync(artifactPath, "utf8");
   return mapArtifactContent(content, artifact);
 }
 
 function mapArtifactContent(content: unknown, artifact: ArtifactMetadataRecord): TaskWorkbenchArtifactContent {
   if (content === undefined) {
-    throw new AthenaError("PROVIDER_NOT_FOUND", `Artifact content not found for ${artifact.id}.`);
+    throw new AthenaError("PROVIDER_NOT_FOUND", `Artifact ${artifact.id} is metadata-only; no preview content was recorded.`);
   }
   if (artifact.format === "json" || isJsonLike(content)) {
     return {
@@ -2125,6 +2128,9 @@ function resolveLocalArtifactPath(plugin: PluginIndexRecord, storageUri: string)
 
 function selectMemoryArtifactContent(output: Record<string, unknown>, artifact: ArtifactMetadataRecord): unknown {
   const metadata = isRecord(artifact.metadata) ? artifact.metadata : {};
+  if (metadata.metadataOnly === true || metadata.contentAvailable === false || metadata.previewAvailable === false) {
+    return undefined;
+  }
   const contentKey = typeof metadata.contentKey === "string" ? metadata.contentKey : undefined;
   if (contentKey && output[contentKey] !== undefined) {
     return output[contentKey];
@@ -2138,6 +2144,9 @@ function selectMemoryArtifactContent(output: Record<string, unknown>, artifact: 
   }
   if (artifact.format === "json" && output.artifact !== undefined) {
     return output.artifact;
+  }
+  if (artifact.format === "json" && Object.keys(output).length > 0) {
+    return output;
   }
   return undefined;
 }

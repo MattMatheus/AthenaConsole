@@ -44,8 +44,37 @@ process.stdin.on("end", () => {
         storageUri: "artifacts/api-run-1/file.md"
       },
       {
+        id: "artifact-json-output",
+        label: "JSON Output Artifact",
+        kind: "supporting",
+        format: "json",
+        storageUri: "memory://api-run/api-run-1/output.json"
+      },
+      {
+        id: "artifact-metadata-only",
+        label: "Metadata Only Artifact",
+        kind: "supporting",
+        format: "json",
+        storageUri: "memory://metadata-only/api-run-1/metadata.json",
+        metadata: { metadataOnly: true }
+      },
+      {
+        id: "artifact-missing-file",
+        label: "Missing File Artifact",
+        kind: "supporting",
+        format: "markdown",
+        storageUri: "artifacts/api-run-1/missing.md"
+      },
+      {
         id: "artifact-unsupported",
         label: "Unsupported Artifact",
+        kind: "supporting",
+        format: "markdown",
+        storageUri: "remote://artifact-store/api-run-1/report.md"
+      },
+      {
+        id: "artifact-blocked-file",
+        label: "Blocked File Artifact",
         kind: "supporting",
         format: "markdown",
         storageUri: "file:///tmp/unsafe.md"
@@ -269,7 +298,11 @@ process.stdin.on("end", () => {
         artifacts: [
           expect.objectContaining({ id: "artifact-good", storageUri: "memory://api-run/api-run-1/good.md" }),
           expect.objectContaining({ id: "artifact-file", storageUri: "artifacts/api-run-1/file.md" }),
-          expect.objectContaining({ id: "artifact-unsupported", storageUri: "file:///tmp/unsafe.md" }),
+          expect.objectContaining({ id: "artifact-json-output", storageUri: "memory://api-run/api-run-1/output.json" }),
+          expect.objectContaining({ id: "artifact-metadata-only", storageUri: "memory://metadata-only/api-run-1/metadata.json" }),
+          expect.objectContaining({ id: "artifact-missing-file", storageUri: "artifacts/api-run-1/missing.md" }),
+          expect.objectContaining({ id: "artifact-unsupported", storageUri: "remote://artifact-store/api-run-1/report.md" }),
+          expect.objectContaining({ id: "artifact-blocked-file", storageUri: "file:///tmp/unsafe.md" }),
           expect.objectContaining({ id: "artifact-traversal", storageUri: "memory://api-run/api-run-1/../secret.md" }),
           expect.objectContaining({ id: "artifact-local-traversal", storageUri: "../secret.md" })
         ]
@@ -314,20 +347,65 @@ process.stdin.on("end", () => {
         }
       });
 
+      const jsonOutputArtifactResponse = await fetch(`${base}/api/v1/task-runs/${encodeURIComponent("api-run-1")}/artifacts/artifact-json-output`);
+      expect(jsonOutputArtifactResponse.status).toBe(200);
+      const jsonOutputArtifactEnvelope = (await jsonOutputArtifactResponse.json()) as {
+        ok: boolean;
+        data: { id: string; content: { kind: string; value?: unknown; mediaType?: string } };
+      };
+      expect(jsonOutputArtifactEnvelope).toMatchObject({
+        ok: true,
+        data: {
+          id: "artifact-json-output",
+          content: {
+            kind: "json",
+            value: {
+              brief: "Wire task APIs",
+              taskId: "task-api-draft",
+              responseMarkdown: "# API Artifact\n\nartifact produced"
+            },
+            mediaType: "application/json"
+          }
+        }
+      });
+
+      const metadataOnlyResponse = await fetch(`${base}/api/v1/task-runs/${encodeURIComponent("api-run-1")}/artifacts/artifact-metadata-only`);
+      expect(metadataOnlyResponse.status).toBe(404);
+      const metadataOnlyEnvelope = (await metadataOnlyResponse.json()) as { error: { message: string } };
+      expect(metadataOnlyEnvelope.error.message).toBe("Artifact artifact-metadata-only is metadata-only; no preview content was recorded.");
+
+      const missingFileResponse = await fetch(`${base}/api/v1/task-runs/${encodeURIComponent("api-run-1")}/artifacts/artifact-missing-file`);
+      expect(missingFileResponse.status).toBe(404);
+      const missingFileEnvelope = (await missingFileResponse.json()) as { error: { message: string } };
+      expect(missingFileEnvelope.error.message).toBe("Artifact file content not found for artifact-missing-file.");
+
       const unsupportedResponse = await fetch(
         `${base}/api/v1/task-runs/${encodeURIComponent("api-run-1")}/artifacts/artifact-unsupported`
       );
       expect(unsupportedResponse.status).toBe(400);
+      const unsupportedEnvelope = (await unsupportedResponse.json()) as { error: { message: string } };
+      expect(unsupportedEnvelope.error.message).toBe("Artifact content is not available for storage URI scheme 'remote'.");
+
+      const blockedFileResponse = await fetch(
+        `${base}/api/v1/task-runs/${encodeURIComponent("api-run-1")}/artifacts/artifact-blocked-file`
+      );
+      expect(blockedFileResponse.status).toBe(400);
+      const blockedFileEnvelope = (await blockedFileResponse.json()) as { error: { message: string } };
+      expect(blockedFileEnvelope.error.message).toBe("Artifact file URI must stay inside the producing plugin directory.");
 
       const traversalResponse = await fetch(
         `${base}/api/v1/task-runs/${encodeURIComponent("api-run-1")}/artifacts/artifact-traversal`
       );
       expect(traversalResponse.status).toBe(400);
+      const traversalEnvelope = (await traversalResponse.json()) as { error: { message: string } };
+      expect(traversalEnvelope.error.message).toBe("Artifact storageUri is not a supported memory artifact URI.");
 
       const localTraversalResponse = await fetch(
         `${base}/api/v1/task-runs/${encodeURIComponent("api-run-1")}/artifacts/artifact-local-traversal`
       );
       expect(localTraversalResponse.status).toBe(400);
+      const localTraversalEnvelope = (await localTraversalResponse.json()) as { error: { message: string } };
+      expect(localTraversalEnvelope.error.message).toBe("Artifact storageUri must stay inside the producing plugin artifacts directory.");
     } finally {
       await server.stop();
       rmSync(dir, { recursive: true, force: true });

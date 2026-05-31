@@ -36,6 +36,13 @@ export type ModelRunOutput = {
   usage?: unknown;
 };
 
+export type ArtifactPreviewState = {
+  status: "available" | "metadata-only" | "unsupported" | "blocked";
+  label: string;
+  description: string;
+  canOpen: boolean;
+};
+
 export function classifyRunEvent(event: Pick<TaskWorkbenchRunEvent, "type">): RunEventKind {
   if (event.type === "run.log") {
     return "log";
@@ -130,6 +137,82 @@ export function isProposedChangeArtifact(artifact: Pick<TaskWorkbenchArtifactMet
     metadata?.artifactType === "proposed-change" ||
     metadata?.artifactType === "proposed-changes"
   );
+}
+
+export function artifactPreviewState(
+  artifact: Pick<TaskWorkbenchArtifactMetadata, "storageUri" | "format" | "metadata">,
+): ArtifactPreviewState {
+  const metadata = asRecord(artifact.metadata);
+  if (metadata?.previewAvailable === false || metadata?.contentAvailable === false || metadata?.metadataOnly === true) {
+    return {
+      status: "metadata-only",
+      label: "Metadata only",
+      description: "This artifact recorded metadata, but no preview payload was saved.",
+      canOpen: false,
+    };
+  }
+
+  const storageUri = artifact.storageUri.trim();
+  if (storageUri.startsWith("memory://")) {
+    if (storageUri.includes("/../") || storageUri.endsWith("/..")) {
+      return {
+        status: "blocked",
+        label: "Preview blocked",
+        description: "This memory artifact path is outside the supported preview boundary.",
+        canOpen: false,
+      };
+    }
+    return {
+      status: "available",
+      label: "Preview available",
+      description: "Open this artifact to preview content recorded with the task output.",
+      canOpen: true,
+    };
+  }
+
+  if (storageUri.startsWith("file://")) {
+    return {
+      status: "blocked",
+      label: "Preview blocked",
+      description: "Absolute file artifacts are blocked unless they resolve inside the producing plugin boundary.",
+      canOpen: true,
+    };
+  }
+
+  if (storageUri.includes(":")) {
+    const scheme = storageUri.split(":", 1)[0] || "unknown";
+    return {
+      status: "unsupported",
+      label: "Unsupported preview",
+      description: `Preview is not available for ${scheme} artifact storage.`,
+      canOpen: false,
+    };
+  }
+
+  if (storageUri.startsWith("../") || storageUri.includes("/../") || storageUri === ".." || storageUri.endsWith("/..")) {
+    return {
+      status: "blocked",
+      label: "Preview blocked",
+      description: "This artifact path is outside the producing plugin artifacts directory.",
+      canOpen: true,
+    };
+  }
+
+  if (artifact.format === "binary") {
+    return {
+      status: "unsupported",
+      label: "Unsupported preview",
+      description: "Binary artifact previews are not supported yet.",
+      canOpen: false,
+    };
+  }
+
+  return {
+    status: "available",
+    label: "Preview available",
+    description: "Open this artifact to preview file-backed content.",
+    canOpen: true,
+  };
 }
 
 export function proposedChangeArtifact(artifact: Pick<TaskWorkbenchArtifactMetadata, "metadata">): ProposedChangeArtifact {

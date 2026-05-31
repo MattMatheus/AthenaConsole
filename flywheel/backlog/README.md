@@ -22,7 +22,6 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-- `engineering/intake/STORY-20260531-demo-artifact-preview-confidence.md`
 - `engineering/intake/STORY-20260531-readiness-first-run-clarity.md`
 - `engineering/intake/STORY-20260531-workflow-run-output-bridge.md`
 
@@ -30,6 +29,7 @@ Candidate work that needs PM refinement before activation:
 
 Recently completed:
 
+- `engineering/done/STORY-20260531-demo-artifact-preview-confidence.md`
 - `engineering/done/STORY-20260531-advanced-surface-empty-states.md`
 - `engineering/done/STORY-20260531-repo-task-input-contract.md`
 - `engineering/done/STORY-20260530-current-deployment-automation.md`

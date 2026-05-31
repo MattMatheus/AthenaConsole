@@ -3,6 +3,7 @@ import { ArrowLeft, Box, BrainCircuit, Clock3, FileText, RefreshCw, ShieldCheck,
 import ReactMarkdown from "react-markdown";
 import { Link, useParams } from "react-router-dom";
 import {
+  artifactPreviewState,
   classifyRunEvent,
   formatBytes,
   formatUnknown,
@@ -445,25 +446,13 @@ export function TaskRunDetailPage() {
                 ) : (
                   <div className={styles.artifactList}>
                     {detail.artifacts.map((artifact) => (
-                      <article key={artifact.id} className={styles.artifact}>
-                        <div className={styles.artifactHeader}>
-                          <p className={styles.artifactTitle}>{artifact.label}</p>
-                          <div className={styles.artifactActions}>
-                            <span className={isProposedChangeArtifact(artifact) ? styles.badgeWarning : styles.badge}>
-                              {isProposedChangeArtifact(artifact) ? "proposed change" : artifact.format}
-                            </span>
-                            <button
-                              type="button"
-                              className={styles.secondaryButton}
-                              onClick={() => setOpenArtifactId((current) => (current === artifact.id ? undefined : artifact.id))}
-                            >
-                              {openArtifactId === artifact.id ? "Close" : "Open"}
-                            </button>
-                          </div>
-                        </div>
-                        {renderArtifactBody(artifact)}
-                        {openArtifactId === artifact.id ? <ArtifactPreview artifactId={artifact.id} runId={runId} /> : null}
-                      </article>
+                      <ArtifactCard
+                        key={artifact.id}
+                        artifact={artifact}
+                        isOpen={openArtifactId === artifact.id}
+                        runId={runId}
+                        onToggle={() => setOpenArtifactId((current) => (current === artifact.id ? undefined : artifact.id))}
+                      />
                     ))}
                   </div>
                 )}
@@ -473,5 +462,47 @@ export function TaskRunDetailPage() {
         </>
       ) : null}
     </section>
+  );
+}
+
+function ArtifactCard({
+  artifact,
+  isOpen,
+  onToggle,
+  runId,
+}: {
+  artifact: TaskWorkbenchArtifactMetadata;
+  isOpen: boolean;
+  onToggle: () => void;
+  runId: string | undefined;
+}): JSX.Element {
+  const preview = artifactPreviewState(artifact);
+
+  return (
+    <article className={styles.artifact}>
+      <div className={styles.artifactHeader}>
+        <p className={styles.artifactTitle}>{artifact.label}</p>
+        <div className={styles.artifactActions}>
+          <span className={isProposedChangeArtifact(artifact) ? styles.badgeWarning : styles.badge}>
+            {isProposedChangeArtifact(artifact) ? "proposed change" : artifact.format}
+          </span>
+          <span className={preview.status === "available" ? styles.badgeSuccess : preview.status === "blocked" ? styles.badgeDanger : styles.badge}>
+            {preview.label}
+          </span>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={onToggle}
+            disabled={!preview.canOpen}
+            title={preview.description}
+          >
+            {isOpen ? "Close" : "Open"}
+          </button>
+        </div>
+      </div>
+      <p className={styles.description}>{preview.description}</p>
+      {renderArtifactBody(artifact)}
+      {isOpen ? <ArtifactPreview artifactId={artifact.id} runId={runId} /> : null}
+    </article>
   );
 }

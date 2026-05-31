@@ -90,3 +90,4 @@ Engineering work accepted by QA.
 84. `STORY-20260530-current-deployment-automation.md`
 85. `STORY-20260531-repo-task-input-contract.md`
 86. `STORY-20260531-advanced-surface-empty-states.md`
+87. `STORY-20260531-demo-artifact-preview-confidence.md`

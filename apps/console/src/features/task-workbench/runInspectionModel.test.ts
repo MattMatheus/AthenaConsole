@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  artifactPreviewState,
   classifyRunEvent,
   formatBytes,
   formatUnknown,
@@ -85,6 +86,53 @@ describe("task run inspection model", () => {
           diff: "@@ -1 +1 @@\n-old\n+new",
         },
       ],
+    });
+  });
+
+  it("classifies artifact preview availability before opening", () => {
+    expect(
+      artifactPreviewState({
+        storageUri: "memory://first-run-demo/run-1/verify.json",
+        format: "json",
+        metadata: {},
+      }),
+    ).toMatchObject({
+      status: "available",
+      label: "Preview available",
+      canOpen: true,
+    });
+    expect(
+      artifactPreviewState({
+        storageUri: "memory://first-run-demo/run-1/../secret.json",
+        format: "json",
+        metadata: {},
+      }),
+    ).toMatchObject({
+      status: "blocked",
+      label: "Preview blocked",
+      canOpen: false,
+    });
+    expect(
+      artifactPreviewState({
+        storageUri: "remote://bucket/run-1/report.md",
+        format: "markdown",
+        metadata: {},
+      }),
+    ).toMatchObject({
+      status: "unsupported",
+      label: "Unsupported preview",
+      canOpen: false,
+    });
+    expect(
+      artifactPreviewState({
+        storageUri: "memory://demo/run-1/metadata.json",
+        format: "json",
+        metadata: { metadataOnly: true },
+      }),
+    ).toMatchObject({
+      status: "metadata-only",
+      label: "Metadata only",
+      canOpen: false,
     });
   });
 
