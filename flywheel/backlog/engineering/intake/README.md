@@ -7,7 +7,6 @@ Raw engineering work enters here before PM refinement.
 - `STORY-20260531-demo-artifact-preview-confidence.md`
 - `STORY-20260531-workflow-run-output-bridge.md`
 - `STORY-20260531-readiness-first-run-clarity.md`
-- `STORY-20260531-advanced-surface-empty-states.md`
 
 ## Refinement Rule
 

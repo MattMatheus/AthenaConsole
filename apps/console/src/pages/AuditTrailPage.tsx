@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useGovernanceAuditHistoryQuery, type GovernanceAuditCategory, type GovernanceAuditEntry } from "../features/governance-audit";
 import { ApiClientError } from "../services";
+import { resolveAdvancedSurfaceNotice } from "./advancedSurfaceState";
 import styles from "./PageScaffold.module.css";
 
 const CATEGORY_OPTIONS: Array<{ value: GovernanceAuditCategory; label: string }> = [
@@ -36,6 +37,7 @@ export function AuditTrailPage() {
   const auditQuery = useGovernanceAuditHistoryQuery(query);
 
   const adminDenied = auditQuery.error instanceof ApiClientError && auditQuery.error.status === 403;
+  const unavailableNotice = resolveAdvancedSurfaceNotice(auditQuery.error, "audit-trail");
 
   useEffect(() => {
     if (!auditQuery.data) {
@@ -80,9 +82,16 @@ export function AuditTrailPage() {
     <section className={styles.page}>
       <h2>Audit Trail</h2>
       <p className={styles.lead}>Immutable policy and access-control history from the local event store.</p>
-      {adminDenied ? <p>Audit Trail is restricted to bootstrap or high-privilege administrators.</p> : null}
+      {unavailableNotice ? (
+        <div className={styles.advancedNotice}>
+          <h3>{unavailableNotice.title}</h3>
+          <p>{unavailableNotice.body}</p>
+          <p>{unavailableNotice.detail}</p>
+        </div>
+      ) : null}
+      {adminDenied && !unavailableNotice ? <p>Audit Trail is restricted to bootstrap or high-privilege administrators.</p> : null}
 
-      <div className={styles.settingsPanel}>
+      {!unavailableNotice ? <div className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
           <h3>Filters</h3>
         </div>
@@ -136,9 +145,9 @@ export function AuditTrailPage() {
             Apply Filters
           </button>
         </div>
-      </div>
+      </div> : null}
 
-      <div className={styles.settingsPanel}>
+      {!unavailableNotice ? <div className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
           <h3>Event History</h3>
         </div>
@@ -196,7 +205,7 @@ export function AuditTrailPage() {
             </button>
           </div>
         ) : null}
-      </div>
+      </div> : null}
     </section>
   );
 }

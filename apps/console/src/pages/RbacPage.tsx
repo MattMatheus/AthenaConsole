@@ -7,6 +7,7 @@ import {
   useUpsertIdentityRoleAssignmentMutation
 } from "../features/rbac";
 import { ApiClientError } from "../services";
+import { resolveAdvancedSurfaceNotice } from "./advancedSurfaceState";
 import styles from "./PageScaffold.module.css";
 
 type RoleValue = "Viewer" | "Operator" | "Admin";
@@ -28,6 +29,9 @@ export function RbacPage() {
   const adminDenied =
     (rolesQuery.error instanceof ApiClientError && rolesQuery.error.status === 403) ||
     (assignmentsQuery.error instanceof ApiClientError && assignmentsQuery.error.status === 403);
+  const unavailableNotice =
+    resolveAdvancedSurfaceNotice(rolesQuery.error, "rbac") ??
+    resolveAdvancedSurfaceNotice(assignmentsQuery.error, "rbac");
 
   async function handleAssign(): Promise<void> {
     const normalized = subject.trim();
@@ -71,9 +75,16 @@ export function RbacPage() {
       <p className={styles.lead}>
         Manage role-based access control (RBAC) for identities and service tokens, then audit the permissions an operator receives.
       </p>
-      {adminDenied ? <p>Access control management is restricted to bootstrap or high-privilege administrators.</p> : null}
+      {unavailableNotice ? (
+        <div className={styles.advancedNotice}>
+          <h3>{unavailableNotice.title}</h3>
+          <p>{unavailableNotice.body}</p>
+          <p>{unavailableNotice.detail}</p>
+        </div>
+      ) : null}
+      {adminDenied && !unavailableNotice ? <p>Access control management is restricted to bootstrap or high-privilege administrators.</p> : null}
 
-      <div className={styles.settingsPanel}>
+      {!unavailableNotice ? <div className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
           <h3>Roles and Permissions</h3>
         </div>
@@ -105,9 +116,9 @@ export function RbacPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </div> : null}
 
-      <div className={styles.settingsPanel}>
+      {!unavailableNotice ? <div className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
           <h3>Assignments</h3>
         </div>
@@ -189,9 +200,9 @@ export function RbacPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </div> : null}
 
-      <div className={styles.settingsPanel}>
+      {!unavailableNotice ? <div className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
           <h3>Permission Audit</h3>
         </div>
@@ -252,7 +263,7 @@ export function RbacPage() {
             </ul>
           </>
         ) : null}
-      </div>
+      </div> : null}
     </section>
   );
 }

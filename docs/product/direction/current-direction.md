@@ -237,10 +237,10 @@ Goal: repair user-testing gaps that prevent a new single-user or small-team oper
 Candidate engineering sequence:
 
 - `flywheel/backlog/engineering/done/STORY-20260531-repo-task-input-contract.md`
+- `flywheel/backlog/engineering/done/STORY-20260531-advanced-surface-empty-states.md`
 - `flywheel/backlog/engineering/intake/STORY-20260531-demo-artifact-preview-confidence.md`
 - `flywheel/backlog/engineering/intake/STORY-20260531-workflow-run-output-bridge.md`
 - `flywheel/backlog/engineering/intake/STORY-20260531-readiness-first-run-clarity.md`
-- `flywheel/backlog/engineering/intake/STORY-20260531-advanced-surface-empty-states.md`
 
 Source epic:
 
@@ -250,7 +250,7 @@ Source epic:
 
 Flywheel lanes are the operational source of truth. No engineering or architecture work is currently active or awaiting QA.
 
-The recommended next move is PM refinement of the 2026.33 first-real-work confidence intake items, with the repo-backed task input contract as the highest-priority repair candidate.
+The recommended next move is PM refinement of the remaining 2026.33 first-real-work confidence intake items.
 
 Recently completed tracks now live in Flywheel done history:
 
@@ -295,8 +295,8 @@ Recently completed tracks now live in Flywheel done history:
 
 Queue status:
 
-- The 2026.33 repo-backed task input contract repair is complete and awaiting cycle closure.
-- Engineering intake contains 2026.33 user-testing repair candidates.
+- The 2026.33 repo-backed task input contract and advanced surface empty-state repairs are complete.
+- Engineering intake contains the remaining 2026.33 user-testing repair candidates.
 - No architecture work is active, ready, or awaiting QA.
 
 Planning intake sequence:
@@ -304,7 +304,6 @@ Planning intake sequence:
 - `flywheel/backlog/engineering/intake/STORY-20260531-demo-artifact-preview-confidence.md`
 - `flywheel/backlog/engineering/intake/STORY-20260531-workflow-run-output-bridge.md`
 - `flywheel/backlog/engineering/intake/STORY-20260531-readiness-first-run-clarity.md`
-- `flywheel/backlog/engineering/intake/STORY-20260531-advanced-surface-empty-states.md`
 
 ## Promotion Rule
 

@@ -7,6 +7,7 @@ import {
   type FailedWorkStatus,
 } from "../features/failed-work";
 import { ApiClientError } from "../services";
+import { resolveAdvancedSurfaceNotice } from "./advancedSurfaceState";
 import styles from "./PageScaffold.module.css";
 
 function renderStackTrace(item: FailedWorkItem | undefined): string | undefined {
@@ -60,6 +61,7 @@ export function FailedWorkPage() {
   const discardMutation = useDiscardFailedWorkItemMutation();
 
   const readDenied = failedWorkQuery.error instanceof ApiClientError && failedWorkQuery.error.status === 403;
+  const unavailableNotice = resolveAdvancedSurfaceNotice(failedWorkQuery.error, "failed-work");
   const writeDenied =
     (retryMutation.error instanceof ApiClientError && retryMutation.error.status === 403) ||
     (discardMutation.error instanceof ApiClientError && discardMutation.error.status === 403);
@@ -139,10 +141,17 @@ export function FailedWorkPage() {
         Inspect failed work items, request a retry for recoverable failures, and discard terminal failures with audit
         notes.
       </p>
-      {readDenied ? <p>Failed work visibility is restricted to authorized Viewer, Operator, or Admin identities.</p> : null}
-      {writeDenied ? <p>Failed work retry and discard operations require Operator or Admin privileges.</p> : null}
+      {unavailableNotice ? (
+        <div className={styles.advancedNotice}>
+          <h3>{unavailableNotice.title}</h3>
+          <p>{unavailableNotice.body}</p>
+          <p>{unavailableNotice.detail}</p>
+        </div>
+      ) : null}
+      {readDenied && !unavailableNotice ? <p>Failed work visibility is restricted to authorized Viewer, Operator, or Admin identities.</p> : null}
+      {writeDenied && !unavailableNotice ? <p>Failed work retry and discard operations require Operator or Admin privileges.</p> : null}
 
-      <div className={styles.settingsPanel}>
+      {!unavailableNotice ? <div className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
           <h3>Recovery Filters</h3>
         </div>
@@ -170,9 +179,9 @@ export function FailedWorkPage() {
             />
           </label>
         </div>
-      </div>
+      </div> : null}
 
-      <div className={styles.settingsPanel}>
+      {!unavailableNotice ? <div className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
           <h3>Failed Work</h3>
         </div>
@@ -231,9 +240,9 @@ export function FailedWorkPage() {
             </button>
           </div>
         ) : null}
-      </div>
+      </div> : null}
 
-      <div className={styles.settingsPanel}>
+      {!unavailableNotice ? <div className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
           <h3>Inspect Item</h3>
         </div>
@@ -289,7 +298,7 @@ export function FailedWorkPage() {
           </div>
         ) : null}
         {actionMessage ? <p className={styles.settingsMuted}>{actionMessage}</p> : null}
-      </div>
+      </div> : null}
     </section>
   );
 }

@@ -109,6 +109,27 @@
   background: white;
 }
 
+.advancedNotice {
+  border: 1px solid color-mix(in srgb, var(--color-warning) 28%, var(--color-border));
+  border-radius: 8px;
+  background: #fffaf0;
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.advancedNotice h3 {
+  margin: 0;
+  color: var(--color-brand-900);
+  font-size: var(--font-size-300);
+}
+
+.advancedNotice p {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
 .createWorkPanel {
   border: 1px solid var(--color-border);
   border-radius: 8px;

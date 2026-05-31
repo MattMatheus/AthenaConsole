@@ -17,6 +17,7 @@ import { TaskCreatePage } from "../pages/TaskCreatePage";
 import { TaskRunDetailPage } from "../pages/TaskRunDetailPage";
 import { WorkflowRunDetailPage } from "../pages/WorkflowRunDetailPage";
 import { WorkflowsPage } from "../pages/WorkflowsPage";
+import { DOCUMENTATION_ALIAS_PATH, DOCUMENTATION_CANONICAL_PATH } from "./routeModel";
 
 export const router = createBrowserRouter([
   {
@@ -82,6 +83,10 @@ export const router = createBrowserRouter([
       {
         path: "docs",
         element: <DocumentationPage />,
+      },
+      {
+        path: DOCUMENTATION_ALIAS_PATH,
+        element: <Navigate to={DOCUMENTATION_CANONICAL_PATH} replace />,
       },
       {
         path: "rbac",

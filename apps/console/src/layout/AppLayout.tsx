@@ -37,7 +37,7 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    label: "Admin & diagnostics",
+    label: "Advanced admin",
     items: [
       { path: "/audit-trail", label: "Audit Trail", match: /^\/audit-trail/ },
       { path: "/rbac", label: "Access Control", match: /^\/rbac/ },
