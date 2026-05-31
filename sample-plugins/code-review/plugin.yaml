@@ -1,0 +1,34 @@
+schemaVersion: 1
+plugin:
+  id: team-orchestrator.samples.code-review
+  name: Code Review
+  version: 0.1.0
+  description: Read-only local git diff reviewer example built with the Team Orchestrator PDK.
+  authors:
+    - name: Team Orchestrator
+  agents:
+    - path: agents/code-review.agent.yaml
+      id: code.review.local
+      version: 0.1.0
+  docs:
+    readme: docs/README.md
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    manifestSchema: team-orchestrator.manifests.v1
+    runtimeBackends:
+      - local-process
+    platforms:
+      - any
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+  ui:
+    icon: git-pull-request-arrow
+    color: "#7a5c3d"
+    tags:
+      - sample
+      - review
+      - git
+      - read-only

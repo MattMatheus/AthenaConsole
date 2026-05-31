@@ -7,7 +7,7 @@ export class MockProviderAdapter implements ProviderAdapter {
   async generate(request: RunRequest, _options?: { signal?: AbortSignal }): Promise<RunResult> {
     const input = request.input ?? "";
     const now = new Date().toISOString();
-    const output = request.metadata?.trigger === "persona:run"
+    const output = request.metadata?.trigger === "agent:run"
       ? JSON.stringify(
           {
             schemaVersion: 1,

@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { MockProviderAdapter } from "../src/providers/mock.js";
 
 describe("mock provider", () => {
-  it("returns schema-valid persona JSON when trigger is persona:run", async () => {
+  it("returns schema-valid agent JSON when trigger is agent:run", async () => {
     const provider = new MockProviderAdapter();
     const result = await provider.generate({
       sessionId: "session-1",
       input: "review this",
       metadata: {
-        trigger: "persona:run"
+        trigger: "agent:run"
       }
     });
 
@@ -25,7 +25,7 @@ describe("mock provider", () => {
     expect(parsed.findings).toEqual([]);
   });
 
-  it("falls back to echo response when persona trigger is not present", async () => {
+  it("falls back to echo response when agent trigger is not present", async () => {
     const provider = new MockProviderAdapter();
     const result = await provider.generate({
       sessionId: "session-1",

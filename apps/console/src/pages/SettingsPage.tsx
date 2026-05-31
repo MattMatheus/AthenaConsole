@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { FlaskConical, Plus, Save, Trash2 } from "lucide-react";
-import { useProviderCostSettingsQuery, useUpdateProviderCostSettingsMutation } from "../features/fleet/queries";
+import { useProviderCostSettingsQuery, useUpdateProviderCostSettingsMutation } from "../features/operations/queries";
 import {
   buildProviderCreateRequest,
   draftFromProvider,

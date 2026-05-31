@@ -112,7 +112,7 @@ Contract tests MUST verify:
 E2E tests SHOULD focus on critical paths:
 
 - `athena run` full turn lifecycle with persistence artifacts
-- work queue enqueue/drain/status lifecycle
+- advanced runtime diagnostics for retained work queue enqueue/drain/status behavior
 - schedule add/tick/run/logs/remove lifecycle
 - timeout/cancellation interaction with cleanup guarantees
 

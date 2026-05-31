@@ -124,7 +124,7 @@ function resolveSourceNode(event: EventRecord): FlowNodeRef {
     };
   }
 
-  const fromAgent = readAgentFromPayload(event.payload, ["fromAgent", "fromPersona", "sourceAgent", "caller"]);
+  const fromAgent = readAgentFromPayload(event.payload, ["fromAgent", "fromAgent", "sourceAgent", "caller"]);
   if (fromAgent) {
     return {
       id: `agent:${fromAgent}`,
@@ -157,7 +157,7 @@ function resolveTargetNode(event: EventRecord): FlowNodeRef {
     };
   }
 
-  const toAgent = readAgentFromPayload(event.payload, ["toAgent", "toPersona", "targetAgent", "callee"]);
+  const toAgent = readAgentFromPayload(event.payload, ["toAgent", "toAgent", "targetAgent", "callee"]);
   if (toAgent) {
     return {
       id: `agent:${toAgent}`,

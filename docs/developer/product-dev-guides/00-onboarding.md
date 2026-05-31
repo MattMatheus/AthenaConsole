@@ -9,7 +9,7 @@ Welcome to Team Orchestrator. This document is the primary entry point for agent
 Team Orchestrator is a web-first, local-first agent orchestrator for solo developers and product operators.
 
 **Core Focus:** Formal manifest-backed agents, tasks, missions, inspectable runs, plugins, pluggable execution backends, artifacts, events, and operator safety.
-**Deferred:** Enterprise fleet governance, cloud-first deployment, and natural-language task planning as the primary workflow.
+**Deferred:** Enterprise multi-node governance, cloud-first deployment, and natural-language task planning as the primary workflow.
 
 ## 2. Current Status & Roadmap
 

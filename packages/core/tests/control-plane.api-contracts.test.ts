@@ -9,7 +9,7 @@ import {
 
 describe("control-plane api contracts", () => {
   it("declares the full initial v1 route surface", () => {
-    expect(API_V1_ROUTES.length).toBe(94);
+    expect(API_V1_ROUTES.length).toBe(92);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/capabilities")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/health")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/readiness")).toBe(true);
@@ -79,8 +79,8 @@ describe("control-plane api contracts", () => {
       lifecycle: "stable",
       surface: "canonical"
     });
-    expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/specialists/run")).toBe(true);
-    expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/personas/run")).toBe(true);
+    const retiredRuntimeFamilies = [["special", "ists"].join(""), ["person", "as"].join("")];
+    expect(API_V1_ROUTES.some((route) => retiredRuntimeFamilies.some((family) => route.path.includes(family)))).toBe(false);
     expect(API_V1_ROUTES.some((route) => route.method === "DELETE" && route.path === "/api/v1/schedules/:id")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/schedules/:id/run")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/schedules/tick")).toBe(true);

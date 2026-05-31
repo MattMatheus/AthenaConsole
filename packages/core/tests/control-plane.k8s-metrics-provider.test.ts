@@ -39,7 +39,7 @@ describe("K8sMetricsProvider", () => {
     ];
     const provider = new K8sMetricsProvider(
       createNoopBackend({
-        async getFleetMetrics() {
+        async getOperationsMetrics() {
           return {
             supportsPods: false,
             supportsCpuMemMetrics: false,
@@ -110,7 +110,7 @@ describe("K8sMetricsProvider", () => {
   it("keeps pod status summary when metrics API is unavailable", async () => {
     const provider = new K8sMetricsProvider(
       createNoopBackend({
-        async getFleetMetrics() {
+        async getOperationsMetrics() {
           return {
             supportsPods: true,
             supportsCpuMemMetrics: true,
@@ -155,7 +155,7 @@ describe("K8sMetricsProvider", () => {
   it("falls back to backend snapshot counters when Kubernetes API is unavailable", async () => {
     const provider = new K8sMetricsProvider(
       createNoopBackend({
-        async getFleetMetrics() {
+        async getOperationsMetrics() {
           return {
             supportsPods: true,
             supportsCpuMemMetrics: false,

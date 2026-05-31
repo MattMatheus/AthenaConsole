@@ -83,7 +83,7 @@ export interface RunRejectionEvent {
   limit: number;
   rejectedRunDetails: {
     sessionId: string;
-    personaName?: string;
+    agentName?: string;
   };
   reason: RunRejectionReason;
   activeRuns: number;

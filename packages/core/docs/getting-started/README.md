@@ -1,5 +1,8 @@
 # Getting Started
 
-ProjectAthena is a CLI-first agent runtime. Current implementation stage: Stage 8 (in progress).
+Team Orchestrator's current getting-started path lives at the repo root:
 
-For archived setup and usage walkthroughs, see `docs/archive/getting-started/`.
+- [`../../../GETTING_STARTED.md`](../../../GETTING_STARTED.md)
+- [`../../../docs/user-guide/README.md`](../../../docs/user-guide/README.md)
+
+This package-local page is retained only as a pointer so older links do not strand readers.

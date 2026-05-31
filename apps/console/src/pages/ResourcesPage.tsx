@@ -1,4 +1,4 @@
-import { CheckCircle2, FolderGit2, GitBranch, PlugZap, RefreshCw, Route, Save } from "lucide-react";
+import { CheckCircle2, Database, FolderGit2, GitBranch, ListChecks, PlugZap, RefreshCw, Route, Save } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -168,6 +168,42 @@ export function ResourcesPage() {
         <StatusTile label="Selected" value={selectedRepository?.name ?? "None"} />
       </section>
 
+      <section className={styles.settingsPanel}>
+        <div className={styles.settingsHeader}>
+          <div>
+            <p className={styles.key}>Advanced Runtime Diagnostics</p>
+            <h3 className={styles.resourceTitle}>Work queues and retained context</h3>
+          </div>
+          <ListChecks size={18} />
+        </div>
+        <div className={styles.providerGuidanceGrid}>
+          <article className={styles.providerGuidanceItem}>
+            <span className={styles.stepIcon}>
+              <ListChecks size={16} />
+            </span>
+            <div>
+              <p className={styles.value}>Work queue inspection</p>
+              <p className={styles.settingsMuted}>
+                Session-backed work queues are retained as an advanced diagnostic for stuck or compatibility runs, not as a primary task workflow.
+              </p>
+              <p className={styles.mono}>GET /api/v1/sessions/&lt;id&gt;/work-queue</p>
+            </div>
+          </article>
+          <article className={styles.providerGuidanceItem}>
+            <span className={styles.stepIcon}>
+              <Database size={16} />
+            </span>
+            <div>
+              <p className={styles.value}>Memory search</p>
+              <p className={styles.settingsMuted}>
+                Memory search is retained for local context debugging when memory indexing is enabled.
+              </p>
+              <p className={styles.mono}>GET /api/v1/memory/search</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
       <div className={styles.repoConnectionGrid}>
         <form
           className={styles.settingsPanel}
@@ -237,7 +273,7 @@ export function ResourcesPage() {
               className={styles.settingsInput}
               value={existingPathForm.name}
               onChange={(event) => setExistingPathForm((current) => ({ ...current, name: event.target.value }))}
-              placeholder="Athena Console"
+              placeholder="Team Orchestrator"
             />
           </label>
           <label className={styles.repoField}>

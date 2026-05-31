@@ -75,13 +75,13 @@ function parseIdentityHeaderValue(headerValue: string | string[] | undefined): s
 }
 
 function parseScopeHeaders(headers: IncomingMessage["headers"], adminGlobal: boolean): ScopeSet {
-  const personas = parseScopeList(headers["x-athena-scope-personas"]);
+  const agents = parseScopeList(headers["x-athena-scope-agents"]);
   const sessionIds = parseScopeList(headers["x-athena-scope-sessions"]);
   const runIds = parseScopeList(headers["x-athena-scope-runs"]);
   const globalHeader = parseScopeGlobal(headers["x-athena-scope-global"]);
   return {
     global: adminGlobal || globalHeader,
-    personas,
+    agents,
     sessionIds,
     runIds
   };

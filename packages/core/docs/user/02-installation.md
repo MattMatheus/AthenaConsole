@@ -1,6 +1,6 @@
 # Installation and Configuration
 
-Project Athena is a Node.js application written in TypeScript.
+Team Orchestrator is a TypeScript workspace with a web console and a core runtime package. This package-level page focuses on local core runtime compatibility; for the current product quickstart, use `../../../GETTING_STARTED.md`.
 
 ## Prerequisites
 
@@ -30,7 +30,7 @@ Project Athena is a Node.js application written in TypeScript.
 
 ## Initial Configuration
 
-Project Athena can be configured via environment variables. The runtime will load these on startup.
+The core runtime can be configured via environment variables. The runtime will load these on startup. Historical `ATHENA_*` names remain the supported configuration keys.
 
 ### Configuration (Quick Start)
 
@@ -70,9 +70,9 @@ Notes:
 -   `ATHENA_EVENT_MAX_BYTES`: Sets the maximum size (in bytes) for the event ledger (default: 5MB).
 -   Legacy keys remain supported for compatibility: `ATHENA_EVENTS_MAX_AGE_MS`, `ATHENA_EVENTS_MAX_BYTES`.
 
-### Fleet and Metrics Configuration
+### Operations Metrics Configuration
 
--   `ATHENA_FLEET_METRICS_PROVIDER`: Specifies the provider for fleet metrics. Options are `local` (default) or `k8s`.
+-   `ATHENA_OPERATIONS_METRICS_PROVIDER`: Specifies the provider for operations metrics. Options are `local` (default) or `k8s`.
 -   `ATHENA_K8S_AGENT_LABEL_SELECTOR`: For `k8s` provider, the label selector used to find agent pods (default: `app.kubernetes.io/component=athena-agent`).
 -   `ATHENA_K8S_NAMESPACE`: For `k8s` provider, the namespace to search for pods. If unset, the default context namespace is used.
 

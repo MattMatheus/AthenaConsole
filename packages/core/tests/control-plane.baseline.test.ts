@@ -223,7 +223,7 @@ describe("control-plane phase-0 baseline", () => {
       expect(listedDirectives.items[0]?.id).toBe(createdDirective.id);
 
       const createdHarnessProfile = await services.harnessProfileService.create({
-        displayName: "Fleet Reviewer",
+        displayName: "Operations Reviewer",
         version: "v1",
         config: {
           provider: "mock",

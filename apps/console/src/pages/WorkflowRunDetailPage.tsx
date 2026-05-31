@@ -6,6 +6,7 @@ import {
   formatWorkflowRunUnknown,
   formatWorkflowRunDate,
   readinessLabel,
+  taskRunIdFromWorkflowNodeOutput,
   useWorkflowRunStatusQuery,
   workflowRunStatusTone,
   type WorkflowRunGraphEventLevel,
@@ -275,6 +276,7 @@ function Metric({ label, value }: { label: string; value: number }) {
 }
 
 function StepRow({ node }: { node: WorkflowRunStatusNode }) {
+  const taskRunId = taskRunIdFromWorkflowNodeOutput(node.output);
   return (
     <article className={styles.stepRow}>
       <div className={styles.stepIdentity}>
@@ -310,6 +312,11 @@ function StepRow({ node }: { node: WorkflowRunStatusNode }) {
       {node.failure !== undefined || node.output !== undefined ? (
         <details className={styles.details}>
           <summary>{node.failure !== undefined ? "Failure" : "Output"}</summary>
+          {taskRunId ? (
+            <Link className={styles.inlineLink} to={`/tasks/runs/${encodeURIComponent(taskRunId)}`}>
+              Inspect task run artifacts
+            </Link>
+          ) : null}
           <pre className={styles.codeBlock}>{formatWorkflowRunUnknown(node.failure ?? node.output)}</pre>
         </details>
       ) : null}

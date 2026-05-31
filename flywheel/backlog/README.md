@@ -28,6 +28,18 @@ No candidate engineering or architecture intake items.
 
 Recently completed:
 
+- `engineering/done/STORY-20260530-current-deployment-automation.md`
+- `engineering/done/STORY-20260530-remove-persona-specialist-runtime.md`
+- `engineering/done/STORY-20260530-remove-fleet-compatibility.md`
+- `engineering/done/STORY-20260530-generic-failed-work-recovery.md`
+- `engineering/done/STORY-20260530-runtime-diagnostics-work-memory.md`
+- `engineering/done/STORY-20260530-run-history-artifact-inspection.md`
+- `engineering/done/STORY-20260530-code-review-plugin-agent-migration.md`
+- `engineering/done/STORY-20260530-persona-specialist-compatibility-plan.md`
+- `engineering/done/STORY-20260530-operations-telemetry-rename.md`
+- `engineering/done/STORY-20260530-docs-public-metadata-sweep.md`
+- `engineering/done/STORY-20260530-console-legacy-surface-retirement.md`
+- `engineering/done/STORY-20260530-source-hygiene-cleanup.md`
 - `engineering/done/STORY-20260530-in-product-documentation-guide.md`
 - `engineering/done/STORY-20260530-comprehensive-user-guide.md`
 - `engineering/done/BUG-20260530-product-docs-state-sync.md`

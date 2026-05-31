@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { AzureBillingFleetCostProvider } from "../src/control-plane/azure-billing-cost-provider.js";
+import { AzureBillingOperationsCostProvider } from "../src/control-plane/azure-billing-cost-provider.js";
 import type { AthenaConfig } from "../src/shared/config.js";
 
 function createConfig(): AthenaConfig {
@@ -32,13 +32,13 @@ function createConfig(): AthenaConfig {
   };
 }
 
-describe("AzureBillingFleetCostProvider", () => {
+describe("AzureBillingOperationsCostProvider", () => {
   it("returns undefined when billing integration is disabled", async () => {
     const config = createConfig();
     if (config.azure?.billing) {
       config.azure.billing.enabled = false;
     }
-    const provider = new AzureBillingFleetCostProvider(config, {
+    const provider = new AzureBillingOperationsCostProvider(config, {
       tokenProvider: async () => "token"
     });
     expect(provider.isEnabled()).toBe(false);
@@ -62,7 +62,7 @@ describe("AzureBillingFleetCostProvider", () => {
         })
       };
     });
-    const provider = new AzureBillingFleetCostProvider(createConfig(), {
+    const provider = new AzureBillingOperationsCostProvider(createConfig(), {
       fetchImpl: fetchMock as unknown as typeof fetch,
       tokenProvider: async () => "token-123"
     });

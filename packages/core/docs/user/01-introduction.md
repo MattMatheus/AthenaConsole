@@ -1,17 +1,17 @@
-# Introduction to Project Athena
+# Team Orchestrator Core Compatibility Guide
 
-Project Athena is a standalone, extensible agent runtime designed for developers and operators who need a robust and reliable system for orchestrating AI agent-based workflows. It provides a CLI-first interface for interacting with the runtime, with a powerful API server for more advanced use cases.
+This package-level guide documents compatibility surfaces for the Team Orchestrator core runtime. For current operator and agent-author workflows, start with the repo-level guide at `../../../docs/user-guide/README.md`.
 
-At its core, Project Athena is built to be a durable and observable system, re-implementing the core logic of the earlier "OpenClaw" runtime as a standalone tool.
+The current product direction is Team Orchestrator: a web console and orchestration system for creating agents, connecting repositories, launching real work, and reviewing run artifacts. The core package centers current CLI, API, and console workflows on plugin-backed agents and task execution.
 
 ## Core Concepts
 
-To understand Project Athena, it's helpful to be familiar with a few core concepts:
+These concepts remain useful when working directly with the core runtime:
 
-*   **Personas:** Personas are pre-defined configurations for the agent that bundle specific tools, context, and instructions. They allow you to easily run the agent for a specific purpose, such as code review or documentation analysis. You can run a persona using the `athena persona run` command.
+*   **Plugin agents:** Plugin agents are manifest-backed executable units that bundle capabilities, inputs, runtime implementation, permissions, and artifact contracts. They allow you to run focused work such as code review, repository summarization, or documentation analysis through the console, task API, or workflow templates.
 
-*   **Providers:** Providers are adapters that connect Project Athena to different language model backends, whether they are remote APIs (like those from OpenAI or Anthropic) or local models. A provider abstraction layer allows the system to switch between providers and implement fallback policies for improved reliability.
+*   **Providers:** Providers are adapters that connect the runtime to different language model backends, whether they are remote APIs (like those from OpenAI or Anthropic) or local models. A provider abstraction layer allows the system to switch between providers and implement fallback policies for improved reliability.
 
 *   **Work Queues:** Each agent session has a dedicated work queue that manages tasks. This system ensures that work is processed sequentially, can be deferred or re-prioritized, and will resume correctly even after a crash or restart.
 
-*   **Control Plane:** The control plane is the central nervous system of Project Athena. It's a service layer that centralizes the core logic for all operations, ensuring that whether you use the CLI or the API, the behavior is consistent and reliable.
+*   **Control Plane:** The control plane is the shared service layer for CLI, API, and console operations.

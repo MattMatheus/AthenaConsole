@@ -18,15 +18,15 @@ import {
   type IDistributedLock
 } from "./distributed-lock.js";
 import type { RejectionEventStore } from "./rejection-event-store.js";
-import type { IFleetMetricsProvider } from "./backends/fleet-metrics-provider.js";
+import type { IOperationsMetricsProvider } from "./backends/operations-metrics-provider.js";
 import { K8sMetricsProvider, type K8sMetricsProviderOptions } from "./backends/k8s-metrics-provider.js";
 import {
   AuthorizedA2aObservabilityService,
   AuthorizedA2aFlowService,
-  AuthorizedA2aDlqService,
+  AuthorizedFailedWorkService,
   AuthorizedDirectiveService,
   AuthorizedEventService,
-  AuthorizedFleetService,
+  AuthorizedOperationsService,
   AuthorizedGovernanceAuditService,
   AuthorizedLspService,
   AuthorizedMemoryService,
@@ -39,21 +39,20 @@ import {
   AuthorizedWorkflowStatusService,
   ServiceAuthorizer
 } from "./services/authorization.js";
-import { LocalA2aDlqService, LocalEventService } from "./services/event-dlq.js";
+import { LocalFailedWorkService, LocalEventService } from "./services/event-dlq.js";
 import { LocalA2aFlowService } from "./services/a2a-flow.js";
 import { LocalA2aObservabilityService } from "./services/a2a-observability.js";
 import { LocalAgentCatalogService } from "./services/agent-catalog.js";
 import { LocalMissionWorkbenchService } from "./services/mission-workbench.js";
 import { LocalTaskWorkbenchService } from "./services/task-workbench.js";
-import { LocalCapabilityService, LocalFleetMetricsProvider, LocalFleetService } from "./services/fleet.js";
-import { AzureBillingFleetCostProvider } from "./azure-billing-cost-provider.js";
+import { LocalCapabilityService, LocalOperationsMetricsProvider, LocalOperationsService } from "./services/operations.js";
+import { AzureBillingOperationsCostProvider } from "./azure-billing-cost-provider.js";
 import { LocalIdentityService } from "./services/identity.js";
 import { LocalGovernanceAuditService } from "./services/governance-audit.js";
 import {
   LocalDirectiveService,
   LocalHarnessProfileService,
   LocalMemoryService,
-  LocalSpecialistService,
   LocalRunTemplateService,
   LocalScheduleService,
   LocalSessionService,
@@ -71,7 +70,7 @@ import { LocalWorkflowDagExecutorService } from "./services/workflow-dag-executo
 import { LocalWorkflowTemplateCatalogService } from "./services/workflow-template-catalog.js";
 import { recoverStaleTaskAndMissionRuns, recoverStaleWorkflowDagRuns } from "./services/stale-run-recovery.js";
 import type {
-  A2aDlqService,
+  FailedWorkService,
   A2aFlowService,
   A2aObservabilityService,
   AgentCatalogService,
@@ -84,12 +83,10 @@ import type {
   MissionWorkbenchService,
   RunTemplateService,
   EventService,
-  FleetService,
+  OperationsService,
   GovernanceAuditService,
   IdentityService,
   MemoryService,
-  PersonaService,
-  SpecialistService,
   PolicyService,
   ReadinessService,
   RunService,
@@ -117,7 +114,7 @@ interface LocalControlPlaneOptions {
   stateStore?: StateStore;
   rejectionEventStore?: RejectionEventStore;
   rejectionEventMaxRecords?: number;
-  fleetMetricsProvider?: "local" | "k8s";
+  operationsMetricsProvider?: "local" | "k8s";
   distributedLockProvider?: "local" | "redis" | "k8s-lease";
   distributedLock?: IDistributedLock;
   k8sMetricsProviderOptions?: K8sMetricsProviderOptions;
@@ -139,15 +136,13 @@ export interface ControlPlaneServices {
   workService: WorkService;
   memoryService: MemoryService;
   lspService: LspService;
-  specialistService: SpecialistService;
-  personaService: PersonaService;
   scheduleService: ScheduleService;
   policyService: PolicyService;
   eventService: EventService;
-  a2aDlqService: A2aDlqService;
+  failedWorkService: FailedWorkService;
   a2aFlowService: A2aFlowService;
   a2aObservabilityService: A2aObservabilityService;
-  fleetService: FleetService;
+  operationsService: OperationsService;
   governanceAuditService: GovernanceAuditService;
   identityService: IdentityService;
   capabilityService: CapabilityService;
@@ -221,13 +216,13 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
   );
   const runtimeActiveDir = resolve(options.config.workspaceRoot, options.config.stateDir, "runtime", "active");
   const runtimeCancelDir = resolve(options.config.workspaceRoot, options.config.stateDir, "runtime", "cancel");
-  const selectedFleetMetricsProvider =
-    options.fleetMetricsProvider ?? options.config.fleetMetricsProvider ?? executionBackend.kind;
-  const fleetMetricsProvider: IFleetMetricsProvider =
-    selectedFleetMetricsProvider === "k8s"
+  const selectedOperationsMetricsProvider =
+    options.operationsMetricsProvider ?? options.config.operationsMetricsProvider ?? executionBackend.kind;
+  const operationsMetricsProvider: IOperationsMetricsProvider =
+    selectedOperationsMetricsProvider === "k8s"
       ? new K8sMetricsProvider(executionBackend, options.k8sMetricsProviderOptions)
-      : new LocalFleetMetricsProvider(stateStore, runtimeActiveDir, runtimeCancelDir);
-  const azureBillingCostProvider = new AzureBillingFleetCostProvider(options.config);
+      : new LocalOperationsMetricsProvider(stateStore, runtimeActiveDir, runtimeCancelDir);
+  const azureBillingCostProvider = new AzureBillingOperationsCostProvider(options.config);
 
   const authorizer = new ServiceAuthorizer(options.config, eventService);
   const runService = new AuthorizedRunService(
@@ -246,7 +241,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
   const memoryService = new AuthorizedMemoryService(new LocalMemoryService(options.config), authorizer);
   const authorizedLspService = new AuthorizedLspService(baseLspService, authorizer);
   const authorizedEventService = new AuthorizedEventService(eventService, authorizer);
-  const a2aDlqService = new AuthorizedA2aDlqService(new LocalA2aDlqService(options.config), authorizer);
+  const failedWorkService = new AuthorizedFailedWorkService(new LocalFailedWorkService(options.config), authorizer);
   const a2aFlowService = new AuthorizedA2aFlowService(new LocalA2aFlowService(eventService), authorizer);
   const a2aObservabilityService = new AuthorizedA2aObservabilityService(
     new LocalA2aObservabilityService(eventService),
@@ -256,12 +251,10 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
   const identityService = new AuthorizedIdentityService(new LocalIdentityService(options.config, eventService), authorizer);
   const governanceAuditService = new AuthorizedGovernanceAuditService(new LocalGovernanceAuditService(eventService), authorizer);
 
-  const specialistService = new LocalSpecialistService(options.config, authorizedEventService, authorizedLspService);
-
   const stateDiagnosticsService = new LocalStateDiagnosticsService(options.config, stateStore);
   const agentCatalogService = new LocalAgentCatalogService(options.config);
   const workflowTemplateCatalogService = new LocalWorkflowTemplateCatalogService(options.config);
-  const capabilityService = new LocalCapabilityService(executionBackend, fleetMetricsProvider, sandboxExecutionBackend);
+  const capabilityService = new LocalCapabilityService(executionBackend, operationsMetricsProvider, sandboxExecutionBackend);
   const modelProviderConfigService = new LocalModelProviderConfigService(options.config);
   const readinessService = new LocalReadinessService(options.config, {
     stateDiagnosticsService,
@@ -283,20 +276,18 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     workService,
     memoryService,
     lspService: authorizedLspService,
-    specialistService,
-    personaService: specialistService,
     scheduleService,
     policyService: authorizedPolicyService,
     eventService: authorizedEventService,
-    a2aDlqService,
+    failedWorkService,
     a2aFlowService,
     a2aObservabilityService,
     governanceAuditService,
     identityService,
-    fleetService: new AuthorizedFleetService(
-      new LocalFleetService(
+    operationsService: new AuthorizedOperationsService(
+      new LocalOperationsService(
         options.config,
-        fleetMetricsProvider,
+        operationsMetricsProvider,
         runService,
         eventService,
         azureBillingCostProvider.isEnabled() ? azureBillingCostProvider : undefined

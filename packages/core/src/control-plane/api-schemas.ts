@@ -1019,7 +1019,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
     },
     required: ["path", "text", "lineStart", "lineEnd"]
   },
-  PersonaRunResponse: {
+  AgentRunResponse: {
     type: "object",
     additionalProperties: false,
     properties: {
@@ -1029,7 +1029,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
         properties: {
           schemaVersion: { type: "integer", minimum: 1 },
           runId: { type: "string", minLength: 1 },
-          personaName: { type: "string", minLength: 1 },
+          agentName: { type: "string", minLength: 1 },
           sessionId: { type: "string", minLength: 1 },
           status: { type: "string", enum: ["ok", "failed"] },
           startedAt: { type: "string", format: "date-time" },
@@ -1054,7 +1054,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
         required: [
           "schemaVersion",
           "runId",
-          "personaName",
+          "agentName",
           "sessionId",
           "status",
           "startedAt",
@@ -1067,6 +1067,29 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       stdout: { type: "string" }
     },
     required: ["result", "stdout"]
+  },
+  FailedWorkItem: {
+    type: "object",
+    properties: {
+      id: { type: "string", minLength: 1 },
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" },
+      status: { type: "string", enum: ["pending", "retried", "discarded"] },
+      reason: { type: "string" },
+      payload: JSON_VALUE_SCHEMA
+    },
+    required: ["id", "createdAt", "updatedAt", "status", "payload"]
+  },
+  FailedWorkListResult: {
+    type: "object",
+    properties: {
+      items: {
+        type: "array",
+        items: { $ref: "#/components/schemas/FailedWorkItem" }
+      },
+      nextCursor: { type: "string" }
+    },
+    required: ["items"]
   }
 };
 
@@ -1446,7 +1469,7 @@ const API_COMPONENT_SCHEMA_STRICTNESS_HINTS: Record<string, ApiSchema> = {
         type: "object",
         properties: {
           sessionId: { type: "string", minLength: 1 },
-          personaName: { type: "string", minLength: 1 }
+          agentName: { type: "string", minLength: 1 }
         }
       },
       reason: { type: "string", enum: ["max-concurrent-runs-exceeded", "lock-acquisition-failed"] },
@@ -1509,7 +1532,7 @@ const API_COMPONENT_SCHEMA_STRICTNESS_HINTS: Record<string, ApiSchema> = {
       origin: { $ref: "#/components/schemas/PolicyOriginDetails" }
     }
   },
-  FleetSummary: {
+  OperationsSummary: {
     type: "object",
     properties: {
       total: { type: "integer", minimum: 0 },
@@ -1536,15 +1559,6 @@ const API_COMPONENT_SCHEMA_STRICTNESS_HINTS: Record<string, ApiSchema> = {
       type: { type: "string", minLength: 1 },
       createdAt: { type: "string", format: "date-time" },
       policy: { $ref: "#/components/schemas/PolicyDecisionEventMetadata" }
-    }
-  },
-  A2aDlqItem: {
-    type: "object",
-    properties: {
-      id: { type: "string", minLength: 1 },
-      createdAt: { type: "string", format: "date-time" },
-      updatedAt: { type: "string", format: "date-time" },
-      status: { type: "string", enum: ["pending", "requeued", "discarded"] }
     }
   },
   MemorySearchResult: {
@@ -2400,7 +2414,7 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       additionalProperties: false,
       properties: {
         query: STRING_SCHEMA,
-        personaId: { type: "string" },
+        agentId: { type: "string" },
         userId: { type: "string" },
         status: { type: "string", enum: ["ok", "failed"] },
         from: { type: "string", format: "date-time" },
@@ -3127,16 +3141,16 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       items: { $ref: "#/components/schemas/ScheduleRunLog" }
     }
   },
-  getFleetSummary: {
-    operationId: "getFleetSummary",
+  getOperationsSummary: {
+    operationId: "getOperationsSummary",
     method: "GET",
-    path: "/api/v1/fleet/summary",
-    responseSchema: { $ref: "#/components/schemas/FleetSummary" }
+    path: "/api/v1/operations/summary",
+    responseSchema: { $ref: "#/components/schemas/OperationsSummary" }
   },
-  getProviderCostSettings: {
-    operationId: "getProviderCostSettings",
+  getOperationsProviderCostSettings: {
+    operationId: "getOperationsProviderCostSettings",
     method: "GET",
-    path: "/api/v1/fleet/cost/settings",
+    path: "/api/v1/operations/cost/settings",
     responseSchema: {
       type: "object",
       additionalProperties: false,
@@ -3161,10 +3175,10 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       required: ["schemaVersion", "updatedAt", "providers"]
     }
   },
-  putProviderCostSettings: {
-    operationId: "putProviderCostSettings",
+  putOperationsProviderCostSettings: {
+    operationId: "putOperationsProviderCostSettings",
     method: "PUT",
-    path: "/api/v1/fleet/cost/settings",
+    path: "/api/v1/operations/cost/settings",
     requestBodySchema: {
       type: "object",
       additionalProperties: false,
@@ -3209,10 +3223,10 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       required: ["schemaVersion", "updatedAt", "providers"]
     }
   },
-  getFleetCostReportCsv: {
-    operationId: "getFleetCostReportCsv",
+  getOperationsCostReportCsv: {
+    operationId: "getOperationsCostReportCsv",
     method: "GET",
-    path: "/api/v1/fleet/cost/report.csv",
+    path: "/api/v1/operations/cost/report.csv",
     querySchema: {
       type: "object",
       additionalProperties: false,
@@ -3469,71 +3483,25 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
     },
     responseSchema: { $ref: "#/components/schemas/PolicyDocument" }
   },
-  runSpecialist: {
-    operationId: "runSpecialist",
-    method: "POST",
-    path: "/api/v1/specialists/run",
-    requestBodySchema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        name: STRING_SCHEMA,
-        repoPath: STRING_SCHEMA,
-        headRef: STRING_SCHEMA,
-        baseRef: { type: "string" },
-        sessionId: { type: "string" },
-        provider: { type: "string" },
-        model: { type: "string" },
-        outJsonPath: { type: "string" },
-        outMarkdownPath: { type: "string" },
-        stdout: { type: "string", enum: ["summary", "json", "md", "none"] }
-      },
-      required: ["name", "repoPath", "headRef"]
-    },
-    responseSchema: { $ref: "#/components/schemas/PersonaRunResponse" }
-  },
-  runPersona: {
-    operationId: "runPersona",
-    method: "POST",
-    path: "/api/v1/personas/run",
-    requestBodySchema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        name: STRING_SCHEMA,
-        repoPath: STRING_SCHEMA,
-        headRef: STRING_SCHEMA,
-        baseRef: { type: "string" },
-        sessionId: { type: "string" },
-        provider: { type: "string" },
-        model: { type: "string" },
-        outJsonPath: { type: "string" },
-        outMarkdownPath: { type: "string" },
-        stdout: { type: "string", enum: ["summary", "json", "md", "none"] }
-      },
-      required: ["name", "repoPath", "headRef"]
-    },
-    responseSchema: { $ref: "#/components/schemas/PersonaRunResponse" }
-  },
-  listA2aDlq: {
-    operationId: "listA2aDlq",
+  listFailedWork: {
+    operationId: "listFailedWork",
     method: "GET",
-    path: "/api/v1/a2a/dlq",
+    path: "/api/v1/failed-work",
     querySchema: {
       type: "object",
       additionalProperties: false,
       properties: {
         cursor: { type: "string" },
         limit: { type: "integer", minimum: 1 },
-        status: { type: "string", enum: ["pending", "requeued", "discarded"] }
+        status: { type: "string", enum: ["pending", "retried", "discarded"] }
       }
     },
-    responseSchema: { $ref: "#/components/schemas/A2aDlqListResult" }
+    responseSchema: { $ref: "#/components/schemas/FailedWorkListResult" }
   },
-  requeueA2aDlqItem: {
-    operationId: "requeueA2aDlqItem",
+  retryFailedWorkItem: {
+    operationId: "retryFailedWorkItem",
     method: "POST",
-    path: "/api/v1/a2a/dlq/:id/requeue",
+    path: "/api/v1/failed-work/:id/retry",
     pathParamsSchema: {
       type: "object",
       additionalProperties: false,
@@ -3547,15 +3515,15 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       additionalProperties: false,
       properties: {
         updated: { type: "boolean" },
-        item: { $ref: "#/components/schemas/A2aDlqItem" }
+        item: { $ref: "#/components/schemas/FailedWorkItem" }
       },
       required: ["updated"]
     }
   },
-  discardA2aDlqItem: {
-    operationId: "discardA2aDlqItem",
+  discardFailedWorkItem: {
+    operationId: "discardFailedWorkItem",
     method: "POST",
-    path: "/api/v1/a2a/dlq/:id/discard",
+    path: "/api/v1/failed-work/:id/discard",
     pathParamsSchema: {
       type: "object",
       additionalProperties: false,
@@ -3576,7 +3544,7 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       additionalProperties: false,
       properties: {
         updated: { type: "boolean" },
-        item: { $ref: "#/components/schemas/A2aDlqItem" }
+        item: { $ref: "#/components/schemas/FailedWorkItem" }
       },
       required: ["updated"]
     }

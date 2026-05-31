@@ -79,3 +79,11 @@ export function edgeSummary(edges: WorkflowRunStatusEdge[]): string {
   }
   return edges.map((edge) => `${edge.from} -> ${edge.to}`).join(", ");
 }
+
+export function taskRunIdFromWorkflowNodeOutput(output: unknown): string | undefined {
+  if (!output || typeof output !== "object" || Array.isArray(output)) {
+    return undefined;
+  }
+  const record = output as Record<string, unknown>;
+  return typeof record.taskRunId === "string" && record.taskRunId.trim().length > 0 ? record.taskRunId : undefined;
+}

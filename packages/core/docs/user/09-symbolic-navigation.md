@@ -8,7 +8,7 @@ Traditional agent tools like `grep` or simple file reads often lead to "guessing
 
 ## Available Tools
 
-The following tools are available to any persona with the `code-analysis` skill enabled:
+The following tools are available to any agent with the `code-analysis` skill enabled:
 
 ### `athena_lsp_definition`
 Returns the location and signature of a symbol's definition at a given file, line, and character position.

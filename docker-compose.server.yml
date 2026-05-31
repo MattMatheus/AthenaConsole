@@ -31,8 +31,7 @@ services:
       - ${ATHENA_SERVER_STATE_PATH:-/srv/team-orchestrator/state}:/athena/state
       - ${ATHENA_SERVER_ARTIFACTS_PATH:-/srv/team-orchestrator/artifacts}/run-evidence:/athena/state/run-evidence
       - ${ATHENA_SERVER_ARTIFACTS_PATH:-/srv/team-orchestrator/artifacts}/transcripts:/athena/state/transcripts
-      - ${ATHENA_SERVER_ARTIFACTS_PATH:-/srv/team-orchestrator/artifacts}/specialist-runs:/athena/state/specialist-runs
-      - ${ATHENA_SERVER_ARTIFACTS_PATH:-/srv/team-orchestrator/artifacts}/persona-runs:/athena/state/persona-runs
+      - ${ATHENA_SERVER_ARTIFACTS_PATH:-/srv/team-orchestrator/artifacts}/agent-runs:/athena/state/agent-runs
       - ${ATHENA_SERVER_REPOS_PATH:-/srv/team-orchestrator/repos}:/athena/workspace/repos
       - ${ATHENA_SERVER_PLUGINS_PATH:-/srv/team-orchestrator/plugins}:/athena/plugins
       - ${ATHENA_SERVER_SECRETS_PATH:-/srv/team-orchestrator/secrets}:/run/secrets/athena:ro

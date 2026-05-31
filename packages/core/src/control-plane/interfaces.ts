@@ -1,8 +1,5 @@
 import type {
   ActiveRunQueryResult,
-  A2aDlqItem,
-  A2aDlqListQuery,
-  A2aDlqListResult,
   A2aFlowGraphQuery,
   A2aFlowGraphResult,
   A2aObservabilityQuery,
@@ -46,7 +43,10 @@ import type {
   EventEmitRequest,
   EventQuery,
   EventQueryResult,
-  FleetSummary,
+  FailedWorkItem,
+  FailedWorkListQuery,
+  FailedWorkListResult,
+  OperationsSummary,
   ProviderCostSettings,
   Directive,
   DirectiveCreateRequest,
@@ -111,8 +111,6 @@ import type { WorkflowDagExecutionResult } from "./services/workflow-dag-executo
 import type { RunScheduleResult, UpsertScheduleRequest } from "../schedule/index.js";
 import type { DrainResult, EnqueueWorkRequest } from "../work/index.js";
 import type { MemoryGetRequest, MemoryGetResult, MemorySearchOptions } from "../memory/index.js";
-import type { SpecialistRunRequest } from "../specialists/run.js";
-import type { SpecialistRunResult } from "../specialists/types.js";
 import type { TranscriptSubscription } from "../runtime/transcript-stream.js";
 
 export interface RunService {
@@ -228,16 +226,6 @@ export interface LspService {
   getDocumentSymbols(file: string): Promise<LspDocumentSymbol[]>;
 }
 
-export interface PersonaService {
-  list(): Promise<string[]>;
-  run(request: SpecialistRunRequest): Promise<{ result: SpecialistRunResult; stdout: string }>;
-}
-
-export interface SpecialistService {
-  list(): Promise<string[]>;
-  run(request: SpecialistRunRequest): Promise<{ result: SpecialistRunResult; stdout: string }>;
-}
-
 export interface ScheduleService {
   list(): Promise<ScheduledTask[]>;
   get(id: string): Promise<ScheduledTask | undefined>;
@@ -286,9 +274,9 @@ export interface GovernanceAuditService {
   list(query?: GovernanceAuditHistoryQuery): Promise<GovernanceAuditHistoryResult>;
 }
 
-export interface FleetService {
-  getSummary(): Promise<FleetSummary>;
-  getProviderCostSettings(): Promise<ProviderCostSettings>;
+export interface OperationsService {
+  getSummary(): Promise<OperationsSummary>;
+  getOperationsProviderCostSettings(): Promise<ProviderCostSettings>;
   updateProviderCostSettings(request: {
     providers: Array<{
       provider: string;
@@ -403,10 +391,10 @@ export interface MissionWorkbenchService {
   getMissionRun(runId: string): Promise<MissionWorkbenchMissionRunDetail>;
 }
 
-export interface A2aDlqService {
-  list(query?: A2aDlqListQuery): Promise<A2aDlqListResult>;
-  requeue(id: string): Promise<{ updated: boolean; item?: A2aDlqItem }>;
-  discard(id: string): Promise<{ updated: boolean; item?: A2aDlqItem }>;
+export interface FailedWorkService {
+  list(query?: FailedWorkListQuery): Promise<FailedWorkListResult>;
+  retry(id: string): Promise<{ updated: boolean; item?: FailedWorkItem }>;
+  discard(id: string): Promise<{ updated: boolean; item?: FailedWorkItem }>;
 }
 
 export interface A2aFlowService {

@@ -1,7 +1,7 @@
 import { AthenaError, asAthenaError } from "../runtime/errors.js";
 import type { AthenaErrorCode } from "../shared/contracts.js";
 export type {
-  FleetSummary,
+  OperationsSummary,
   ProviderCostSettings,
   PolicyDecisionEventMetadata,
   PolicyOriginDetails,
@@ -155,10 +155,34 @@ export const API_V1_ROUTES: ApiRouteDefinition[] = [
   { method: "POST", path: `${API_V1_PREFIX}/schedules/:id/disable`, operationId: "disableSchedule" },
   { method: "GET", path: `${API_V1_PREFIX}/schedules/:id`, operationId: "getSchedule" },
   { method: "GET", path: `${API_V1_PREFIX}/schedules/:id/logs`, operationId: "getScheduleLogs", queryMode: "tail" },
-  { method: "GET", path: `${API_V1_PREFIX}/fleet/summary`, operationId: "getFleetSummary" },
-  { method: "GET", path: `${API_V1_PREFIX}/fleet/cost/settings`, operationId: "getProviderCostSettings" },
-  { method: "PUT", path: `${API_V1_PREFIX}/fleet/cost/settings`, operationId: "putProviderCostSettings" },
-  { method: "GET", path: `${API_V1_PREFIX}/fleet/cost/report.csv`, operationId: "getFleetCostReportCsv" },
+  {
+    method: "GET",
+    path: `${API_V1_PREFIX}/operations/summary`,
+    operationId: "getOperationsSummary",
+    lifecycle: "stable",
+    surface: "canonical"
+  },
+  {
+    method: "GET",
+    path: `${API_V1_PREFIX}/operations/cost/settings`,
+    operationId: "getOperationsProviderCostSettings",
+    lifecycle: "stable",
+    surface: "canonical"
+  },
+  {
+    method: "PUT",
+    path: `${API_V1_PREFIX}/operations/cost/settings`,
+    operationId: "putOperationsProviderCostSettings",
+    lifecycle: "stable",
+    surface: "canonical"
+  },
+  {
+    method: "GET",
+    path: `${API_V1_PREFIX}/operations/cost/report.csv`,
+    operationId: "getOperationsCostReportCsv",
+    lifecycle: "stable",
+    surface: "canonical"
+  },
   { method: "GET", path: `${API_V1_PREFIX}/rbac/roles`, operationId: "listRbacRoles" },
   { method: "GET", path: `${API_V1_PREFIX}/rbac/assignments`, operationId: "listIdentityRoleAssignments" },
   { method: "PUT", path: `${API_V1_PREFIX}/rbac/assignments/:subject`, operationId: "upsertIdentityRoleAssignment" },
@@ -176,11 +200,9 @@ export const API_V1_ROUTES: ApiRouteDefinition[] = [
     queryMode: "cursor-page"
   },
   { method: "PUT", path: `${API_V1_PREFIX}/policy`, operationId: "putPolicy" },
-  { method: "POST", path: `${API_V1_PREFIX}/specialists/run`, operationId: "runSpecialist" },
-  { method: "POST", path: `${API_V1_PREFIX}/personas/run`, operationId: "runPersona" },
-  { method: "GET", path: `${API_V1_PREFIX}/a2a/dlq`, operationId: "listA2aDlq", queryMode: "cursor-page" },
-  { method: "POST", path: `${API_V1_PREFIX}/a2a/dlq/:id/requeue`, operationId: "requeueA2aDlqItem" },
-  { method: "POST", path: `${API_V1_PREFIX}/a2a/dlq/:id/discard`, operationId: "discardA2aDlqItem" }
+  { method: "GET", path: `${API_V1_PREFIX}/failed-work`, operationId: "listFailedWork", queryMode: "cursor-page" },
+  { method: "POST", path: `${API_V1_PREFIX}/failed-work/:id/retry`, operationId: "retryFailedWorkItem" },
+  { method: "POST", path: `${API_V1_PREFIX}/failed-work/:id/discard`, operationId: "discardFailedWorkItem" }
 ];
 
 const DEFAULT_PAGE_LIMIT = 50;

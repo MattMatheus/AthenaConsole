@@ -6,15 +6,15 @@ import { acquireSessionLock } from "../../runtime/session-lock.js";
 import type { AthenaConfig } from "../../shared/config.js";
 import { getRequestAuthContext } from "../auth.js";
 import type {
-  A2aDlqItem,
-  A2aDlqListQuery,
-  A2aDlqListResult,
   EventEmitRequest,
   EventQuery,
   EventQueryResult,
-  EventRecord
+  EventRecord,
+  FailedWorkItem,
+  FailedWorkListQuery,
+  FailedWorkListResult
 } from "../../shared/contracts.js";
-import type { A2aDlqService, EventService } from "../interfaces.js";
+import type { EventService, FailedWorkService } from "../interfaces.js";
 import { clampLimit, decodeOffsetCursor, encodeOffsetCursor } from "./pagination.js";
 
 export class LocalEventService implements EventService {
@@ -228,7 +228,7 @@ export class LocalEventService implements EventService {
         details: {
           operation: readString(payload.operation),
           requiredRoles: Array.isArray(payload.requiredRoles) ? payload.requiredRoles : [],
-          ...(readString(payload.personaName) ? { personaName: readString(payload.personaName) } : {}),
+          ...(readString(payload.agentName) ? { agentName: readString(payload.agentName) } : {}),
           ...(readString(payload.denyDetail) ? { detail: readString(payload.denyDetail) } : {})
         }
       };
@@ -263,7 +263,7 @@ export class LocalEventService implements EventService {
         actor,
         details: {
           ...(readString(payload.reason) ? { reason: readString(payload.reason) } : {}),
-          ...(readString(payload.personaName) ? { personaName: readString(payload.personaName) } : {}),
+          ...(readString(payload.agentName) ? { agentName: readString(payload.agentName) } : {}),
           quota: toObject(payload.quota),
           usage: toObject(payload.usage)
         }
@@ -282,7 +282,7 @@ export class LocalEventService implements EventService {
         actor,
         details: {
           ...(readString(payload.reason) ? { reason: readString(payload.reason) } : {}),
-          ...(readString(payload.personaName) ? { personaName: readString(payload.personaName) } : {}),
+          ...(readString(payload.agentName) ? { agentName: readString(payload.agentName) } : {}),
           declaredDestinations: Array.isArray(payload.declaredDestinations) ? payload.declaredDestinations : []
         }
       };
@@ -490,23 +490,23 @@ export class LocalEventService implements EventService {
   }
 }
 
-interface A2aDlqStateFile {
+interface FailedWorkStateFile {
   schemaVersion: 1;
-  items: A2aDlqItem[];
+  items: FailedWorkItem[];
 }
 
-export class LocalA2aDlqService implements A2aDlqService {
-  private readonly a2aDir: string;
+export class LocalFailedWorkService implements FailedWorkService {
+  private readonly recoveryDir: string;
   private readonly statePath: string;
   private readonly lockPath: string;
 
   constructor(config: AthenaConfig) {
-    this.a2aDir = resolve(config.workspaceRoot, config.stateDir, "a2a");
-    this.statePath = resolve(this.a2aDir, "dlq.json");
-    this.lockPath = resolve(this.a2aDir, "dlq.lock");
+    this.recoveryDir = resolve(config.workspaceRoot, config.stateDir, "failed-work");
+    this.statePath = resolve(this.recoveryDir, "items.json");
+    this.lockPath = resolve(this.recoveryDir, "items.lock");
   }
 
-  async list(query: A2aDlqListQuery = {}): Promise<A2aDlqListResult> {
+  async list(query: FailedWorkListQuery = {}): Promise<FailedWorkListResult> {
     const state = await this.loadState();
     const filtered = query.status ? state.items.filter((item) => item.status === query.status) : state.items;
     const limit = clampLimit(query.limit ?? 50, 1, 500);
@@ -519,15 +519,15 @@ export class LocalA2aDlqService implements A2aDlqService {
     };
   }
 
-  async requeue(id: string): Promise<{ updated: boolean; item?: A2aDlqItem }> {
-    return this.setStatus(id, "requeued");
+  async retry(id: string): Promise<{ updated: boolean; item?: FailedWorkItem }> {
+    return this.setStatus(id, "retried");
   }
 
-  async discard(id: string): Promise<{ updated: boolean; item?: A2aDlqItem }> {
+  async discard(id: string): Promise<{ updated: boolean; item?: FailedWorkItem }> {
     return this.setStatus(id, "discarded");
   }
 
-  private async setStatus(id: string, status: A2aDlqItem["status"]): Promise<{ updated: boolean; item?: A2aDlqItem }> {
+  private async setStatus(id: string, status: FailedWorkItem["status"]): Promise<{ updated: boolean; item?: FailedWorkItem }> {
     const lock = await acquireSessionLock(this.lockPath, {
       timeoutMs: 5_000,
       retryDelayMs: 20
@@ -538,7 +538,7 @@ export class LocalA2aDlqService implements A2aDlqService {
       if (index < 0) {
         return { updated: false };
       }
-      const updated: A2aDlqItem = {
+      const updated: FailedWorkItem = {
         ...state.items[index]!,
         status,
         updatedAt: new Date().toISOString()
@@ -554,8 +554,8 @@ export class LocalA2aDlqService implements A2aDlqService {
     }
   }
 
-  private async loadState(): Promise<A2aDlqStateFile> {
-    await mkdir(this.a2aDir, { recursive: true });
+  private async loadState(): Promise<FailedWorkStateFile> {
+    await mkdir(this.recoveryDir, { recursive: true });
     if (!existsSync(this.statePath)) {
       return {
         schemaVersion: 1,
@@ -563,15 +563,15 @@ export class LocalA2aDlqService implements A2aDlqService {
       };
     }
     const raw = await readFile(this.statePath, "utf8");
-    const parsed = JSON.parse(raw) as A2aDlqStateFile;
+    const parsed = JSON.parse(raw) as FailedWorkStateFile;
     return {
       schemaVersion: 1,
       items: parsed.items ?? []
     };
   }
 
-  private async saveState(state: A2aDlqStateFile): Promise<void> {
-    await mkdir(this.a2aDir, { recursive: true });
+  private async saveState(state: FailedWorkStateFile): Promise<void> {
+    await mkdir(this.recoveryDir, { recursive: true });
     const tmp = `${this.statePath}.${process.pid}.tmp`;
     await writeFile(tmp, `${JSON.stringify(state, null, 2)}\n`, "utf8");
     await rename(tmp, this.statePath);

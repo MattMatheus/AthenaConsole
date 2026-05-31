@@ -1,18 +1,17 @@
-import { createBrowserRouter } from "react-router-dom";
+import { Navigate, createBrowserRouter } from "react-router-dom";
 import { AppLayout } from "../layout/AppLayout";
 import { AgentCatalogPage } from "../pages/AgentCatalogPage";
 import { AgentDetailPage } from "../pages/AgentDetailPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { DocumentationPage } from "../pages/DocumentationPage";
-import { MissionControlPage } from "../pages/MissionControlPage";
 import { MissionsPage } from "../pages/MissionsPage";
-import { DlqPage } from "../pages/DlqPage";
+import { FailedWorkPage } from "../pages/FailedWorkPage";
 import { AuditTrailPage } from "../pages/AuditTrailPage";
 import { RbacPage } from "../pages/RbacPage";
 import { ResourcesPage } from "../pages/ResourcesPage";
 import { RunTemplatesPage } from "../pages/RunTemplatesPage";
 import { SchedulesPage } from "../pages/SchedulesPage";
-import { SessionsPage } from "../pages/SessionsPage";
+import { RunHistoryPage } from "../pages/SessionsPage";
 import { SettingsPage } from "../pages/SettingsPage";
 import { TaskCreatePage } from "../pages/TaskCreatePage";
 import { TaskRunDetailPage } from "../pages/TaskRunDetailPage";
@@ -53,12 +52,12 @@ export const router = createBrowserRouter([
         element: <MissionsPage />,
       },
       {
-        path: "mission-control",
-        element: <MissionControlPage />,
+        path: "runs",
+        element: <RunHistoryPage />,
       },
       {
         path: "sessions",
-        element: <SessionsPage />,
+        element: <Navigate to="/runs" replace />,
       },
       {
         path: "workflows",
@@ -73,8 +72,8 @@ export const router = createBrowserRouter([
         element: <RunTemplatesPage />,
       },
       {
-        path: "dlq",
-        element: <DlqPage />,
+        path: "failed-work",
+        element: <FailedWorkPage />,
       },
       {
         path: "resources",

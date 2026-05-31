@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { URL } from "node:url";
 import {
-  parseA2aDlqDiscardRequest,
-  parseA2aDlqListQuery,
   parseA2aFlowGraphQuery,
   parseA2aObservabilityQuery,
   parseA2aStallAlertCsvExportQuery,
@@ -15,10 +13,11 @@ import {
   parseCursorPageQuery,
   parseCreateRunRequest,
   parseEventsListQuery,
+  parseFailedWorkDiscardRequest,
+  parseFailedWorkListQuery,
   parseGovernanceAuditHistoryQuery,
   parseIdentityAssignmentUpsertRequest,
   parseMemorySearchQuery,
-  parsePersonaRunRequest,
   parsePolicyConcurrencyRejectionsQuery,
   parsePolicyPutRequest,
   parseRejectionsQuery,
@@ -419,16 +418,22 @@ describe("api request parsers", () => {
     });
   });
 
-  it("parses a2a dlq list query with status validation", () => {
-    const dlqRequestUrl = new URL("http://localhost/api/v1/a2a/dlq?cursor=abc&limit=20&status=pending");
-    expect(parseA2aDlqListQuery(dlqRequestUrl)).toEqual({
+  it("parses failed work list query with status validation", () => {
+    const failedWorkRequestUrl = new URL("http://localhost/api/v1/failed-work?cursor=abc&limit=20&status=pending");
+    expect(parseFailedWorkListQuery(failedWorkRequestUrl)).toEqual({
       cursor: "abc",
       limit: 20,
       status: "pending"
     });
 
-    const invalidDlqStatusUrl = new URL("http://localhost/api/v1/a2a/dlq?status=unknown");
-    expect(() => parseA2aDlqListQuery(invalidDlqStatusUrl)).toThrow("a2a.dlq.status");
+    const retriedRequestUrl = new URL("http://localhost/api/v1/failed-work?status=retried");
+    expect(parseFailedWorkListQuery(retriedRequestUrl)).toEqual({
+      limit: 50,
+      status: "retried"
+    });
+
+    const invalidStatusUrl = new URL("http://localhost/api/v1/failed-work?status=unknown");
+    expect(() => parseFailedWorkListQuery(invalidStatusUrl)).toThrow("failed-work.status");
   });
 
   it("parses a2a flow graph query filters", () => {
@@ -500,16 +505,16 @@ describe("api request parsers", () => {
     ).toThrow("a2a.observability.alerts.severity");
   });
 
-  it("parses a2a dlq discard payload with optional audit note", () => {
+  it("parses failed work discard payload with optional audit note", () => {
     expect(
-      parseA2aDlqDiscardRequest({
+      parseFailedWorkDiscardRequest({
         auditNote: " operator validated duplicate message "
       })
     ).toEqual({
       auditNote: "operator validated duplicate message"
     });
-    expect(parseA2aDlqDiscardRequest({})).toEqual({});
-    expect(() => parseA2aDlqDiscardRequest({ auditNote: 123 })).toThrow("a2a.dlq.discard.auditNote");
+    expect(parseFailedWorkDiscardRequest({})).toEqual({});
+    expect(() => parseFailedWorkDiscardRequest({ auditNote: 123 })).toThrow("failed-work.discard.auditNote");
   });
 
   it("parses bounded events list query filters", () => {
@@ -547,17 +552,6 @@ describe("api request parsers", () => {
 
   it("rejects invalid schedule tick datetime values", () => {
     expect(() => parseScheduleTickRequest({ at: "not-a-date" })).toThrow("schedules.tick.at");
-  });
-
-  it("rejects invalid persona stdout values", () => {
-    expect(() =>
-      parsePersonaRunRequest({
-        name: "code-review",
-        repoPath: ".",
-        headRef: "feature",
-        stdout: "yaml"
-      })
-    ).toThrow("specialists.run.stdout");
   });
 
   it("parses policy put payload with optional enforcement controls", () => {

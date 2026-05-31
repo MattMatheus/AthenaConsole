@@ -1,0 +1,80 @@
+schemaVersion: 1
+agent:
+  id: code.review.local
+  name: Code Review Agent
+  version: 0.1.0
+  description: Reviews a local git branch diff and produces deterministic findings plus a markdown report.
+  capabilities:
+    - code.review
+    - repo.diff
+    - artifacts.produce
+  inputs:
+    repo:
+      type: object
+      required: true
+      label: Repository
+      description: Object containing the local git repository path to review.
+      schema: schemas/code-review-input.schema.json
+    baseRef:
+      type: string
+      required: false
+      default: main
+      label: Base ref
+      description: Git ref to compare from.
+    headRef:
+      type: string
+      required: false
+      default: HEAD
+      label: Head ref
+      description: Git ref to compare to.
+    maxFiles:
+      type: integer
+      required: false
+      default: 100
+      label: Max files
+      description: Maximum changed files to include in the review scan.
+    maxPatchBytes:
+      type: integer
+      required: false
+      default: 60000
+      label: Max patch bytes
+      description: Maximum diff bytes to inspect before truncating the patch scan.
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: codeReviewReport
+        label: Code Review Report
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - agents/code-review-runner.mjs
+  runtime:
+    preferredBackend: local-process
+    backendPreferences:
+      - local-process
+    workingDirectory: .
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+  limits:
+    maxRuntimeSeconds: 60
+    maxToolCalls: 0
+    maxRepeatedActions: 1
+    maxRetries: 0
+    maxFollowUpTasks: 0
+    maxOutputBytes: 65536
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+    eventHints:
+      - run.started
+      - artifact.created
+      - run.completed
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    pluginApi: team-orchestrator.manifests.v1

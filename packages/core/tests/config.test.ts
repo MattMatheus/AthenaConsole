@@ -50,7 +50,7 @@ describe("loadConfig", () => {
       expect(config.scheduleRunTimeoutMs).toBe(45000);
       expect(config.runHistory?.retentionDays).toBe(30);
       expect(config.runHistory?.sweepIntervalMs).toBe(60 * 60 * 1000);
-      expect(config.fleetMetricsProvider).toBeUndefined();
+      expect(config.operationsMetricsProvider).toBeUndefined();
       expect(config.distributedLockProvider).toBeUndefined();
       expect(config.sandbox?.enabled).toBe(false);
       expect(config.sandbox?.requireForHighSecurity).toBe(false);
@@ -128,7 +128,7 @@ describe("loadConfig", () => {
           "ATHENA_SCHEDULE_RUN_TIMEOUT_MS=3300",
           "ATHENA_RUN_HISTORY_RETENTION_DAYS=45",
           "ATHENA_RUN_HISTORY_RETENTION_SWEEP_MS=120000",
-          "ATHENA_FLEET_METRICS_PROVIDER=k8s",
+          "ATHENA_OPERATIONS_METRICS_PROVIDER=k8s",
           "ATHENA_DISTRIBUTED_LOCK_PROVIDER=redis",
           "ATHENA_EXECUTION_PROVIDER_DEFAULT=k8s",
           "ATHENA_LOCK_PROVIDER_DEFAULT=k8s-lease",
@@ -215,7 +215,7 @@ describe("loadConfig", () => {
       expect(config.scheduleRunTimeoutMs).toBe(3300);
       expect(config.runHistory?.retentionDays).toBe(45);
       expect(config.runHistory?.sweepIntervalMs).toBe(120000);
-      expect(config.fleetMetricsProvider).toBe("k8s");
+      expect(config.operationsMetricsProvider).toBe("k8s");
       expect(config.executionProviderDefault).toBe("k8s");
       expect(config.lockProviderDefault).toBe("k8s-lease");
       expect(config.distributedLockProvider).toBe("redis");

@@ -2,7 +2,7 @@
 
 These package-level docs are being consolidated into the repo-level documentation map at [`../../../docs/README.md`](../../../docs/README.md).
 
-Use this index for package-adjacent references and current agent-author guides. Some older pages in this folder still describe Project Athena, fleet, or persona-era workflows; treat those as legacy context until they are refreshed or archived by the documentation information architecture work.
+Use this index for package-adjacent references and current agent-author guides. Older pages in this folder are linked below as legacy or compatibility context; the current operator path starts at [`../../../docs/user-guide/README.md`](../../../docs/user-guide/README.md).
 
 ## Current User Paths
 
@@ -10,9 +10,9 @@ Use this index for package-adjacent references and current agent-author guides. 
 - [Build Your First Agent](user/07-pdk-guide.md) - Create a local plugin-backed agent with the Team Orchestrator PDK.
 - [API Examples](user/06-api-examples.md) - Practical examples of API requests.
 
-## Legacy Or Needs Refresh
+## Legacy Or Compatibility Context
 
-These pages are retained for reference but should not be the first stop for a new user:
+These pages are retained for older links and implementation history. They are not the first stop for a new user:
 
 - [Quickstart](user/00-quickstart.md)
 - [Introduction](user/01-introduction.md)
@@ -23,4 +23,4 @@ These pages are retained for reference but should not be the first stop for a ne
 - [Console UI](user/08-console-ui.md)
 - [Symbolic Navigation](user/09-symbolic-navigation.md)
 - [Package Getting Started](getting-started/README.md)
-- [Personas](personas/README.md)
+- [Agents](agents/README.md)

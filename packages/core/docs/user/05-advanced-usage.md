@@ -15,22 +15,22 @@ Typical flow:
 2. Create harness profiles with `POST /api/v1/harness-profiles`.
 3. Execute runs with `POST /api/v1/runs` using `directiveId` and `harnessProfileId`.
 
-## Workflows (DAG Engine)
+## Workflows
 
-Athena workflows model multi-step execution with explicit dependencies.
+Team Orchestrator workflows are instantiated from plugin workflow templates and tracked as workflow DAG runs.
 
 Workflow APIs:
 
-- `POST /api/v1/workflows` to define a DAG (`steps` + `dependencies`)
-- `GET /api/v1/workflows` to list
-- `GET /api/v1/workflows/run/:id` for observability state
-- `POST /api/v1/workflows/run/:id/resume` for crash-safe resumption
+- `GET /api/v1/workflow-templates` to list available plugin templates.
+- `POST /api/v1/workflow-templates/:id/instantiate` to create a mission and workflow run.
+- `GET /api/v1/workflow-runs/:runId/status` for graph status, step readiness, and run output links.
+- `POST /api/v1/workflow-runs/:runId/execute` to execute ready workflow steps.
 
 Key behavior:
 
 - Step readiness is dependency-aware (`blockingStepIds`, `readyDependencies`).
-- Workflow runs persist step checkpoints and execution logs.
-- Resume recovers stale running steps and restarts from the first failed node.
+- Workflow runs expose progress, recovery metadata, and linked task run ids.
+- Task run detail is the canonical place to inspect task output and artifacts.
 
 ## Evidence and Verification Policies
 
@@ -70,21 +70,17 @@ Relevant config:
 
 When sandbox routing is active, Athena emits `sandbox.lifecycle` events with versioned metadata (`schemaVersion: 1`).
 
-## Agent-to-Agent (A2A) and Dead-Letter Queue (DLQ)
+## Failed Work Recovery
 
-Athena supports complex agent-to-agent (A2A) interactions where one persona can trigger another. For example, a `software-architect` persona could trigger a `code-review` persona.
+Athena records recoverable task and workflow failures as failed work items so operators can inspect payloads, request retries, or discard terminal failures with audit notes.
 
-### Dead-Letter Queue (DLQ)
-
-To handle failures in asynchronous A2A messages, Athena includes a Dead-Letter Queue (DLQ).
-
-- **API**: `/api/v1/a2a/dlq`
+- **API**: `/api/v1/failed-work`
 - **Actions**:
-  - `GET /api/v1/a2a/dlq`: List all failed A2A messages.
-  - `POST /api/v1/a2a/dlq/:id/requeue`: Re-attempt the failed message.
-  - `POST /api/v1/a2a/dlq/:id/discard`: Permanently discard the failed message.
+  - `GET /api/v1/failed-work`: List failed work items.
+  - `POST /api/v1/failed-work/:id/retry`: Request a retry for the failed item.
+  - `POST /api/v1/failed-work/:id/discard`: Permanently discard the failed item.
 
-The DLQ is visible and manageable via the [Athena Console](08-console-ui.md).
+Failed work is visible and manageable via the [Team Orchestrator Console](08-console-ui.md).
 
 ## Distributed Locking and Policy Enforcement
 

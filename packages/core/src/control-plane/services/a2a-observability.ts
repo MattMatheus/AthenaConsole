@@ -531,7 +531,7 @@ function resolveStepId(event: EventRecord): string {
     readString(event.payload.stepId) ??
     readString(event.payload.nodeId) ??
     readString(event.payload.toAgent) ??
-    readString(event.payload.toPersona) ??
+    readString(event.payload.toAgent) ??
     readString(event.payload.targetAgent) ??
     readString(event.payload.callee);
   const stepId = fromPayload ?? event.taskId ?? event.runId ?? "unknown-step";
@@ -583,7 +583,7 @@ function readFiniteNonNegativeNumber(value: unknown): number | undefined {
 }
 
 function isObservabilityRelevant(event: EventRecord): boolean {
-  return event.type.startsWith("a2a.") || event.type.startsWith("work.");
+  return event.type.startsWith("a2a.") || event.type.startsWith("work.") || event.type.startsWith("failed-work.");
 }
 
 function isEnqueuedEvent(event: EventRecord): boolean {

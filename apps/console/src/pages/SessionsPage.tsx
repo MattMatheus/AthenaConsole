@@ -230,14 +230,14 @@ function renderArtifactPreview(artifact: SessionArtifactRecord | undefined, load
   );
 }
 
-export function SessionsPage() {
+export function RunHistoryPage() {
   const sessionsQuery = useQuery({
     queryKey: ["sessions", "list"],
     queryFn: () => fetchSessions(150),
     refetchInterval: 10_000
   });
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchPersonaId, setSearchPersonaId] = useState("");
+  const [searchAgentId, setSearchPersonaId] = useState("");
   const [searchUserId, setSearchUserId] = useState("");
   const [searchStatus, setSearchStatus] = useState<"" | "ok" | "failed">("");
   const [searchFrom, setSearchFrom] = useState("");
@@ -258,15 +258,15 @@ export function SessionsPage() {
   }, [searchQuery]);
 
   const hasActiveSearch = Boolean(
-    debouncedSearchQuery || searchPersonaId.trim() || searchUserId.trim() || searchStatus || searchFrom || searchTo
+    debouncedSearchQuery || searchAgentId.trim() || searchUserId.trim() || searchStatus || searchFrom || searchTo
   );
 
   const sessionSearchQuery = useQuery({
-    queryKey: ["sessions", "search", debouncedSearchQuery, searchPersonaId, searchUserId, searchStatus, searchFrom, searchTo],
+    queryKey: ["sessions", "search", debouncedSearchQuery, searchAgentId, searchUserId, searchStatus, searchFrom, searchTo],
     queryFn: () =>
       fetchSessionSearch({
         query: debouncedSearchQuery,
-        ...(searchPersonaId.trim() ? { personaId: searchPersonaId.trim() } : {}),
+        ...(searchAgentId.trim() ? { agentId: searchAgentId.trim() } : {}),
         ...(searchUserId.trim() ? { userId: searchUserId.trim() } : {}),
         ...(searchStatus ? { status: searchStatus } : {}),
         ...(searchFrom ? { from: new Date(`${searchFrom}T00:00:00.000Z`).toISOString() } : {}),
@@ -453,11 +453,11 @@ export function SessionsPage() {
 
   return (
     <section className={styles.page}>
-      <h2>Session Explorer</h2>
+      <h2>Run History</h2>
       <div className={styles.layout}>
         <aside className={styles.panel}>
           <header className={styles.panelHeader}>
-            <strong>Sessions</strong>
+            <strong>Runs</strong>
             <span className={styles.sessionMeta}>
               {visibleSessions.length}
             </span>
@@ -473,10 +473,10 @@ export function SessionsPage() {
             <div className={styles.filterGrid}>
               <input
                 type="text"
-                value={searchPersonaId}
+                value={searchAgentId}
                 onChange={(event) => setSearchPersonaId(event.target.value)}
                 className={styles.searchInput}
-                placeholder="operator profile id"
+                placeholder="agent or profile id"
               />
               <input
                 type="text"
@@ -517,15 +517,15 @@ export function SessionsPage() {
             ) : null}
           </div>
           {sessionsQuery.isLoading ? (
-            <p className={styles.emptyState}>Loading sessions...</p>
+            <p className={styles.emptyState}>Loading run history...</p>
           ) : hasActiveSearch && sessionSearchQuery.isLoading ? (
-            <p className={styles.emptyState}>Searching sessions...</p>
+            <p className={styles.emptyState}>Searching runs...</p>
           ) : hasActiveSearch && sessionSearchQuery.error ? (
-            <p className={styles.emptyState}>Unable to search sessions.</p>
+            <p className={styles.emptyState}>Unable to search runs.</p>
           ) : sessionsQuery.error ? (
-            <p className={styles.emptyState}>Unable to load sessions.</p>
+            <p className={styles.emptyState}>Unable to load run history.</p>
           ) : visibleSessions.length === 0 ? (
-            <p className={styles.emptyState}>No sessions available.</p>
+            <p className={styles.emptyState}>No run records available.</p>
           ) : (
             <ul className={styles.sessionList}>
               {visibleSessions.map((session) => {
@@ -597,7 +597,7 @@ export function SessionsPage() {
 
         <section className={styles.panel}>
           <header className={styles.panelHeader}>
-            <strong>Artifact Gallery</strong>
+            <strong>Artifacts</strong>
             <span className={styles.sessionMeta}>{artifactsQuery.data ? `${artifactsQuery.data.length}` : "0"}</span>
           </header>
           <div className={styles.galleryLayout}>
@@ -607,7 +607,7 @@ export function SessionsPage() {
               ) : artifactsQuery.error ? (
                 <p className={styles.emptyState}>Unable to load artifacts.</p>
               ) : !artifactsQuery.data || artifactsQuery.data.length === 0 ? (
-                <p className={styles.emptyState}>No artifacts captured for this session.</p>
+                <p className={styles.emptyState}>No artifacts captured for this run record.</p>
               ) : (
                 artifactsQuery.data.map((artifact) => {
                   const selected = selectedArtifactKey === artifactKey(artifact);
@@ -637,7 +637,7 @@ export function SessionsPage() {
                   onClick={jumpToArtifactTurn}
                   disabled={!(artifactPreviewQuery.data?.transcriptEntryId ?? selectedArtifactSummary?.transcriptEntryId)}
                 >
-                  Audit Trail
+                  Transcript Turn
                 </button>
               </header>
               <div className={styles.previewBody}>

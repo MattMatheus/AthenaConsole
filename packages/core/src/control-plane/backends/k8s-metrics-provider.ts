@@ -1,6 +1,6 @@
 import { CoreV1Api, CustomObjectsApi, KubeConfig, type V1Pod } from "@kubernetes/client-node";
-import type { BackendFleetMetricsSnapshot, ExecutionBackend } from "../backends.js";
-import { computeFleetHealthMetrics, type IFleetMetricsProvider } from "./fleet-metrics-provider.js";
+import type { BackendOperationsMetricsSnapshot, ExecutionBackend } from "../backends.js";
+import { computeOperationsHealthMetrics, type IOperationsMetricsProvider } from "./operations-metrics-provider.js";
 
 const DEFAULT_AGENT_LABEL_SELECTOR = "app.kubernetes.io/component=athena-agent";
 const K8S_METRICS_GROUP = "metrics.k8s.io";
@@ -59,7 +59,7 @@ export interface K8sMetricsProviderOptions {
   namespace?: string;
 }
 
-export class K8sMetricsProvider implements IFleetMetricsProvider {
+export class K8sMetricsProvider implements IOperationsMetricsProvider {
   readonly source = "k8s" as const;
   private readonly podLabelSelector: string;
   private readonly namespace: string | undefined;
@@ -87,7 +87,7 @@ export class K8sMetricsProvider implements IFleetMetricsProvider {
   async getMetrics() {
     try {
       const pods = await this.listAgentPods();
-      const summary = this.mapPodsToFleetSummary(pods);
+      const summary = this.mapPodsToOperationsSummary(pods);
       try {
         const podMetrics = await this.listAgentPodMetrics();
         const resources = this.aggregatePodResourceUsage(podMetrics, pods);
@@ -109,7 +109,7 @@ export class K8sMetricsProvider implements IFleetMetricsProvider {
         pending,
         succeeded: 0,
         failed: 0,
-        ...computeFleetHealthMetrics({
+        ...computeOperationsHealthMetrics({
           total,
           failed: 0
         })
@@ -162,7 +162,7 @@ export class K8sMetricsProvider implements IFleetMetricsProvider {
     }
   }
 
-  private mapPodsToFleetSummary(pods: V1Pod[]) {
+  private mapPodsToOperationsSummary(pods: V1Pod[]) {
     let pending = 0;
     let running = 0;
     let succeeded = 0;
@@ -187,7 +187,7 @@ export class K8sMetricsProvider implements IFleetMetricsProvider {
       pending,
       succeeded,
       failed,
-      ...computeFleetHealthMetrics({
+      ...computeOperationsHealthMetrics({
         total: pods.length,
         failed
       })
@@ -262,8 +262,8 @@ export class K8sMetricsProvider implements IFleetMetricsProvider {
     return items as K8sPodMetricsItem[];
   }
 
-  private async readSnapshot(): Promise<BackendFleetMetricsSnapshot> {
-    const backendMetrics = await this.backend.getFleetMetrics?.();
+  private async readSnapshot(): Promise<BackendOperationsMetricsSnapshot> {
+    const backendMetrics = await this.backend.getOperationsMetrics?.();
     if (backendMetrics) {
       return backendMetrics;
     }

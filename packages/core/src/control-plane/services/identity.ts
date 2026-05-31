@@ -95,7 +95,7 @@ export class LocalIdentityService implements IdentityService {
       permissions: getPermissionsForRole(role),
       scope: {
         global: role === "Admin",
-        personas: [],
+        agents: [],
         sessionIds: [],
         runIds: []
       },

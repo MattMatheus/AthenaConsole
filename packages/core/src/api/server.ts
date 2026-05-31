@@ -9,7 +9,7 @@ import { mapErrorToHttp } from "../control-plane/api-contracts.js";
 import {
   flushApplicationInsights,
   initializeApplicationInsights,
-  resolvePersonaId,
+  resolveAgentId,
   resolveRunId,
   resolveTenantId,
   trackOperationEvent
@@ -17,13 +17,12 @@ import {
 import { APIRouter } from "./router.js";
 import { createIdentityExtractionMiddleware } from "./middleware/auth.js";
 import { writeError } from "./route-helpers.js";
-import { A2A_ROUTES } from "./routes/a2a-routes.js";
 import { AGENT_CATALOG_ROUTES } from "./routes/agent-catalog-routes.js";
 import { MISSION_ROUTES } from "./routes/mission-routes.js";
 import { TASK_ROUTES } from "./routes/task-routes.js";
 import { CORE_ROUTES } from "./routes/core-routes.js";
-import { FLEET_EVENTS_ROUTES } from "./routes/fleet-events-routes.js";
-import { PERSONA_ROUTES } from "./routes/persona-routes.js";
+import { OPERATIONS_EVENTS_ROUTES } from "./routes/operations-events-routes.js";
+import { FAILED_WORK_ROUTES } from "./routes/failed-work-routes.js";
 import { POLICY_ROUTES, SCHEDULE_ROUTES } from "./routes/policy-schedule-routes.js";
 import { REPOSITORY_ROUTES } from "./routes/repository-routes.js";
 import { MODEL_PROVIDER_ROUTES } from "./routes/model-provider-routes.js";
@@ -69,12 +68,11 @@ const API_V1_ROUTE_TABLE = composeApiRouteTable(
   WORKFLOW_ROUTES,
   MEMORY_ROUTES,
   WORK_ROUTES,
+  FAILED_WORK_ROUTES,
   SCHEDULE_ROUTES,
-  FLEET_EVENTS_ROUTES,
+  OPERATIONS_EVENTS_ROUTES,
   POLICY_ROUTES,
-  RBAC_ROUTES,
-  PERSONA_ROUTES,
-  A2A_ROUTES
+  RBAC_ROUTES
 );
 validateApiRouteTable(API_V1_ROUTE_TABLE);
 
@@ -167,7 +165,7 @@ export function createApiServer(options: ApiServerOptions): ApiServerHandle {
           routeFamily,
           statusCode: String(res.statusCode),
           runId: resolveRunId(routeParams, requestUrl),
-          personaId: resolvePersonaId(routeParams, requestUrl),
+          agentId: resolveAgentId(routeParams, requestUrl),
           tenantId: resolveTenantId(req)
         },
         {
@@ -186,7 +184,7 @@ export function createApiServer(options: ApiServerOptions): ApiServerHandle {
           routeFamily,
           statusCode: String(mapped.status),
           runId: resolveRunId(routeParams, requestUrl),
-          personaId: resolvePersonaId(routeParams, requestUrl),
+          agentId: resolveAgentId(routeParams, requestUrl),
           tenantId: resolveTenantId(req),
           errorCode: mapped.body.error.code
         },

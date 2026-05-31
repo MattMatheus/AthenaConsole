@@ -19,7 +19,7 @@ export type IdentityRoleAuditResult = {
   permissions: string[];
   scope: {
     global: boolean;
-    personas: string[];
+    agents: string[];
     sessionIds: string[];
     runIds: string[];
   };

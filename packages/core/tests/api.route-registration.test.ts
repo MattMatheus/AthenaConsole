@@ -4,16 +4,16 @@ import { MISSION_ROUTES } from "../src/api/routes/mission-routes.js";
 import { TASK_ROUTES } from "../src/api/routes/task-routes.js";
 import { WORKFLOW_TEMPLATE_CATALOG_ROUTES } from "../src/api/routes/workflow-template-catalog-routes.js";
 import { MODEL_PROVIDER_ROUTES } from "../src/api/routes/model-provider-routes.js";
-import { SPECIALIST_ROUTES } from "../src/api/routes/persona-routes.js";
 import { POLICY_ROUTES, SCHEDULE_ROUTES } from "../src/api/routes/policy-schedule-routes.js";
 import { RUN_ROUTES, SESSION_ROUTES } from "../src/api/routes/run-routes.js";
 import { DIRECTIVE_ROUTES } from "../src/api/routes/directive-routes.js";
 import { HARNESS_PROFILE_ROUTES } from "../src/api/routes/harness-profile-routes.js";
 import { RUN_TEMPLATE_ROUTES } from "../src/api/routes/run-template-routes.js";
 import { WORKFLOW_ROUTES } from "../src/api/routes/workflow-routes.js";
+import { FAILED_WORK_ROUTES } from "../src/api/routes/failed-work-routes.js";
+import { OPERATIONS_EVENTS_ROUTES } from "../src/api/routes/operations-events-routes.js";
 import {
   composeApiRouteTable,
-  createApiRoute,
   defineApiRoutes,
   validateApiRouteTable,
   type ApiRouteTable
@@ -34,10 +34,29 @@ describe("api route registration", () => {
     ]);
     expect(MEMORY_ROUTES.every((route) => route.meta.family === "memory")).toBe(true);
     expect(WORK_ROUTES.every((route) => route.meta.family === "work")).toBe(true);
+    expect(MEMORY_ROUTES.map((route) => `${route.method} ${route.path}`)).toEqual([
+      "GET /api/v1/memory/search",
+      "POST /api/v1/memory/get"
+    ]);
+    expect(WORK_ROUTES.map((route) => `${route.method} ${route.path}`)).toEqual([
+      "POST /api/v1/work/enqueue",
+      "POST /api/v1/work/:sessionId/drain",
+      "GET /api/v1/work/observability",
+      "GET /api/v1/work/observability/alerts",
+      "GET /api/v1/work/observability/alerts/export.csv",
+      "GET /api/v1/work/flows/:traceId"
+    ]);
+    expect(FAILED_WORK_ROUTES.every((route) => route.meta.family === "failed-work")).toBe(true);
+    expect(FAILED_WORK_ROUTES.map((route) => `${route.method} ${route.path}`)).toEqual([
+      "GET /api/v1/failed-work",
+      "POST /api/v1/failed-work/:id/retry",
+      "POST /api/v1/failed-work/:id/discard"
+    ]);
     expect(SCHEDULE_ROUTES.every((route) => route.meta.family === "schedules")).toBe(true);
     expect(SCHEDULE_ROUTES.some((route) => route.path === "/api/v1/schedules/:id")).toBe(true);
-    expect(POLICY_ROUTES.every((route) => route.meta.family === "fleet-events-policy")).toBe(true);
-    expect(SPECIALIST_ROUTES.every((route) => route.meta.family === "specialists")).toBe(true);
+    expect(POLICY_ROUTES.every((route) => route.meta.family === "operations-events-policy")).toBe(true);
+    expect(OPERATIONS_EVENTS_ROUTES.every((route) => route.meta.family === "operations-events-policy")).toBe(true);
+    expect(OPERATIONS_EVENTS_ROUTES.some((route) => route.path === "/api/v1/operations/summary")).toBe(true);
     expect(AGENT_CATALOG_ROUTES.every((route) => route.meta.family === "agent-catalog")).toBe(true);
     expect(MODEL_PROVIDER_ROUTES.every((route) => route.meta.family === "model-providers")).toBe(true);
     expect(MODEL_PROVIDER_ROUTES.some((route) => route.path === "/api/v1/model-providers/:id/test")).toBe(true);
@@ -54,10 +73,6 @@ describe("api route registration", () => {
     const coreRoutes = defineApiRoutes("core", [
       { method: "GET", path: "/api/v1/capabilities", handler() {} }
     ]);
-    const a2aRoutes = [
-      createApiRoute("a2a", { method: "GET", path: "/api/v1/a2a/dlq", handler() {} })
-    ];
-
     const table = composeApiRouteTable(
       coreRoutes,
       AGENT_CATALOG_ROUTES,
@@ -73,10 +88,10 @@ describe("api route registration", () => {
       WORKFLOW_ROUTES,
       MEMORY_ROUTES,
       WORK_ROUTES,
+      FAILED_WORK_ROUTES,
       SCHEDULE_ROUTES,
-      POLICY_ROUTES,
-      SPECIALIST_ROUTES,
-      a2aRoutes
+      OPERATIONS_EVENTS_ROUTES,
+      POLICY_ROUTES
     );
 
     validateApiRouteTable(table);
@@ -90,6 +105,9 @@ describe("api route registration", () => {
     expect(table.some((route) => route.path === "/api/v1/missions/:id/runs" && route.meta.family === "missions")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/tasks" && route.meta.family === "tasks")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/memory/search" && route.meta.family === "memory")).toBe(
+      true
+    );
+    expect(table.some((route) => route.path === "/api/v1/failed-work" && route.meta.family === "failed-work")).toBe(
       true
     );
   });

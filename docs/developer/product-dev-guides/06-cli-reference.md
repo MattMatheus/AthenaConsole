@@ -32,39 +32,35 @@ npm run athena -- agent scaffold --name "Research Planner" --plugins-dir plugins
 
 The command generates `plugin.yaml`, an agent manifest, a local runner, and plugin README, then validates the generated plugin package before exiting.
 
-## Persona Management
+## Agent Samples
 
-### Run a Persona
-Run a persona defined in the `personas/` directory.
+Current agent examples are plugin-backed and run through tasks. For a local code-review example, create a task assigned to `code.review.local` from `sample-plugins/code-review` and run it through the API or console.
 
 ```bash
-npm run athena -- persona run --name <persona_name> --repo <path_to_repo> --head <branch_name> --stdout <output_format>
+curl -X POST http://127.0.0.1:8787/api/v1/tasks \
+  -H "content-type: application/json" \
+  -d '{"id":"task-code-review","title":"Review current branch","status":"ready","capabilityRequirements":["code.review"],"assignedAgentId":"code.review.local","assignedAgentVersion":"0.1.0","inputs":{"repo":{"path":"."},"baseRef":"main","headRef":"HEAD"}}'
+
+curl -X POST http://127.0.0.1:8787/api/v1/tasks/task-code-review/run \
+  -H "content-type: application/json" \
+  -d '{}'
 ```
 
-Example:
-```bash
-npm run athena -- persona run --name code-review --repo . --head my-branch --stdout summary
-```
+## Advanced Runtime Diagnostics
 
-## Work Queue Management
-
-### Enqueue Work
-Add a task to a session's work queue.
+Work queue commands are retained as advanced diagnostics for session-backed compatibility runs. Current operator work should use plugin agents, tasks, missions, and workflow templates.
 
 ```bash
 npm run athena -- work enqueue --session <session_id> --input "<task_description>" --mode <mode>
-```
-Modes: `followup`, `collect`.
-
-### Check Queue Status
-```bash
 npm run athena -- work status --session <session_id>
+npm run athena -- work drain --session <session_id>
 ```
 
-### Drain Queue
-Execute all pending items in the queue.
+Memory commands are retained for local context debugging when memory indexing is enabled:
+
 ```bash
-npm run athena -- work drain --session <session_id>
+npm run athena -- memory search --query "<text>"
+npm run athena -- memory get --path MEMORY.md --from 1 --lines 20
 ```
 
 ## Schedule Management

@@ -203,7 +203,7 @@ describe("api identity extraction middleware", () => {
         role: "Admin",
         scope: {
           global: true,
-          personas: [],
+          agents: [],
           sessionIds: [],
           runIds: []
         }
@@ -312,7 +312,7 @@ describe("api identity extraction middleware", () => {
       const response = await fetch(`http://${bound.host}:${bound.port}/api/v1/capabilities`, {
         headers: {
           "x-athena-identity": "scoped-op",
-          "x-athena-scope-personas": "alpha,beta",
+          "x-athena-scope-agents": "alpha,beta",
           "x-athena-scope-sessions": "s-1, s-2",
           "x-athena-scope-runs": "r-1"
         }
@@ -323,7 +323,7 @@ describe("api identity extraction middleware", () => {
         role: "Operator",
         scope: {
           global: false,
-          personas: ["alpha", "beta"],
+          agents: ["alpha", "beta"],
           sessionIds: ["s-1", "s-2"],
           runIds: ["r-1"]
         }

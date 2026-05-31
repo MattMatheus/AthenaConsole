@@ -233,7 +233,7 @@ export function RbacPage() {
               <li>
                 <p className={styles.scopeLabel}>Operator Profiles</p>
                 <p className={styles.scopeValue}>
-                  {auditMutation.data.scope.personas.length > 0 ? auditMutation.data.scope.personas.join(", ") : "none"}
+                  {auditMutation.data.scope.agents.length > 0 ? auditMutation.data.scope.agents.join(", ") : "none"}
                 </p>
               </li>
               <li>

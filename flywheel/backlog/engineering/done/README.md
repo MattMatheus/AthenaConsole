@@ -76,3 +76,15 @@ Engineering work accepted by QA.
 70. `BUG-20260530-product-docs-state-sync.md`
 71. `STORY-20260530-comprehensive-user-guide.md`
 72. `STORY-20260530-in-product-documentation-guide.md`
+73. `STORY-20260530-source-hygiene-cleanup.md`
+74. `STORY-20260530-console-legacy-surface-retirement.md`
+75. `STORY-20260530-docs-public-metadata-sweep.md`
+76. `STORY-20260530-operations-telemetry-rename.md`
+77. `STORY-20260530-persona-specialist-compatibility-plan.md`
+78. `STORY-20260530-code-review-plugin-agent-migration.md`
+79. `STORY-20260530-run-history-artifact-inspection.md`
+80. `STORY-20260530-runtime-diagnostics-work-memory.md`
+81. `STORY-20260530-generic-failed-work-recovery.md`
+82. `STORY-20260530-remove-fleet-compatibility.md`
+83. `STORY-20260530-remove-persona-specialist-runtime.md`
+84. `STORY-20260530-current-deployment-automation.md`

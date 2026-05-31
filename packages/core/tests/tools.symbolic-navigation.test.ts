@@ -10,8 +10,7 @@ import {
   ATHENA_LSP_SYMBOLS_TOOL,
   createSymbolicNavigationTools
 } from "../src/tools/symbolic-navigation.js";
-import { resolvePersonaToolset } from "../src/tools/index.js";
-import type { PersonaDefinition } from "../src/personas/types.js";
+import { resolveAgentToolset, type AgentToolSubject } from "../src/tools/index.js";
 
 class MockLspService implements LspService {
   constructor(
@@ -142,14 +141,12 @@ describe("symbolic navigation tools", () => {
   });
 });
 
-describe("persona toolset skill gating", () => {
-  it("exposes symbolic navigation tools to personas with code-analysis skill", () => {
-    const persona: PersonaDefinition = {
-      schemaVersion: 1,
-      id: "code-review",
+describe("agent toolset skill gating", () => {
+  it("exposes symbolic navigation tools to agents with code-analysis skill", () => {
+    const agent: AgentToolSubject = {
       skills: [{ id: "code-analysis", tags: ["review"] }]
     };
-    const tools = resolvePersonaToolset(persona);
+    const tools = resolveAgentToolset(agent);
     const names = tools.map((tool) => tool.name);
     expect(names).toContain(ATHENA_LSP_DEFINITION_TOOL);
     expect(names).toContain(ATHENA_LSP_REFERENCES_TOOL);

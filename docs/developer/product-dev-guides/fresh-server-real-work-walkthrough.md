@@ -39,7 +39,7 @@ These paths map to:
 
 - `/athena/workspace` for runtime workspace files.
 - `/athena/state` for SQLite app-state and support state.
-- `/athena/state/run-evidence`, `/athena/state/transcripts`, `/athena/state/specialist-runs`, and `/athena/state/persona-runs` for artifacts.
+- `/athena/state/run-evidence`, `/athena/state/transcripts`, and `/athena/state/agent-runs` for artifacts.
 - `/athena/workspace/repos` for managed repository clones.
 - `/athena/plugins` for operator-supplied plugins.
 - `/run/secrets/athena` for read-only local-file provider secrets.
@@ -273,7 +273,7 @@ Expected result:
 In the console:
 
 - Open `http://127.0.0.1:5173/tasks` to see the task.
-- Open `http://127.0.0.1:5173/sessions` to inspect run/session history.
+- Open `http://127.0.0.1:5173/runs` to inspect run history, transcripts, and artifacts.
 - Open `http://127.0.0.1:5173/resources` to confirm the connected repo remains inspectable.
 
 ## 10. Stop, Backup, And Restore

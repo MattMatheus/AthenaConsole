@@ -1,20 +1,20 @@
-export interface A2aDlqItem {
+export interface FailedWorkItem {
   id: string;
   createdAt: string;
   updatedAt: string;
-  status: "pending" | "requeued" | "discarded";
+  status: "pending" | "retried" | "discarded";
   reason?: string;
   payload: Record<string, unknown>;
 }
 
-export interface A2aDlqListQuery {
+export interface FailedWorkListQuery {
   cursor?: string;
   limit?: number;
-  status?: A2aDlqItem["status"];
+  status?: FailedWorkItem["status"];
 }
 
-export interface A2aDlqListResult {
-  items: A2aDlqItem[];
+export interface FailedWorkListResult {
+  items: FailedWorkItem[];
   nextCursor?: string;
 }
 

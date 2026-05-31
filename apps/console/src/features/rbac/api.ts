@@ -106,8 +106,8 @@ export async function fetchIdentityPermissionAudit(subject: string): Promise<Ide
       : [],
     scope: {
       global: scopeRecord.global === true,
-      personas: Array.isArray(scopeRecord.personas)
-        ? scopeRecord.personas.filter((value): value is string => typeof value === "string")
+      agents: Array.isArray(scopeRecord.agents)
+        ? scopeRecord.agents.filter((value): value is string => typeof value === "string")
         : [],
       sessionIds: Array.isArray(scopeRecord.sessionIds)
         ? scopeRecord.sessionIds.filter((value): value is string => typeof value === "string")

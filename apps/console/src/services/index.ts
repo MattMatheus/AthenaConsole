@@ -1,3 +1,3 @@
 export * from "./apiClient";
-export * from "./FleetApiService";
+export * from "./OperationsApiService";
 export * from "./queryClient";

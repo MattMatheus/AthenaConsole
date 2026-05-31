@@ -24,8 +24,8 @@ async function waitFor(
   throw new Error("Timed out waiting for condition");
 }
 
-describe("control-plane events and a2a dlq services", () => {
-  it("emits/lists events and updates dlq records", async () => {
+describe("control-plane events and failed work services", () => {
+  it("emits/lists events and updates failed work records", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-events-"));
     try {
       const config = loadConfig(dir);
@@ -203,10 +203,10 @@ describe("control-plane events and a2a dlq services", () => {
       });
       expect(alertCsv).toContain("id,createdAt,resolvedAt,status,severity");
 
-      const a2aDir = join(dir, ".athena", "a2a");
-      mkdirSync(a2aDir, { recursive: true });
+      const failedWorkDir = join(dir, ".athena", "failed-work");
+      mkdirSync(failedWorkDir, { recursive: true });
       writeFileSync(
-        join(a2aDir, "dlq.json"),
+        join(failedWorkDir, "items.json"),
         JSON.stringify(
           {
             schemaVersion: 1,
@@ -226,15 +226,15 @@ describe("control-plane events and a2a dlq services", () => {
         "utf8"
       );
 
-      const listed = await services.a2aDlqService.list({ status: "pending" });
+      const listed = await services.failedWorkService.list({ status: "pending" });
       expect(listed.items.length).toBe(1);
       expect(listed.items[0]?.id).toBe("item-1");
 
-      const requeued = await services.a2aDlqService.requeue("item-1");
-      expect(requeued.updated).toBe(true);
-      expect(requeued.item?.status).toBe("requeued");
+      const retried = await services.failedWorkService.retry("item-1");
+      expect(retried.updated).toBe(true);
+      expect(retried.item?.status).toBe("retried");
 
-      const discarded = await services.a2aDlqService.discard("item-1");
+      const discarded = await services.failedWorkService.discard("item-1");
       expect(discarded.updated).toBe(true);
       expect(discarded.item?.status).toBe("discarded");
     } finally {
@@ -474,7 +474,7 @@ describe("control-plane events and a2a dlq services", () => {
         runId: "run-safety",
         payload: {
           decision: "blocked",
-          personaName: "security-auditor",
+          agentName: "security-auditor",
           declaredDestinations: [{ host: "example.com", source: "workspaceSyncRepo" }],
           reason: "Sandbox egress destination 'example.com:443' is not allow-listed."
         }
@@ -492,7 +492,7 @@ describe("control-plane events and a2a dlq services", () => {
         severity: "high",
         outcome: "blocked",
         violationCode: "SANDBOX_EGRESS_BLOCKED",
-        personaName: "security-auditor",
+        agentName: "security-auditor",
         source: {
           type: "sandbox.egress-policy"
         },

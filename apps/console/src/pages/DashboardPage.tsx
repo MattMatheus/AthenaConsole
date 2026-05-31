@@ -1,6 +1,6 @@
 import { CheckCircle2, CircleAlert, FolderGit2, RefreshCw, Route, Workflow } from "lucide-react";
 import { Link } from "react-router-dom";
-import { FleetDashboard } from "../features/fleet";
+import { OperationsDashboard } from "../features/operations";
 import { useReadinessQuery } from "../features/readiness";
 import type { ReadinessCheck } from "../features/readiness";
 import styles from "./PageScaffold.module.css";
@@ -53,7 +53,7 @@ export function DashboardPage() {
           <WorkEntry to="/tasks" title="Start real work" body="Create one clear task with repo path or objective inputs." />
         </div>
       </section>
-      <FleetDashboard />
+      <OperationsDashboard />
       <section className={styles.onboardingPanel}>
         <div className={styles.onboardingHeader}>
           <div>

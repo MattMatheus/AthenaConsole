@@ -11,7 +11,7 @@ export type SessionSearchStatus = "ok" | "failed";
 
 export interface SessionSearchQuery {
   query: string;
-  personaId?: string;
+  agentId?: string;
   userId?: string;
   status?: SessionSearchStatus;
   from?: string;
@@ -25,7 +25,7 @@ export interface SessionSearchResultItem {
   snippetEntryId?: string;
   matchedAt: string;
   status: SessionSearchStatus;
-  personaId?: string;
+  agentId?: string;
   userId?: string;
 }
 

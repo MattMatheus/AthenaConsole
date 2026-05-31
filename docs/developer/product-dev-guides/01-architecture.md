@@ -2,11 +2,11 @@
 
 # Project Architecture
 
-## Reset Note
+## Current Direction Note
 
-The current implementation is API-first, but the accepted product direction is now console-first Team Orchestrator. Treat this document as implementation architecture context until it is rewritten against `docs/product/architecture/decisions/0006-team-orchestrator-direction-and-agent-model.md`.
+Team Orchestrator is console-first and local-first. The API remains the transport and service boundary behind the console, CLI, and automation paths.
 
-Project Athena is API-first. The control plane is the canonical execution surface, and CLI/API paths converge on the same services.
+The accepted product direction is anchored in `docs/product/architecture/decisions/0006-team-orchestrator-direction-and-agent-model.md` and related reset ADRs.
 
 ## Control-Plane Composition
 
@@ -37,7 +37,7 @@ When `ATHENA_AUTH_ENABLED=true`, the server extracts the configured trusted iden
 - `cancel`
 - `cancelByRunId` (optional)
 - active/cancel listing methods (optional)
-- fleet metrics method (optional)
+- runtime/operations metrics method (optional compatibility surface)
 
 ### `SandboxExecutionBackend`
 

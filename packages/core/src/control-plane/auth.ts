@@ -6,7 +6,7 @@ import { IdentityAssignmentStore } from "./identity-store.js";
 
 export interface ScopeSet {
   global: boolean;
-  personas: string[];
+  agents: string[];
   sessionIds: string[];
   runIds: string[];
 }
@@ -45,7 +45,7 @@ class ConfigIdentityRoleResolver implements IdentityRoleResolver {
       role,
       scope: {
         global: role === "Admin",
-        personas: [],
+        agents: [],
         sessionIds: [],
         runIds: []
       }

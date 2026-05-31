@@ -66,20 +66,10 @@ export class LocalRunService implements RunService {
       "athena.ai.model.response",
       {
         runId: runResult.runId,
-        specialistId:
-          request.metadata?.specialistId ??
-          request.metadata?.specialistName ??
-          request.metadata?.specialist ??
-          request.metadata?.personaId ??
-          request.metadata?.personaName ??
-          request.metadata?.persona,
-        personaId:
-          request.metadata?.specialistId ??
-          request.metadata?.specialistName ??
-          request.metadata?.specialist ??
-          request.metadata?.personaId ??
-          request.metadata?.personaName ??
-          request.metadata?.persona,
+        agentId:
+          request.metadata?.agentId ??
+          request.metadata?.agentName ??
+          request.metadata?.agent,
         tenantId: request.metadata?.tenantId,
         provider: runResult.provider,
         model: runResult.model

@@ -1,11 +1,11 @@
 import { AthenaError } from "../runtime/errors.js";
 import type { AthenaConfig } from "../shared/config.js";
 import { createAzureManagementTokenProvider } from "../providers/azure-auth.js";
-import type { FleetExternalCostProvider } from "./services/fleet.js";
+import type { OperationsExternalCostProvider } from "./services/operations.js";
 
 const DEFAULT_AZURE_BILLING_API_VERSION = "2023-03-01";
 
-export class AzureBillingFleetCostProvider implements FleetExternalCostProvider {
+export class AzureBillingOperationsCostProvider implements OperationsExternalCostProvider {
   readonly provider = "azure-billing";
   private readonly fetchImpl: typeof fetch;
   private readonly tokenProvider: (() => Promise<string>) | undefined;

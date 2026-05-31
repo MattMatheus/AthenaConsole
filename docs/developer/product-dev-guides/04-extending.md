@@ -22,7 +22,7 @@ Recommended methods for full API parity:
 - `cancelByRunId`
 - `listActiveRuns`
 - `listCancellationRequests`
-- `getFleetMetrics`
+- `getOperationsMetrics` compatibility hook for operations telemetry
 
 Guidelines:
 

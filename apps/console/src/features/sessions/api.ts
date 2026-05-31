@@ -176,7 +176,7 @@ function asSessionSearchResultItem(value: unknown): SessionSearchResultItem | un
     matchedAt: row.matchedAt,
     status,
     ...(typeof row.snippetEntryId === "string" ? { snippetEntryId: row.snippetEntryId } : {}),
-    ...(typeof row.personaId === "string" ? { personaId: row.personaId } : {}),
+    ...(typeof row.agentId === "string" ? { agentId: row.agentId } : {}),
     ...(typeof row.userId === "string" ? { userId: row.userId } : {})
   };
 }
@@ -225,8 +225,8 @@ export async function fetchSessionArtifact(
 export async function fetchSessionSearch(query: SessionSearchQuery): Promise<SessionSearchResult> {
   const params = new URLSearchParams();
   params.set("query", query.query);
-  if (query.personaId) {
-    params.set("personaId", query.personaId);
+  if (query.agentId) {
+    params.set("agentId", query.agentId);
   }
   if (query.userId) {
     params.set("userId", query.userId);

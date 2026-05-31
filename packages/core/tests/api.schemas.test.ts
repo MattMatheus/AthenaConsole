@@ -103,7 +103,7 @@ describe("api schemas", () => {
     ).not.toThrow();
 
     expect(() =>
-      assertApiResponseSchema("getFleetSummary", {
+      assertApiResponseSchema("getOperationsSummary", {
         total: 4,
         running: 1,
         pending: 1,
@@ -140,14 +140,14 @@ describe("api schemas", () => {
     ).not.toThrow();
 
     expect(() =>
-      assertApiResponseSchema("getFleetSummary", {
+      assertApiResponseSchema("getOperationsSummary", {
         total: 4,
         running: 1
       })
     ).toThrow(AthenaError);
 
     expect(() =>
-      assertApiResponseSchema("getProviderCostSettings", {
+      assertApiResponseSchema("getOperationsProviderCostSettings", {
         schemaVersion: 1,
         updatedAt: "2026-02-20T00:00:00.000Z",
         providers: [
@@ -162,7 +162,7 @@ describe("api schemas", () => {
     ).not.toThrow();
 
     expect(() =>
-      assertApiResponseSchema("getProviderCostSettings", {
+      assertApiResponseSchema("getOperationsProviderCostSettings", {
         providers: []
       })
     ).toThrow(AthenaError);

@@ -1,31 +1,7 @@
 import type { URL } from "node:url";
 import { AthenaError } from "../../runtime/errors.js";
-import { optionalString } from "../validation.js";
-import { parseCursorPageQuery } from "./pagination.js";
 import { parseOptionalInt, parseOptionalIsoDateTime } from "./helpers.js";
-
-export function parseA2aDlqListQuery(requestUrl: URL): {
-  cursor?: string;
-  limit: number;
-  status?: "pending" | "requeued" | "discarded";
-} {
-  const page = parseCursorPageQuery(requestUrl);
-  const status = parseDlqStatus(requestUrl.searchParams.get("status"));
-  return {
-    ...page,
-    ...(status ? { status } : {})
-  };
-}
-
-function parseDlqStatus(value: string | null): "pending" | "requeued" | "discarded" | undefined {
-  if (!value) {
-    return undefined;
-  }
-  if (value === "pending" || value === "requeued" || value === "discarded") {
-    return value;
-  }
-  throw new AthenaError("CONFIG_ERROR", "a2a.dlq.status must be pending|requeued|discarded.");
-}
+import { parseCursorPageQuery } from "./pagination.js";
 
 export function parseA2aFlowGraphQuery(requestUrl: URL): {
   limit: number;
@@ -140,15 +116,6 @@ export function parseA2aStallAlertCsvExportQuery(requestUrl: URL): {
     ...(severity ? { severity } : {}),
     createdAfter,
     createdBefore
-  };
-}
-
-export function parseA2aDlqDiscardRequest(body: Record<string, unknown>): {
-  auditNote?: string;
-} {
-  const auditNote = optionalString(body, "auditNote", "a2a.dlq.discard");
-  return {
-    ...(auditNote ? { auditNote } : {}),
   };
 }
 

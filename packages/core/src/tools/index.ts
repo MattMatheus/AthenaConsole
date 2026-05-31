@@ -1,4 +1,3 @@
-import type { PersonaDefinition } from "../personas/types.js";
 import {
   ATHENA_LSP_DEFINITION_TOOL,
   ATHENA_LSP_REFERENCES_TOOL,
@@ -50,12 +49,19 @@ export const SYMBOLIC_NAVIGATION_TOOLS: ToolSpec[] = [
 
 export const STANDARD_AGENT_TOOLSET: ToolSpec[] = [...FILESYSTEM_TOOLS, ...SYMBOLIC_NAVIGATION_TOOLS];
 
-export function personaHasSkill(persona: PersonaDefinition, expectedSkillId: string): boolean {
+export interface AgentToolSubject {
+  skills?: Array<{
+    id: string;
+    tags?: string[];
+  }>;
+}
+
+export function agentHasSkill(agent: AgentToolSubject, expectedSkillId: string): boolean {
   const normalized = expectedSkillId.trim().toLowerCase();
   if (!normalized) {
     return false;
   }
-  return (persona.skills ?? []).some((skill) => {
+  return (agent.skills ?? []).some((skill) => {
     if (skill.id.trim().toLowerCase() === normalized) {
       return true;
     }
@@ -63,8 +69,8 @@ export function personaHasSkill(persona: PersonaDefinition, expectedSkillId: str
   });
 }
 
-export function resolvePersonaToolset(persona: PersonaDefinition): ToolSpec[] {
-  if (personaHasSkill(persona, "code-analysis")) {
+export function resolveAgentToolset(agent: AgentToolSubject): ToolSpec[] {
+  if (agentHasSkill(agent, "code-analysis")) {
     return STANDARD_AGENT_TOOLSET;
   }
   return FILESYSTEM_TOOLS;

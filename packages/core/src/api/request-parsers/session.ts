@@ -9,7 +9,7 @@ const MAX_SEARCH_LIMIT = 200;
 export function parseSessionSearchQuery(requestUrl: URL): SessionSearchQuery {
   const query = requestUrl.searchParams.get("query")?.trim() ?? "";
 
-  const personaId = requestUrl.searchParams.get("specialistId")?.trim() ?? requestUrl.searchParams.get("personaId")?.trim();
+  const agentId = requestUrl.searchParams.get("agentId")?.trim() ?? requestUrl.searchParams.get("agentId")?.trim();
   const userId = requestUrl.searchParams.get("userId")?.trim();
   const status = parseStatus(requestUrl.searchParams.get("status"));
   const from = parseOptionalIsoDateTime(requestUrl.searchParams.get("from"), "sessions.search.from");
@@ -20,7 +20,7 @@ export function parseSessionSearchQuery(requestUrl: URL): SessionSearchQuery {
   }
   return {
     query,
-    ...(personaId ? { personaId } : {}),
+    ...(agentId ? { agentId } : {}),
     ...(userId ? { userId } : {}),
     ...(status ? { status } : {}),
     ...(from ? { from } : {}),

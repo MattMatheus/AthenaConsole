@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { dependencyLabel, edgeSummary, readinessLabel, shouldPollWorkflowRun, workflowRunStatusTone } from "./runGraphModel";
+import {
+  dependencyLabel,
+  edgeSummary,
+  readinessLabel,
+  shouldPollWorkflowRun,
+  taskRunIdFromWorkflowNodeOutput,
+  workflowRunStatusTone,
+} from "./runGraphModel";
 
 describe("workflow run graph model", () => {
   it("classifies run and step status tones", () => {
@@ -29,5 +36,11 @@ describe("workflow run graph model", () => {
       }),
     ).toBe("blocked by build");
     expect(edgeSummary([{ from: "build", to: "test" }])).toBe("build -> test");
+  });
+
+  it("extracts linked task run ids from workflow step output", () => {
+    expect(taskRunIdFromWorkflowNodeOutput({ taskRunId: "run-task-1" })).toBe("run-task-1");
+    expect(taskRunIdFromWorkflowNodeOutput({ taskRunId: "" })).toBeUndefined();
+    expect(taskRunIdFromWorkflowNodeOutput("not output")).toBeUndefined();
   });
 });

@@ -12,10 +12,10 @@ import { getRequestAuthContext } from "../auth.js";
 import type {
   A2aFlowService,
   A2aObservabilityService,
-  A2aDlqService,
+  FailedWorkService,
   DirectiveService,
   EventService,
-  FleetService,
+  OperationsService,
   GovernanceAuditService,
   IdentityService,
   LspService,
@@ -34,16 +34,16 @@ interface AuthorizationRequirement {
     | "a2aObservability.alertHistory.list"
     | "a2aObservability.alertHistory.export"
     | "a2aFlow.get"
-    | "a2aDlq.discard"
-    | "a2aDlq.list"
-    | "a2aDlq.requeue"
+    | "failedWork.discard"
+    | "failedWork.list"
+    | "failedWork.retry"
     | "directives.create"
     | "directives.list"
     | "events.list"
-    | "fleet.cost.export"
-    | "fleet.cost.settings.read"
-    | "fleet.cost.settings.write"
-    | "fleet.summary"
+    | "operations.cost.export"
+    | "operations.cost.settings.read"
+    | "operations.cost.settings.write"
+    | "operations.summary"
     | "governance.audit.list"
     | "identity.audit"
     | "identity.assignments.delete"
@@ -72,7 +72,7 @@ interface AuthorizationRequirement {
     | "work.enqueue"
     | "work.status";
   requiredRoles: AthenaRbacRole[];
-  personaName?: string;
+  agentName?: string;
   sessionId?: string;
   runId?: string;
 }
@@ -125,7 +125,7 @@ export class ServiceAuthorizer {
 
   private evaluateDenied(
     requirement: AuthorizationRequirement,
-    context: { role: AthenaRbacRole; scope: { global: boolean; personas: string[]; sessionIds: string[]; runIds: string[] } }
+    context: { role: AthenaRbacRole; scope: { global: boolean; agents: string[]; sessionIds: string[]; runIds: string[] } }
   ): { denyReason: AuthorizationDenyReason; denyDetail?: string } | undefined {
     if (!requirement.requiredRoles.includes(context.role)) {
       return {
@@ -180,7 +180,7 @@ export class ServiceAuthorizer {
     requiredRoles: AthenaRbacRole[];
     denyReason: AuthorizationDenyReason;
     denyDetail?: string;
-    personaName?: string;
+    agentName?: string;
     sessionId?: string;
     runId?: string;
   }): Promise<void> {
@@ -201,7 +201,7 @@ export class ServiceAuthorizer {
                 ...(requirement.denyDetail ? { denyDetail: requirement.denyDetail } : {})
               }
             : {}),
-          ...(requirement.personaName ? { personaName: requirement.personaName } : {})
+          ...(requirement.agentName ? { agentName: requirement.agentName } : {})
         }
       });
     } catch {
@@ -211,20 +211,20 @@ export class ServiceAuthorizer {
 
   private getScopeViolation(requirement: AuthorizationRequirement, scope: {
     global: boolean;
-    personas: string[];
+    agents: string[];
     sessionIds: string[];
     runIds: string[];
   }): string | undefined {
     if (scope.global) {
       return undefined;
     }
-    const personaScoped = isPersonaScopedOperation(requirement.operation);
-    if (personaScoped && scope.personas.length > 0) {
-      if (!requirement.personaName) {
-        return "personaName is required for this scoped operation.";
+    const agentScoped = isAgentScopedOperation(requirement.operation);
+    if (agentScoped && scope.agents.length > 0) {
+      if (!requirement.agentName) {
+        return "agentName is required for this scoped operation.";
       }
-      if (!scope.personas.includes(requirement.personaName)) {
-        return `persona '${requirement.personaName}' is outside allowed scope.`;
+      if (!scope.agents.includes(requirement.agentName)) {
+        return `agent '${requirement.agentName}' is outside allowed scope.`;
       }
     }
     const sessionScoped = isSessionScopedOperation(requirement.operation);
@@ -256,12 +256,12 @@ export class AuthorizedRunService implements RunService {
   ) {}
 
   async run(request: Parameters<RunService["run"]>[0], options?: Parameters<RunService["run"]>[1]) {
-    const personaName = resolvePersonaName(request.metadata);
+    const agentName = resolveAgentName(request.metadata);
     await this.authorizer.assertAllowed({
       operation: "runs.create",
       requiredRoles: ["Viewer", "Operator", "Admin"],
       sessionId: request.sessionId,
-      ...(personaName ? { personaName } : {})
+      ...(agentName ? { agentName } : {})
     });
     return this.delegate.run(request, options);
   }
@@ -462,13 +462,13 @@ export class AuthorizedDirectiveService implements DirectiveService {
     });
     const listed = await this.delegate.list(query);
     const context = getRequestAuthContext();
-    if (!context || context.scope.global || context.scope.personas.length === 0) {
+    if (!context || context.scope.global || context.scope.agents.length === 0) {
       return listed;
     }
-    const allowed = new Set(context.scope.personas);
+    const allowed = new Set(context.scope.agents);
     const filtered = listed.items.filter((directive) => {
-      const personaName = resolvePersonaName(directive.metadata);
-      return Boolean(personaName && allowed.has(personaName));
+      const agentName = resolveAgentName(directive.metadata);
+      return Boolean(agentName && allowed.has(agentName));
     });
     return {
       ...listed,
@@ -477,11 +477,11 @@ export class AuthorizedDirectiveService implements DirectiveService {
   }
 
   async create(request: Parameters<DirectiveService["create"]>[0]) {
-    const personaName = resolvePersonaName(request.metadata);
+    const agentName = resolveAgentName(request.metadata);
     await this.authorizer.assertAllowed({
       operation: "directives.create",
       requiredRoles: ["Operator", "Admin"],
-      ...(personaName ? { personaName } : {})
+      ...(agentName ? { agentName } : {})
     });
     return this.delegate.create(request);
   }
@@ -619,39 +619,39 @@ export class AuthorizedEventService implements EventService {
   }
 }
 
-export class AuthorizedFleetService implements FleetService {
+export class AuthorizedOperationsService implements OperationsService {
   constructor(
-    private readonly delegate: FleetService,
+    private readonly delegate: OperationsService,
     private readonly authorizer: ServiceAuthorizer
   ) {}
 
   async getSummary() {
     await this.authorizer.assertAllowed({
-      operation: "fleet.summary",
+      operation: "operations.summary",
       requiredRoles: ["Viewer", "Operator", "Admin"]
     });
     return this.delegate.getSummary();
   }
 
-  async getProviderCostSettings() {
+  async getOperationsProviderCostSettings() {
     await this.authorizer.assertAllowed({
-      operation: "fleet.cost.settings.read",
+      operation: "operations.cost.settings.read",
       requiredRoles: ["Viewer", "Operator", "Admin"]
     });
-    return this.delegate.getProviderCostSettings();
+    return this.delegate.getOperationsProviderCostSettings();
   }
 
-  async updateProviderCostSettings(request: Parameters<FleetService["updateProviderCostSettings"]>[0]) {
+  async updateProviderCostSettings(request: Parameters<OperationsService["updateProviderCostSettings"]>[0]) {
     await this.authorizer.assertAllowed({
-      operation: "fleet.cost.settings.write",
+      operation: "operations.cost.settings.write",
       requiredRoles: ["Operator", "Admin"]
     });
     return this.delegate.updateProviderCostSettings(request);
   }
 
-  async exportMonthlyCostCsv(request?: Parameters<FleetService["exportMonthlyCostCsv"]>[0]) {
+  async exportMonthlyCostCsv(request?: Parameters<OperationsService["exportMonthlyCostCsv"]>[0]) {
     await this.authorizer.assertAllowed({
-      operation: "fleet.cost.export",
+      operation: "operations.cost.export",
       requiredRoles: ["Viewer", "Operator", "Admin"]
     });
     return this.delegate.exportMonthlyCostCsv(request);
@@ -673,31 +673,31 @@ export class AuthorizedGovernanceAuditService implements GovernanceAuditService 
   }
 }
 
-export class AuthorizedA2aDlqService implements A2aDlqService {
+export class AuthorizedFailedWorkService implements FailedWorkService {
   constructor(
-    private readonly delegate: A2aDlqService,
+    private readonly delegate: FailedWorkService,
     private readonly authorizer: ServiceAuthorizer
   ) {}
 
-  async list(query?: Parameters<A2aDlqService["list"]>[0]) {
+  async list(query?: Parameters<FailedWorkService["list"]>[0]) {
     await this.authorizer.assertAllowed({
-      operation: "a2aDlq.list",
+      operation: "failedWork.list",
       requiredRoles: ["Viewer", "Operator", "Admin"]
     });
     return this.delegate.list(query);
   }
 
-  async requeue(id: string) {
+  async retry(id: string) {
     await this.authorizer.assertAllowed({
-      operation: "a2aDlq.requeue",
+      operation: "failedWork.retry",
       requiredRoles: ["Operator", "Admin"]
     });
-    return this.delegate.requeue(id);
+    return this.delegate.retry(id);
   }
 
   async discard(id: string) {
     await this.authorizer.assertAllowed({
-      operation: "a2aDlq.discard",
+      operation: "failedWork.discard",
       requiredRoles: ["Operator", "Admin"]
     });
     return this.delegate.discard(id);
@@ -797,7 +797,7 @@ export class AuthorizedIdentityService implements IdentityService {
   }
 }
 
-function isPersonaScopedOperation(operation: AuthorizationRequirement["operation"]): boolean {
+function isAgentScopedOperation(operation: AuthorizationRequirement["operation"]): boolean {
   return operation === "directives.create" || operation === "runs.create";
 }
 
@@ -817,12 +817,12 @@ function isRunScopedOperation(operation: AuthorizationRequirement["operation"]):
   return operation === "runs.cancelByRunId";
 }
 
-function resolvePersonaName(metadata: Record<string, string> | undefined): string | undefined {
+function resolveAgentName(metadata: Record<string, string> | undefined): string | undefined {
   if (!metadata) {
     return undefined;
   }
-  const personaName = metadata.specialistName ?? metadata.specialist ?? metadata.personaName ?? metadata.persona;
-  const trimmed = personaName?.trim();
+  const agentName = metadata.agentName ?? metadata.agent ?? metadata.agentName ?? metadata.agent;
+  const trimmed = agentName?.trim();
   return trimmed && trimmed.length > 0 ? trimmed : undefined;
 }
 

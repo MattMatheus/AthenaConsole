@@ -1,0 +1,60 @@
+name: Local Server Validation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: local-server-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate local-server delivery path
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ATHENA_AUTH_API_TOKEN: ci-local-server-token
+      ATHENA_CONSOLE_PASSWORD: ci-local-server-password
+      ATHENA_SERVER_WORKSPACE_PATH: /tmp/team-orchestrator/workspace
+      ATHENA_SERVER_STATE_PATH: /tmp/team-orchestrator/state
+      ATHENA_SERVER_ARTIFACTS_PATH: /tmp/team-orchestrator/artifacts
+      ATHENA_SERVER_REPOS_PATH: /tmp/team-orchestrator/repos
+      ATHENA_SERVER_PLUGINS_PATH: /tmp/team-orchestrator/plugins
+      ATHENA_SERVER_SECRETS_PATH: /tmp/team-orchestrator/secrets
+      ATHENA_SANDBOX_WORKSPACE_HOST_PATH: /tmp/team-orchestrator/workspace
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck core
+        run: npm --workspace @athena/core run typecheck
+
+      - name: Check generated schemas
+        run: npm --workspace @athena/core run check:schemas
+
+      - name: Test PDK
+        run: npm --workspace @athena/pdk test
+
+      - name: Typecheck console
+        run: npm --workspace @athena/console run typecheck
+
+      - name: Validate compose files
+        run: |
+          docker compose -f docker-compose.local.yml config >/tmp/team-orchestrator-local-compose.yml
+          docker compose -f docker-compose.server.yml config >/tmp/team-orchestrator-server-compose.yml
+
+      - name: Validate smoke command wiring
+        run: npm run smoke:product -- --help

@@ -357,5 +357,6 @@ For larger examples, compare the checked-in sample plugins:
 
 - `sample-plugins/repo-summary`
 - `sample-plugins/generic-research`
+- `sample-plugins/code-review`
 
-These samples show how to move from the minimal tutorial agent to repo-oriented and personal research agents while keeping the manifest-backed model intact.
+These samples show how to move from the minimal tutorial agent to repo-oriented, code-review, and agentl research agents while keeping the manifest-backed model intact.

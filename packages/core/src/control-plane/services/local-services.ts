@@ -1,7 +1,3 @@
-import { existsSync } from "node:fs";
-import { readFile, readdir } from "node:fs/promises";
-import { resolve, relative } from "node:path";
-import { resolveSpecialistsDirectory } from "../../personas/loader.js";
 import { randomUUID } from "node:crypto";
 import { ScheduleManager, type RunScheduleResult, type UpsertScheduleRequest } from "../../schedule/index.js";
 import { AthenaError } from "../../runtime/errors.js";
@@ -13,7 +9,6 @@ import type {
   DirectiveCreateRequest,
   DirectiveListQuery,
   DirectiveListResult,
-  EventEmitRequest,
   HarnessProfile,
   HarnessProfileCreateRequest,
   HarnessProfileListQuery,
@@ -47,18 +42,13 @@ import {
   type MemoryGetResult,
   type MemorySearchOptions
 } from "../../memory/index.js";
-import { runSpecialist, type SpecialistRunRequest } from "../../specialists/run.js";
-import type { SpecialistRunResult } from "../../specialists/types.js";
 import { createDefaultProviderRegistry } from "../../providers/index.js";
 import type { ExecutionBackend } from "../backends.js";
 import type {
   DirectiveService,
   EventService,
   HarnessProfileService,
-  LspService,
   MemoryService,
-  PersonaService,
-  SpecialistService,
   PolicyService,
   RunService,
   RunTemplateService,
@@ -101,7 +91,7 @@ export class LocalSessionService implements SessionService {
     await this.refreshSearchIndexIfNeeded();
 
     const normalizedQuery = query.query.trim().toLowerCase();
-    const personaFilter = query.personaId?.trim().toLowerCase();
+    const agentFilter = query.agentId?.trim().toLowerCase();
     const userFilter = query.userId?.trim().toLowerCase();
     const fromMs = query.from ? Date.parse(query.from) : undefined;
     const toMs = query.to ? Date.parse(query.to) : undefined;
@@ -112,7 +102,7 @@ export class LocalSessionService implements SessionService {
       if (!passesDateFilter(entry.session.updatedAt, fromMs, toMs)) {
         continue;
       }
-      if (personaFilter && !entry.personaIds.has(personaFilter)) {
+      if (agentFilter && !entry.agentIds.has(agentFilter)) {
         continue;
       }
       if (userFilter && !entry.userIds.has(userFilter)) {
@@ -132,7 +122,7 @@ export class LocalSessionService implements SessionService {
         ...(match.entryId ? { snippetEntryId: match.entryId } : {}),
         matchedAt: match.matchedAt,
         status: entry.status,
-        ...(entry.personaId ? { personaId: entry.personaId } : {}),
+        ...(entry.agentId ? { agentId: entry.agentId } : {}),
         ...(entry.userId ? { userId: entry.userId } : {})
       });
     }
@@ -153,13 +143,12 @@ export class LocalSessionService implements SessionService {
 
   async listArtifacts(sessionId: string): Promise<SessionArtifactSummary[]> {
     assertValidSessionId(sessionId);
-    const [artifacts, transcript, specialistArtifacts] = await Promise.all([
+    const [artifacts, transcript] = await Promise.all([
       this.stateStore.listSessionRunEvidence(sessionId),
-      this.stateStore.getTranscript(sessionId),
-      listSpecialistArtifacts(sessionId, this.config)
+      this.stateStore.getTranscript(sessionId)
     ]);
     const transcriptIdsByRun = mapTranscriptEntryIdsByRunId(transcript);
-    const baseArtifacts = artifacts.map((artifact) => {
+    return artifacts.map((artifact) => {
       const transcriptEntryId = transcriptIdsByRun.get(artifact.runId);
       return {
         id: artifact.id,
@@ -174,24 +163,7 @@ export class LocalSessionService implements SessionService {
         createdAt: artifact.createdAt,
         ...(typeof transcriptEntryId === "string" ? { transcriptEntryId } : {})
       };
-    });
-    const specialistSummaries = specialistArtifacts.map((artifact) => {
-      const transcriptEntryId = resolveTranscriptEntryId(transcriptIdsByRun, artifact.runId, artifact.runtimeRunIds);
-      return {
-        id: artifact.id,
-        runId: artifact.runId,
-        sessionId: artifact.sessionId,
-        traceId: artifact.traceId,
-        label: artifact.label,
-        type: artifact.type,
-        format: artifact.format,
-        artifactRef: artifact.artifactRef,
-        sizeBytes: artifact.sizeBytes,
-        createdAt: artifact.createdAt,
-        ...(typeof transcriptEntryId === "string" ? { transcriptEntryId } : {})
-      } satisfies SessionArtifactSummary;
-    });
-    return [...baseArtifacts, ...specialistSummaries].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+    }).sort((left, right) => right.createdAt.localeCompare(left.createdAt));
   }
 
   async getArtifact(sessionId: string, runId: string, artifactId: string): Promise<SessionArtifactRecord | undefined> {
@@ -216,30 +188,7 @@ export class LocalSessionService implements SessionService {
       };
     }
 
-    const specialistArtifact = await getSpecialistArtifact(sessionId, runId, artifactId, this.config);
-    if (!specialistArtifact) {
-      return undefined;
-    }
-    const transcript = await this.stateStore.getTranscript(sessionId);
-    const transcriptEntryId = resolveTranscriptEntryId(
-      mapTranscriptEntryIdsByRunId(transcript),
-      specialistArtifact.runId,
-      specialistArtifact.runtimeRunIds
-    );
-    return {
-      id: specialistArtifact.id,
-      runId: specialistArtifact.runId,
-      sessionId: specialistArtifact.sessionId,
-      traceId: specialistArtifact.traceId,
-      label: specialistArtifact.label,
-      type: specialistArtifact.type,
-      format: specialistArtifact.format,
-      artifactRef: specialistArtifact.artifactRef,
-      sizeBytes: specialistArtifact.sizeBytes,
-      createdAt: specialistArtifact.createdAt,
-      ...(transcriptEntryId ? { transcriptEntryId } : {}),
-      content: specialistArtifact.content
-    };
+    return undefined;
   }
 
   private async refreshSearchIndexIfNeeded(): Promise<void> {
@@ -271,20 +220,20 @@ interface SessionSearchIndexEntry {
   session: SessionRecord;
   entries: TranscriptEntry[];
   status: SessionSearchStatus;
-  personaIds: Set<string>;
+  agentIds: Set<string>;
   userIds: Set<string>;
-  personaId?: string;
+  agentId?: string;
   userId?: string;
 }
 
 function buildSearchIndexEntry(session: SessionRecord, entries: TranscriptEntry[]): SessionSearchIndexEntry {
-  const personaIds = new Set<string>();
+  const agentIds = new Set<string>();
   const userIds = new Set<string>();
   for (const entry of entries) {
-    const personaId = resolvePersonaId(entry.metadata);
+    const agentId = resolveAgentId(entry.metadata);
     const userId = resolveUserId(entry.metadata);
-    if (personaId) {
-      personaIds.add(personaId);
+    if (agentId) {
+      agentIds.add(agentId);
     }
     if (userId) {
       userIds.add(userId);
@@ -294,24 +243,24 @@ function buildSearchIndexEntry(session: SessionRecord, entries: TranscriptEntry[
     session,
     entries,
     status: entries.some((entry) => entry.isError) ? "failed" : "ok",
-    personaIds,
+    agentIds,
     userIds,
-    ...(personaIds.size > 0 ? { personaId: [...personaIds][0] } : {}),
+    ...(agentIds.size > 0 ? { agentId: [...agentIds][0] } : {}),
     ...(userIds.size > 0 ? { userId: [...userIds][0] } : {})
   };
 }
 
-function resolvePersonaId(metadata: Record<string, string> | undefined): string | undefined {
+function resolveAgentId(metadata: Record<string, string> | undefined): string | undefined {
   if (!metadata) {
     return undefined;
   }
   const value =
-    metadata.specialistId ??
-    metadata.specialistName ??
-    metadata.specialist ??
-    metadata.personaId ??
-    metadata.personaName ??
-    metadata.persona;
+    metadata.agentId ??
+    metadata.agentName ??
+    metadata.agent ??
+    metadata.agentId ??
+    metadata.agentName ??
+    metadata.agent;
   const normalized = value?.trim().toLowerCase();
   return normalized && normalized.length > 0 ? normalized : undefined;
 }
@@ -418,202 +367,6 @@ function resolveTranscriptEntryId(
     }
   }
   return undefined;
-}
-
-interface SpecialistSessionArtifact {
-  id: string;
-  runId: string;
-  runtimeRunIds: string[];
-  sessionId: string;
-  traceId: string;
-  label: string;
-  type: SessionArtifactSummary["type"];
-  format: SessionArtifactSummary["format"];
-  artifactRef: string;
-  sizeBytes: number;
-  createdAt: string;
-  content: SessionArtifactContent;
-}
-
-async function listSpecialistArtifacts(sessionId: string, config: AthenaConfig): Promise<SpecialistSessionArtifact[]> {
-  const candidates = await readSpecialistRunArtifacts(config, sessionId);
-  const unique = new Map<string, SpecialistSessionArtifact>();
-  for (const artifact of candidates) {
-    const key = `${artifact.runId}:${artifact.id}`;
-    if (!unique.has(key)) {
-      unique.set(key, artifact);
-    }
-  }
-  return [...unique.values()].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
-}
-
-async function getSpecialistArtifact(
-  sessionId: string,
-  runId: string,
-  artifactId: string,
-  config: AthenaConfig
-): Promise<SpecialistSessionArtifact | undefined> {
-  const artifacts = await readSpecialistRunArtifacts(config, sessionId, runId);
-  return artifacts.find((artifact) => artifact.id === artifactId);
-}
-
-async function readSpecialistRunArtifacts(
-  config: AthenaConfig,
-  sessionId: string,
-  runIdFilter?: string
-): Promise<SpecialistSessionArtifact[]> {
-  const stateRoot = resolve(config.workspaceRoot, config.stateDir);
-  const runRoots = [resolve(stateRoot, "specialist-runs"), resolve(stateRoot, "persona-runs")];
-  const artifacts: SpecialistSessionArtifact[] = [];
-
-  for (const runRoot of runRoots) {
-    if (!existsSync(runRoot)) {
-      continue;
-    }
-    const entries = await readdir(runRoot, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory()) {
-        continue;
-      }
-      if (runIdFilter && entry.name !== runIdFilter) {
-        continue;
-      }
-      const runId = entry.name;
-      const auditDir = resolve(runRoot, runId);
-      const resultPath = resolve(auditDir, "result.json");
-      if (!existsSync(resultPath)) {
-        continue;
-      }
-      const resultRaw = await readFile(resultPath, "utf8");
-      const result = JSON.parse(resultRaw) as Record<string, unknown>;
-      if (result.sessionId !== sessionId) {
-        continue;
-      }
-      const createdAt = readIso(result.finishedAt) ?? readIso(result.startedAt) ?? new Date().toISOString();
-      const runtimeRunIds = new Set<string>();
-      const defaultTraceId = `specialist-${runId}`;
-      artifacts.push({
-        id: "result-json",
-        runId,
-        runtimeRunIds: [],
-        sessionId,
-        traceId: defaultTraceId,
-        label: "result.json",
-        type: "json",
-        format: "json",
-        artifactRef: relative(stateRoot, resultPath),
-        sizeBytes: Buffer.byteLength(resultRaw, "utf8"),
-        createdAt,
-        content: { kind: "json", value: result }
-      });
-
-      const reportPath = resolve(auditDir, "report.md");
-      if (existsSync(reportPath)) {
-        const reportRaw = await readFile(reportPath, "utf8");
-        artifacts.push({
-          id: "report-md",
-          runId,
-          runtimeRunIds: [],
-          sessionId,
-          traceId: defaultTraceId,
-          label: "report.md",
-          type: "text",
-          format: "markdown",
-          artifactRef: relative(stateRoot, reportPath),
-          sizeBytes: Buffer.byteLength(reportRaw, "utf8"),
-          createdAt,
-          content: { kind: "text", text: reportRaw }
-        });
-      }
-
-      const evidenceDir = resolve(auditDir, "evidence");
-      if (!existsSync(evidenceDir)) {
-        continue;
-      }
-      const evidenceEntries = await readdir(evidenceDir, { withFileTypes: true });
-      for (const evidenceEntry of evidenceEntries) {
-        if (!evidenceEntry.isFile() || !evidenceEntry.name.endsWith(".json")) {
-          continue;
-        }
-        const evidencePath = resolve(evidenceDir, evidenceEntry.name);
-        const evidenceRaw = await readFile(evidencePath, "utf8");
-        const evidence = JSON.parse(evidenceRaw) as Record<string, unknown>;
-        const evidenceId = typeof evidence.id === "string" ? evidence.id : evidenceEntry.name.replace(/\.json$/, "");
-        const traceId = typeof evidence.traceId === "string" ? evidence.traceId : defaultTraceId;
-        const label = typeof evidence.label === "string" ? evidence.label : evidenceEntry.name;
-        const type = normalizeArtifactType(evidence.type);
-        const content = normalizeSpecialistContent(evidence.content, type);
-        const runtimeRunId = typeof evidence.runtimeRunId === "string" ? evidence.runtimeRunId : undefined;
-        if (runtimeRunId) {
-          runtimeRunIds.add(runtimeRunId);
-        }
-        artifacts.push({
-          id: `evidence-${evidenceId}`,
-          runId,
-          runtimeRunIds: runtimeRunId ? [runtimeRunId] : [],
-          sessionId,
-          traceId,
-          label,
-          type,
-          format: resolveArtifactFormat(label, type, content),
-          artifactRef: relative(stateRoot, evidencePath),
-          sizeBytes: Buffer.byteLength(evidenceRaw, "utf8"),
-          createdAt: readIso(evidence.createdAt) ?? createdAt,
-          content
-        });
-      }
-
-      if (runtimeRunIds.size > 0) {
-        const aliases = [...runtimeRunIds];
-        for (const artifact of artifacts) {
-          if (artifact.runId === runId && artifact.runtimeRunIds.length === 0) {
-            artifact.runtimeRunIds = aliases;
-          }
-        }
-      }
-    }
-  }
-
-  return artifacts;
-}
-
-function normalizeSpecialistContent(
-  value: unknown,
-  fallbackType: SessionArtifactSummary["type"]
-): SessionArtifactContent {
-  if (typeof value === "object" && value !== null && "kind" in value) {
-    const row = value as Record<string, unknown>;
-    if (row.kind === "text" && typeof row.text === "string") {
-      return { kind: "text", text: row.text };
-    }
-    if (row.kind === "json" && "value" in row) {
-      return { kind: "json", value: row.value };
-    }
-    if (row.kind === "binary" && typeof row.base64 === "string") {
-      return { kind: "binary", base64: row.base64 };
-    }
-  }
-  if (fallbackType === "text") {
-    return { kind: "text", text: typeof value === "string" ? value : JSON.stringify(value, null, 2) };
-  }
-  if (fallbackType === "binary") {
-    return { kind: "binary", base64: typeof value === "string" ? value : Buffer.from(JSON.stringify(value)).toString("base64") };
-  }
-  return { kind: "json", value };
-}
-
-function normalizeArtifactType(value: unknown): SessionArtifactSummary["type"] {
-  if (value === "text" || value === "json" || value === "binary") {
-    return value;
-  }
-  return "json";
-}
-
-function readIso(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-  return Number.isFinite(Date.parse(value)) ? value : undefined;
 }
 
 function mapArtifactContent(content: {
@@ -1594,94 +1347,10 @@ export class LocalMemoryService implements MemoryService {
     return this.memoryManager.search(query, options);
   }
 
-      get(request: MemoryGetRequest): Promise<MemoryGetResult> {
-      return this.memoryManager.get(request);
-    }
-  }
-  
-  export class LocalSpecialistService implements SpecialistService, PersonaService {
-    constructor(
-  
-    private readonly config: AthenaConfig,
-    private readonly eventService: EventService,
-    private readonly lspService?: LspService
-  ) {}
-
-  async list(): Promise<string[]> {
-    const specialistsDir = resolveSpecialistsDirectory(this.config.workspaceRoot);
-    if (!existsSync(specialistsDir)) {
-      return [];
-    }
-    const entries = await readdir(specialistsDir, { withFileTypes: true });
-    return entries
-      .filter((entry) => entry.isDirectory() || (entry.isFile() && entry.name.endsWith(".json")))
-      .map((entry) => entry.name.replace(/\.json$/, ""));
-  }
-
-  async run(request: SpecialistRunRequest): Promise<{ result: SpecialistRunResult; stdout: string }> {
-    try {
-      const response = await runSpecialist(request, this.config, {
-        ...(this.lspService ? { lspService: this.lspService } : {})
-      });
-      await this.emitSpecialistEvent({
-        type: "specialist.run.started",
-        sessionId: response.result.sessionId,
-        runId: response.result.runId,
-        payload: {
-          specialistName: response.result.specialistName ?? response.result.personaName,
-          personaName: response.result.personaName,
-          repoPath: response.result.repoPath,
-          headRef: response.result.headRef,
-          baseRef: response.result.baseRef
-        }
-      });
-      await this.emitSpecialistEvent({
-        type: "specialist.run.completed",
-        sessionId: response.result.sessionId,
-        runId: response.result.runId,
-        payload: {
-          specialistName: response.result.specialistName ?? response.result.personaName,
-          personaName: response.result.personaName,
-          status: response.result.status,
-          artifacts: response.result.artifacts,
-          ...(response.result.runtimeResult
-            ? {
-                provider: response.result.runtimeResult.provider,
-                model: response.result.runtimeResult.model,
-                ...(response.result.runtimeResult.usage ? { usage: response.result.runtimeResult.usage } : {})
-              }
-            : {})
-        }
-      });
-      return response;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await this.emitSpecialistEvent({
-        type: "specialist.run.failed",
-        ...(request.sessionId ? { sessionId: request.sessionId } : {}),
-        payload: {
-          specialistName: request.name,
-          personaName: request.name,
-          repoPath: request.repoPath,
-          headRef: request.headRef,
-          ...(request.baseRef ? { baseRef: request.baseRef } : {}),
-          error: message
-        }
-      });
-      throw error;
-    }
-  }
-
-  private async emitSpecialistEvent(event: EventEmitRequest): Promise<void> {
-    try {
-      await this.eventService.emit(event);
-    } catch {
-      // Specialist observability should be best-effort and never change run behavior.
-    }
+  get(request: MemoryGetRequest): Promise<MemoryGetResult> {
+    return this.memoryManager.get(request);
   }
 }
-
-export const LocalPersonaService = LocalSpecialistService;
 
 const DIRECTIVE_TEMPLATE_PLACEHOLDER_PATTERN = /\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g;
 

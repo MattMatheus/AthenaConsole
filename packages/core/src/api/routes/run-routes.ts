@@ -61,7 +61,7 @@ async function handleCreateRunRoute(context: ApiRouteContext): Promise<void> {
   const result = await context.services.runService.run(runRequest);
   trackOperationEvent("athena.run.created", {
     runId: result.runId,
-    personaId: runRequest.metadata?.personaId,
+    agentId: runRequest.metadata?.agentId,
     tenantId: resolveTenantId(context.req),
     sessionId: runRequest.sessionId,
     provider: result.provider,

@@ -29,7 +29,7 @@ The compose profile uses host-owned paths so backups and permissions are explici
 | --- | --- | --- |
 | `ATHENA_SERVER_WORKSPACE_PATH` | `/athena/workspace` | Runtime workspace root and support files. |
 | `ATHENA_SERVER_STATE_PATH` | `/athena/state` | SQLite app-state, locks, sessions, and support state. |
-| `ATHENA_SERVER_ARTIFACTS_PATH` | `/athena/state/run-evidence`, `/athena/state/transcripts`, `/athena/state/specialist-runs`, `/athena/state/persona-runs` | File artifact payloads that should survive container replacement. |
+| `ATHENA_SERVER_ARTIFACTS_PATH` | `/athena/state/run-evidence`, `/athena/state/transcripts`, `/athena/state/agent-runs` | File artifact payloads that should survive container replacement. |
 | `ATHENA_SERVER_REPOS_PATH` | `/athena/workspace/repos` | Managed Git clones created from the console/API. |
 | `ATHENA_SERVER_PLUGINS_PATH` | `/athena/plugins` | Operator-supplied plugin packages. |
 | `ATHENA_SERVER_SECRETS_PATH` | `/run/secrets/athena` | Local secret files mounted read-only into the API container. |

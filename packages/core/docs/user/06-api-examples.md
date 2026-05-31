@@ -207,57 +207,30 @@ Response (`200`):
 }
 ```
 
-## 8. `POST /api/v1/workflows`
+## 8. `POST /api/v1/workflow-templates/:id/instantiate`
 
 ```json
 {
-  "definition": {
-    "steps": [
-      {
-        "id": "collect",
-        "directiveId": "dir_triage",
-        "harnessProfileId": "hp_ops_v1"
-      },
-      {
-        "id": "remediate",
-        "directiveId": "dir_remediate",
-        "harnessProfileId": "hp_ops_v1"
-      }
-    ],
-    "dependencies": [
-      {
-        "from": "collect",
-        "to": "remediate"
-      }
-    ]
+  "missionId": "mission-first-run-demo",
+  "taskIdPrefix": "first-run-demo",
+  "inputs": {
+    "demoName": "First-Run Demo"
   }
 }
 ```
 
-## 9. `GET /api/v1/workflows/run/:id`
+## 9. `GET /api/v1/workflow-runs/:runId/status`
 
 ```json
 {
   "ok": true,
   "data": {
-    "workflow": {
-      "id": "wf_release_ops",
-      "definition": {
-        "steps": [],
-        "dependencies": []
-      },
-      "createdAt": "2026-02-20T14:00:00.000Z"
-    },
     "run": {
-      "schemaVersion": 1,
-      "id": "wf_run_001",
-      "workflowId": "wf_release_ops",
+      "id": "workflow-run-mission-first-run-demo",
       "status": "running",
-      "stepOrder": ["collect", "remediate"],
-      "stepStates": {},
-      "executionLog": [],
-      "createdAt": "2026-02-20T14:01:00.000Z",
-      "updatedAt": "2026-02-20T14:01:05.000Z"
+      "workflowTemplate": {
+        "id": "first-run.demo.workflow"
+      }
     },
     "nodes": [],
     "progress": {
@@ -268,24 +241,18 @@ Response (`200`):
       "pendingSteps": 0,
       "percentComplete": 50
     },
-    "artifactRefs": [],
-    "eta": {
-      "computedAt": "2026-02-20T14:01:05.000Z",
-      "source": "historical-average",
-      "historicalSampleSize": 5,
-      "estimatedRemainingMs": 10000
+    "recovery": {
+      "resumable": false,
+      "failedStepIds": [],
+      "staleRecoveredStepIds": []
     }
   }
 }
 ```
 
-## 10. `POST /api/v1/workflows/run/:id/resume`
+## 10. `POST /api/v1/workflow-runs/:runId/execute`
 
-```json
-{}
-```
-
-Response (`200`): `WorkflowRun` envelope.
+Response (`200`): workflow run execution result with executed step ids and a current snapshot.
 
 ## 11. `GET /api/v1/schedules`
 
@@ -366,12 +333,12 @@ Notes:
     "supportsPods": false,
     "supportsCpuMemMetrics": false,
     "supportsSandbox": false,
-    "supportsA2ABus": true
+    "supportsA2ABus": false
   }
 }
 ```
 
-## 16. `GET /api/v1/a2a/dlq`
+## 16. `GET /api/v1/failed-work`
 
 ```json
 {
@@ -379,23 +346,22 @@ Notes:
   "data": {
     "items": [
       {
-        "id": "dlq_msg_001",
-        "sourcePersona": "software-architect",
-        "targetPersona": "code-review",
+        "id": "work_failure_001",
+        "status": "pending",
+        "reason": "Timeout connecting to code review task runner",
         "payload": {
           "repo": "athena",
           "head": "feat-new-api"
         },
-        "error": "Timeout connecting to code-review runner",
-        "retryCount": 2,
-        "createdAt": "2026-02-20T16:00:00.000Z"
+        "createdAt": "2026-02-20T16:00:00.000Z",
+        "updatedAt": "2026-02-20T16:00:00.000Z"
       }
     ]
   }
 }
 ```
 
-## 17. `POST /api/v1/a2a/dlq/:id/requeue`
+## 17. `POST /api/v1/failed-work/:id/retry`
 
 ```json
 {}
@@ -407,9 +373,11 @@ Response (`200`):
 {
   "ok": true,
   "data": {
-    "id": "dlq_msg_001",
-    "status": "requeued"
+    "updated": true,
+    "item": {
+      "id": "work_failure_001",
+      "status": "retried"
+    }
   }
 }
 ```
-

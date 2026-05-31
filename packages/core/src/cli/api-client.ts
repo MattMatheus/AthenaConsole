@@ -10,7 +10,6 @@ import type {
 } from "../shared/contracts.js";
 import type { DrainResult } from "../work/index.js";
 import type { MemoryGetResult, MemorySearchOptions } from "../memory/index.js";
-import type { SpecialistRunResult } from "../specialists/types.js";
 
 interface ApiSuccessEnvelope<T> {
   ok: true;
@@ -87,30 +86,6 @@ export interface CliApiClient {
     }>
   >;
   getMemory(request: { path: string; from?: number; lines?: number }): Promise<MemoryGetResult>;
-  runSpecialist(request: {
-    name: string;
-    repoPath: string;
-    headRef: string;
-    baseRef?: string;
-    sessionId?: string;
-    provider?: string;
-    model?: string;
-    outJsonPath?: string;
-    outMarkdownPath?: string;
-    stdout?: "summary" | "json" | "md" | "none";
-  }): Promise<{ result: SpecialistRunResult; stdout: string }>;
-  runPersona(request: {
-    name: string;
-    repoPath: string;
-    headRef: string;
-    baseRef?: string;
-    sessionId?: string;
-    provider?: string;
-    model?: string;
-    outJsonPath?: string;
-    outMarkdownPath?: string;
-    stdout?: "summary" | "json" | "md" | "none";
-  }): Promise<{ result: SpecialistRunResult; stdout: string }>;
   createSchedule(request: {
     id: string;
     sessionId: string;
@@ -226,56 +201,6 @@ export function createCliApiClient(options: CliApiClientOptions): CliApiClient {
         path: request.path,
         ...(request.from !== undefined ? { from: request.from } : {}),
         ...(request.lines !== undefined ? { lines: request.lines } : {})
-      });
-    },
-    async runSpecialist(request: {
-      name: string;
-      repoPath: string;
-      headRef: string;
-      baseRef?: string;
-      sessionId?: string;
-      provider?: string;
-      model?: string;
-      outJsonPath?: string;
-      outMarkdownPath?: string;
-      stdout?: "summary" | "json" | "md" | "none";
-    }): Promise<{ result: SpecialistRunResult; stdout: string }> {
-      return requestJson<{ result: SpecialistRunResult; stdout: string }>(baseUrl, timeoutMs, "POST", "/api/v1/specialists/run", {
-        name: request.name,
-        repoPath: request.repoPath,
-        headRef: request.headRef,
-        ...(request.baseRef ? { baseRef: request.baseRef } : {}),
-        ...(request.sessionId ? { sessionId: request.sessionId } : {}),
-        ...(request.provider ? { provider: request.provider } : {}),
-        ...(request.model ? { model: request.model } : {}),
-        ...(request.outJsonPath ? { outJsonPath: request.outJsonPath } : {}),
-        ...(request.outMarkdownPath ? { outMarkdownPath: request.outMarkdownPath } : {}),
-        ...(request.stdout ? { stdout: request.stdout } : {})
-      });
-    },
-    async runPersona(request: {
-      name: string;
-      repoPath: string;
-      headRef: string;
-      baseRef?: string;
-      sessionId?: string;
-      provider?: string;
-      model?: string;
-      outJsonPath?: string;
-      outMarkdownPath?: string;
-      stdout?: "summary" | "json" | "md" | "none";
-    }): Promise<{ result: SpecialistRunResult; stdout: string }> {
-      return requestJson<{ result: SpecialistRunResult; stdout: string }>(baseUrl, timeoutMs, "POST", "/api/v1/personas/run", {
-        name: request.name,
-        repoPath: request.repoPath,
-        headRef: request.headRef,
-        ...(request.baseRef ? { baseRef: request.baseRef } : {}),
-        ...(request.sessionId ? { sessionId: request.sessionId } : {}),
-        ...(request.provider ? { provider: request.provider } : {}),
-        ...(request.model ? { model: request.model } : {}),
-        ...(request.outJsonPath ? { outJsonPath: request.outJsonPath } : {}),
-        ...(request.outMarkdownPath ? { outMarkdownPath: request.outMarkdownPath } : {}),
-        ...(request.stdout ? { stdout: request.stdout } : {})
       });
     },
     async createSchedule(request: {
@@ -502,9 +427,6 @@ function validateSuccessData(method: "POST" | "GET" | "PUT" | "DELETE", path: st
   }
   if (path === "/api/v1/memory/get" && typeof data.path !== "string") {
     throw new CliApiClientError(`API ${method} ${path} missing data.path`, { kind: "response" });
-  }
-  if ((path === "/api/v1/specialists/run" || path === "/api/v1/personas/run") && (typeof data.stdout !== "string" || !isObject(data.result))) {
-    throw new CliApiClientError(`API ${method} ${path} missing specialist result payload`, { kind: "response" });
   }
   if (method === "POST" && path === "/api/v1/schedules" && typeof data.id !== "string") {
     throw new CliApiClientError(`API ${method} ${path} missing data.id`, { kind: "response" });

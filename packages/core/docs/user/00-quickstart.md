@@ -41,10 +41,16 @@ npm run athena -- run --session demo --input "hello athena"
 npm run athena -- api serve
 ```
 
-## Run The Code Review Persona
+## Run The Code Review Sample Agent
 
-This expects a repo-local persona definition under `personas/`.
+The current code-review example is a plugin-backed agent in `sample-plugins/code-review`. Start the API server, create a ready task assigned to `code.review.local`, then run it:
 
 ```bash
-npm run athena -- persona run --name code-review --repo . --head my-branch --stdout summary
+curl -X POST http://127.0.0.1:8787/api/v1/tasks \
+  -H "content-type: application/json" \
+  -d '{"id":"task-code-review","title":"Review current branch","status":"ready","capabilityRequirements":["code.review"],"assignedAgentId":"code.review.local","assignedAgentVersion":"0.1.0","inputs":{"repo":{"path":"."},"baseRef":"main","headRef":"HEAD"}}'
+
+curl -X POST http://127.0.0.1:8787/api/v1/tasks/task-code-review/run \
+  -H "content-type: application/json" \
+  -d '{}'
 ```

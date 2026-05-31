@@ -18,8 +18,9 @@ Use these when you want to install Team Orchestrator, start the console, connect
 Use these when you want a durable trusted-LAN install with persistent state, plugin paths, repo storage, and secrets.
 
 1. [Local Server Deployment](developer/product-dev-guides/local-server-deployment.md)
-2. [Fresh Server Real-Work Walkthrough](developer/product-dev-guides/fresh-server-real-work-walkthrough.md)
-3. [State Ownership Map](product/architecture/state-ownership-map.md)
+2. [Deployment Automation](developer/product-dev-guides/deployment-automation.md)
+3. [Fresh Server Real-Work Walkthrough](developer/product-dev-guides/fresh-server-real-work-walkthrough.md)
+4. [State Ownership Map](product/architecture/state-ownership-map.md)
 
 ## Agent Author
 
@@ -29,12 +30,13 @@ Use these when you want to create or adapt a plugin-backed agent.
 2. [Build Your First Agent](../packages/core/docs/user/07-pdk-guide.md)
 3. [Copy The Model Provider Smoke Agent](../packages/core/docs/user/10-copy-sample-agent.md)
 4. [Agent Developer Kit Package](../packages/pdk/README.md)
-4. Sample plugins:
+5. Sample plugins:
    - `sample-plugins/first-run-demo/`
    - `sample-plugins/model-provider-smoke/`
    - `sample-plugins/local-user-test/`
    - `sample-plugins/repo-summary/`
    - `sample-plugins/generic-research/`
+   - `sample-plugins/code-review/`
 
 ## Contributor
 
@@ -45,6 +47,8 @@ Use these when you want to change the product or understand the current implemen
 3. [Architecture Decisions](product/architecture/decisions/README.md)
 4. [Roadmap Flight Path](product/roadmap/flight-path.md)
 5. [Repository Cleanup Audit](product/audits/2026-05-30-repo-cleanup-audit.md)
+6. [Code Retirement And Rename Audit](product/audits/2026-05-30-code-retirement-and-rename-audit.md)
+7. [Persona And Specialist Compatibility Plan](product/audits/2026-05-30-persona-specialist-compatibility-plan.md)
 
 ## Internal Workflow
 

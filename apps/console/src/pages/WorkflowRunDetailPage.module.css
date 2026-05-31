@@ -303,6 +303,20 @@
   font-weight: 700;
 }
 
+.inlineLink {
+  display: inline-flex;
+  width: fit-content;
+  margin: var(--space-2) 0;
+  color: var(--color-brand-700);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.inlineLink:hover {
+  color: var(--color-brand-900);
+  text-decoration: underline;
+}
+
 .codeBlock,
 .eventPayload {
   margin: 0;

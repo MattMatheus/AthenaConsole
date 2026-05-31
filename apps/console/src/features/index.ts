@@ -1,4 +1,4 @@
-export * from "./fleet";
+export * from "./operations";
 export * from "./mission-workbench";
 export * from "./policy";
 export * from "./readiness";
@@ -10,8 +10,7 @@ export * from "./workflow-templates";
 export * from "./workflow-runs";
 export * from "./rbac";
 export * from "./governance-audit";
-export * from "./dlq";
-export * from "./a2a-observability";
+export * from "./failed-work";
 export * from "./agent-catalog";
 export * from "./connected-repositories";
 export * from "./model-providers";

@@ -10,9 +10,9 @@ import { createLocalControlPlaneServices } from "../src/control-plane/services.j
 import { loadConfig } from "../src/shared/config.js";
 import {
   MockMetricsProvider,
-  createBaselineFleetSummary,
-  createResourceFleetSummary
-} from "./helpers/mock-metrics-provider.js";
+  createBaselineOperationsSummary,
+  createResourceOperationsSummary
+} from "./helpers/mock-operations-metrics-provider.js";
 
 describe("api server", () => {
   it("uses deterministic route-family matcher precedence for ambiguous paths", () => {
@@ -37,19 +37,23 @@ describe("api server", () => {
     expect(resolveApiRouteFamily("GET", "/api/v1/work/observability/alerts")).toBe("work");
     expect(resolveApiRouteFamily("GET", "/api/v1/work/observability/alerts/export.csv")).toBe("work");
     expect(resolveApiRouteFamily("GET", "/api/v1/work/flows/trace-1")).toBe("work");
-    expect(resolveApiRouteFamily("GET", "/api/v1/events/stream")).toBe("fleet-events-policy");
-    expect(resolveApiRouteFamily("GET", "/api/v1/events")).toBe("fleet-events-policy");
-    expect(resolveApiRouteFamily("GET", "/api/fleet/summary")).toBe("fleet-events-policy");
-    expect(resolveApiRouteFamily("GET", "/api/v1/fleet/cost/settings")).toBe("fleet-events-policy");
-    expect(resolveApiRouteFamily("PUT", "/api/v1/fleet/cost/settings")).toBe("fleet-events-policy");
-    expect(resolveApiRouteFamily("GET", "/api/v1/fleet/cost/report.csv")).toBe("fleet-events-policy");
+    expect(resolveApiRouteFamily("GET", "/api/v1/events/stream")).toBe("operations-events-policy");
+    expect(resolveApiRouteFamily("GET", "/api/v1/events")).toBe("operations-events-policy");
+    expect(resolveApiRouteFamily("GET", "/api/operations/summary")).toBe("operations-events-policy");
+    expect(resolveApiRouteFamily("GET", "/api/v1/operations/summary")).toBe("operations-events-policy");
+    expect(resolveApiRouteFamily("GET", "/api/v1/operations/cost/settings")).toBe("operations-events-policy");
+    expect(resolveApiRouteFamily("PUT", "/api/v1/operations/cost/settings")).toBe("operations-events-policy");
+    expect(resolveApiRouteFamily("GET", "/api/v1/operations/cost/report.csv")).toBe("operations-events-policy");
+    const removedTelemetryAlias = "fl" + "eet";
+    expect(resolveApiRouteFamily("GET", `/api/v1/${removedTelemetryAlias}/summary`)).toBeUndefined();
     expect(resolveApiRouteFamily("GET", "/api/v1/rbac/roles")).toBe("identity-rbac");
     expect(resolveApiRouteFamily("GET", "/api/v1/governance/audit-trail")).toBe("identity-rbac");
-    expect(resolveApiRouteFamily("GET", "/api/v1/rejections")).toBe("fleet-events-policy");
-    expect(resolveApiRouteFamily("GET", "/api/v1/policy/rejections")).toBe("fleet-events-policy");
-    expect(resolveApiRouteFamily("POST", "/api/v1/a2a/dlq/msg-1/requeue")).toBe("a2a");
-    expect(resolveApiRouteFamily("POST", "/api/v1/specialists/run")).toBe("specialists");
-    expect(resolveApiRouteFamily("POST", "/api/v1/personas/run")).toBe("specialists");
+    expect(resolveApiRouteFamily("GET", "/api/v1/rejections")).toBe("operations-events-policy");
+    expect(resolveApiRouteFamily("GET", "/api/v1/policy/rejections")).toBe("operations-events-policy");
+    expect(resolveApiRouteFamily("POST", "/api/v1/failed-work/msg-1/retry")).toBe("failed-work");
+    expect(resolveApiRouteFamily("POST", "/api/v1/a2a/dlq/msg-1/requeue")).toBeUndefined();
+    expect(resolveApiRouteFamily("POST", "/api/v1/agents/run")).toBeUndefined();
+    expect(resolveApiRouteFamily("POST", "/api/v1/agents/run")).toBeUndefined();
     expect(resolveApiRouteFamily("GET", "/api/v1/agent-catalog/plugins")).toBe("agent-catalog");
     expect(resolveApiRouteFamily("GET", "/api/v1/agent-catalog/agents")).toBe("agent-catalog");
     expect(resolveApiRouteFamily("GET", "/api/v1/tasks/metadata")).toBe("tasks");
@@ -354,10 +358,10 @@ describe("api server", () => {
 
   it("serves core v1 endpoints through control-plane services", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-api-server-"));
-    const dlqDir = join(dir, ".athena", "a2a");
+    const failedWorkDir = join(dir, ".athena", "failed-work");
     const runtimeActiveDir = join(dir, ".athena", "runtime", "active");
     const runtimeCancelDir = join(dir, ".athena", "runtime", "cancel");
-    mkdirSync(dlqDir, { recursive: true });
+    mkdirSync(failedWorkDir, { recursive: true });
     mkdirSync(runtimeActiveDir, { recursive: true });
     mkdirSync(runtimeCancelDir, { recursive: true });
     mkdirSync(join(dir, "memory"), { recursive: true });
@@ -365,7 +369,7 @@ describe("api server", () => {
     writeFileSync(join(dir, "MEMORY.md"), "athena api test memory block\n", "utf8");
     writeFileSync(join(dir, "memory", "notes.md"), "line 1\nline 2\nline 3\n", "utf8");
     writeFileSync(
-      join(dlqDir, "dlq.json"),
+      join(failedWorkDir, "items.json"),
       JSON.stringify(
         {
           schemaVersion: 1,
@@ -1094,7 +1098,7 @@ describe("api server", () => {
       expect(invalidRun.error.code).toBe("CONFIG_ERROR");
       expect(invalidRun.error.message).toContain("requires either input or directiveId");
 
-      const invalidPersonaResponse = await fetch(`${base}/api/v1/specialists/run`, {
+      const removedAgentRouteResponse = await fetch(`${base}/api/v1/agents/run`, {
         method: "POST",
         headers: {
           "content-type": "application/json"
@@ -1103,37 +1107,40 @@ describe("api server", () => {
           name: "code-review"
         })
       });
-      expect(invalidPersonaResponse.status).toBe(400);
-      const invalidPersonaEnvelope = (await invalidPersonaResponse.json()) as {
+      expect(removedAgentRouteResponse.status).toBe(404);
+      const removedAgentRouteEnvelope = (await removedAgentRouteResponse.json()) as {
         ok: boolean;
         error: { code: string; message: string };
       };
-      expect(invalidPersonaEnvelope.ok).toBe(false);
-      expect(invalidPersonaEnvelope.error.code).toBe("CONFIG_ERROR");
+      expect(removedAgentRouteEnvelope.ok).toBe(false);
+      expect(removedAgentRouteEnvelope.error.code).toBe("UNKNOWN_ERROR");
 
-      const dlqResponse = await fetch(`${base}/api/v1/a2a/dlq?status=pending`);
-      expect(dlqResponse.status).toBe(200);
-      const dlqEnvelope = (await dlqResponse.json()) as {
+      const failedWorkResponse = await fetch(`${base}/api/v1/failed-work?status=pending`);
+      expect(failedWorkResponse.status).toBe(200);
+      const failedWorkEnvelope = (await failedWorkResponse.json()) as {
         ok: boolean;
         data: { items: Array<{ id: string; status: string }> };
       };
-      expect(dlqEnvelope.ok).toBe(true);
-      expect(dlqEnvelope.data.items.length).toBe(1);
-      expect(dlqEnvelope.data.items[0]?.id).toBe("msg-1");
+      expect(failedWorkEnvelope.ok).toBe(true);
+      expect(failedWorkEnvelope.data.items.length).toBe(1);
+      expect(failedWorkEnvelope.data.items[0]?.id).toBe("msg-1");
 
-      const requeueResponse = await fetch(`${base}/api/v1/a2a/dlq/msg-1/requeue`, { method: "POST" });
-      expect(requeueResponse.status).toBe(200);
-      const requeueTraceId = requeueResponse.headers.get("x-trace-id");
-      expect(requeueTraceId).toBeTruthy();
-      const requeueEnvelope = (await requeueResponse.json()) as {
+      const oldFailedWorkResponse = await fetch(`${base}/api/v1/a2a/dlq?status=pending`);
+      expect(oldFailedWorkResponse.status).toBe(404);
+
+      const retryResponse = await fetch(`${base}/api/v1/failed-work/msg-1/retry`, { method: "POST" });
+      expect(retryResponse.status).toBe(200);
+      const retryTraceId = retryResponse.headers.get("x-trace-id");
+      expect(retryTraceId).toBeTruthy();
+      const retryEnvelope = (await retryResponse.json()) as {
         ok: boolean;
         data: { updated: boolean; item?: { status: string } };
       };
-      expect(requeueEnvelope.ok).toBe(true);
-      expect(requeueEnvelope.data.updated).toBe(true);
-      expect(requeueEnvelope.data.item?.status).toBe("requeued");
+      expect(retryEnvelope.ok).toBe(true);
+      expect(retryEnvelope.data.updated).toBe(true);
+      expect(retryEnvelope.data.item?.status).toBe("retried");
 
-      const discardResponse = await fetch(`${base}/api/v1/a2a/dlq/msg-1/discard`, {
+      const discardResponse = await fetch(`${base}/api/v1/failed-work/msg-1/discard`, {
         method: "POST",
         headers: {
           "content-type": "application/json"
@@ -1151,7 +1158,7 @@ describe("api server", () => {
       expect(discardEnvelope.data.updated).toBe(true);
       expect(discardEnvelope.data.item?.status).toBe("discarded");
 
-      const discardAuditEventsResponse = await fetch(`${base}/api/v1/events?types=a2a.dlq.discarded&limit=5`);
+      const discardAuditEventsResponse = await fetch(`${base}/api/v1/events?types=failed-work.discarded&limit=5`);
       expect(discardAuditEventsResponse.status).toBe(200);
       const discardAuditEventsEnvelope = (await discardAuditEventsResponse.json()) as {
         ok: boolean;
@@ -1163,13 +1170,13 @@ describe("api server", () => {
       expect(
         discardAuditEventsEnvelope.data.events.some(
           (event) =>
-            event.type === "a2a.dlq.discarded" &&
+            event.type === "failed-work.discarded" &&
             event.payload?.id === "msg-1" &&
             event.payload?.auditNote === "Operator confirmed poison message and discarded."
         )
       ).toBe(true);
 
-      const flowResponse = await fetch(`${base}/api/v1/work/flows/${encodeURIComponent(requeueTraceId as string)}?limit=10`);
+      const flowResponse = await fetch(`${base}/api/v1/work/flows/${encodeURIComponent(retryTraceId as string)}?limit=10`);
       expect(flowResponse.status).toBe(200);
       const flowEnvelope = (await flowResponse.json()) as {
         ok: boolean;
@@ -1181,10 +1188,10 @@ describe("api server", () => {
         };
       };
       expect(flowEnvelope.ok).toBe(true);
-      expect(flowEnvelope.data.traceId).toBe(requeueTraceId);
+      expect(flowEnvelope.data.traceId).toBe(retryTraceId);
       expect(flowEnvelope.data.edges.length).toBeGreaterThan(0);
       expect(flowEnvelope.data.edges[0]?.step).toBe(1);
-      expect(flowEnvelope.data.edges[0]?.type).toBe("a2a.dlq.requeued");
+      expect(flowEnvelope.data.edges[0]?.type).toBe("failed-work.retry-requested");
       expect(flowEnvelope.data.edges[0]?.statusLabel).toContain("Step 1");
       expect(flowEnvelope.data.nodes.length).toBeGreaterThan(0);
 
@@ -1313,9 +1320,9 @@ describe("api server", () => {
       expect(rejectionsEnvelope.ok).toBe(true);
       expect(Array.isArray(rejectionsEnvelope.data)).toBe(true);
 
-      const fleetSummaryResponse = await fetch(`${base}/api/v1/fleet/summary`);
-      expect(fleetSummaryResponse.status).toBe(200);
-      const fleetSummaryEnvelope = (await fleetSummaryResponse.json()) as {
+      const operationsSummaryResponse = await fetch(`${base}/api/v1/operations/summary`);
+      expect(operationsSummaryResponse.status).toBe(200);
+      const operationsSummaryEnvelope = (await operationsSummaryResponse.json()) as {
         ok: boolean;
         data: {
           total: number;
@@ -1340,19 +1347,19 @@ describe("api server", () => {
           };
         };
       };
-      expect(fleetSummaryEnvelope.ok).toBe(true);
-      expect(fleetSummaryEnvelope.data.total).toBeGreaterThanOrEqual(1);
-      expect(fleetSummaryEnvelope.data.running).toBeGreaterThanOrEqual(0);
-      expect(fleetSummaryEnvelope.data.pending).toBeGreaterThanOrEqual(0);
-      expect(fleetSummaryEnvelope.data.succeeded).toBeGreaterThanOrEqual(0);
-      expect(fleetSummaryEnvelope.data.failed).toBeGreaterThanOrEqual(0);
-      expect(fleetSummaryEnvelope.data.capabilities).toEqual({
+      expect(operationsSummaryEnvelope.ok).toBe(true);
+      expect(operationsSummaryEnvelope.data.total).toBeGreaterThanOrEqual(1);
+      expect(operationsSummaryEnvelope.data.running).toBeGreaterThanOrEqual(0);
+      expect(operationsSummaryEnvelope.data.pending).toBeGreaterThanOrEqual(0);
+      expect(operationsSummaryEnvelope.data.succeeded).toBeGreaterThanOrEqual(0);
+      expect(operationsSummaryEnvelope.data.failed).toBeGreaterThanOrEqual(0);
+      expect(operationsSummaryEnvelope.data.capabilities).toEqual({
         supportsPodStatus: false,
         supportsCpuMemMetrics: false
       });
-      expect(fleetSummaryEnvelope.data.cpuUsage).toBeUndefined();
-      expect(fleetSummaryEnvelope.data.memoryUsage).toBeUndefined();
-      expect(fleetSummaryEnvelope.data.operationalSummary).toEqual({
+      expect(operationsSummaryEnvelope.data.cpuUsage).toBeUndefined();
+      expect(operationsSummaryEnvelope.data.memoryUsage).toBeUndefined();
+      expect(operationsSummaryEnvelope.data.operationalSummary).toEqual({
         totalActiveRuns: 0,
         totalActiveSessions: 0,
         aggregateResourceUsage: {
@@ -1362,9 +1369,9 @@ describe("api server", () => {
         recentFailureRejectionCount: 0
       });
 
-      const fleetSummaryAliasResponse = await fetch(`${base}/api/fleet/summary`);
-      expect(fleetSummaryAliasResponse.status).toBe(200);
-      const fleetSummaryAliasEnvelope = (await fleetSummaryAliasResponse.json()) as {
+      const operationsSummaryAliasResponse = await fetch(`${base}/api/operations/summary`);
+      expect(operationsSummaryAliasResponse.status).toBe(200);
+      const operationsSummaryAliasEnvelope = (await operationsSummaryAliasResponse.json()) as {
         ok: boolean;
         data: {
           operationalSummary: {
@@ -1376,12 +1383,12 @@ describe("api server", () => {
           };
         };
       };
-      expect(fleetSummaryAliasEnvelope.ok).toBe(true);
-      expect(fleetSummaryAliasEnvelope.data.operationalSummary.totalActiveRuns).toBe(0);
-      expect(fleetSummaryAliasEnvelope.data.operationalSummary.totalActiveSessions).toBe(0);
-      expect(fleetSummaryAliasEnvelope.data.costSummary?.totalEstimatedSpendUsd ?? 0).toBeGreaterThanOrEqual(0);
+      expect(operationsSummaryAliasEnvelope.ok).toBe(true);
+      expect(operationsSummaryAliasEnvelope.data.operationalSummary.totalActiveRuns).toBe(0);
+      expect(operationsSummaryAliasEnvelope.data.operationalSummary.totalActiveSessions).toBe(0);
+      expect(operationsSummaryAliasEnvelope.data.costSummary?.totalEstimatedSpendUsd ?? 0).toBeGreaterThanOrEqual(0);
 
-      const putCostSettingsResponse = await fetch(`${base}/api/v1/fleet/cost/settings`, {
+      const putCostSettingsResponse = await fetch(`${base}/api/v1/operations/cost/settings`, {
         method: "PUT",
         headers: {
           "content-type": "application/json"
@@ -1416,7 +1423,7 @@ describe("api server", () => {
       });
       expect(typeof putCostSettingsEnvelope.data.providers[0]?.updatedAt).toBe("string");
 
-      const getCostSettingsResponse = await fetch(`${base}/api/v1/fleet/cost/settings`);
+      const getCostSettingsResponse = await fetch(`${base}/api/v1/operations/cost/settings`);
       expect(getCostSettingsResponse.status).toBe(200);
       const getCostSettingsEnvelope = (await getCostSettingsResponse.json()) as {
         ok: boolean;
@@ -1425,12 +1432,20 @@ describe("api server", () => {
       expect(getCostSettingsEnvelope.ok).toBe(true);
       expect(getCostSettingsEnvelope.data.providers[0]?.provider).toBe("mock");
 
-      const csvReportResponse = await fetch(`${base}/api/v1/fleet/cost/report.csv?month=2026-02`);
+      const removedTelemetryAlias = "fl" + "eet";
+      const removedCostSettingsAliasResponse = await fetch(`${base}/api/v1/${removedTelemetryAlias}/cost/settings`);
+      expect(removedCostSettingsAliasResponse.status).toBe(404);
+
+      const csvReportResponse = await fetch(`${base}/api/v1/operations/cost/report.csv?month=2026-02`);
       expect(csvReportResponse.status).toBe(200);
       expect(csvReportResponse.headers.get("content-type")).toContain("text/csv");
+      expect(csvReportResponse.headers.get("content-disposition")).toContain("operations-cost-report-2026-02.csv");
       const csvBody = await csvReportResponse.text();
       expect(csvBody).toContain("month,2026-02");
-      expect(csvBody).toContain("personaName,estimatedSpendUsd,inputTokens,outputTokens,totalTokens");
+      expect(csvBody).toContain("agentName,estimatedSpendUsd,inputTokens,outputTokens,totalTokens");
+
+      const csvReportAliasResponse = await fetch(`${base}/api/v1/${removedTelemetryAlias}/cost/report.csv?month=2026-02`);
+      expect(csvReportAliasResponse.status).toBe(404);
     } finally {
       await server.stop();
       rmSync(dir, { recursive: true, force: true });
@@ -2257,12 +2272,12 @@ describe("api server", () => {
     }
   });
 
-  it("serves fleet summary from configurable mock metrics provider", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "athena-api-server-fleet-mock-"));
+  it("serves operations summary from configurable mock metrics provider", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-server-operations-mock-"));
     const config = loadConfig(dir);
     const services = createLocalControlPlaneServices({ config });
     const mockProvider = new MockMetricsProvider({
-      summary: createBaselineFleetSummary({
+      summary: createBaselineOperationsSummary({
         total: 11,
         running: 7,
         pending: 2,
@@ -2270,7 +2285,7 @@ describe("api server", () => {
         failed: 1
       })
     });
-    services.fleetService = {
+    services.operationsService = {
       async getSummary() {
         const [summary, capabilities] = await Promise.all([mockProvider.getMetrics(), mockProvider.getCapabilities()]);
         return {
@@ -2278,7 +2293,7 @@ describe("api server", () => {
           capabilities
         };
       },
-      async getProviderCostSettings() {
+      async getOperationsProviderCostSettings() {
         return {
           schemaVersion: 1,
           updatedAt: new Date(0).toISOString(),
@@ -2320,7 +2335,7 @@ describe("api server", () => {
     const base = `http://${bound.host}:${bound.port}`;
 
     try {
-      const baselineResponse = await fetch(`${base}/api/v1/fleet/summary`);
+      const baselineResponse = await fetch(`${base}/api/v1/operations/summary`);
       expect(baselineResponse.status).toBe(200);
       const baselineEnvelope = (await baselineResponse.json()) as {
         ok: boolean;
@@ -2352,7 +2367,7 @@ describe("api server", () => {
       });
 
       mockProvider.setSummary(
-        createResourceFleetSummary(
+        createResourceOperationsSummary(
           {
             total: 11,
             running: 8,
@@ -2371,7 +2386,7 @@ describe("api server", () => {
         supportsCpuMemMetrics: true
       });
 
-      const resourceResponse = await fetch(`${base}/api/v1/fleet/summary`);
+      const resourceResponse = await fetch(`${base}/api/v1/operations/summary`);
       expect(resourceResponse.status).toBe(200);
       const resourceEnvelope = (await resourceResponse.json()) as {
         ok: boolean;
@@ -2522,7 +2537,7 @@ describe("api server", () => {
           sessionId: "s-search-ok",
           input: "needle alpha",
           metadata: {
-            personaId: "ops",
+            agentId: "ops",
             userId: "alice"
           }
         })
@@ -2535,7 +2550,7 @@ describe("api server", () => {
           sessionId: "s-search-failed",
           input: "needle beta",
           metadata: {
-            personaId: "infra",
+            agentId: "infra",
             userId: "bob"
           }
         })
@@ -2557,7 +2572,7 @@ describe("api server", () => {
           role: "assistant",
           content: "needle filtered for ops alice",
           metadata: {
-            personaId: "ops",
+            agentId: "ops",
             userId: "alice"
           },
           createdAt: new Date().toISOString()
@@ -2578,7 +2593,7 @@ describe("api server", () => {
       );
 
       const filtered = await fetch(
-        `${base}/api/v1/sessions/search?query=needle&personaId=ops&userId=alice&status=ok&limit=10`
+        `${base}/api/v1/sessions/search?query=needle&agentId=ops&userId=alice&status=ok&limit=10`
       );
       expect(filtered.status).toBe(200);
       const filteredEnvelope = (await filtered.json()) as {

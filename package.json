@@ -1,5 +1,5 @@
 {
-  "name": "athena-fleet",
+  "name": "team-orchestrator-workspace",
   "packageManager": "npm@11.9.0",
   "private": true,
   "workspaces": [

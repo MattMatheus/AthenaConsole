@@ -27,7 +27,7 @@ export const SCHEDULE_ROUTES = defineApiRoutes("schedules", [
   { method: "DELETE", path: "/api/v1/schedules/:id", handler: handleDeleteScheduleRoute }
 ]);
 
-export const POLICY_ROUTES = defineApiRoutes("fleet-events-policy", [
+export const POLICY_ROUTES = defineApiRoutes("operations-events-policy", [
   { method: "GET", path: "/api/v1/rejections", handler: handleListRejectionsRoute },
   { method: "GET", path: "/api/v1/policy/rejections", handler: handleListPolicyConcurrencyRejectionsRoute },
   { method: "GET", path: "/api/v1/policy", handler: handleGetPolicyRoute },

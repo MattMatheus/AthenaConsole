@@ -93,10 +93,10 @@ describe("control-plane authorization wrappers", () => {
       await expect(withRole("Viewer", () => services.workService.drain("s1"))).rejects.toMatchObject({
         code: "AUTHZ_DENIED"
       });
-      await expect(withRole("Viewer", () => services.a2aDlqService.requeue("item-1"))).rejects.toMatchObject({
+      await expect(withRole("Viewer", () => services.failedWorkService.retry("item-1"))).rejects.toMatchObject({
         code: "AUTHZ_DENIED"
       });
-      await expect(withRole("Viewer", () => services.a2aDlqService.discard("item-1"))).rejects.toMatchObject({
+      await expect(withRole("Viewer", () => services.failedWorkService.discard("item-1"))).rejects.toMatchObject({
         code: "AUTHZ_DENIED"
       });
       await expect(withRole("Viewer", () => services.a2aFlowService.getTrace("trace-1"))).rejects.toMatchObject({
@@ -136,8 +136,8 @@ describe("control-plane authorization wrappers", () => {
         "work.enqueue",
         "work.status",
         "work.drain",
-        "a2aDlq.requeue",
-        "a2aDlq.discard",
+        "failedWork.retry",
+        "failedWork.discard",
         "a2aFlow.get",
         "a2aObservability.get",
         "a2aObservability.alertHistory.list",
@@ -174,7 +174,7 @@ describe("control-plane authorization wrappers", () => {
       await expect(withRole("Viewer", () => services.eventService.list({ limit: 5 }))).resolves.toMatchObject({
         events: []
       });
-      await expect(withRole("Viewer", () => services.fleetService.getSummary())).resolves.toMatchObject({
+      await expect(withRole("Viewer", () => services.operationsService.getSummary())).resolves.toMatchObject({
         capabilities: {
           supportsPodStatus: false,
           supportsCpuMemMetrics: false
@@ -184,7 +184,7 @@ describe("control-plane authorization wrappers", () => {
           totalActiveSessions: 0
         }
       });
-      await expect(withRole("Viewer", () => services.a2aDlqService.list({ limit: 5 }))).resolves.toMatchObject({
+      await expect(withRole("Viewer", () => services.failedWorkService.list({ limit: 5 }))).resolves.toMatchObject({
         items: []
       });
       await expect(withRole("Viewer", () => services.a2aFlowService.getTrace("trace-1"))).rejects.toMatchObject({
@@ -237,10 +237,10 @@ describe("control-plane authorization wrappers", () => {
       await expect(withRole("Operator", () => services.workService.drain("s2"))).resolves.toMatchObject({
         status: "ok"
       });
-      await expect(withRole("Operator", () => services.a2aDlqService.requeue("missing-id"))).resolves.toEqual({
+      await expect(withRole("Operator", () => services.failedWorkService.retry("missing-id"))).resolves.toEqual({
         updated: false
       });
-      await expect(withRole("Operator", () => services.a2aDlqService.discard("missing-id"))).resolves.toEqual({
+      await expect(withRole("Operator", () => services.failedWorkService.discard("missing-id"))).resolves.toEqual({
         updated: false
       });
       await expect(withRole("Operator", () => services.a2aFlowService.getTrace("missing-trace"))).resolves.toMatchObject({
@@ -318,19 +318,19 @@ describe("control-plane authorization wrappers", () => {
       await withAuthScope("Admin", globalScope(), () =>
         services.directiveService.create({
           input: "alpha",
-          metadata: { personaName: "alpha" }
+          metadata: { agentName: "alpha" }
         })
       );
       await withAuthScope("Admin", globalScope(), () =>
         services.directiveService.create({
           input: "beta",
-          metadata: { personaName: "beta" }
+          metadata: { agentName: "beta" }
         })
       );
 
       const scopedOperator: ScopeSet = {
         global: false,
-        personas: ["alpha"],
+        agents: ["alpha"],
         sessionIds: ["scope-allowed"],
         runIds: ["run-allowed"]
       };
@@ -344,7 +344,7 @@ describe("control-plane authorization wrappers", () => {
         withAuthScope("Operator", scopedOperator, () =>
           services.directiveService.create({
             input: "beta-denied",
-            metadata: { personaName: "beta" }
+            metadata: { agentName: "beta" }
           })
         )
       ).rejects.toMatchObject({
@@ -354,8 +354,8 @@ describe("control-plane authorization wrappers", () => {
         withAuthScope("Operator", scopedOperator, () =>
           services.runService.run({
             sessionId: "scope-allowed",
-            input: "persona mismatch",
-            metadata: { personaName: "beta" }
+            input: "agent mismatch",
+            metadata: { agentName: "beta" }
           })
         )
       ).rejects.toMatchObject({
@@ -387,7 +387,7 @@ describe("control-plane authorization wrappers", () => {
         withAuthScope("Viewer", scopedOperator, () =>
           services.directiveService.create({
             input: "viewer-denied",
-            metadata: { personaName: "alpha" }
+            metadata: { agentName: "alpha" }
           })
         )
       ).rejects.toMatchObject({
@@ -528,7 +528,7 @@ function withAuthScope<T>(role: AthenaRbacRole, scope: ScopeSet, operation: () =
 function defaultScopeForRole(role: AthenaRbacRole): ScopeSet {
   return {
     global: role === "Admin",
-    personas: [],
+    agents: [],
     sessionIds: [],
     runIds: []
   };
@@ -537,7 +537,7 @@ function defaultScopeForRole(role: AthenaRbacRole): ScopeSet {
 function globalScope(): ScopeSet {
   return {
     global: true,
-    personas: [],
+    agents: [],
     sessionIds: [],
     runIds: []
   };

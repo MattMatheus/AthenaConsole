@@ -1,10 +1,10 @@
-# Project Athena Source Code (`src/`)
+# Team Orchestrator Core Source (`src/`)
 
-This directory contains the core implementation of Project Athena.
+This directory contains the core implementation of Team Orchestrator.
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
-Athena is built as an API-first control plane with modular runtime components.
+Team Orchestrator is a local-first agent orchestration product with a web console, local API, durable SQLite app state, plugin-backed agents, tasks, missions, workflow DAG runs, events, artifacts, and safety controls.
 
 - `cli/`: Command-line interface logic (acts as an API client).
 - `control-plane/`: Centralized services, API contracts, and schema definitions.
@@ -13,15 +13,18 @@ Athena is built as an API-first control plane with modular runtime components.
 - `memory/`: Session history and retrievable (RAG) memory systems.
 - `context/`: Context compilation, budgeting, and overflow handling.
 - `providers/`: Abstraction layer for LLM model providers.
-- `personas/`: Persona orchestration and specialist loading/runtime logic.
+- `agents/`: Plugin-backed agent scaffolding and runtime helpers.
 - `schedule/`: System-level task scheduling and logging.
 - `shared/`: Canonical DTO contracts and common utilities.
 - `tools/`: Built-in capabilities available to agents.
 
-## 📖 Recommended Reading Order
+## Recommended Reading Order
 
-1. `shared/contracts.ts`: Understand the domain model.
-2. `control-plane/services.ts`: See how business logic is orchestrated.
-3. `runtime/index.ts`: The heart of the execution loop.
+1. `control-plane/app-state/`: SQLite-backed operator state.
+2. `control-plane/manifests/` and `control-plane/plugins/`: plugin and agent loading.
+3. `control-plane/services/task-workbench.ts`: task creation and task runs.
+4. `control-plane/services/mission-workbench.ts`: mission grouping and mission runs.
+5. `control-plane/services/workflow-*`: workflow template, DAG run, and status services.
+6. `shared/contracts/`: API DTO contracts.
 
-*For detailed architectural explanations, refer to `docs/developer/01-architecture.md`.*
+Start from the repo-level docs map at `docs/README.md` for current user and contributor guidance.

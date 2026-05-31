@@ -19,12 +19,10 @@ export type ApiRouteFamily =
   | "workflow-templates"
   | "memory"
   | "work"
+  | "failed-work"
   | "schedules"
-  | "fleet-events-policy"
-  | "specialists"
-  | "personas"
-  | "identity-rbac"
-  | "a2a";
+  | "operations-events-policy"
+  | "identity-rbac";
 
 export interface ApiRouteMeta {
   family: ApiRouteFamily;

@@ -20,7 +20,7 @@ import type {
   RunRejectionReason,
   SandboxLifecycleEventMetadata
 } from "../../shared/contracts.js";
-import type { BackendFleetMetricsSnapshot, ExecutionBackend, SandboxExecutionBackend } from "../backends.js";
+import type { BackendOperationsMetricsSnapshot, ExecutionBackend, SandboxExecutionBackend } from "../backends.js";
 import type { DistributedLockAcquireResult, IDistributedLock } from "../distributed-lock.js";
 import { assertValidSessionId } from "../../runtime/session-store.js";
 import { InMemoryRejectionEventStore, type RejectionEventStore } from "../rejection-event-store.js";
@@ -322,8 +322,8 @@ export class LocalPolicyService implements PolicyService {
         : undefined;
     const detailSessionId =
       rejectedRunDetails && typeof rejectedRunDetails.sessionId === "string" ? rejectedRunDetails.sessionId : undefined;
-    const personaName =
-      rejectedRunDetails && typeof rejectedRunDetails.personaName === "string" ? rejectedRunDetails.personaName : undefined;
+    const agentName =
+      rejectedRunDetails && typeof rejectedRunDetails.agentName === "string" ? rejectedRunDetails.agentName : undefined;
     const reason =
       row.reason === "max-concurrent-runs-exceeded" || row.reason === "lock-acquisition-failed"
         ? row.reason
@@ -345,7 +345,7 @@ export class LocalPolicyService implements PolicyService {
       limit,
       rejectedRunDetails: {
         sessionId: detailSessionId,
-        ...(personaName ? { personaName } : {})
+        ...(agentName ? { agentName } : {})
       },
       reason,
       activeRuns,
@@ -602,8 +602,8 @@ export class PolicyAwareExecutionBackend implements ExecutionBackend {
     return this.backend.listCancellationRequests(query);
   }
 
-  async getFleetMetrics(): Promise<BackendFleetMetricsSnapshot> {
-    const backendMetrics = await this.backend.getFleetMetrics?.();
+  async getOperationsMetrics(): Promise<BackendOperationsMetricsSnapshot> {
+    const backendMetrics = await this.backend.getOperationsMetrics?.();
     if (backendMetrics) {
       return backendMetrics;
     }
@@ -707,19 +707,19 @@ export class PolicyAwareExecutionBackend implements ExecutionBackend {
 
   private resolveDirectiveHarnessContext(
     metadata: Parameters<ExecutionBackend["run"]>[0]["metadata"]
-  ): { directiveId?: string; harnessProfileId?: string; personaName?: string } {
+  ): { directiveId?: string; harnessProfileId?: string; agentName?: string } {
     const directiveId = metadata?.directiveId;
     const harnessProfileId = metadata?.harnessProfileId;
-    const personaName = this.resolvePersonaName(metadata);
+    const agentName = this.resolveAgentName(metadata);
     return {
       ...(directiveId ? { directiveId } : {}),
       ...(harnessProfileId ? { harnessProfileId } : {}),
-      ...(personaName ? { personaName } : {})
+      ...(agentName ? { agentName } : {})
     };
   }
 
-  private resolvePersonaName(metadata: Parameters<ExecutionBackend["run"]>[0]["metadata"]): string | undefined {
-    const value = metadata?.specialistName ?? metadata?.specialist ?? metadata?.personaName ?? metadata?.persona;
+  private resolveAgentName(metadata: Parameters<ExecutionBackend["run"]>[0]["metadata"]): string | undefined {
+    const value = metadata?.agentName ?? metadata?.agent ?? metadata?.agentName ?? metadata?.agent;
     if (!value) {
       return undefined;
     }
@@ -820,7 +820,7 @@ export class PolicyAwareExecutionBackend implements ExecutionBackend {
     const quotaConfig = this.resolveSandboxQuotaConfig(request.metadata);
     const egressPolicy = this.resolveSandboxEgressPolicy(request.metadata);
     const declaredEgressDestinations = this.resolveDeclaredSandboxEgressDestinations(request.metadata, workspaceConfig);
-    const personaName = this.resolvePersonaName(request.metadata);
+    const agentName = this.resolveAgentName(request.metadata);
     let claimedAtMs: number | undefined;
     let runtimeClassName = runtimeIsolation.runtimeClassName;
     let forceFailClosed = false;
@@ -835,7 +835,7 @@ export class PolicyAwareExecutionBackend implements ExecutionBackend {
           decision: egressEvaluation.decision,
           policy: egressPolicy,
           declared: declaredEgressDestinations,
-          ...(personaName ? { personaName } : {}),
+          ...(agentName ? { agentName } : {}),
           reason: egressEvaluation.reason,
           ...(runtimeClassName ? { runtimeClassName } : {}),
           ...(templateRef ? { templateRef } : {}),
@@ -849,7 +849,7 @@ export class PolicyAwareExecutionBackend implements ExecutionBackend {
         decision: "allowed",
         policy: egressPolicy,
         declared: declaredEgressDestinations,
-        ...(personaName ? { personaName } : {}),
+        ...(agentName ? { agentName } : {}),
         ...(runtimeClassName ? { runtimeClassName } : {}),
         ...(templateRef ? { templateRef } : {}),
         ...(warmPoolRef ? { warmPoolRef } : {})
@@ -900,7 +900,7 @@ export class PolicyAwareExecutionBackend implements ExecutionBackend {
             decision: "error",
             policy: egressPolicy,
             declared: declaredEgressDestinations,
-            ...(personaName ? { personaName } : {}),
+            ...(agentName ? { agentName } : {}),
             reason: claimReason,
             ...(runtimeClassName ? { runtimeClassName } : {}),
             ...(templateRef ? { templateRef } : {}),
@@ -1216,7 +1216,7 @@ export class PolicyAwareExecutionBackend implements ExecutionBackend {
         }
         const violation = resolveQuotaViolation(args.quotaConfig, usage);
         if (violation) {
-          const personaName = this.resolvePersonaName(args.request.metadata);
+          const agentName = this.resolveAgentName(args.request.metadata);
           quotaError = new AthenaError("RUN_TIMEOUT", violation);
           await this.emitSandboxQuotaEvent({
             runId: args.runId,
@@ -1224,7 +1224,7 @@ export class PolicyAwareExecutionBackend implements ExecutionBackend {
             sandboxId: args.sandboxId,
             quotaConfig: args.quotaConfig,
             usage,
-            ...(personaName ? { personaName } : {}),
+            ...(agentName ? { agentName } : {}),
             reason: violation,
             ...(args.templateRef ? { templateRef: args.templateRef } : {}),
             ...(args.warmPoolRef ? { warmPoolRef: args.warmPoolRef } : {}),
@@ -1275,7 +1275,7 @@ export class PolicyAwareExecutionBackend implements ExecutionBackend {
       diskBytes?: number;
     };
     reason: string;
-    personaName?: string;
+    agentName?: string;
     templateRef?: string;
     warmPoolRef?: string;
     runtimeClassName?: string;
@@ -1308,7 +1308,7 @@ export class PolicyAwareExecutionBackend implements ExecutionBackend {
             ...(args.usage.diskBytes !== undefined ? { diskBytes: args.usage.diskBytes } : {})
           },
           reason: args.reason,
-          ...(args.personaName ? { personaName: args.personaName } : {})
+          ...(args.agentName ? { agentName: args.agentName } : {})
         }
       });
     } catch {
@@ -1514,7 +1514,7 @@ export class PolicyAwareExecutionBackend implements ExecutionBackend {
     decision: "allowed" | "blocked" | "error";
     policy: SandboxEgressPolicyConfig;
     declared: SandboxEgressDestination[];
-    personaName?: string;
+    agentName?: string;
     reason?: string;
     runtimeClassName?: string;
     templateRef?: string;
@@ -1548,7 +1548,7 @@ export class PolicyAwareExecutionBackend implements ExecutionBackend {
             ...(destination.port !== undefined ? { port: destination.port } : {}),
             source: destination.source
           })),
-          ...(args.personaName ? { personaName: args.personaName } : {}),
+          ...(args.agentName ? { agentName: args.agentName } : {}),
           ...(args.reason ? { reason: args.reason } : {})
         }
       });

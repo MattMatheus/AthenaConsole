@@ -947,7 +947,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.dlqFilterGrid {
+.failedWorkFilterGrid {
   display: grid;
   gap: var(--space-2);
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -984,12 +984,12 @@
   font-weight: 600;
 }
 
-.dlqInspectBlock {
+.failedWorkInspectBlock {
   display: grid;
   gap: var(--space-1);
 }
 
-.dlqPre {
+.failedWorkPre {
   margin: 0;
   padding: var(--space-2);
   border: 1px solid var(--color-border);
@@ -1086,7 +1086,7 @@
     grid-template-columns: 1fr;
   }
 
-  .dlqFilterGrid {
+  .failedWorkFilterGrid {
     grid-template-columns: 1fr;
   }
 

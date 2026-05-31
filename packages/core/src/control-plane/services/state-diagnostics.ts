@@ -73,16 +73,10 @@ export function buildStateStoreDiagnostics(config: AthenaConfig, _stateStore: St
         path: resolve(stateRoot, "run-evidence")
       },
       {
-        id: "specialist-runs",
-        label: "Specialist run artifacts",
+        id: "agent-runs",
+        label: "Agent run artifacts",
         category: "intentional-file-artifact",
-        path: resolve(stateRoot, "specialist-runs")
-      },
-      {
-        id: "persona-runs",
-        label: "Persona run artifacts",
-        category: "intentional-file-artifact",
-        path: resolve(stateRoot, "persona-runs")
+        path: resolve(stateRoot, "agent-runs")
       },
       {
         id: "work-queues",

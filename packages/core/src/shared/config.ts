@@ -57,7 +57,7 @@ export interface AthenaConfig {
     retentionDays: number;
     sweepIntervalMs: number;
   };
-  fleetMetricsProvider?: "local" | "k8s";
+  operationsMetricsProvider?: "local" | "k8s";
   distributedLockProvider?: "local" | "redis" | "k8s-lease";
   redisUrl?: string;
   sandbox?: {
@@ -309,7 +309,7 @@ function parseCliTransport(input: string | undefined, defaultValue: "local" | "a
   return defaultValue;
 }
 
-function parseFleetMetricsProvider(input: string | undefined): "local" | "k8s" | undefined {
+function parseOperationsMetricsProvider(input: string | undefined): "local" | "k8s" | undefined {
   if (!input) {
     return undefined;
   }
@@ -650,8 +650,8 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
     env.ATHENA_AZURE_BILLING_API_VERSION ??
     process.env.ATHENA_AZURE_BILLING_API_VERSION ??
     DEFAULT_CONFIG.azure!.billing!.apiVersion;
-  const fleetMetricsProvider = parseFleetMetricsProvider(
-    env.ATHENA_FLEET_METRICS_PROVIDER ?? process.env.ATHENA_FLEET_METRICS_PROVIDER
+  const operationsMetricsProvider = parseOperationsMetricsProvider(
+    env.ATHENA_OPERATIONS_METRICS_PROVIDER ?? process.env.ATHENA_OPERATIONS_METRICS_PROVIDER
   );
   const distributedLockProvider = parseDistributedLockProvider(
     env.ATHENA_DISTRIBUTED_LOCK_PROVIDER ?? process.env.ATHENA_DISTRIBUTED_LOCK_PROVIDER
@@ -804,7 +804,7 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
         DEFAULT_CONFIG.runHistory!.sweepIntervalMs
       )
     },
-    ...(fleetMetricsProvider ? { fleetMetricsProvider } : {}),
+    ...(operationsMetricsProvider ? { operationsMetricsProvider } : {}),
     ...(distributedLockProvider ? { distributedLockProvider } : {}),
     ...(redisUrl ? { redisUrl } : {}),
     sandbox: {

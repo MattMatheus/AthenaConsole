@@ -1,6 +1,4 @@
 export {
-  parseA2aDlqDiscardRequest,
-  parseA2aDlqListQuery,
   parseA2aFlowGraphQuery,
   parseA2aObservabilityQuery,
   parseA2aStallAlertCsvExportQuery,
@@ -8,7 +6,8 @@ export {
 } from "./a2a.js";
 export { parseCreateDirectiveRequest } from "./directive.js";
 export { parseEventsListQuery, parseGovernanceAuditHistoryQuery } from "./events.js";
-export { parseFleetCostReportQuery, parseProviderCostSettingsPutRequest } from "./fleet.js";
+export { parseFailedWorkDiscardRequest, parseFailedWorkListQuery } from "./failed-work.js";
+export { parseOperationsCostReportQuery, parseProviderCostSettingsPutRequest } from "./operations.js";
 export { parseCreateHarnessProfileRequest } from "./harness-profile.js";
 export { parseIdentityAssignmentUpsertRequest } from "./identity.js";
 export { parseMemoryGetRequest, parseMemorySearchQuery } from "./memory.js";
@@ -30,7 +29,6 @@ export {
   parsePolicyPutRequest,
   parseRejectionsQuery
 } from "./policy.js";
-export { parsePersonaRunRequest, parseSpecialistRunRequest } from "./persona.js";
 export { parseCancelRunRequest, parseCreateRunRequest, parseRunControlQuery } from "./run.js";
 export { parseSessionSearchQuery } from "./session.js";
 export { parseConnectedRepositoryCreateRequest, parseConnectedRepositoryInspectPathRequest } from "./repositories.js";

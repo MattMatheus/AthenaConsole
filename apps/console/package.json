@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "ProjectAthena web console",
+  "description": "Team Orchestrator web console",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

@@ -116,20 +116,18 @@ export function resolveRunId(
   return params.runId?.trim() || requestUrl.searchParams.get("runId")?.trim() || undefined;
 }
 
-export function resolvePersonaId(
+export function resolveAgentId(
   params: Record<string, string>,
   requestUrl: URL
 ): string | undefined {
   return (
-    params.specialistId?.trim() ||
-    requestUrl.searchParams.get("specialistId")?.trim() ||
-    params.personaId?.trim() ||
-    requestUrl.searchParams.get("personaId")?.trim() ||
+    params.agentId?.trim() ||
+    requestUrl.searchParams.get("agentId")?.trim() ||
+    params.agentId?.trim() ||
+    requestUrl.searchParams.get("agentId")?.trim() ||
     undefined
   );
 }
-
-export const resolveSpecialistId = resolvePersonaId;
 
 function compactDimensions(input: Record<string, string | undefined>): Record<string, string> {
   const compact: Record<string, string> = {};

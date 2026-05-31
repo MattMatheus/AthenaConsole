@@ -743,7 +743,7 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
                 "failed"
               ]
             },
-            "personaId": {
+            "agentId": {
               "type": "string"
             },
             "userId": {
@@ -824,7 +824,7 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
           "failed"
         ]
       },
-      "personaId": {
+      "agentId": {
         "type": "string"
       },
       "userId": {
@@ -2669,7 +2669,7 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
       "events"
     ]
   },
-  "A2aDlqItem": {
+  "FailedWorkItem": {
     "type": "object",
     "additionalProperties": false,
     "properties": {
@@ -2686,7 +2686,7 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
         "type": "string",
         "enum": [
           "pending",
-          "requeued",
+          "retried",
           "discarded"
         ]
       },
@@ -2706,7 +2706,7 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
       "payload"
     ]
   },
-  "A2aDlqListResult": {
+  "FailedWorkListResult": {
     "type": "object",
     "additionalProperties": false,
     "properties": {
@@ -2729,7 +2729,7 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
               "type": "string",
               "enum": [
                 "pending",
-                "requeued",
+                "retried",
                 "discarded"
               ]
             },
@@ -3420,7 +3420,7 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
           "sessionId": {
             "type": "string"
           },
-          "personaName": {
+          "agentName": {
             "type": "string"
           }
         },
@@ -3637,7 +3637,7 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
               "sessionId": {
                 "type": "string"
               },
-              "personaName": {
+              "agentName": {
                 "type": "string"
               }
             },
@@ -3871,7 +3871,7 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
                     "sessionId": {
                       "type": "string"
                     },
-                    "personaName": {
+                    "agentName": {
                       "type": "string"
                     }
                   },
@@ -3988,7 +3988,7 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
       "items"
     ]
   },
-  "FleetSummary": {
+  "OperationsSummary": {
     "type": "object",
     "additionalProperties": false,
     "properties": {
@@ -4088,13 +4088,13 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
           "totalEstimatedSpendUsd": {
             "type": "number"
           },
-          "personaBreakdown": {
+          "agentBreakdown": {
             "type": "array",
             "items": {
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "personaName": {
+                "agentName": {
                   "type": "string"
                 },
                 "estimatedSpendUsd": {
@@ -4111,7 +4111,7 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
                 }
               },
               "required": [
-                "personaName",
+                "agentName",
                 "estimatedSpendUsd",
                 "inputTokens",
                 "outputTokens",
@@ -4184,7 +4184,7 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
           "windowStart",
           "windowEnd",
           "totalEstimatedSpendUsd",
-          "personaBreakdown",
+          "agentBreakdown",
           "providerBreakdown",
           "tokenMix"
         ]
@@ -4332,7 +4332,7 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
           "global": {
             "type": "boolean"
           },
-          "personas": {
+          "agents": {
             "type": "array",
             "items": {
               "type": "string"
@@ -4353,7 +4353,7 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
         },
         "required": [
           "global",
-          "personas",
+          "agents",
           "sessionIds",
           "runIds"
         ]

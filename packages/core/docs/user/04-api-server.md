@@ -1,6 +1,6 @@
-# The Athena API Server
+# The Core API Server
 
-Project Athena uses an API-first control plane. The REST API (`/api/v1`) is the canonical surface for orchestration, and the CLI can call the same services.
+Team Orchestrator uses an API-first control plane. The REST API (`/api/v1`) is the canonical surface for orchestration, and the compatibility CLI can call the same services.
 
 ## Running the API Server
 
@@ -64,16 +64,16 @@ Behavior:
 - `GET /api/v1/capabilities`
 - `GET /api/v1/admin/health`
 
-### Runs and Sessions
+### Runs And Run History
 
 - `POST /api/v1/runs`
 - `GET /api/v1/runs/active`
 - `GET /api/v1/runs/cancel-requests`
 - `POST /api/v1/run-control/by-run/:runId/cancel` (preferred)
 - `POST /api/v1/runs/:sessionId/cancel` (deprecated compatibility path)
-- `GET /api/v1/sessions`
-- `GET /api/v1/sessions/:sessionId/transcript`
-- `GET /api/v1/sessions/:sessionId/work-queue`
+- `GET /api/v1/sessions` (backing compatibility API for Run History)
+- `GET /api/v1/sessions/:sessionId/transcript` (backing compatibility API for Run History transcripts)
+- `GET /api/v1/sessions/:sessionId/work-queue` (advanced runtime diagnostics)
 
 ### Directives and Harness Profiles
 
@@ -94,19 +94,19 @@ These endpoints support the decoupled execution model:
 - `POST /api/v1/run-templates`
 - `POST /api/v1/templates/:id/run`
 
-### Workflows (DAG)
+### Workflows
 
-- `GET /api/v1/workflows`
-- `POST /api/v1/workflows`
-- `GET /api/v1/workflows/run/:id`
-- `POST /api/v1/workflows/run/:id/resume`
+- `GET /api/v1/workflow-runs/:runId/status`
+- `POST /api/v1/workflow-runs/:runId/execute`
 
-### Work and Memory
+Legacy file-backed `/api/v1/workflows*` routes have been removed. Use plugin workflow templates and canonical workflow run status APIs instead.
 
-- `POST /api/v1/work/enqueue`
-- `POST /api/v1/work/:sessionId/drain`
-- `GET /api/v1/memory/search`
-- `POST /api/v1/memory/get`
+### Advanced Runtime Diagnostics
+
+- `GET /api/v1/sessions/:sessionId/work-queue` inspects a retained session-backed work queue for debugging stuck or compatibility runs.
+- `POST /api/v1/work/enqueue` and `POST /api/v1/work/:sessionId/drain` are retained for compatibility CLI diagnostics, not first-run task workflows.
+- `GET /api/v1/memory/search` searches indexed local memory/context files when memory is enabled.
+- `POST /api/v1/memory/get` reads bounded memory/context excerpts by workspace-relative path.
 
 ### Scheduling
 
@@ -120,21 +120,25 @@ These endpoints support the decoupled execution model:
 - `GET /api/v1/schedules/:id/logs`
 - `POST /api/v1/schedules/tick`
 
-### Policy, Fleet, and Events
+### Policy, Operations, and Events
 
 - `GET /api/v1/policy`
 - `PUT /api/v1/policy`
 - `GET /api/v1/policy/rejections`
-- `GET /api/v1/fleet/summary`
+- `GET /api/v1/operations/summary`
+- `GET /api/v1/operations/cost/settings`
+- `PUT /api/v1/operations/cost/settings`
+- `GET /api/v1/operations/cost/report.csv`
 - `GET /api/v1/events`
 - `GET /api/v1/events/stream`
 
-### Persona and A2A DLQ
+### Failed Work Recovery
 
-- `POST /api/v1/personas/run`
-- `GET /api/v1/a2a/dlq`
-- `POST /api/v1/a2a/dlq/:id/requeue`
-- `POST /api/v1/a2a/dlq/:id/discard`
+- `GET /api/v1/failed-work`
+- `POST /api/v1/failed-work/:id/retry`
+- `POST /api/v1/failed-work/:id/discard`
+
+Failed work recovery is the current API surface for reviewing recoverable task and workflow failures.
 
 ## Run Response Notes (v1)
 

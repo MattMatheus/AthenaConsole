@@ -25,13 +25,12 @@ const navSections: NavSection[] = [
       { path: "/missions", label: "Missions", match: /^\/missions/ },
       { path: "/tasks", label: "Tasks", match: /^\/tasks/ },
       { path: "/schedules", label: "Schedules", match: /^\/schedules/ },
-      { path: "/sessions", label: "Sessions", match: /^\/sessions/ },
+      { path: "/runs", label: "Run History", match: /^\/runs|^\/sessions/ },
     ],
   },
   {
     label: "Configure",
     items: [
-      { path: "/mission-control", label: "Mission Control", match: /^\/mission-control/ },
       { path: "/run-templates", label: "Run Templates", match: /^\/run-templates/ },
       { path: "/resources", label: "Resource Controls", match: /^\/resources/ },
       { path: "/docs", label: "Documentation", match: /^\/docs/ },
@@ -42,7 +41,7 @@ const navSections: NavSection[] = [
     items: [
       { path: "/audit-trail", label: "Audit Trail", match: /^\/audit-trail/ },
       { path: "/rbac", label: "Access Control", match: /^\/rbac/ },
-      { path: "/dlq", label: "Compatibility Queue", match: /^\/dlq/ },
+      { path: "/failed-work", label: "Failed Work", match: /^\/failed-work/ },
       { path: "/settings", label: "Settings", match: /^\/settings/ },
     ],
   },
@@ -202,7 +201,7 @@ export function AppLayout() {
               <input
                 type="search"
                 className={styles.searchInput}
-                placeholder="Search run_01HF... or session_01HF..."
+                placeholder="Search run_01HF..."
                 aria-label="Global search"
               />
             </label>

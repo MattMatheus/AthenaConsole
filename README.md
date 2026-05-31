@@ -14,7 +14,7 @@ Team Orchestrator provides:
 - A local API server for agents, tasks, missions, runs, schedules, workflow templates, readiness, events, artifacts, diagnostics, and safety controls.
 - Manifest-backed plugins and agents.
 - Durable SQLite app-state for operator-facing control-plane records.
-- File-backed artifact payloads for transcripts, run evidence, specialist reports, and other inspectable outputs.
+- File-backed artifact payloads for transcripts, run evidence, agent reports, and other inspectable outputs.
 - Workflow-template DAG execution with restart-safe run state and status inspection.
 - Runtime safety defaults, loop limits, approval hooks, and pluggable execution backends.
 - A checked-in first-run sample plugin at `sample-plugins/first-run-demo`.
@@ -95,11 +95,10 @@ apps/
 
 packages/
   core/         Core orchestration, API contracts, state, runtime, CLI
-  pdk/          Persona/plugin development contracts
+  pdk/          Plugin-backed agent development kit
 
 docs/product/  Product direction, architecture decisions, audits, roadmap
-sample-plugins/ First-run and local sample plugin assets
-specialists/   Example specialist manifests and local agent assets
+sample-plugins/ Example plugin-backed agent assets
 ```
 
 ## Architecture At A Glance
@@ -108,7 +107,7 @@ Team Orchestrator separates durable control-plane state from inspectable payload
 
 SQLite owns operator-facing app state such as tasks, missions, runs, schedules, workflow DAG state, directives, harness profiles, run templates, and artifact metadata.
 
-The filesystem remains the right owner for large or human-inspectable payloads such as transcripts, run evidence files, specialist reports, logs, plugin source files, and workflow template source manifests.
+The filesystem remains the right owner for large or human-inspectable payloads such as transcripts, run evidence files, agent reports, logs, plugin source files, and workflow template source manifests.
 
 The current state ownership map lives in:
 

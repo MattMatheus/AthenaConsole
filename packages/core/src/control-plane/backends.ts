@@ -132,7 +132,7 @@ export interface SandboxExecutionBackend {
   getResourceUsage?(request: SandboxResourceUsageRequest): Promise<SandboxResourceUsageResult>;
 }
 
-export interface BackendFleetMetricsSnapshot {
+export interface BackendOperationsMetricsSnapshot {
   supportsPods: boolean;
   supportsCpuMemMetrics: boolean;
   runs: {
@@ -148,7 +148,7 @@ export interface ExecutionBackend {
   cancelByRunId?(request: CancelRunByRunIdRequest): Promise<CancelRunByRunIdResult>;
   listActiveRuns?(query?: RunControlQuery): Promise<ActiveRunQueryResult>;
   listCancellationRequests?(query?: RunControlQuery): Promise<CancellationRequestQueryResult>;
-  getFleetMetrics?(): Promise<BackendFleetMetricsSnapshot>;
+  getOperationsMetrics?(): Promise<BackendOperationsMetricsSnapshot>;
 }
 
 export type { RuntimeEvidenceAttachment };
