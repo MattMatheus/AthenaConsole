@@ -1,6 +1,6 @@
 # Control Plane (`src/control-plane/`)
 
-The Control Plane is the central orchestration layer of Project Athena. It exposes the core functionality via a REST API and ensures consistent behavior across all interfaces (CLI, API, etc.).
+The control plane is the central orchestration layer of Team Orchestrator. It exposes the core functionality via a REST API and ensures consistent behavior across local API, console, and CLI-facing paths.
 
 ## Key Components
 
@@ -17,4 +17,4 @@ When modifying shared DTOs in `src/shared/contracts.ts`, you **must** update the
 2. Run `npm run generate:schemas`.
 3. Verify with `npm run check:schemas`.
 
-*See `docs/developer/01-architecture.md` for more details on the API-first design.*
+See `docs/developer/product-dev-guides/01-architecture.md` for more details on the product architecture.

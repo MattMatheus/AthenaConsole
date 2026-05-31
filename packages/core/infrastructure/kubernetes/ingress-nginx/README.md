@@ -1,6 +1,6 @@
 # NGINX Ingress Controller Bootstrap
 
-Project Athena deploy workflow bootstraps `ingress-nginx` directly from the official upstream manifest for cloud environments:
+Team Orchestrator's legacy cloud deployment scaffold bootstraps `ingress-nginx` directly from the official upstream manifest:
 
 - `https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.3/deploy/static/provider/cloud/deploy.yaml`
 

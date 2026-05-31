@@ -28,6 +28,7 @@ No candidate engineering or architecture intake items.
 
 Recently completed:
 
+- `engineering/done/STORY-20260531-release-presentability-cleanup.md`
 - `engineering/done/BUG-20260531-console-ci-typecheck.md`
 - `engineering/done/STORY-20260531-release-readiness-cleanup.md`
 - `engineering/done/STORY-20260531-readiness-first-run-clarity.md`

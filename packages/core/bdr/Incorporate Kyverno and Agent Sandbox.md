@@ -1,7 +1,7 @@
-Executive Brief: Why and How to Integrate Agent Sandbox + Kyverno with ProjectAthena
+Executive Brief: Why and How to Integrate Agent Sandbox + Kyverno with Team Orchestrator
 
 Overview
-ProjectAthena is maturing from a strong runtime into an enterprise-ready agent platform. Integrating Agent Sandbox and Kyverno closes a key gap: safe execution at scale with enforceable governance.
+Team Orchestrator is maturing from a strong local runtime into an agent platform with clearer safety boundaries. Integrating Agent Sandbox and Kyverno would close a key gap for safe execution at scale with enforceable governance.
 
 Why This Matters
 
@@ -13,14 +13,14 @@ What Each Component Contributes
 
 Agent Sandbox: Provides fast, isolated runtime environments for agent work.
 Kyverno: Enforces policy-as-code so workloads that violate security rules are blocked or auto-corrected before running.
-Athena Control Plane: Remains the orchestration brain, deciding intent, tracking runs, and exposing audit/telemetry.
+Team Orchestrator Control Plane: Remains the orchestration brain, deciding intent, tracking runs, and exposing audit/telemetry.
 How It Works (Non-Technical)
 
-Athena receives a run request.
-Athena requests an isolated execution environment from Agent Sandbox.
+Team Orchestrator receives a run request.
+Team Orchestrator requests an isolated execution environment from Agent Sandbox.
 Kyverno checks and enforces required policies for that agent role.
 If compliant, the run executes; if not, it is rejected with an auditable reason.
-Athena captures outcomes, telemetry, and cleanup status for operations and compliance.
+Team Orchestrator captures outcomes, telemetry, and cleanup status for operations and compliance.
 Business Outcomes
 
 Faster security reviews for new agent use cases.
@@ -34,4 +34,4 @@ Measure: Track startup latency, policy rejection rates, run success, and operato
 Expand: Add role-based profiles and runtime options for broader workloads.
 Standardize: Make policy-backed isolated execution the default for sensitive tasks.
 Decision Framing
-This is not replacing Athena’s core value. It strengthens Athena’s control-plane model with proven infrastructure and governance layers, making the platform safer, more credible, and more scalable for enterprise operations.
+This is not replacing Team Orchestrator's core value. It strengthens the control-plane model with proven infrastructure and governance layers, making the platform safer, more credible, and more scalable for enterprise operations.

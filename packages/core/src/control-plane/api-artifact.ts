@@ -107,7 +107,7 @@ export function buildApiContractArtifact(now = new Date()): ApiContractArtifact 
     openapi: {
       openapi: "3.1.0",
       info: {
-        title: "ProjectAthena Control-Plane API",
+        title: "Team Orchestrator Control-Plane API",
         version: "v1"
       },
       servers: [{ url: "/" }],

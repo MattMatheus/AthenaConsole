@@ -1,0 +1,129 @@
+{
+  "cycle_id": "20260531-release-presentability-cleanup",
+  "generated_at_utc": "2026-05-31T16:25:28Z",
+  "branch": "main",
+  "story_path": "flywheel/backlog/engineering/done/STORY-20260531-release-presentability-cleanup.md",
+  "actor": "n/a",
+  "stage_trace": [],
+  "diff_inventory": [
+    "A\tflywheel/backlog/engineering/done/STORY-20260531-release-presentability-cleanup.md",
+    "D\tapps/console/vite.config.js",
+    "M\t.github/workflows/local-server-validation.yml",
+    "M\t.gitignore",
+    "M\tdocs/README.md",
+    "M\tflywheel/backlog/README.md",
+    "M\tflywheel/backlog/engineering/done/README.md",
+    "M\tpackages/core/AGENTS.md",
+    "M\tpackages/core/LICENSE.md",
+    "M\tpackages/core/bdr/Incorporate Kyverno and Agent Sandbox.md",
+    "M\tpackages/core/features/release.md",
+    "M\tpackages/core/infrastructure/kubernetes/ingress-nginx/README.md",
+    "M\tpackages/core/infrastructure/terraform/environments/dev/README.md",
+    "M\tpackages/core/skills/github-project-manager/references/config.md",
+    "M\tpackages/core/src/control-plane/README.md",
+    "M\tpackages/core/src/control-plane/api-artifact.ts",
+    "M\tpackages/core/src/shared/README.md",
+    "M\tpackages/pdk/LICENSE"
+  ],
+  "objective": {
+    "intended_outcome": "Make the repo and local development app cleaner and more presentable for the 2026.1 release candidate.",
+    "scope_boundary": "Low-risk release polish only: CI action versions, generated artifact cleanup, current-facing naming/docs cleanup, and local ignored artifact cleanup."
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [
+      ".github/workflows/local-server-validation.yml",
+      ".gitignore",
+      "docs/README.md",
+      "core package docs",
+      "PDK license",
+      "generated console artifacts",
+      "prior CI warning output"
+    ],
+    "tools_used": [
+      "apply_patch",
+      "git rm --cached",
+      "npm --workspace @athena/core run typecheck",
+      "npm --workspace @athena/core run check:schemas",
+      "npm --workspace @athena/console run typecheck",
+      "npm --workspace @athena/pdk test",
+      "npm --workspace @athena/core run validate:manifests",
+      "npm --workspace @athena/console run build",
+      "npm run smoke:product -- --help",
+      "rg",
+      "validate_workflow_state.sh",
+      "git diff --check"
+    ],
+    "external_sources": [
+      "https://github.com/actions/checkout",
+      "https://github.com/actions/setup-node"
+    ]
+  },
+  "changes_made": {
+    "files_changed": [
+      "Updated GitHub Actions to current majors",
+      "Ignored and removed generated apps/console/vite.config.js",
+      "Refreshed current-facing Team Orchestrator naming in core docs/API metadata/package notes",
+      "Demoted persona compatibility from the main docs map",
+      "Updated package license notices"
+    ],
+    "state_transitions": [
+      "STORY-20260531-release-presentability-cleanup active -> qa -> done"
+    ],
+    "non_file_actions": [
+      "Removed local ignored .DS_Store files and generated apps/console/dist output"
+    ]
+  },
+  "validation": {
+    "checks_run": [
+      "npm --workspace @athena/core run typecheck",
+      "npm --workspace @athena/core run check:schemas",
+      "npm --workspace @athena/console run typecheck",
+      "npm --workspace @athena/pdk test",
+      "npm run smoke:product -- --help",
+      "npm --workspace @athena/core run validate:manifests",
+      "npm --workspace @athena/console run build",
+      "./flywheel/tools/validate_workflow_state.sh --format json",
+      "git diff --check",
+      "targeted stale-string and tracked-generated-file audits"
+    ],
+    "results": [
+      "All executed checks passed",
+      "Stale-string audit now finds only deliberate historical notes in current direction and architecture decision index",
+      "Tracked generated/OS file audit returned no matches"
+    ],
+    "checks_not_run": [
+      "docker compose ... config could not be run locally because Docker is unavailable; GitHub Actions must confirm it after push"
+    ]
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": true,
+    "prompts_updated_if_stage_behavior_changed": true,
+    "process_docs_updated_if_contracts_or_gates_changed": true,
+    "queue_order_and_state_synchronized": true
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [
+      "GitHub Actions must confirm actions/checkout@v6, actions/setup-node@v6, and Docker compose validation on the hosted runner."
+    ],
+    "assumptions_carried": [
+      "Historical/archive references to ProjectAthena and persona compatibility remain intentionally preserved where they explain prior product direction."
+    ],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "local write",
+    "approval_required": "no",
+    "approval_reference": "n/a"
+  },
+  "next_step": {
+    "recommended_next_state": "verify the pushed GitHub Actions run passes",
+    "follow_up_work": [],
+    "durable_promotions": []
+  },
+  "release_impact": {
+    "release_scope": "Required presentability cleanup for 2026.1.",
+    "additional_release_actions": [
+      "Confirm CI after push and continue with final release validation."
+    ]
+  }
+}

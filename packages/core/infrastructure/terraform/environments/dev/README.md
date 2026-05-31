@@ -1,6 +1,6 @@
 # Terraform Dev Environment (Azure)
 
-This environment provisions Milestone 5 baseline infrastructure for Project Athena:
+This legacy Azure development environment provisions an older Team Orchestrator cloud scaffold:
 
 - AKS (`Standard_B2s` system pool)
 - ACR (Basic)

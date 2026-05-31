@@ -49,7 +49,6 @@ Use these when you want to change the product or understand the current implemen
 5. [Release Readiness](product/release/README.md)
 6. [Repository Cleanup Audit](product/audits/2026-05-30-repo-cleanup-audit.md)
 7. [Code Retirement And Rename Audit](product/audits/2026-05-30-code-retirement-and-rename-audit.md)
-8. [Persona And Specialist Compatibility Plan](product/audits/2026-05-30-persona-specialist-compatibility-plan.md)
 
 ## Internal Workflow
 
@@ -67,3 +66,4 @@ Archived and completed planning records remain useful for rationale, but they ar
 - `docs/product/archive/`
 - `docs/product/history/`
 - `docs/product/research/`
+- `docs/product/audits/2026-05-30-persona-specialist-compatibility-plan.md`

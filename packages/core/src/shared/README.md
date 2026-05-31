@@ -1,11 +1,11 @@
 # Shared (`src/shared/`)
 
-This directory contains code and definitions shared across all modules of Project Athena.
+This directory contains code and definitions shared across Team Orchestrator core modules.
 
 ## 💎 Canonical Contracts (`contracts.ts`)
 
-This file is the **Source of Truth** for all Data Transfer Objects (DTOs) used in the system. 
-- **DO NOT** duplicate these interfaces elsewhere.
+This file is the **Source of Truth** for core runtime and API Data Transfer Objects (DTOs).
+- **DO NOT** duplicate these interfaces elsewhere inside `@athena/core`.
 - **DO** re-export these from `src/control-plane/api-contracts.ts` for use in the API layer.
 
 ## Utilities

@@ -1,34 +1,34 @@
-# ProjectAthena v1.0 Release Epics
+# Team Orchestrator Legacy Kubernetes Release Epics
 
 ## Release Goal
 
-Deliver a production-ready multi-agent runtime that can launch isolated Athena agents as Kubernetes pods, coordinate them through a management agent, and enable secure, observable agent-to-agent communication.
+Capture the older Kubernetes-oriented release concept for a production-ready multi-agent runtime that can launch isolated Team Orchestrator agents as Kubernetes pods, coordinate them through a management agent, and enable secure, observable agent-to-agent communication.
 
 ## Scope Guardrails
 
 - In scope: Kubernetes-native execution, control-plane orchestration, inter-agent communication primitives, observability, and failure handling.
 - Out of scope for v1.0: multi-cluster federation, external messaging/channel adapters, and fully autonomous long-running swarms without operator policy constraints.
 
-## Epic 1: Kubernetes Pod Runtime for Isolated Athena Agents
+## Epic 1: Kubernetes Pod Runtime for Isolated Team Orchestrator Agents
 
 ### Problem
 
-Athena currently runs as a CLI/runtime process. v1.0 needs isolated execution units that can be scheduled, resource-limited, and lifecycle-managed in Kubernetes.
+Team Orchestrator can run local agent work today; this older v1.0 concept explored isolated execution units that can be scheduled, resource-limited, and lifecycle-managed in Kubernetes.
 
 ### Outcome
 
-Operators can launch Athena agents as isolated pods with deterministic startup, per-agent configuration, and safe teardown.
+Operators can launch Team Orchestrator agents as isolated pods with deterministic startup, per-agent configuration, and safe teardown.
 
 ### v1.0 Deliverables
 
-- Containerized Athena runtime image with versioned tags.
+- Containerized Team Orchestrator runtime image with versioned tags.
 - Kubernetes deployment model for short-lived and long-running agent pods.
 - Pod template support for:
   - CPU/memory requests and limits
   - environment/config injection
   - workspace/data volume mounts
   - service account and RBAC bindings
-- Session/work queue state strategy compatible with pod restarts.
+- Run/work queue state strategy compatible with pod restarts.
 - Health/readiness probes and termination handling.
 - Standard operational docs: deploy, upgrade, rollback, and incident triage.
 
@@ -49,7 +49,7 @@ Operators can launch Athena agents as isolated pods with deterministic startup, 
 - File-backed local state may not be sufficient for high pod churn.
 - Misconfigured RBAC or volume policies could break agent startup.
 
-## Epic 2: Athena Management Agent for Subagent Pod Operations
+## Epic 2: Management Agent for Subagent Pod Operations
 
 ### Problem
 
@@ -57,14 +57,14 @@ A single control-plane mechanism is required to create, monitor, and terminate s
 
 ### Outcome
 
-A management agent can reconcile desired work into subagent pod executions and report status/results back into Athena session context.
+A management agent can reconcile desired work into subagent pod executions and report status/results back into Team Orchestrator run context.
 
 ### v1.0 Deliverables
 
 - Management agent module responsible for subagent pod orchestration.
 - Reconciliation loop:
   - desired task -> pod creation
-  - pod status tracking -> Athena work updates
+  - pod status tracking -> Team Orchestrator work updates
   - terminal status -> result handoff + cleanup
 - Policy layer for:
   - max concurrent pods per session/tenant
@@ -107,19 +107,19 @@ A clear, production-viable A2A communication strategy with one primary path for 
 - Model: agents publish typed messages/events to a broker-backed queue; consumers process with acknowledgements.
 - Pros: decoupled, resilient to agent restarts, native retry/dead-letter patterns, good audit trail.
 - Cons: adds broker dependency and message schema/version management.
-- Fit for Athena: aligns with existing work queue concepts and async orchestration model.
+- Fit for Team Orchestrator: aligns with existing work queue concepts and async orchestration model.
 
 2. Direct service-to-service RPC (HTTP/gRPC)
 - Model: agent calls another agent endpoint directly.
 - Pros: low latency, straightforward request/response semantics.
 - Cons: tighter coupling, service discovery complexity, harder retry/idempotency, weaker offline tolerance.
-- Fit for Athena: acceptable for narrowly scoped synchronous calls, weaker default for autonomous subagent fleets.
+- Fit for Team Orchestrator: acceptable for narrowly scoped synchronous calls, weaker default for autonomous subagent fleets.
 
 3. Shared state store polling (e.g., DB/object store mailbox)
 - Model: agents write/read communication documents from shared storage.
 - Pros: simple operationally, strong persistence.
 - Cons: polling inefficiency, higher coordination complexity, weaker real-time behavior.
-- Fit for Athena: useful as fallback/archive layer, not ideal as primary real-time transport.
+- Fit for Team Orchestrator: useful as fallback/archive layer, not ideal as primary real-time transport.
 
 ### v1.0 Recommendation
 
@@ -179,5 +179,5 @@ Adopt queue/topic-based asynchronous messaging as the primary A2A transport for 
 ## Definition of Done for v1.0
 
 - All epic acceptance criteria met.
-- End-to-end scenario validated: parent Athena session launches subagents, subagents communicate, results reconcile, and full trace is observable.
+- End-to-end scenario validated: parent Team Orchestrator run launches subagents, subagents communicate, results reconcile, and full trace is observable.
 - Operator documentation complete for deploy, rollback, failure handling, and scaling.

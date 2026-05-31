@@ -6,7 +6,7 @@ This file stores the specific IDs and names needed to interact with the GitHub P
 *   **Project ID:** PVT_kwHOAIjUss4BPY0V
 *   **Project Owner:** MattMatheus
 *   **Project Number:** 2
-*   **Project Title:** Project Athena Work Tracker
+*   **Project Title:** Team Orchestrator Work Tracker
 
 ## Fields
 ### Status Field
