@@ -92,3 +92,4 @@ Engineering work accepted by QA.
 86. `STORY-20260531-advanced-surface-empty-states.md`
 87. `STORY-20260531-demo-artifact-preview-confidence.md`
 88. `STORY-20260531-workflow-run-output-bridge.md`
+89. `STORY-20260531-readiness-first-run-clarity.md`

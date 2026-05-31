@@ -461,6 +461,13 @@ describe("api server", () => {
             degraded: number;
             optionalUnavailable: number;
           };
+          lanes: Array<{
+            id: string;
+            status: string;
+            message: string;
+            nextStep: string;
+            checkIds: string[];
+          }>;
           checks: Array<{
             id: string;
             status: string;
@@ -475,6 +482,12 @@ describe("api server", () => {
       expect(readinessEnvelope.data.status).toBe("degraded");
       expect(readinessEnvelope.data.generatedAt).toEqual(expect.any(String));
       expect(readinessEnvelope.data.summary.requiredFailed).toBe(0);
+      expect(readinessEnvelope.data.lanes.find((lane) => lane.id === "first-run-demo")).toMatchObject({
+        status: "degraded"
+      });
+      expect(readinessEnvelope.data.lanes.find((lane) => lane.id === "server-hardening")).toMatchObject({
+        status: "degraded"
+      });
       expect(readinessEnvelope.data.checks.map((check) => check.id)).toEqual([
         "api",
         "app-state",

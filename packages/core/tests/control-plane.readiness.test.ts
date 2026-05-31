@@ -93,6 +93,27 @@ describe("control-plane readiness", () => {
           availableWorkflowTemplates: 0
         }
       });
+      expect(report.lanes).toEqual([
+        expect.objectContaining({
+          id: "first-run-demo",
+          status: "degraded",
+          message: "The local stack is mostly usable, but the sample workflow is not ready yet."
+        }),
+        expect.objectContaining({
+          id: "real-work",
+          status: "ready"
+        }),
+        expect.objectContaining({
+          id: "provider-setup",
+          status: "degraded",
+          message: "The demo can run without credentials, but model-backed agents still need provider or secret setup."
+        }),
+        expect.objectContaining({
+          id: "server-hardening",
+          status: "degraded",
+          message: "Local demo use is okay, but server deployment hardening still has warnings."
+        })
+      ]);
       expect(JSON.stringify(report)).not.toContain("sk-");
       expect(JSON.stringify(report)).not.toContain("apiKey");
       expect(JSON.stringify(report)).not.toContain("ATHENA_");
@@ -126,6 +147,13 @@ describe("control-plane readiness", () => {
 
       expect(report.status).toBe("not-ready");
       expect(report.summary.requiredFailed).toBe(2);
+      expect(report.lanes.find((lane) => lane.id === "first-run-demo")).toMatchObject({
+        status: "blocked",
+        message: "Required local services are blocked before the demo can run."
+      });
+      expect(report.lanes.find((lane) => lane.id === "real-work")).toMatchObject({
+        status: "blocked"
+      });
       expect(report.checks.find((check) => check.id === "app-state")).toMatchObject({
         status: "failed",
         required: true,
@@ -172,6 +200,10 @@ describe("control-plane readiness", () => {
           authEnabled: false,
           explicitLocalOverride: true
         }
+      });
+      expect(report.lanes.find((lane) => lane.id === "server-hardening")).toMatchObject({
+        status: "degraded",
+        message: "Local demo use is okay, but server deployment hardening still has warnings."
       });
       expect(JSON.stringify(report)).not.toContain("ATHENA_");
       expect(JSON.stringify(report)).not.toContain("apiKey");

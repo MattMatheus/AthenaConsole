@@ -1,15 +1,23 @@
 import { CheckCircle2, CircleAlert, FolderGit2, RefreshCw, Route, Workflow } from "lucide-react";
 import { Link } from "react-router-dom";
 import { OperationsDashboard } from "../features/operations";
-import { useReadinessQuery } from "../features/readiness";
-import type { ReadinessCheck } from "../features/readiness";
+import {
+  checksForLane,
+  dashboardReadinessLabel,
+  dashboardReadinessMessage,
+  dashboardReadinessTone,
+  firstRunDemoLane,
+  useReadinessQuery,
+} from "../features/readiness";
+import type { DashboardReadinessTone, ReadinessCheck, ReadinessLane, ReadinessLaneStatus } from "../features/readiness";
 import styles from "./PageScaffold.module.css";
 
 export function DashboardPage() {
   const readinessQuery = useReadinessQuery();
   const readiness = readinessQuery.data;
-  const sampleDemo = readiness?.checks.find((check) => check.id === "sample-demo");
-  const blockedChecks = readiness?.checks.filter((check) => check.status !== "ok") ?? [];
+  const demoLane = firstRunDemoLane(readiness);
+  const readinessTone = dashboardReadinessTone(readiness, readinessQuery.isLoading);
+  const readinessError = readinessQuery.error instanceof Error ? readinessQuery.error : null;
 
   return (
     <section className={styles.page}>
@@ -60,24 +68,21 @@ export function DashboardPage() {
             <p className={styles.key}>Next Actions</p>
             <h2 className={styles.onboardingTitle}>Keep the local console ready</h2>
           </div>
-          <span className={readiness?.status === "ready" ? styles.statusReady : readiness?.status === "not-ready" ? styles.statusFailed : styles.statusDegraded}>
-            {readinessQuery.isLoading ? "checking" : readiness?.status ?? "unavailable"}
+          <span className={dashboardStatusClass(readinessTone)}>
+            {dashboardReadinessLabel(readiness, readinessQuery.isLoading)}
           </span>
         </div>
+        <p className={styles.settingsMuted}>{dashboardReadinessMessage(readiness, readinessError)}</p>
         <div className={styles.onboardingGrid}>
           <OnboardingStep
             icon={<CheckCircle2 size={18} />}
             title="Check readiness"
-            body={
-              readinessQuery.error instanceof Error
-                ? readinessQuery.error.message
-                : blockedChecks[0]?.nextStep ?? "API, local state, plugins, and runtime checks are available."
-            }
+            body={readinessTone === "blocked" ? "Resolve failed required checks before running work." : "Review readiness lanes below before deciding what to run next."}
           />
           <OnboardingStep
             icon={<Workflow size={18} />}
             title="Run the demo"
-            body={sampleDemo?.status === "ok" ? "Open workflow templates and instantiate the first-run demo." : sampleDemo?.nextStep ?? "Open workflow templates after the catalog loads."}
+            body={demoLane?.nextStep ?? "Open workflow templates after the catalog loads."}
           />
           <OnboardingStep
             icon={<CircleAlert size={18} />}
@@ -90,7 +95,15 @@ export function DashboardPage() {
             body="Open Resource Controls for the current local repo wiring model and validation checklist."
           />
         </div>
-        <div className={styles.readinessList} aria-label="Deployment readiness checks">
+        <div className={styles.readinessLaneGrid} aria-label="Readiness lanes">
+          {(readiness?.lanes ?? []).map((lane) => (
+            <ReadinessLaneCard key={lane.id} lane={lane} checks={checksForLane(readiness, lane)} />
+          ))}
+          {!readinessQuery.isLoading && readiness && readiness.lanes.length === 0 ? (
+            <p className={styles.settingsMuted}>Readiness lanes are unavailable until the API returns lane classification.</p>
+          ) : null}
+        </div>
+        <div className={styles.readinessList} aria-label="Detailed readiness checks">
           {(readiness?.checks ?? []).map((check) => (
             <ReadinessItem key={check.id} check={check} />
           ))}
@@ -122,6 +135,31 @@ export function DashboardPage() {
   );
 }
 
+function ReadinessLaneCard({ lane, checks }: { lane: ReadinessLane; checks: ReadinessCheck[] }) {
+  return (
+    <article className={styles.readinessLane}>
+      <div className={styles.readinessItemHeader}>
+        <div>
+          <p className={styles.value}>{lane.label}</p>
+          <p className={styles.readinessMeta}>{checks.length} checks</p>
+        </div>
+        <span className={`${styles.readinessBadge} ${laneStatusClass(lane.status)}`}>{lane.status}</span>
+      </div>
+      <p className={styles.settingsMuted}>{lane.message}</p>
+      <p className={styles.readinessNextStep}>Next step: {lane.nextStep}</p>
+      {checks.length > 0 ? (
+        <div className={styles.badgeRow}>
+          {checks.map((check) => (
+            <span key={check.id} className={`${styles.readinessMiniBadge} ${checkStatusClass(check)}`}>
+              {check.label}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 function ReadinessItem({ check }: { check: ReadinessCheck }) {
   const statusLabel = check.status === "ok" ? "pass" : check.status === "degraded" ? "warn" : "fail";
   const statusClass =
@@ -142,6 +180,36 @@ function ReadinessItem({ check }: { check: ReadinessCheck }) {
       {check.nextStep ? <p className={styles.readinessNextStep}>Next step: {check.nextStep}</p> : null}
     </article>
   );
+}
+
+function laneStatusClass(status: ReadinessLaneStatus): string {
+  if (status === "ready") {
+    return styles.readinessPass ?? "";
+  }
+  if (status === "degraded") {
+    return styles.readinessWarn ?? "";
+  }
+  return styles.readinessFail ?? "";
+}
+
+function dashboardStatusClass(tone: DashboardReadinessTone): string {
+  if (tone === "ready") {
+    return styles.statusReady ?? "";
+  }
+  if (tone === "blocked" || tone === "unavailable") {
+    return styles.statusFailed ?? "";
+  }
+  return styles.statusDegraded ?? "";
+}
+
+function checkStatusClass(check: ReadinessCheck): string {
+  if (check.status === "ok") {
+    return styles.readinessPass ?? "";
+  }
+  if (check.status === "degraded") {
+    return styles.readinessWarn ?? "";
+  }
+  return styles.readinessFail ?? "";
 }
 
 function WorkEntry({ to, title, body }: { to: string; title: string; body: string }) {

@@ -1793,9 +1793,28 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
             },
             required: ["id", "label", "category", "status", "required", "message", "nextStep", "details"]
           }
+        },
+        lanes: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              id: { type: "string", enum: ["first-run-demo", "real-work", "provider-setup", "server-hardening"] },
+              label: { type: "string", minLength: 1 },
+              status: { type: "string", enum: ["ready", "degraded", "blocked"] },
+              message: { type: "string", minLength: 1 },
+              nextStep: { type: "string", minLength: 1 },
+              checkIds: {
+                type: "array",
+                items: { type: "string", minLength: 1 }
+              }
+            },
+            required: ["id", "label", "status", "message", "nextStep", "checkIds"]
+          }
         }
       },
-      required: ["status", "generatedAt", "summary", "checks"]
+      required: ["status", "generatedAt", "summary", "lanes", "checks"]
     }
   },
   getAdminHealth: {

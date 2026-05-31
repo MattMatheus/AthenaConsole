@@ -6,6 +6,7 @@ import type {
   CapabilityService,
   ModelProviderConfigService,
   ReadinessCheck,
+  ReadinessLane,
   ReadinessReport,
   ReadinessService,
   StateDiagnosticsService,
@@ -53,6 +54,7 @@ export class LocalReadinessService implements ReadinessService {
         degraded,
         optionalUnavailable
       },
+      lanes: buildReadinessLanes(checks),
       checks
     };
   }
@@ -517,6 +519,156 @@ export class LocalReadinessService implements ReadinessService {
       }
     });
   }
+}
+
+function buildReadinessLanes(checks: ReadinessCheck[]): ReadinessLane[] {
+  return [
+    buildFirstRunDemoLane(checks),
+    buildRealWorkLane(checks),
+    buildProviderSetupLane(checks),
+    buildServerHardeningLane(checks)
+  ];
+}
+
+function buildFirstRunDemoLane(checks: ReadinessCheck[]): ReadinessLane {
+  const checkIds = ["api", "app-state", "artifact-storage", "plugin-paths", "plugins", "runtime", "sample-demo"];
+  const laneChecks = checksById(checks, checkIds);
+  if (laneChecks.some((check) => check.required && check.status === "failed")) {
+    return {
+      id: "first-run-demo",
+      label: "First-run demo",
+      status: "blocked",
+      message: "Required local services are blocked before the demo can run.",
+      nextStep: firstNextStep(laneChecks, "Fix required local readiness failures, then run the demo workflow."),
+      checkIds
+    };
+  }
+  const sampleDemo = laneChecks.find((check) => check.id === "sample-demo");
+  if (sampleDemo?.status !== "ok") {
+    return {
+      id: "first-run-demo",
+      label: "First-run demo",
+      status: "degraded",
+      message: "The local stack is mostly usable, but the sample workflow is not ready yet.",
+      nextStep: sampleDemo?.nextStep ?? "Check plugin/template indexing before running the first-run demo.",
+      checkIds
+    };
+  }
+  return {
+    id: "first-run-demo",
+    label: "First-run demo",
+    status: "ready",
+    message: "The credential-free first-run demo can run now.",
+    nextStep: "Open Workflows and instantiate the first-run demo workflow.",
+    checkIds
+  };
+}
+
+function buildRealWorkLane(checks: ReadinessCheck[]): ReadinessLane {
+  const checkIds = ["api", "app-state", "artifact-storage", "managed-repo-root", "plugin-paths", "plugins", "runtime"];
+  const laneChecks = checksById(checks, checkIds);
+  if (laneChecks.some((check) => check.required && check.status === "failed")) {
+    return {
+      id: "real-work",
+      label: "Real repo work",
+      status: "blocked",
+      message: "Required local work services need attention before reliable repo-backed runs.",
+      nextStep: firstNextStep(laneChecks, "Fix required local readiness failures before creating real repo work."),
+      checkIds
+    };
+  }
+  if (laneChecks.some((check) => check.status === "degraded")) {
+    return {
+      id: "real-work",
+      label: "Real repo work",
+      status: "degraded",
+      message: "Repo-backed work is available with local readiness warnings.",
+      nextStep: firstNextStep(laneChecks, "Review degraded local work checks before running long-lived work."),
+      checkIds
+    };
+  }
+  return {
+    id: "real-work",
+    label: "Real repo work",
+    status: "ready",
+    message: "Local state, plugins, runtime, artifacts, and repo storage are ready for real work.",
+    nextStep: "Open Resource Controls to connect or confirm a repository, then create a task.",
+    checkIds
+  };
+}
+
+function buildProviderSetupLane(checks: ReadinessCheck[]): ReadinessLane {
+  const checkIds = ["model-providers", "secret-root", "runtime"];
+  const laneChecks = checksById(checks, checkIds);
+  if (laneChecks.some((check) => check.required && check.status === "failed")) {
+    return {
+      id: "provider-setup",
+      label: "Model-backed agents",
+      status: "blocked",
+      message: "Runtime readiness is blocked for provider-backed work.",
+      nextStep: firstNextStep(laneChecks, "Fix runtime readiness before running model-backed agents."),
+      checkIds
+    };
+  }
+  if (laneChecks.some((check) => check.status !== "ok")) {
+    return {
+      id: "provider-setup",
+      label: "Model-backed agents",
+      status: "degraded",
+      message: "The demo can run without credentials, but model-backed agents still need provider or secret setup.",
+      nextStep: firstNextStep(laneChecks, "Open Settings to configure model providers when you need model-backed agents."),
+      checkIds
+    };
+  }
+  return {
+    id: "provider-setup",
+    label: "Model-backed agents",
+    status: "ready",
+    message: "Provider and secret readiness checks are clean for model-backed agents.",
+    nextStep: "No action needed.",
+    checkIds
+  };
+}
+
+function buildServerHardeningLane(checks: ReadinessCheck[]): ReadinessLane {
+  const checkIds = ["server-exposure", "secret-root"];
+  const laneChecks = checksById(checks, checkIds);
+  if (laneChecks.some((check) => check.id === "server-exposure" && check.status === "failed")) {
+    return {
+      id: "server-hardening",
+      label: "Server hardening",
+      status: "blocked",
+      message: "Server exposure settings are unsafe for a LAN/server deployment.",
+      nextStep: firstNextStep(laneChecks, "Enable token auth or bind the API to loopback before server exposure."),
+      checkIds
+    };
+  }
+  if (laneChecks.some((check) => check.status !== "ok")) {
+    return {
+      id: "server-hardening",
+      label: "Server hardening",
+      status: "degraded",
+      message: "Local demo use is okay, but server deployment hardening still has warnings.",
+      nextStep: firstNextStep(laneChecks, "Resolve server hardening warnings before trusted-LAN exposure."),
+      checkIds
+    };
+  }
+  return {
+    id: "server-hardening",
+    label: "Server hardening",
+    status: "ready",
+    message: "Server exposure and local secret checks are clean.",
+    nextStep: "No action needed.",
+    checkIds
+  };
+}
+
+function checksById(checks: ReadinessCheck[], checkIds: string[]): ReadinessCheck[] {
+  return checkIds.map((id) => checks.find((check) => check.id === id)).filter((check): check is ReadinessCheck => check !== undefined);
+}
+
+function firstNextStep(checks: ReadinessCheck[], fallback: string): string {
+  return checks.find((check) => check.status !== "ok" && check.nextStep)?.nextStep ?? fallback;
 }
 
 function buildApiCheck(): ReadinessCheck {

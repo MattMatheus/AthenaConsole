@@ -526,6 +526,22 @@
   gap: var(--space-3);
 }
 
+.readinessLaneGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.readinessLane {
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+}
+
 .readinessItem {
   min-width: 0;
   border: 1px solid var(--color-border);
@@ -571,6 +587,22 @@
   font-size: var(--font-size-100);
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.readinessMiniBadge {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  padding: 0.12rem 0.42rem;
+  font-size: var(--font-size-100);
+  font-weight: 800;
 }
 
 .readinessPass {
@@ -643,6 +675,10 @@
     grid-template-columns: 1fr;
   }
 
+  .readinessLaneGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .docsStepGrid,
   .docsSplit,
   .docsReferenceGrid {
@@ -650,6 +686,12 @@
   }
 
   .readinessList {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .readinessLaneGrid {
     grid-template-columns: 1fr;
   }
 }

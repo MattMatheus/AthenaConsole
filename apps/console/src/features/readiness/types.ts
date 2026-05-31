@@ -1,5 +1,7 @@
 export type ReadinessStatus = "ready" | "degraded" | "not-ready";
 export type ReadinessCheckStatus = "ok" | "degraded" | "failed";
+export type ReadinessLaneStatus = "ready" | "degraded" | "blocked";
+export type ReadinessLaneId = "first-run-demo" | "real-work" | "provider-setup" | "server-hardening";
 export type ReadinessCheckCategory =
   | "api"
   | "app-state"
@@ -29,9 +31,19 @@ export type ReadinessCheck = {
   details: Record<string, string | number | boolean>;
 };
 
+export type ReadinessLane = {
+  id: ReadinessLaneId;
+  label: string;
+  status: ReadinessLaneStatus;
+  message: string;
+  nextStep: string;
+  checkIds: string[];
+};
+
 export type ReadinessReport = {
   status: ReadinessStatus;
   generatedAt: string;
   summary: ReadinessSummary;
+  lanes: ReadinessLane[];
   checks: ReadinessCheck[];
 };

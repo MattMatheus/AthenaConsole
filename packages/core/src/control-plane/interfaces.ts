@@ -303,6 +303,8 @@ export type ReadinessCheckCategory =
   | "sample-demo";
 export type ReadinessCheckStatus = "ok" | "degraded" | "failed";
 export type ReadinessStatus = "ready" | "degraded" | "not-ready";
+export type ReadinessLaneId = "first-run-demo" | "real-work" | "provider-setup" | "server-hardening";
+export type ReadinessLaneStatus = "ready" | "degraded" | "blocked";
 
 export interface ReadinessCheck {
   id: string;
@@ -315,6 +317,15 @@ export interface ReadinessCheck {
   details: Record<string, string | number | boolean>;
 }
 
+export interface ReadinessLane {
+  id: ReadinessLaneId;
+  label: string;
+  status: ReadinessLaneStatus;
+  message: string;
+  nextStep: string;
+  checkIds: string[];
+}
+
 export interface ReadinessReport {
   status: ReadinessStatus;
   generatedAt: string;
@@ -324,6 +335,7 @@ export interface ReadinessReport {
     degraded: number;
     optionalUnavailable: number;
   };
+  lanes: ReadinessLane[];
   checks: ReadinessCheck[];
 }
 

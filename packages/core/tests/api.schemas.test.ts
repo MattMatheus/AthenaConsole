@@ -49,6 +49,16 @@ describe("api schemas", () => {
           degraded: 1,
           optionalUnavailable: 1
         },
+        lanes: [
+          {
+            id: "first-run-demo",
+            label: "First-run demo",
+            status: "degraded",
+            message: "The local stack is mostly usable, but the sample workflow is not ready yet.",
+            nextStep: "Check plugin/template indexing before running the first-run demo.",
+            checkIds: ["sample-demo"]
+          }
+        ],
         checks: [
           {
             id: "sample-demo",

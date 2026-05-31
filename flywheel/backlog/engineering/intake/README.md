@@ -4,7 +4,7 @@ Raw engineering work enters here before PM refinement.
 
 ## Candidate Sequence
 
-- `STORY-20260531-readiness-first-run-clarity.md`
+No engineering intake items.
 
 ## Refinement Rule
 
