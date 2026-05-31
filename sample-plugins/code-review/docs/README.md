@@ -43,6 +43,8 @@ curl -X POST http://127.0.0.1:8787/api/v1/tasks \
   }'
 ```
 
+Console-created tasks may also include connected repository metadata such as `repo.workspacePath` and top-level `repoPath`; Team Orchestrator normalizes those values to the runtime `repo.path` contract before execution.
+
 Run it:
 
 ```bash

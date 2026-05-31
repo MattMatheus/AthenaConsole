@@ -15,6 +15,8 @@ The agent accepts structured task input under `inputs.repo`:
 
 It scans file names and a short README excerpt, skips common generated directories such as `.git`, `node_modules`, `dist`, and `coverage`, then emits a deterministic markdown summary artifact.
 
+When you select a connected repository in the console, Team Orchestrator populates this same runtime contract from the repository record. Tasks may also carry `repo.workspacePath` and top-level `repoPath` for compatibility, but sample runners receive `repo.path`.
+
 ## Resources
 
 - Plugin id: `team-orchestrator.samples.repo-summary`

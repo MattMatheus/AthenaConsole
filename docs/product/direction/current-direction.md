@@ -228,11 +228,29 @@ Source epic:
 
 - `docs/product/epics/refinement/2026.32.00-epic-comprehensive-user-documentation.md`
 
+### 2026.33 First Real Work Confidence
+
+Status: Intake.
+
+Goal: repair user-testing gaps that prevent a new single-user or small-team operator from confidently moving from the first-run demo to useful repository work.
+
+Candidate engineering sequence:
+
+- `flywheel/backlog/engineering/done/STORY-20260531-repo-task-input-contract.md`
+- `flywheel/backlog/engineering/intake/STORY-20260531-demo-artifact-preview-confidence.md`
+- `flywheel/backlog/engineering/intake/STORY-20260531-workflow-run-output-bridge.md`
+- `flywheel/backlog/engineering/intake/STORY-20260531-readiness-first-run-clarity.md`
+- `flywheel/backlog/engineering/intake/STORY-20260531-advanced-surface-empty-states.md`
+
+Source epic:
+
+- `docs/product/epics/refinement/2026.33.00-epic-first-real-work-confidence.md`
+
 ### Current Flywheel Priorities
 
 Flywheel lanes are the operational source of truth. No engineering or architecture work is currently active or awaiting QA.
 
-The recommended next move is to run user testing against the in-product documentation and create explicit Flywheel intake items for observed gaps.
+The recommended next move is PM refinement of the 2026.33 first-real-work confidence intake items, with the repo-backed task input contract as the highest-priority repair candidate.
 
 Recently completed tracks now live in Flywheel done history:
 
@@ -277,11 +295,16 @@ Recently completed tracks now live in Flywheel done history:
 
 Queue status:
 
-- No refined engineering or architecture work is waiting.
+- The 2026.33 repo-backed task input contract repair is complete and awaiting cycle closure.
+- Engineering intake contains 2026.33 user-testing repair candidates.
+- No architecture work is active, ready, or awaiting QA.
 
 Planning intake sequence:
 
-- No planning intake remains for the current epic.
+- `flywheel/backlog/engineering/intake/STORY-20260531-demo-artifact-preview-confidence.md`
+- `flywheel/backlog/engineering/intake/STORY-20260531-workflow-run-output-bridge.md`
+- `flywheel/backlog/engineering/intake/STORY-20260531-readiness-first-run-clarity.md`
+- `flywheel/backlog/engineering/intake/STORY-20260531-advanced-surface-empty-states.md`
 
 ## Promotion Rule
 

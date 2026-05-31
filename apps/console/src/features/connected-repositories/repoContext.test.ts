@@ -13,6 +13,7 @@ describe("connected repository context", () => {
         id: "repo-docs",
         name: "Docs",
         sourceType: "existing-path",
+        path: "/workspace/repo",
         workspacePath: "/workspace/repo",
         hostPath: "/host/repo",
         currentBranch: "main",

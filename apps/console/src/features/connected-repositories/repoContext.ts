@@ -4,6 +4,7 @@ export type ConnectedRepositoryContext = {
   id: string;
   name: string;
   sourceType: ConnectedRepository["sourceType"];
+  path: string;
   workspacePath: string;
   status: ConnectedRepository["status"];
   dirtyState: ConnectedRepository["dirtyState"];
@@ -18,6 +19,7 @@ export function buildConnectedRepositoryContext(repository: ConnectedRepository)
     id: repository.id,
     name: repository.name,
     sourceType: repository.sourceType,
+    path: repository.workspacePath,
     workspacePath: repository.workspacePath,
     status: repository.status,
     dirtyState: repository.dirtyState,

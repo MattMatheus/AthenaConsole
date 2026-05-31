@@ -25,6 +25,11 @@ describe("repo summary sample plugin", () => {
     writeFileSync(join(targetRepo, "README.md"), "# Target Repo\n\nA small repo for deterministic summary testing.\n", "utf8");
     writeFileSync(join(targetRepo, "package.json"), '{"name":"target-repo","version":"0.1.0"}\n', "utf8");
     writeFileSync(join(targetRepo, "src", "index.ts"), "export const value = 1;\n", "utf8");
+    execFileSync("git", ["init"], { cwd: targetRepo, stdio: "pipe" });
+    execFileSync("git", ["config", "user.email", "test@example.com"], { cwd: targetRepo, stdio: "pipe" });
+    execFileSync("git", ["config", "user.name", "Test User"], { cwd: targetRepo, stdio: "pipe" });
+    execFileSync("git", ["add", "."], { cwd: targetRepo, stdio: "pipe" });
+    execFileSync("git", ["commit", "-m", "Initial commit"], { cwd: targetRepo, stdio: "pipe" });
     writeFileSync(join(dir, ".env"), `ATHENA_PLUGIN_PATHS=${samplePluginsPath}\n`, "utf8");
 
     const config = loadConfig(dir);
@@ -78,6 +83,30 @@ describe("repo summary sample plugin", () => {
         ])
       );
 
+      const repositoryEnvelope = await readJson<{
+        data: {
+          id: string;
+          name: string;
+          workspacePath: string;
+          status: string;
+          dirtyState: string;
+        };
+      }>(`${base}/api/v1/repositories`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: "target-repo",
+          name: "Target Repo",
+          sourceType: "existing-path",
+          workspacePath: targetRepo
+        })
+      });
+      expect(repositoryEnvelope.data).toMatchObject({
+        id: "target-repo",
+        workspacePath: targetRepo,
+        status: "ready"
+      });
+
       const taskEnvelope = await readJson<{
         data: { id: string; status: string };
       }>(`${base}/api/v1/tasks`, {
@@ -92,8 +121,14 @@ describe("repo summary sample plugin", () => {
           assignedAgentVersion: "0.1.0",
           inputs: {
             repo: {
-              path: targetRepo
+              id: "target-repo",
+              name: repositoryEnvelope.data.name,
+              sourceType: "existing-path",
+              workspacePath: repositoryEnvelope.data.workspacePath,
+              status: repositoryEnvelope.data.status,
+              dirtyState: repositoryEnvelope.data.dirtyState
             },
+            repoPath: targetRepo,
             maxFiles: 50
           }
         })

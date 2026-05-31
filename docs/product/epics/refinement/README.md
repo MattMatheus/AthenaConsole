@@ -19,7 +19,7 @@ Pre-reset refinement records were moved to:
 
 ## Active Refinement Tracks
 
-- `docs/product/epics/refinement/2026.32.00-epic-comprehensive-user-documentation.md`
+- `docs/product/epics/refinement/2026.33.00-epic-first-real-work-confidence.md`
 
 ## Completed Refinement Tracks
 
@@ -34,3 +34,4 @@ Pre-reset refinement records were moved to:
 - `docs/product/epics/refinement/2026.29.00-epic-real-work-run-loop.md`
 - `docs/product/epics/refinement/2026.30.00-epic-local-server-deployment-readiness.md`
 - `docs/product/epics/refinement/2026.31.00-epic-productization-docs-and-agent-developer-kit.md`
+- `docs/product/epics/refinement/2026.32.00-epic-comprehensive-user-documentation.md`

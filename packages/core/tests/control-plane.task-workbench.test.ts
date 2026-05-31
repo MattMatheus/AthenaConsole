@@ -613,6 +613,145 @@ process.stdout.write(JSON.stringify({
     }
   });
 
+  it("normalizes connected repository context to the runtime repo path contract", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-repo-contract-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "assert-repo-path.js"),
+        [
+          "let body = '';",
+          "process.stdin.on('data', (chunk) => body += chunk);",
+          "process.stdin.on('end', () => {",
+          "  const envelope = JSON.parse(body);",
+          "  if (!envelope.task?.inputs?.repo?.path) {",
+          "    console.error('missing repo.path');",
+          "    process.exit(1);",
+          "  }",
+          "  process.stdout.write(JSON.stringify({ output: { repoPath: envelope.task.inputs.repo.path }, artifacts: [] }));",
+          "});"
+        ].join("\n"),
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "assert-repo-path.js");
+        const workspacePath = join(dir, "target-repo");
+        mkdirSync(workspacePath, { recursive: true });
+        appState.connectedRepositories.create({
+          id: "repo-ready",
+          name: "Ready Repo",
+          sourceType: "existing-path",
+          workspacePath,
+          status: "ready"
+        });
+        appState.tasks.create({
+          id: "task-repo-contract",
+          title: "Repo contract",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          inputs: {
+            taskBrief: "Patch the API",
+            repo: {
+              id: "repo-ready",
+              name: "Ready Repo",
+              workspacePath,
+              status: "ready"
+            }
+          }
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+
+        const readiness = await service.getRunReadiness("task-repo-contract");
+        const run = await service.runTask("task-repo-contract");
+
+        expect(readiness).toMatchObject({
+          status: "ready",
+          ready: true
+        });
+        expect(run).toMatchObject({
+          status: "completed",
+          output: {
+            repoPath: workspacePath
+          }
+        });
+        expect(appState.tasks.get("task-repo-contract")?.inputs).toMatchObject({
+          repo: {
+            id: "repo-ready",
+            workspacePath
+          }
+        });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("blocks ready repository records whose workspace path is inaccessible to the runtime", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-repo-runtime-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(join(pluginDir, "success.js"), "process.exit(0);", "utf8");
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "success.js");
+        const workspacePath = join(dir, "missing-runtime-path");
+        appState.connectedRepositories.create({
+          id: "repo-stale-ready",
+          name: "Stale Ready Repo",
+          sourceType: "existing-path",
+          workspacePath,
+          status: "ready"
+        });
+        appState.tasks.create({
+          id: "task-repo-runtime-blocked",
+          title: "Repo runtime blocked",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          inputs: {
+            taskBrief: "Patch the API",
+            repo: {
+              id: "repo-stale-ready",
+              name: "Stale Ready Repo",
+              workspacePath,
+              status: "ready"
+            }
+          }
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+
+        const readiness = await service.getRunReadiness("task-repo-runtime-blocked");
+
+        expect(readiness).toMatchObject({
+          status: "blocked",
+          ready: false
+        });
+        expect(readiness.checks).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: "repo-context",
+              status: "blocked",
+              message: `Repository path is not accessible to this runtime: ${workspacePath}.`
+            })
+          ])
+        );
+        await expect(service.runTask("task-repo-runtime-blocked")).rejects.toThrow("Run readiness blocked");
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("blocks runs when the assigned agent has no runnable runtime", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-readiness-runtime-"));
     try {

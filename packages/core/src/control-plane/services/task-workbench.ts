@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AthenaError } from "../../runtime/errors.js";
@@ -328,7 +328,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
 
   async runTask(id: string, request: TaskWorkbenchTaskRunRequest = {}): Promise<TaskWorkbenchTaskRun> {
     return this.withAppStateAsync(async (appState) => {
-      const task = requireTask(appState, id);
+      const task = normalizeTaskRecordRepoInputs(requireTask(appState, id));
       const readiness = evaluateTaskRunReadiness(appState, task);
       if (!readiness.ready) {
         throw new AthenaError("CONFIG_ERROR", readiness.summary);
@@ -1497,6 +1497,7 @@ function isPathInside(parent: string, child: string): boolean {
 }
 
 export function evaluateTaskRunReadiness(appState: AppStateDatabase, task: TaskRecord): TaskWorkbenchRunReadiness {
+  task = normalizeTaskRecordRepoInputs(task);
   const checks: TaskWorkbenchRunReadinessCheck[] = [];
   const addCheck = (check: TaskWorkbenchRunReadinessCheck) => checks.push(check);
   addRunModeReadinessCheck(task, addCheck);
@@ -1567,7 +1568,8 @@ export function evaluateTaskRunReadiness(appState: AppStateDatabase, task: TaskR
 }
 
 function normalizeTaskInputsWithRunMode(inputs: unknown): Record<string, unknown> {
-  const values = isRecord(inputs) ? { ...inputs } : {};
+  let values = isRecord(inputs) ? { ...inputs } : {};
+  values = normalizeRepositoryInputShape(values);
   if (!Object.prototype.hasOwnProperty.call(values, "runMode")) {
     values.runMode = DEFAULT_TASK_WORKBENCH_RUN_MODE;
   }
@@ -1636,6 +1638,43 @@ function createAgentTaskRunEnvelope(
   };
 }
 
+function normalizeTaskRecordRepoInputs(task: TaskRecord): TaskRecord {
+  const inputs = isRecord(task.inputs) ? normalizeRepositoryInputShape({ ...task.inputs }) : task.inputs;
+  return {
+    ...task,
+    inputs
+  };
+}
+
+function normalizeRepositoryInputShape(inputs: Record<string, unknown>): Record<string, unknown> {
+  const repo = isRecord(inputs.repo) ? inputs.repo : undefined;
+  if (!repo) {
+    return inputs;
+  }
+
+  const repoPath =
+    readNonEmptyString(repo.path) ??
+    readNonEmptyString(inputs.repoPath) ??
+    readNonEmptyString(repo.workspacePath);
+
+  if (!repoPath) {
+    return inputs;
+  }
+
+  return {
+    ...inputs,
+    repo: {
+      ...repo,
+      path: repoPath
+    },
+    ...(readNonEmptyString(inputs.repoPath) ? {} : { repoPath })
+  };
+}
+
+function readNonEmptyString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+}
+
 function addProviderReadinessCheck(
   readiness: ProviderReadiness,
   addCheck: (check: TaskWorkbenchRunReadinessCheck) => void
@@ -1686,7 +1725,10 @@ function addRepoReadinessChecks(
   const inputs = isRecord(task.inputs) ? task.inputs : {};
   const repo = isRecord(inputs.repo) ? inputs.repo : undefined;
   const repoId = typeof repo?.id === "string" ? repo.id : undefined;
-  const repoPath = typeof inputs.repoPath === "string" ? inputs.repoPath : typeof repo?.workspacePath === "string" ? repo.workspacePath : undefined;
+  const repoPath =
+    readNonEmptyString(repo?.path) ??
+    readNonEmptyString(inputs.repoPath) ??
+    readNonEmptyString(repo?.workspacePath);
   if (!repoId && !repoPath) {
     addCheck({
       id: "repo-context",
@@ -1724,6 +1766,42 @@ function addRepoReadinessChecks(
       nextStep: "Inspect or fix the repository connection before starting the run."
     });
     return;
+  }
+  if (repoPath && !existsSync(repoPath)) {
+    addCheck({
+      id: "repo-context",
+      category: "repo",
+      status: "blocked",
+      label: "Repository Context",
+      message: `Repository path is not accessible to this runtime: ${repoPath}.`,
+      nextStep: "Inspect or reconnect the repository using a workspace path visible to the API/runtime."
+    });
+    return;
+  }
+  if (repoPath) {
+    try {
+      if (!statSync(repoPath).isDirectory()) {
+        addCheck({
+          id: "repo-context",
+          category: "repo",
+          status: "blocked",
+          label: "Repository Context",
+          message: `Repository path is not a directory: ${repoPath}.`,
+          nextStep: "Reconnect the repository using a directory path visible to the API/runtime."
+        });
+        return;
+      }
+    } catch (error) {
+      addCheck({
+        id: "repo-context",
+        category: "repo",
+        status: "blocked",
+        label: "Repository Context",
+        message: error instanceof Error ? error.message : `Unable to inspect repository path: ${repoPath}.`,
+        nextStep: "Inspect or reconnect the repository using a workspace path visible to the API/runtime."
+      });
+      return;
+    }
   }
   addCheck({
     id: "repo-context",
