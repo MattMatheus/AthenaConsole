@@ -3,7 +3,10 @@ services:
     image: node:20-bookworm-slim
     working_dir: /workspace
     command: >-
-      sh -c "npm install"
+      sh -c "apt-get update &&
+      apt-get install -y --no-install-recommends python3 make g++ &&
+      rm -rf /var/lib/apt/lists/* &&
+      npm install"
     volumes:
       - .:/workspace
       - ${ATHENA_REPO_HOST_PATH:-.}:${ATHENA_REPO_CONTAINER_PATH:-/workspace/target-repo}
