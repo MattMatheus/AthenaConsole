@@ -2,7 +2,7 @@
   height: 100vh;
   min-height: 0;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
   overflow: hidden;
   background: var(--color-surface);
 }
@@ -10,6 +10,7 @@
 .sidebar {
   position: relative;
   z-index: 30;
+  min-width: 0;
   min-height: 0;
   overflow-y: auto;
   border-right: 1px solid var(--color-border);
@@ -116,11 +117,11 @@
 }
 
 .menuButton {
+  display: none;
   border: 1px solid var(--color-border);
   border-radius: 0.5rem;
   background: #fff;
   color: var(--color-text);
-  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 2.125rem;
@@ -172,12 +173,14 @@
   border: 1px solid var(--color-border);
   border-radius: 0.5rem;
   background: #fff;
+  color: var(--color-text);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 2.125rem;
   height: 2.125rem;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .detailPane {
@@ -214,6 +217,10 @@
 
   .sidebarClosed {
     transform: translateX(-100%);
+  }
+
+  .menuButton {
+    display: inline-flex;
   }
 
   .header {

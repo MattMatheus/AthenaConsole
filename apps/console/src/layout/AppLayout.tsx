@@ -1,6 +1,6 @@
 import { Menu, Search, Settings } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { usePersistentState } from "../hooks";
 import styles from "./AppLayout.module.css";
 
@@ -111,9 +111,7 @@ export function AppLayout() {
     const handleChange = () => {
       const mobile = query.matches;
       setIsMobile(mobile);
-      if (mobile) {
-        setSidebarVisible(false);
-      }
+      setSidebarVisible(!mobile);
     };
 
     handleChange();
@@ -184,8 +182,9 @@ export function AppLayout() {
             <button
               type="button"
               className={styles.menuButton}
-              onClick={() => setSidebarVisible(!isSidebarVisible)}
-              aria-label="Toggle navigation"
+              onClick={() => setSidebarVisible(true)}
+              aria-expanded={isSidebarVisible}
+              aria-label="Open navigation"
             >
               <Menu size={18} />
             </button>
@@ -205,9 +204,9 @@ export function AppLayout() {
                 aria-label="Global search"
               />
             </label>
-            <button type="button" className={styles.iconButton} aria-label="Settings">
+            <Link to="/settings" className={styles.iconButton} aria-label="Open settings">
               <Settings size={16} />
-            </button>
+            </Link>
           </div>
         </header>
 
