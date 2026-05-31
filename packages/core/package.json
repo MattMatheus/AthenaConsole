@@ -4,7 +4,7 @@
   "license": "Apache-2.0",
   "private": true,
   "type": "module",
-  "description": "ProjectAthena core logic",
+  "description": "Team Orchestrator core logic",
   "bin": {
     "athena": "dist/src/cli/main.js"
   },

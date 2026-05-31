@@ -262,7 +262,9 @@ Completed sequence:
 
 Flywheel lanes are the operational source of truth. No engineering or architecture story is currently active.
 
-The recommended next move is PM intake for any newly discovered first-real-work confidence gaps or the next product arc.
+Release readiness cleanup for the `2026.1` local-first release candidate is complete. Remaining pre-tag work is final validation, product smoke, manual browser smoke, release notes review, and tag publication.
+
+Until the `2026.1` release is cut, avoid adding more general product surface area. The next product arc should focus on built-in capabilities: more bundled agents, stronger sample plugins, and pre-built task or workflow templates that make Team Orchestrator useful immediately after install.
 
 ## Near-Term Principles
 

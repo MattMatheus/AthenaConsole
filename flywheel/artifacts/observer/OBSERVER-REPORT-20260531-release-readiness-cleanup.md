@@ -1,0 +1,70 @@
+# Observer Report: 20260531-release-readiness-cleanup
+
+## Metadata
+- `cycle_id`: 20260531-release-readiness-cleanup
+- `generated_at_utc`: 2026-05-31T16:05:58Z
+- `branch`: main
+- `story_path`: flywheel/backlog/engineering/done/STORY-20260531-release-readiness-cleanup.md
+- `actor`: 
+
+## Structured Trace
+- `trace_path`: OBSERVER-REPORT-20260531-release-readiness-cleanup.json
+
+## Stage Trace
+- `events`: []
+
+## Diff Inventory
+- A	docs/product/release/2026.1.md
+- A	docs/product/release/README.md
+- A	flywheel/backlog/engineering/done/STORY-20260531-release-readiness-cleanup.md
+- M	README.md
+- M	docs/README.md
+- M	docs/product/direction/current-direction.md
+- M	docs/product/roadmap/flight-path.md
+- M	flywheel/backlog/README.md
+- M	flywheel/backlog/engineering/done/README.md
+- M	packages/core/package.json
+
+## Objective
+- `intended_outcome`: Create a current release-readiness record for the `2026.1` local-first release candidate and close the cleanup story through QA.
+- `scope_boundary`: Documentation, release checklist, Flywheel state, and package metadata cleanup only; no new product runtime features or release tag creation.
+
+## Inputs And Evidence
+- `artifacts_reviewed`: `README.md`, `docs/README.md`, `docs/product/direction/current-direction.md`, `docs/product/roadmap/flight-path.md`, `scripts/product-readiness-smoke.mjs`, `.github/workflows/local-server-validation.yml`, `flywheel/backlog/engineering/done/STORY-20260531-release-readiness-cleanup.md`
+- `tools_used`: `apply_patch`, `flywheel_state.sh`, `validate_workflow_state.sh`, `run_observer_cycle.sh`, `git diff --check`, `npm run smoke:product -- --help`, `npm --workspace @athena/core run validate:manifests`, `npm --workspace @athena/core run typecheck`, `npm --workspace @athena/pdk test`, `rg`
+- `external_sources`: []
+
+## Changes Made
+- `files_changed`: Added `docs/product/release/README.md` and `docs/product/release/2026.1.md`; linked release readiness from README and docs map; updated current direction and roadmap; cleaned the `packages/core` package description; added/completed Flywheel story and observer artifacts.
+- `state_transitions`: `STORY-20260531-release-readiness-cleanup` moved `active` -> `qa` -> `done`.
+- `non_file_actions`: Confirmed local API was not running at `127.0.0.1:8787`, so live product smoke remains a documented pre-tag gate.
+
+## Validation
+- `checks_run`: `./flywheel/tools/validate_workflow_state.sh --format json`; `git diff --check`; `npm run smoke:product -- --help`; `npm --workspace @athena/core run validate:manifests`; `npm --workspace @athena/core run typecheck`; `npm --workspace @athena/pdk test`; targeted `rg` for stale current-facing release/onboarding/status strings.
+- `results`: All executed checks passed.
+- `checks_not_run`: Live `npm run smoke:product` and manual browser smoke were not run because the local API/console stack was not running; both remain release-tag checklist items in `docs/product/release/2026.1.md`.
+
+## Workflow Sync Checks
+- [x] Entry docs updated if workflow behavior changed.
+- [x] Prompts updated if stage behavior changed.
+- [x] Process docs updated if contracts or gates changed.
+- [x] Queue order and state remain synchronized.
+
+## Warnings And Risks
+- `unresolved_risks`: `2026.1` must not be tagged until the full validation gate, live product smoke, and manual browser smoke pass.
+- `assumptions_carried`: Product release labels use `YYYY.N`; internal package and sample plugin versions remain on separate semver tracks until publishing is introduced.
+- `warnings`: []
+
+## Action Record
+- `highest_action_class`: local write
+- `approval_required`: no
+- `approval_reference`: n/a
+
+## Next Step
+- `recommended_next_state`: final pre-tag validation for release `2026.1`.
+- `follow_up_work`: Run full release validation gate, product smoke with the local stack running, manual browser smoke, then create/publish `release-2026.1`.
+- `durable_promotions`: Treat built-in capabilities, bundled agents, stronger sample plugins, and pre-built task/workflow templates as the next product arc after release cut.
+
+## Release Impact
+- Release scope: Required release-readiness cleanup for `2026.1`.
+- Additional release actions: Complete validation checklist and tag `release-2026.1`.

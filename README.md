@@ -21,7 +21,7 @@ Team Orchestrator provides:
 
 ## Current Status
 
-This repository is an active product build, not a polished stable release.
+This repository is an active product build. The current release-readiness target is the local-first `2026.1` release candidate documented in [Release Readiness](docs/product/release/README.md).
 
 The current foundation includes:
 
