@@ -10,6 +10,7 @@ Start here:
 - `architecture/decisions/`
 - `epics/refinement/`
 - `roadmap/`
+- `roadmap/future-horizon.md`
 - `audits/2026-05-30-repo-cleanup-audit.md`
 - `history/`
 

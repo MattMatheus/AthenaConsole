@@ -258,6 +258,34 @@ Completed sequence:
 4. `flywheel/backlog/engineering/done/STORY-20260531-workflow-run-output-bridge.md`
 5. `flywheel/backlog/engineering/done/STORY-20260531-readiness-first-run-clarity.md`
 
+## Future Horizon Roadmap
+
+Status: Planned for post-`2026.1` refinement.
+
+The next product investment should not add broad unrelated surface area before the first release is cut. After `2026.1`, the planned horizon splits into two arcs:
+
+1. Durable remote-capable memory so context travels across laptop, local server, and remote server environments.
+2. Built-in capability and connector packs so new users get useful agents and workflow templates immediately after setup.
+
+Overview:
+
+- `docs/product/roadmap/future-horizon.md`
+
+Memory arc source epics:
+
+- `docs/product/epics/refinement/2026.34.00-epic-durable-memory-service-architecture.md`
+- `docs/product/epics/refinement/2026.35.00-epic-remote-memory-mvp.md`
+- `docs/product/epics/refinement/2026.36.00-epic-memory-governance-agent-integration.md`
+- `docs/product/epics/refinement/2026.37.00-epic-semantic-memory-and-sync-backends.md`
+
+Capability and connector arc source epics:
+
+- `docs/product/epics/refinement/2026.38.00-epic-capability-pack-foundation.md`
+- `docs/product/epics/refinement/2026.39.00-epic-built-in-software-team-agent-pack.md`
+- `docs/product/epics/refinement/2026.40.00-epic-connector-pack-platform.md`
+- `docs/product/epics/refinement/2026.41.00-epic-github-connector-pack.md`
+- `docs/product/epics/refinement/2026.42.00-epic-knowledge-work-connector-pack.md`
+
 ## Current Flywheel Priorities
 
 Flywheel lanes are the operational source of truth. No engineering or architecture story is currently active.

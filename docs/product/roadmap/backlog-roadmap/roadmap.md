@@ -116,7 +116,17 @@ Current direction and near-term review guidance live in:
 
 - `docs/product/direction/current-direction.md`
 - `docs/product/roadmap/flight-path.md`
+- `docs/product/roadmap/future-horizon.md`
 - `flywheel/backlog/README.md`
+
+## Future Horizon
+
+Post-`2026.1` planning is captured in two roadmap arcs:
+
+- Durable Memory System: `docs/product/epics/refinement/2026.34.00-epic-durable-memory-service-architecture.md` through `docs/product/epics/refinement/2026.37.00-epic-semantic-memory-and-sync-backends.md`
+- Built-In Capability And Connector Packs: `docs/product/epics/refinement/2026.38.00-epic-capability-pack-foundation.md` through `docs/product/epics/refinement/2026.42.00-epic-knowledge-work-connector-pack.md`
+
+These are future-horizon refinement records, not active Flywheel work.
 
 ## Deferred
 

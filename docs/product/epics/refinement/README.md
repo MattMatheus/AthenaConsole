@@ -17,9 +17,23 @@ Pre-reset refinement records were moved to:
 
 - `docs/product/archive/2026-planning-cleanup-stale-records/backlog/refinement-pre-reset/`
 
-## Active Refinement Tracks
+## Future Horizon Tracks
 
-No active refinement tracks.
+These tracks are planned for post-`2026.1` work and should not be activated until the release candidate is cut and the first story is refined through Flywheel:
+
+- `docs/product/epics/refinement/2026.34.00-epic-durable-memory-service-architecture.md`
+- `docs/product/epics/refinement/2026.35.00-epic-remote-memory-mvp.md`
+- `docs/product/epics/refinement/2026.36.00-epic-memory-governance-agent-integration.md`
+- `docs/product/epics/refinement/2026.37.00-epic-semantic-memory-and-sync-backends.md`
+- `docs/product/epics/refinement/2026.38.00-epic-capability-pack-foundation.md`
+- `docs/product/epics/refinement/2026.39.00-epic-built-in-software-team-agent-pack.md`
+- `docs/product/epics/refinement/2026.40.00-epic-connector-pack-platform.md`
+- `docs/product/epics/refinement/2026.41.00-epic-github-connector-pack.md`
+- `docs/product/epics/refinement/2026.42.00-epic-knowledge-work-connector-pack.md`
+
+Overview:
+
+- `docs/product/roadmap/future-horizon.md`
 
 ## Completed Refinement Tracks
 

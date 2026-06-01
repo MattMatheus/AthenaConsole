@@ -246,13 +246,48 @@ Source epic:
 
 - `docs/product/epics/refinement/2026.33.00-epic-first-real-work-confidence.md`
 
+### Future Horizon: Durable Memory System
+
+Status: Future horizon.
+
+Goal: make Team Orchestrator memory durable across laptop, local server, and remote server environments. Local SQLite may remain useful for development, tests, cache, and offline behavior, but the product source of truth for durable memory should be remote-capable rather than a DB file copied between machines.
+
+Source roadmap:
+
+- `docs/product/roadmap/future-horizon.md`
+
+Source epics:
+
+- `docs/product/epics/refinement/2026.34.00-epic-durable-memory-service-architecture.md`
+- `docs/product/epics/refinement/2026.35.00-epic-remote-memory-mvp.md`
+- `docs/product/epics/refinement/2026.36.00-epic-memory-governance-agent-integration.md`
+- `docs/product/epics/refinement/2026.37.00-epic-semantic-memory-and-sync-backends.md`
+
+### Future Horizon: Built-In Capability And Connector Packs
+
+Status: Future horizon.
+
+Goal: make Team Orchestrator useful immediately after setup by shipping first-party plugin-backed agents, connector packs, and workflow templates that compose into more complex flows while serving as canonical examples for users.
+
+Source roadmap:
+
+- `docs/product/roadmap/future-horizon.md`
+
+Source epics:
+
+- `docs/product/epics/refinement/2026.38.00-epic-capability-pack-foundation.md`
+- `docs/product/epics/refinement/2026.39.00-epic-built-in-software-team-agent-pack.md`
+- `docs/product/epics/refinement/2026.40.00-epic-connector-pack-platform.md`
+- `docs/product/epics/refinement/2026.41.00-epic-github-connector-pack.md`
+- `docs/product/epics/refinement/2026.42.00-epic-knowledge-work-connector-pack.md`
+
 ### Current Flywheel Priorities
 
 Flywheel lanes are the operational source of truth. No engineering or architecture story is currently active.
 
 Release readiness cleanup for the `2026.1` local-first release candidate is complete. Remaining pre-tag work is final validation, product smoke, manual browser smoke, release notes review, and tag publication.
 
-Until the `2026.1` release is cut, avoid adding more general product surface area. The next product arc should focus on built-in capabilities: more bundled agents, stronger sample plugins, and pre-built task or workflow templates that make Team Orchestrator useful immediately after install.
+Until the `2026.1` release is cut, avoid adding more general product surface area. The post-release future horizon is now split into two roadmap arcs: durable remote-capable memory, and built-in capability/connector packs.
 
 Recently completed tracks now live in Flywheel done history:
 
