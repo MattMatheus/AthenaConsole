@@ -16,13 +16,17 @@ No engineering or architecture work awaiting QA.
 
 Refined work ready to activate:
 
-No ready engineering or architecture work.
+- `engineering/ready/STORY-20260602-durable-memory-contracts.md`
 
 ## Later
 
 Candidate work that needs PM refinement before activation:
 
-No candidate engineering or architecture intake items.
+- `engineering/intake/STORY-20260602-durable-memory-server-storage.md`
+- `engineering/intake/STORY-20260602-durable-memory-api-routes.md`
+- `engineering/intake/STORY-20260602-durable-memory-remote-provider-client.md`
+- `engineering/intake/STORY-20260602-durable-memory-readiness-config.md`
+- `engineering/intake/STORY-20260602-durable-memory-console-inspector.md`
 
 ## Done
 

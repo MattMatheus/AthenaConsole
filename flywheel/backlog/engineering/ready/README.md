@@ -4,7 +4,7 @@ Refined engineering work can wait here before activation if the host repo uses a
 
 ## Ready Sequence
 
-No ready engineering stories.
+1. `STORY-20260602-durable-memory-contracts.md`
 
 ## Promotion Rule
 

@@ -300,7 +300,7 @@ Flywheel lanes are the operational source of truth. No engineering or architectu
 
 The `2026.1` local-first release candidate is cut and published as `release-2026.1`.
 
-Post-release roadmap refinement has accepted the durable memory architecture baseline. The accepted architecture records are `docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md`, `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`, `docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md`, `docs/product/architecture/decisions/0022-durable-memory-local-cache-boundary.md`, and `docs/product/architecture/decisions/0023-durable-memory-remote-backend-recommendation.md`; the next refinement target is `2026.35` remote memory MVP implementation planning.
+Post-release roadmap refinement has accepted the durable memory architecture baseline. The accepted architecture records are `docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md`, `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`, `docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md`, `docs/product/architecture/decisions/0022-durable-memory-local-cache-boundary.md`, and `docs/product/architecture/decisions/0023-durable-memory-remote-backend-recommendation.md`; `flywheel/backlog/engineering/ready/STORY-20260602-durable-memory-contracts.md` is the next ready implementation slice for `2026.35`.
 
 Recently completed tracks now live in Flywheel done history:
 
