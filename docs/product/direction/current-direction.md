@@ -34,6 +34,7 @@ Current product direction starts from the accepted reset ADRs:
 - `docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md`
 - `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`
 - `docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md`
+- `docs/product/architecture/decisions/0022-durable-memory-local-cache-boundary.md`
 
 Pre-reset ProjectAthena, Foundry-first, fleet-governance, persona-kit, and A2A-observability records are archived historical context unless rewritten against this direction.
 
@@ -264,6 +265,7 @@ Accepted architecture:
 - `docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md`
 - `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`
 - `docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md`
+- `docs/product/architecture/decisions/0022-durable-memory-local-cache-boundary.md`
 
 Source epics:
 
@@ -296,7 +298,7 @@ Flywheel lanes are the operational source of truth. No engineering or architectu
 
 The `2026.1` local-first release candidate is cut and published as `release-2026.1`.
 
-Post-release roadmap refinement has started with durable remote-capable memory. The accepted architecture records are `docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md`, `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`, and `docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md`; the next refinement target is the `2026.34.04` local cache boundary story.
+Post-release roadmap refinement has started with durable remote-capable memory. The accepted architecture records are `docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md`, `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`, `docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md`, and `docs/product/architecture/decisions/0022-durable-memory-local-cache-boundary.md`; the next refinement target is the `2026.34.05` remote backend recommendation story.
 
 Recently completed tracks now live in Flywheel done history:
 

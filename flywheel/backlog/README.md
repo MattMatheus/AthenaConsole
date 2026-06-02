@@ -28,6 +28,7 @@ No candidate engineering or architecture intake items.
 
 Recently completed:
 
+- `architecture/done/ARCH-20260602-memory-local-cache-boundary.md`
 - `architecture/done/ARCH-20260602-memory-namespace-provenance.md`
 - `engineering/done/STORY-20260601-future-roadmap-arcs.md`
 - `engineering/done/STORY-20260531-release-presentability-cleanup.md`
