@@ -8,6 +8,7 @@ import {
   validateDurableMemoryMutationReason,
   type DurableMemoryArchiveRequest,
   type DurableMemoryDeleteRequest,
+  type DurableMemoryEmbeddingMetadata,
   type DurableMemoryGetRequest,
   type DurableMemoryListRequest,
   type DurableMemoryNamespaceRef,
@@ -29,6 +30,7 @@ export function parseDurableMemoryWriteRequest(body: Record<string, unknown>): D
     memoryType: requireString(body, "memoryType", "durable-memory.write"),
     body: requireString(body, "body", "durable-memory.write"),
     ...(parseSensitivity(body.sensitivity, "durable-memory.write.sensitivity")),
+    ...(body.embedding ? { embedding: parseEmbeddingMetadata(body.embedding, "durable-memory.write.embedding") } : {}),
     ...(optionalString(body, "reason", "durable-memory.write") ? { reason: optionalString(body, "reason", "durable-memory.write") } : {})
   };
   assertMutationReason("write", request.reason);
@@ -67,7 +69,8 @@ export function parseDurableMemorySearchRequest(body: Record<string, unknown>): 
       : {}),
     ...(optionalPositiveInt(body, "limit", "durable-memory.search") !== undefined
       ? { limit: optionalPositiveInt(body, "limit", "durable-memory.search") }
-      : {})
+      : {}),
+    ...(parseRetrievalMode(body.mode, "durable-memory.search.mode"))
   };
 }
 
@@ -111,12 +114,15 @@ export function parseDurableMemoryProposalCreateRequest(body: Record<string, unk
 export function parseDurableMemoryProposalReviewRequest(
   id: string,
   body: Record<string, unknown>,
-  operation: "proposal-approve" | "proposal-reject"
+  operation: "proposal-approve" | "proposal-reject" | "proposal-archive"
 ): DurableMemoryProposalReviewRequest {
   const request = {
     id,
     actorId: requireString(body, "actorId", "durable-memory.proposal-review"),
-    reason: requireString(body, "reason", "durable-memory.proposal-review")
+    reason: requireString(body, "reason", "durable-memory.proposal-review"),
+    ...(optionalString(body, "editedProposedBody", "durable-memory.proposal-review")
+      ? { editedProposedBody: optionalString(body, "editedProposedBody", "durable-memory.proposal-review") }
+      : {})
   };
   assertMutationReason(operation, request.reason);
   return request;
@@ -212,6 +218,46 @@ function parseSensitivity(value: unknown, context: string): { sensitivity?: Dura
     return { sensitivity: value };
   }
   throw new AthenaError("CONFIG_ERROR", `${context} must be public, internal, sensitive, or secret-adjacent.`);
+}
+
+function parseEmbeddingMetadata(value: unknown, context: string): DurableMemoryEmbeddingMetadata {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new AthenaError("CONFIG_ERROR", `${context} must be a JSON object.`);
+  }
+  const input = value as Record<string, unknown>;
+  const status = input.status;
+  if (
+    status !== "not-indexed" &&
+    status !== "queued" &&
+    status !== "indexed" &&
+    status !== "stale" &&
+    status !== "failed" &&
+    status !== "unsupported"
+  ) {
+    throw new AthenaError("CONFIG_ERROR", `${context}.status must be a durable-memory embedding lifecycle status.`);
+  }
+  return {
+    status,
+    ...(optionalString(input, "providerId", context) ? { providerId: optionalString(input, "providerId", context) } : {}),
+    ...(optionalString(input, "model", context) ? { model: optionalString(input, "model", context) } : {}),
+    ...(optionalString(input, "modelVersion", context) ? { modelVersion: optionalString(input, "modelVersion", context) } : {}),
+    ...(optionalString(input, "backendKind", context) ? { backendKind: optionalString(input, "backendKind", context) } : {}),
+    ...(optionalString(input, "indexRevision", context) ? { indexRevision: optionalString(input, "indexRevision", context) } : {}),
+    ...(optionalString(input, "indexedAt", context) ? { indexedAt: optionalString(input, "indexedAt", context) } : {}),
+    ...(optionalString(input, "failureCode", context) ? { failureCode: optionalString(input, "failureCode", context) } : {}),
+    ...(optionalString(input, "failureReason", context) ? { failureReason: optionalString(input, "failureReason", context) } : {}),
+    ...(optionalString(input, "reindexReason", context) ? { reindexReason: optionalString(input, "reindexReason", context) } : {})
+  };
+}
+
+function parseRetrievalMode(value: unknown, context: string): { mode?: DurableMemorySearchRequest["mode"] } {
+  if (value === undefined || value === null) {
+    return {};
+  }
+  if (value === "keyword" || value === "semantic" || value === "hybrid" || value === "auto") {
+    return { mode: value };
+  }
+  throw new AthenaError("CONFIG_ERROR", `${context} must be keyword, semantic, hybrid, or auto.`);
 }
 
 function assertMutationReason(operation: Parameters<typeof validateDurableMemoryMutationReason>[0]["operation"], reason?: string): void {

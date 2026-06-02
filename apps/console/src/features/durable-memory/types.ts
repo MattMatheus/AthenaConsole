@@ -29,8 +29,12 @@ export type DurableMemorySourceKind =
 export type DurableMemoryActorType = "operator" | "agent" | "system";
 export type DurableMemorySensitivity = "public" | "internal" | "sensitive" | "secret-adjacent";
 export type DurableMemoryRecordStatus = "active" | "archived" | "deleted";
-export type DurableMemoryProposalStatus = "pending" | "approved" | "rejected";
+export type DurableMemoryProposalStatus = "pending" | "approved" | "rejected" | "archived";
 export type DurableMemoryProviderHealthStatus = "ok" | "degraded" | "unavailable" | "unauthorized" | "disabled";
+export type DurableMemoryEmbeddingStatus = "not-indexed" | "queued" | "indexed" | "stale" | "failed" | "unsupported";
+export type DurableMemoryRetrievalMode = "keyword" | "semantic" | "hybrid" | "auto";
+export type DurableMemoryRetrievalEffectiveMode = "keyword" | "semantic" | "hybrid";
+export type DurableMemoryRetrievalSignalKind = "keyword" | "semantic" | "metadata" | "recency" | "provenance";
 export type DurableMemoryOperatorStatus =
   | "remote-current"
   | "remote-unavailable"
@@ -79,6 +83,19 @@ export type DurableMemoryCacheMetadata = {
   localDevOnly?: boolean;
 };
 
+export type DurableMemoryEmbeddingMetadata = {
+  status: DurableMemoryEmbeddingStatus;
+  providerId?: string;
+  model?: string;
+  modelVersion?: string;
+  backendKind?: string;
+  indexRevision?: string;
+  indexedAt?: string;
+  failureCode?: string;
+  failureReason?: string;
+  reindexReason?: string;
+};
+
 export type DurableMemoryRecord = {
   id: string;
   namespace: DurableMemoryNamespaceRef;
@@ -93,6 +110,7 @@ export type DurableMemoryRecord = {
   archivedAt?: string;
   deletedAt?: string;
   provider?: DurableMemoryCacheMetadata;
+  embedding?: DurableMemoryEmbeddingMetadata;
 };
 
 export type DurableMemoryProposal = {
@@ -134,6 +152,37 @@ export type DurableMemorySearchResult = {
   records: DurableMemoryRecord[];
   total: number;
   operatorStatus: DurableMemoryOperatorStatus;
+  matches?: DurableMemorySearchMatch[];
+  diagnostics?: DurableMemoryRetrievalDiagnostics;
+};
+
+export type DurableMemorySearchMatch = {
+  recordId: string;
+  score: number;
+  signals: DurableMemoryRetrievalSignal[];
+  snippet?: string;
+};
+
+export type DurableMemoryRetrievalSignal = {
+  kind: DurableMemoryRetrievalSignalKind;
+  score: number;
+  evidence?: string;
+};
+
+export type DurableMemoryRetrievalDiagnostics = {
+  requestedMode: DurableMemoryRetrievalMode;
+  effectiveMode: DurableMemoryRetrievalEffectiveMode;
+  degraded: boolean;
+  degradationReasons: string[];
+  providerCapabilities: {
+    keyword: boolean;
+    semantic: boolean;
+    hybrid: boolean;
+  };
+  omitted: Array<{
+    category: string;
+    count: number;
+  }>;
 };
 
 export type DurableMemorySnapshotListResult = {
@@ -148,4 +197,6 @@ export type DurableMemoryInspectorSummary = {
   snapshots: DurableMemorySnapshot[];
   operatorStatus: DurableMemoryOperatorStatus;
   totalRecords: number;
+  diagnostics?: DurableMemoryRetrievalDiagnostics;
+  matches?: DurableMemorySearchMatch[];
 };

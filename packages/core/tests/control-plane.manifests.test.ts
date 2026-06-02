@@ -69,6 +69,66 @@ describe("Team Orchestrator manifest schemas", () => {
     expect(result.issues.some((issue) => issue.message.includes("capabilities"))).toBe(true);
   });
 
+  it("accepts omitted durable-memory permissions as default deny", () => {
+    const result = validateManifestDocument("agent", buildAgentManifest());
+
+    expect(result.issues).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts explicit durable-memory read, propose, and reviewed-write permissions", () => {
+    const result = validateManifestDocument(
+      "agent",
+      buildAgentManifest({
+        permissions: {
+          network: "deny",
+          filesystem: "none",
+          durableMemory: {
+            read: {
+              namespaces: ["team.notes", "repo-summary/*"],
+              maxSensitivity: "internal",
+              reason: "Read curated team notes."
+            },
+            propose: {
+              namespaces: ["repo-summary/*"],
+              maxSensitivity: "sensitive",
+              reason: "Create reviewed proposals from run outputs."
+            },
+            writeReviewed: {
+              namespaces: ["operator-approved"],
+              maxSensitivity: "internal",
+              reason: "Write only after operator review."
+            }
+          }
+        }
+      })
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects invalid durable-memory permission declarations", () => {
+    const result = validateManifestDocument(
+      "agent",
+      buildAgentManifest({
+        permissions: {
+          network: "deny",
+          filesystem: "none",
+          durableMemory: {
+            read: {
+              namespaces: ["../secrets"],
+              maxSensitivity: "private"
+            }
+          }
+        }
+      })
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.some((issue) => issue.path.includes("durableMemory"))).toBe(true);
+  });
+
   it("rejects workflow manifests with invalid task dependency DAGs", () => {
     const result = validateManifestDocument("workflow", {
       schemaVersion: 1,
@@ -121,3 +181,43 @@ describe("Team Orchestrator manifest schemas", () => {
     }
   });
 });
+
+function buildAgentManifest(
+  overrides: {
+    permissions?: Record<string, unknown>;
+  } = {}
+): Record<string, unknown> {
+  return {
+    schemaVersion: 1,
+    agent: {
+      id: "valid.agent",
+      name: "Valid Agent",
+      version: "0.1.0",
+      capabilities: ["test.run"],
+      inputs: {
+        task: {
+          type: "string",
+          required: true
+        }
+      },
+      outputs: {
+        mode: "flexible"
+      },
+      implementation: {
+        type: "local-command",
+        command: "node"
+      },
+      permissions: overrides.permissions ?? {
+        network: "deny",
+        filesystem: "none"
+      },
+      limits: {
+        maxRuntimeSeconds: 60,
+        maxToolCalls: 1
+      },
+      observability: {
+        mode: "black-box"
+      }
+    }
+  };
+}

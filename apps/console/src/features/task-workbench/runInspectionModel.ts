@@ -36,6 +36,15 @@ export type ModelRunOutput = {
   usage?: unknown;
 };
 
+export type MemoryRunSummary = {
+  usedRecords: Array<{ id: string; sensitivity?: string; status?: string }>;
+  proposals: Array<{ id: string; status?: string; memoryType?: string }>;
+  writes: Array<{ id: string; status?: string; memoryType?: string }>;
+  namespaces: string[];
+  warnings: string[];
+  statuses: string[];
+};
+
 export type ArtifactPreviewState = {
   status: "available" | "metadata-only" | "unsupported" | "blocked";
   label: string;
@@ -258,6 +267,77 @@ export function modelRunOutput(value: unknown): ModelRunOutput | undefined {
     ...(record.usage !== undefined ? { usage: record.usage } : {}),
   };
   return output.response || output.responseMarkdown || output.model || output.providerId ? output : undefined;
+}
+
+export function memoryRunSummary(events: Array<Pick<TaskWorkbenchRunEvent, "type" | "payload">>): MemoryRunSummary {
+  const summary: MemoryRunSummary = {
+    usedRecords: [],
+    proposals: [],
+    writes: [],
+    namespaces: [],
+    warnings: [],
+    statuses: [],
+  };
+  for (const event of events) {
+    if (!event.type.startsWith("memory.")) {
+      continue;
+    }
+    const payload = asRecord(event.payload) ?? {};
+    const namespace = namespaceLabelFromPayload(payload.namespace);
+    if (namespace && !summary.namespaces.includes(namespace)) {
+      summary.namespaces.push(namespace);
+    }
+    const operatorStatus = typeof payload.operatorStatus === "string" ? payload.operatorStatus : undefined;
+    if (operatorStatus && !summary.statuses.includes(operatorStatus)) {
+      summary.statuses.push(operatorStatus);
+    }
+    if (operatorStatus && operatorStatus !== "remote-current" && operatorStatus !== "cache-current" && !summary.warnings.includes(operatorStatus)) {
+      summary.warnings.push(operatorStatus);
+    }
+    if (event.type === "memory.records.selected" && Array.isArray(payload.records)) {
+      for (const item of payload.records) {
+        const record = asRecord(item);
+        const id = typeof record?.recordId === "string" ? record.recordId : undefined;
+        if (id && !summary.usedRecords.some((entry) => entry.id === id)) {
+          summary.usedRecords.push({
+            id,
+            ...(typeof record?.sensitivity === "string" ? { sensitivity: record.sensitivity } : {}),
+            ...(typeof record?.status === "string" ? { status: record.status } : {}),
+          });
+        }
+      }
+    }
+    if (event.type === "memory.record.selected" && typeof payload.recordId === "string") {
+      summary.usedRecords.push({
+        id: payload.recordId,
+        ...(typeof payload.sensitivity === "string" ? { sensitivity: payload.sensitivity } : {}),
+        ...(typeof payload.status === "string" ? { status: payload.status } : {}),
+      });
+    }
+    if (event.type === "memory.proposal.created" && typeof payload.proposalId === "string") {
+      summary.proposals.push({
+        id: payload.proposalId,
+        ...(typeof payload.status === "string" ? { status: payload.status } : {}),
+        ...(typeof payload.memoryType === "string" ? { memoryType: payload.memoryType } : {}),
+      });
+    }
+    if ((event.type === "memory.record.written" || event.type === "memory.write") && typeof payload.recordId === "string") {
+      summary.writes.push({
+        id: payload.recordId,
+        ...(typeof payload.status === "string" ? { status: payload.status } : {}),
+        ...(typeof payload.memoryType === "string" ? { memoryType: payload.memoryType } : {}),
+      });
+    }
+  }
+  return summary;
+}
+
+function namespaceLabelFromPayload(value: unknown): string | undefined {
+  const namespace = asRecord(value);
+  if (!namespace || typeof namespace.scope !== "string" || typeof namespace.id !== "string") {
+    return undefined;
+  }
+  return `${namespace.scope}:${namespace.id}`;
 }
 
 function normalizeProposedChange(value: unknown): ProposedChangeArtifact["changes"][number] | undefined {

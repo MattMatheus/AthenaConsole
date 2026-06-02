@@ -146,6 +146,7 @@ export const API_V1_ROUTES: ApiRouteDefinition[] = [
   { method: "POST", path: `${API_V1_PREFIX}/durable-memory/proposals/list`, operationId: "listDurableMemoryProposals" },
   { method: "POST", path: `${API_V1_PREFIX}/durable-memory/proposals/:id/approve`, operationId: "approveDurableMemoryProposal" },
   { method: "POST", path: `${API_V1_PREFIX}/durable-memory/proposals/:id/reject`, operationId: "rejectDurableMemoryProposal" },
+  { method: "POST", path: `${API_V1_PREFIX}/durable-memory/proposals/:id/archive`, operationId: "archiveDurableMemoryProposal" },
   { method: "POST", path: `${API_V1_PREFIX}/durable-memory/snapshots`, operationId: "createDurableMemorySnapshot" },
   { method: "POST", path: `${API_V1_PREFIX}/durable-memory/snapshots/list`, operationId: "listDurableMemorySnapshots" },
   { method: "POST", path: `${API_V1_PREFIX}/durable-memory/snapshots/:id/restore`, operationId: "restoreDurableMemorySnapshot" },

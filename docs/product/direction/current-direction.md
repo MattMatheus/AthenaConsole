@@ -36,6 +36,7 @@ Current product direction starts from the accepted reset ADRs:
 - `docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md`
 - `docs/product/architecture/decisions/0022-durable-memory-local-cache-boundary.md`
 - `docs/product/architecture/decisions/0023-durable-memory-remote-backend-recommendation.md`
+- `docs/product/architecture/decisions/0024-semantic-memory-retrieval-and-sync-strategy.md`
 
 Pre-reset ProjectAthena, Foundry-first, fleet-governance, persona-kit, and A2A-observability records are archived historical context unless rewritten against this direction.
 
@@ -268,6 +269,7 @@ Accepted architecture:
 - `docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md`
 - `docs/product/architecture/decisions/0022-durable-memory-local-cache-boundary.md`
 - `docs/product/architecture/decisions/0023-durable-memory-remote-backend-recommendation.md`
+- `docs/product/architecture/decisions/0024-semantic-memory-retrieval-and-sync-strategy.md`
 
 Source epics:
 
@@ -296,13 +298,13 @@ Source epics:
 
 ### Current Flywheel Priorities
 
-Flywheel lanes are the operational source of truth. No engineering or architecture work is active, ready, or awaiting QA.
+Flywheel lanes are the operational source of truth. The `2026.36` memory governance and agent integration sequence is complete across manifest permissions, runtime context, usage events, proposed review, artifact promotion, and memory-aware run detail.
 
 The `2026.1` local-first release candidate is cut and published as `release-2026.1`.
 
-Post-release roadmap refinement has accepted the durable memory architecture baseline. The accepted architecture records are `docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md`, `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`, `docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md`, `docs/product/architecture/decisions/0022-durable-memory-local-cache-boundary.md`, and `docs/product/architecture/decisions/0023-durable-memory-remote-backend-recommendation.md`; `flywheel/backlog/engineering/done/STORY-20260602-durable-memory-server-storage.md` completed the storage implementation slice, `flywheel/backlog/engineering/done/STORY-20260602-durable-memory-api-routes.md` completed the API implementation slice, `flywheel/backlog/engineering/done/STORY-20260602-durable-memory-remote-provider-client.md` completed the remote provider implementation slice, `flywheel/backlog/engineering/done/STORY-20260602-durable-memory-readiness-config.md` completed the `2026.35` readiness/config slice, and `flywheel/backlog/engineering/done/STORY-20260602-durable-memory-console-inspector.md` completed the console inspector slice.
+Post-release roadmap refinement has accepted the durable memory architecture baseline. The accepted architecture records are `docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md`, `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`, `docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md`, `docs/product/architecture/decisions/0022-durable-memory-local-cache-boundary.md`, `docs/product/architecture/decisions/0023-durable-memory-remote-backend-recommendation.md`, and `docs/product/architecture/decisions/0024-semantic-memory-retrieval-and-sync-strategy.md`; `flywheel/backlog/engineering/done/STORY-20260602-durable-memory-server-storage.md` completed the storage implementation slice, `flywheel/backlog/engineering/done/STORY-20260602-durable-memory-api-routes.md` completed the API implementation slice, `flywheel/backlog/engineering/done/STORY-20260602-durable-memory-remote-provider-client.md` completed the remote provider implementation slice, `flywheel/backlog/engineering/done/STORY-20260602-durable-memory-readiness-config.md` completed the `2026.35` readiness/config slice, and `flywheel/backlog/engineering/done/STORY-20260602-durable-memory-console-inspector.md` completed the console inspector slice.
 
-The next refined durable-memory sequence is `2026.36` memory governance and agent integration, starting with `flywheel/backlog/engineering/intake/STORY-20260602-memory-manifest-permissions.md` and continuing through runtime memory context, memory usage events, proposed memory review, artifact promotion, and memory-aware run detail.
+The completed durable-memory governance sequence lives in `flywheel/backlog/engineering/done/` as `STORY-20260602-memory-manifest-permissions.md`, `STORY-20260602-memory-runtime-context.md`, `STORY-20260602-memory-usage-events.md`, `STORY-20260602-memory-proposed-review.md`, `STORY-20260602-memory-artifact-promotion.md`, and `STORY-20260602-memory-aware-run-detail.md`.
 
 Recently completed tracks now live in Flywheel done history:
 

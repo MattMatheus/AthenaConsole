@@ -32,6 +32,7 @@ export interface DurableMemoryService {
   listProposals(request: DurableMemoryListRequest): Promise<DurableMemoryProposal[]>;
   approveProposal(request: DurableMemoryProposalReviewRequest): Promise<DurableMemoryProposal>;
   rejectProposal(request: DurableMemoryProposalReviewRequest): Promise<DurableMemoryProposal>;
+  archiveProposal(request: DurableMemoryProposalReviewRequest): Promise<DurableMemoryProposal>;
   createSnapshot(request: DurableMemorySnapshotCreateRequest): Promise<DurableMemorySnapshot>;
   listSnapshots(request: DurableMemoryListRequest): Promise<DurableMemorySnapshotListResult>;
   restoreSnapshot(request: DurableMemorySnapshotRestoreRequest): Promise<DurableMemorySnapshot>;
@@ -95,7 +96,32 @@ export class LocalDurableMemoryService implements DurableMemoryService {
   }
 
   async approveProposal(request: DurableMemoryProposalReviewRequest): Promise<DurableMemoryProposal> {
+    const existing = this.storage.getProposal(request.id);
+    if (!existing) {
+      throw notFound("durable memory proposal", request.id);
+    }
+    this.storage.writeRecord({
+      id: `dmr_${randomUUID()}`,
+      namespace: existing.targetNamespace,
+      provenance: {
+        ...existing.provenance,
+        actorType: "operator",
+        actorId: request.actorId,
+        createdByAction: "proposal-approved"
+      },
+      memoryType: existing.memoryType,
+      body: request.editedProposedBody ?? existing.proposedBody,
+      reason: request.reason
+    });
     const proposal = this.storage.updateProposalStatus(request.id, "approved", request.actorId);
+    if (!proposal) {
+      throw notFound("durable memory proposal", request.id);
+    }
+    return proposal;
+  }
+
+  async archiveProposal(request: DurableMemoryProposalReviewRequest): Promise<DurableMemoryProposal> {
+    const proposal = this.storage.updateProposalStatus(request.id, "archived", request.actorId);
     if (!proposal) {
       throw notFound("durable memory proposal", request.id);
     }

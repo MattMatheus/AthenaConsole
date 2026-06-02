@@ -6,6 +6,7 @@ import {
   formatUnknown,
   formatVerificationFailureDetails,
   isProposedChangeArtifact,
+  memoryRunSummary,
   modelProviderRunMetadata,
   modelRunOutput,
   proposedChangeArtifact,
@@ -171,6 +172,60 @@ describe("task run inspection model", () => {
       model: "deepseek-chat",
       response: "Hello from the model.",
       usage: { total_tokens: 12 },
+    });
+  });
+
+  it("summarizes durable-memory run events without raw payload inspection", () => {
+    expect(memoryRunSummary([])).toEqual({
+      usedRecords: [],
+      proposals: [],
+      writes: [],
+      namespaces: [],
+      warnings: [],
+      statuses: [],
+    });
+
+    const summary = memoryRunSummary([
+      {
+        type: "memory.search",
+        payload: {
+          namespace: { scope: "repository", id: "repo-1" },
+          operatorStatus: "cache-stale",
+          resultCount: 1,
+        },
+      },
+      {
+        type: "memory.records.selected",
+        payload: {
+          namespace: { scope: "repository", id: "repo-1" },
+          records: [{ recordId: "memory-1", sensitivity: "internal", status: "active", memoryBody: "must be ignored" }],
+        },
+      },
+      {
+        type: "memory.proposal.created",
+        payload: {
+          proposalId: "proposal-1",
+          memoryType: "repo-note",
+          status: "pending",
+        },
+      },
+      {
+        type: "memory.record.written",
+        payload: {
+          recordId: "memory-2",
+          memoryType: "artifact-note",
+          status: "active",
+        },
+      },
+    ]);
+
+    expect(summary).toMatchObject({
+      namespaces: ["repository:repo-1"],
+      statuses: ["cache-stale"],
+      warnings: ["cache-stale"],
+      usedRecords: [{ id: "memory-1", sensitivity: "internal", status: "active" }],
+      proposals: [{ id: "proposal-1", status: "pending", memoryType: "repo-note" }],
+      writes: [{ id: "memory-2", status: "active", memoryType: "artifact-note" }],
     });
   });
 });

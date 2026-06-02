@@ -451,6 +451,9 @@
         "credentials": {
           "enum": ["deny", "scoped"]
         },
+        "durableMemory": {
+          "$ref": "#/definitions/durableMemoryPermissions"
+        },
         "approvalRequiredFor": {
           "type": "array",
           "items": {
@@ -471,6 +474,51 @@
           "uniqueItems": true
         }
       }
+    },
+    "durableMemoryPermissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "read": {
+          "$ref": "#/definitions/durableMemoryAccess"
+        },
+        "propose": {
+          "$ref": "#/definitions/durableMemoryAccess"
+        },
+        "writeReviewed": {
+          "$ref": "#/definitions/durableMemoryAccess"
+        }
+      }
+    },
+    "durableMemoryAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["namespaces", "maxSensitivity"],
+      "properties": {
+        "namespaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/durableMemoryNamespaceScope"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "maxSensitivity": {
+          "$ref": "#/definitions/durableMemorySensitivity"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "durableMemoryNamespaceScope": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9._:-]+(?:/\\*)?$"
+    },
+    "durableMemorySensitivity": {
+      "enum": ["public", "internal", "sensitive", "secret-adjacent"]
     }
   }
 }

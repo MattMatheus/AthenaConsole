@@ -46,6 +46,7 @@ interface AuthorizationRequirement {
     | "durableMemory.health"
     | "durableMemory.list"
     | "durableMemory.proposal.approve"
+    | "durableMemory.proposal.archive"
     | "durableMemory.proposal.create"
     | "durableMemory.proposal.list"
     | "durableMemory.proposal.reject"
@@ -659,6 +660,14 @@ export class AuthorizedDurableMemoryService implements DurableMemoryService {
       requiredRoles: ["Operator", "Admin"]
     });
     return this.delegate.rejectProposal(request);
+  }
+
+  async archiveProposal(request: Parameters<DurableMemoryService["archiveProposal"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "durableMemory.proposal.archive",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.archiveProposal(request);
   }
 
   async createSnapshot(request: Parameters<DurableMemoryService["createSnapshot"]>[0]) {

@@ -27,6 +27,7 @@ export const DURABLE_MEMORY_ROUTES = defineApiRoutes("durable-memory", [
   { method: "POST", path: "/api/v1/durable-memory/proposals/list", handler: handleListDurableMemoryProposalsRoute },
   { method: "POST", path: "/api/v1/durable-memory/proposals/:id/approve", handler: handleApproveDurableMemoryProposalRoute },
   { method: "POST", path: "/api/v1/durable-memory/proposals/:id/reject", handler: handleRejectDurableMemoryProposalRoute },
+  { method: "POST", path: "/api/v1/durable-memory/proposals/:id/archive", handler: handleArchiveDurableMemoryProposalRoute },
   { method: "POST", path: "/api/v1/durable-memory/snapshots", handler: handleCreateDurableMemorySnapshotRoute },
   { method: "POST", path: "/api/v1/durable-memory/snapshots/list", handler: handleListDurableMemorySnapshotsRoute },
   { method: "POST", path: "/api/v1/durable-memory/snapshots/:id/restore", handler: handleRestoreDurableMemorySnapshotRoute }
@@ -137,6 +138,18 @@ async function handleRejectDurableMemoryProposalRoute(context: ApiRouteContext, 
     200,
     await context.services.durableMemoryService.rejectProposal(
       parseDurableMemoryProposalReviewRequest(decodeRouteParam(params, "id"), body, "proposal-reject")
+    )
+  );
+}
+
+async function handleArchiveDurableMemoryProposalRoute(context: ApiRouteContext, params: RouteParams): Promise<void> {
+  const body = await readJson(context.req);
+  writeSuccess(
+    context.res,
+    "archiveDurableMemoryProposal",
+    200,
+    await context.services.durableMemoryService.archiveProposal(
+      parseDurableMemoryProposalReviewRequest(decodeRouteParam(params, "id"), body, "proposal-archive")
     )
   );
 }

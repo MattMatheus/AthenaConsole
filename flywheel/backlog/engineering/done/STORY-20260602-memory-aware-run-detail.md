@@ -1,7 +1,7 @@
 ---
 kind: story
 id: STORY-20260602-memory-aware-run-detail
-status: intake
+status: done
 owner_role: Software Engineer
 source: epic
 success_metric: Run detail surfaces show memory used, memory proposed, memory approved/written, and memory-related warnings for each run.
@@ -14,7 +14,7 @@ ready: false
 ## Metadata
 - `id`: STORY-20260602-memory-aware-run-detail
 - `owner_role`: Software Engineer
-- `status`: intake
+- `status`: done
 - `source`: epic
 - `decision_refs`: [ADR-0012, ADR-0019, ADR-0020, ADR-0021]
 - `epic`: docs/product/epics/refinement/2026.36.00-epic-memory-governance-agent-integration.md
@@ -59,3 +59,22 @@ Even with governance and proposal flows, operators need run inspection to explai
 
 ## Transition History
 - `2026-06-02T18:20:00Z`: PM refinement created engineering intake story from 2026.36 epic.
+- `2026-06-02T20:37:11Z`: `intake` -> `ready`; PM refinement: ready after proposal review and artifact promotion
+- `2026-06-02T20:59:50Z`: `ready` -> `active`; Activate final memory-aware run detail story
+
+## Engineering Handoff
+
+- `change_summary`: Added a memory run-summary model and a Memory Evidence panel to task run detail. The panel summarizes durable-memory records that influenced the run, proposals created, records written, namespaces, provider/operator statuses, and warnings without requiring operators to inspect raw event JSON. It links onward to the durable-memory inspector and keeps durable memory separate from legacy diagnostic memory.
+- `validation_evidence`: `npm --workspace @athena/console run test -- task-workbench durable-memory`; `npm --workspace @athena/console run typecheck`; `npm --workspace @athena/console run lint`; `git diff --check`.
+- `qa_focus`: Confirm no-memory, memory-used, cache/stale warning, proposal-created, and record-written summaries render from memory events without displaying raw bodies or secrets.
+- `open_risks`: Browser QA of populated task-run memory evidence needs a seeded live API run; model tests cover populated event states.
+- `2026-06-02T21:03:18Z`: `active` -> `qa`; Engineering handoff ready for memory-aware run detail QA
+
+## QA Verdict
+
+- `verdict`: pass
+- `validation_evidence`: `npm --workspace @athena/console run test -- task-workbench durable-memory`; `npm --workspace @athena/console run typecheck`; `npm --workspace @athena/console run lint`; `git diff --check`.
+- `evidence_quality`: Console model tests cover no-memory runs, memory-used summaries, cache-stale warnings, proposal-created events, and memory-written events. The run detail UI consumes the summarized model instead of raw event payloads, and typecheck/lint cover the page integration. Browser QA of populated memory evidence remains limited without a seeded live API run.
+- `state_transition`: Move to `done` after workflow validation.
+- `notes`: Durable memory evidence is summarized by record/proposal/write identifiers, namespaces, statuses, and warnings; raw memory bodies and legacy diagnostic memory payloads are not rendered in the evidence panel.
+- `2026-06-02T21:03:50Z`: `qa` -> `done`; QA passed for memory-aware run detail

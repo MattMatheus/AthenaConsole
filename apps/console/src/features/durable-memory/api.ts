@@ -2,6 +2,8 @@ import { apiClient } from "../../services";
 import type {
   DurableMemoryActorType,
   DurableMemoryCacheMetadata,
+  DurableMemoryEmbeddingMetadata,
+  DurableMemoryEmbeddingStatus,
   DurableMemoryInspectorSummary,
   DurableMemoryNamespaceRef,
   DurableMemoryNamespaceScope,
@@ -13,6 +15,11 @@ import type {
   DurableMemoryRecord,
   DurableMemoryRecordListResult,
   DurableMemoryRecordStatus,
+  DurableMemoryRetrievalDiagnostics,
+  DurableMemoryRetrievalEffectiveMode,
+  DurableMemoryRetrievalMode,
+  DurableMemoryRetrievalSignalKind,
+  DurableMemorySearchMatch,
   DurableMemorySearchResult,
   DurableMemorySensitivity,
   DurableMemorySnapshot,
@@ -91,7 +98,7 @@ function recordStatus(value: unknown): DurableMemoryRecordStatus {
 }
 
 function proposalStatus(value: unknown): DurableMemoryProposalStatus {
-  return value === "approved" || value === "rejected" ? value : "pending";
+  return value === "approved" || value === "rejected" || value === "archived" ? value : "pending";
 }
 
 function providerStatus(value: unknown): DurableMemoryProviderHealthStatus {
@@ -131,6 +138,41 @@ function syncStatus(value: unknown): DurableMemorySyncStatus {
     return value;
   }
   return "not-cached";
+}
+
+function embeddingStatus(value: unknown): DurableMemoryEmbeddingStatus {
+  if (
+    value === "not-indexed" ||
+    value === "queued" ||
+    value === "indexed" ||
+    value === "stale" ||
+    value === "failed" ||
+    value === "unsupported"
+  ) {
+    return value;
+  }
+  return "not-indexed";
+}
+
+function retrievalMode(value: unknown): DurableMemoryRetrievalMode {
+  if (value === "keyword" || value === "semantic" || value === "hybrid" || value === "auto") {
+    return value;
+  }
+  return "keyword";
+}
+
+function effectiveRetrievalMode(value: unknown): DurableMemoryRetrievalEffectiveMode {
+  if (value === "semantic" || value === "hybrid") {
+    return value;
+  }
+  return "keyword";
+}
+
+function retrievalSignalKind(value: unknown): DurableMemoryRetrievalSignalKind {
+  if (value === "semantic" || value === "metadata" || value === "recency" || value === "provenance") {
+    return value;
+  }
+  return "keyword";
 }
 
 export function parseDurableMemoryNamespace(value: unknown): DurableMemoryNamespaceRef {
@@ -206,12 +248,40 @@ function parseProviderMetadata(value: unknown): DurableMemoryCacheMetadata | und
   };
 }
 
+function parseEmbeddingMetadata(value: unknown): DurableMemoryEmbeddingMetadata | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  const providerId = optionalString(value.providerId);
+  const model = optionalString(value.model);
+  const modelVersion = optionalString(value.modelVersion);
+  const backendKind = optionalString(value.backendKind);
+  const indexRevision = optionalString(value.indexRevision);
+  const indexedAt = optionalString(value.indexedAt);
+  const failureCode = optionalString(value.failureCode);
+  const failureReason = optionalString(value.failureReason);
+  const reindexReason = optionalString(value.reindexReason);
+  return {
+    status: embeddingStatus(value.status),
+    ...(providerId ? { providerId } : {}),
+    ...(model ? { model } : {}),
+    ...(modelVersion ? { modelVersion } : {}),
+    ...(backendKind ? { backendKind } : {}),
+    ...(indexRevision ? { indexRevision } : {}),
+    ...(indexedAt ? { indexedAt } : {}),
+    ...(failureCode ? { failureCode } : {}),
+    ...(failureReason ? { failureReason } : {}),
+    ...(reindexReason ? { reindexReason } : {}),
+  };
+}
+
 export function parseDurableMemoryRecord(value: unknown): DurableMemoryRecord {
   if (!isRecord(value) || typeof value.id !== "string") {
     throw new Error("Durable memory record payload is invalid.");
   }
   const summary = optionalString(value.summary);
   const provider = parseProviderMetadata(value.provider);
+  const embedding = parseEmbeddingMetadata(value.embedding);
   const archivedAt = optionalString(value.archivedAt);
   const deletedAt = optionalString(value.deletedAt);
   return {
@@ -228,6 +298,7 @@ export function parseDurableMemoryRecord(value: unknown): DurableMemoryRecord {
     ...(archivedAt ? { archivedAt } : {}),
     ...(deletedAt ? { deletedAt } : {}),
     ...(provider ? { provider } : {}),
+    ...(embedding ? { embedding } : {}),
   };
 }
 
@@ -294,10 +365,64 @@ export function parseDurableMemorySearchResult(value: unknown): DurableMemorySea
   if (!isRecord(value) || !Array.isArray(value.records)) {
     throw new Error("Durable memory search payload is invalid.");
   }
+  const matches = Array.isArray(value.matches) ? value.matches.map(parseSearchMatch) : undefined;
+  const diagnostics = parseRetrievalDiagnostics(value.diagnostics);
   return {
     records: value.records.map(parseDurableMemoryRecord),
     total: typeof value.total === "number" ? value.total : value.records.length,
     operatorStatus: operatorStatus(value.operatorStatus),
+    ...(matches ? { matches } : {}),
+    ...(diagnostics ? { diagnostics } : {}),
+  };
+}
+
+function parseSearchMatch(value: unknown): DurableMemorySearchMatch {
+  if (!isRecord(value)) {
+    return { recordId: "", score: 0, signals: [] };
+  }
+  const snippet = optionalString(value.snippet);
+  return {
+    recordId: stringValue(value.recordId),
+    score: typeof value.score === "number" ? value.score : 0,
+    signals: Array.isArray(value.signals)
+      ? value.signals.map((signal) => {
+          if (!isRecord(signal)) {
+            return { kind: "keyword" as const, score: 0 };
+          }
+          const evidence = optionalString(signal.evidence);
+          return {
+            kind: retrievalSignalKind(signal.kind),
+            score: typeof signal.score === "number" ? signal.score : 0,
+            ...(evidence ? { evidence } : {}),
+          };
+        })
+      : [],
+    ...(snippet ? { snippet } : {}),
+  };
+}
+
+function parseRetrievalDiagnostics(value: unknown): DurableMemoryRetrievalDiagnostics | undefined {
+  if (!isRecord(value) || !isRecord(value.providerCapabilities)) {
+    return undefined;
+  }
+  return {
+    requestedMode: retrievalMode(value.requestedMode),
+    effectiveMode: effectiveRetrievalMode(value.effectiveMode),
+    degraded: Boolean(value.degraded),
+    degradationReasons: stringArray(value.degradationReasons),
+    providerCapabilities: {
+      keyword: Boolean(value.providerCapabilities.keyword),
+      semantic: Boolean(value.providerCapabilities.semantic),
+      hybrid: Boolean(value.providerCapabilities.hybrid),
+    },
+    omitted: Array.isArray(value.omitted)
+      ? value.omitted
+          .filter(isRecord)
+          .map((entry) => ({
+            category: stringValue(entry.category, "unknown"),
+            count: typeof entry.count === "number" ? entry.count : 0,
+          }))
+      : [],
   };
 }
 
@@ -334,6 +459,32 @@ export async function listDurableMemoryRecords(namespace: DurableMemoryNamespace
   );
 }
 
+export type DurableMemoryWriteRequest = {
+  namespace: DurableMemoryNamespaceRef;
+  provenance: DurableMemoryRecord["provenance"];
+  memoryType: string;
+  body: string;
+  summary?: string;
+  sensitivity?: DurableMemorySensitivity;
+  reason: string;
+};
+
+export type DurableMemoryProposalCreateRequest = {
+  targetNamespace: DurableMemoryNamespaceRef;
+  provenance: DurableMemoryRecord["provenance"];
+  memoryType: string;
+  proposedBody: string;
+  reason: string;
+};
+
+export async function writeDurableMemoryRecord(request: DurableMemoryWriteRequest): Promise<DurableMemoryRecord> {
+  return parseDurableMemoryRecord(await apiClient.post<unknown>("/v1/durable-memory/records", request));
+}
+
+export async function createDurableMemoryProposal(request: DurableMemoryProposalCreateRequest): Promise<DurableMemoryProposal> {
+  return parseDurableMemoryProposal(await apiClient.post<unknown>("/v1/durable-memory/proposals", request));
+}
+
 export async function searchDurableMemoryRecords(
   namespace: DurableMemoryNamespaceRef,
   query: string,
@@ -356,6 +507,24 @@ export async function listDurableMemoryProposals(namespace: DurableMemoryNamespa
       includeArchived: true,
       limit: 50,
     }),
+  );
+}
+
+export type DurableMemoryProposalReviewAction = "approve" | "reject" | "archive";
+
+export type DurableMemoryProposalReviewRequest = {
+  actorId: string;
+  reason: string;
+  editedProposedBody?: string;
+};
+
+export async function reviewDurableMemoryProposal(
+  proposalId: string,
+  action: DurableMemoryProposalReviewAction,
+  request: DurableMemoryProposalReviewRequest,
+): Promise<DurableMemoryProposal> {
+  return parseDurableMemoryProposal(
+    await apiClient.post<unknown>(`/v1/durable-memory/proposals/${encodeURIComponent(proposalId)}/${action}`, request),
   );
 }
 
@@ -387,5 +556,7 @@ export async function fetchDurableMemoryInspector(
     snapshots: snapshotResult.snapshots,
     operatorStatus: "operatorStatus" in recordResult ? recordResult.operatorStatus : health.operatorStatus,
     totalRecords: "total" in recordResult ? recordResult.total : recordResult.records.length,
+    ...("diagnostics" in recordResult && recordResult.diagnostics ? { diagnostics: recordResult.diagnostics } : {}),
+    ...("matches" in recordResult && recordResult.matches ? { matches: recordResult.matches } : {}),
   };
 }

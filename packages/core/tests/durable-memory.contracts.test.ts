@@ -8,6 +8,7 @@ import {
   type DurableMemoryNamespaceRef,
   type DurableMemoryProvenanceRef
 } from "../src/shared/contracts/index.js";
+import { parseDurableMemoryWriteRequest as parseApiDurableMemoryWriteRequest } from "../src/api/request-parsers/index.js";
 
 describe("durable memory contracts", () => {
   const repositoryNamespace: DurableMemoryNamespaceRef = {
@@ -88,6 +89,47 @@ describe("durable memory contracts", () => {
     });
   });
 
+  it("parses durable memory embedding lifecycle metadata on write requests", () => {
+    const request = parseApiDurableMemoryWriteRequest({
+      namespace: repositoryNamespace,
+      provenance: {
+        sourceKind: "operator",
+        actorType: "operator",
+        actorId: "operator-1",
+        createdByAction: "operator-note"
+      },
+      memoryType: "repo-note",
+      body: "Use embedding lifecycle metadata for semantic indexing.",
+      embedding: {
+        status: "queued",
+        providerId: "openai-embeddings",
+        model: "text-embedding-3-small",
+        backendKind: "chroma",
+        reindexReason: "new-record"
+      }
+    });
+
+    expect(request.embedding).toMatchObject({
+      status: "queued",
+      providerId: "openai-embeddings",
+      reindexReason: "new-record"
+    });
+    expect(() =>
+      parseApiDurableMemoryWriteRequest({
+        namespace: repositoryNamespace,
+        provenance: {
+          sourceKind: "operator",
+          actorType: "operator",
+          actorId: "operator-1",
+          createdByAction: "operator-note"
+        },
+        memoryType: "repo-note",
+        body: "Bad lifecycle.",
+        embedding: { status: "ready" }
+      })
+    ).toThrow("embedding lifecycle status");
+  });
+
   it("guards durable memory event payloads against bodies, raw payloads, and secrets", () => {
     expect(
       validateDurableMemoryEventPayload({
@@ -122,5 +164,46 @@ describe("durable memory contracts", () => {
     expect(result.errors).toContain(
       "event.payload.nested.providerCredentials.apiKey must not include memory bodies, raw payloads, transcripts, secrets, or credentials"
     );
+  });
+
+  it("accepts stable durable-memory run event payload shapes without raw bodies", () => {
+    const base = {
+      taskId: "task-1",
+      runId: "run-1",
+      agentId: "agent-1",
+      namespace: { scope: "repository", id: "repo-1" }
+    };
+
+    const payloads = [
+      {
+        ...base,
+        operatorStatus: "local-dev-only",
+        resultCount: 1,
+        total: 1
+      },
+      {
+        ...base,
+        recordIds: ["memory-1"],
+        records: [{ recordId: "memory-1", namespace: base.namespace, sensitivity: "internal", status: "active" }]
+      },
+      {
+        ...base,
+        proposalId: "proposal-1",
+        memoryType: "repo-note",
+        status: "pending",
+        reason: "Operator review required.",
+        provenance: {
+          sourceKind: "task-run",
+          taskId: "task-1",
+          runId: "run-1",
+          agentId: "agent-1",
+          createdByAction: "runtime-memory-proposal"
+        }
+      }
+    ];
+
+    for (const payload of payloads) {
+      expect(validateDurableMemoryEventPayload(payload).errors).toEqual([]);
+    }
   });
 });

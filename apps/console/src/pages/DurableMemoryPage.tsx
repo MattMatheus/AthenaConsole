@@ -1,4 +1,4 @@
-import { DatabaseZap, FileClock, Layers3, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { Archive, CheckCircle2, DatabaseZap, FileClock, Layers3, RefreshCw, Search, ShieldCheck, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   durableMemoryStatusLabel,
@@ -8,6 +8,9 @@ import {
   namespaceFromParts,
   namespaceLabel,
   provenanceSummary,
+  retrievalDiagnosticsSummary,
+  retrievalMatchSummary,
+  useDurableMemoryProposalReviewMutation,
   useDurableMemoryInspectorQuery,
   type DurableMemoryNamespaceScope,
   type DurableMemoryProposal,
@@ -66,6 +69,7 @@ export function DurableMemoryPage() {
   const [submittedQuery, setSubmittedQuery] = useState("");
   const namespace = useMemo(() => namespaceFromParts(scope, namespaceId), [namespaceId, scope]);
   const inspectorQuery = useDurableMemoryInspectorQuery(namespace, submittedQuery);
+  const reviewMutation = useDurableMemoryProposalReviewMutation(namespace, submittedQuery);
   const summary = inspectorQuery.data;
   const counts = summary ? inspectorCounts(summary) : [];
   const statusTone = summary ? durableMemoryStatusTone(summary.health.operatorStatus) : "warn";
@@ -188,12 +192,66 @@ export function DurableMemoryPage() {
         </section>
       ) : null}
 
+      {summary ? <RetrievalDiagnosticsPanel summary={summary} /> : null}
+
       <section className={styles.repoConnectionGrid}>
         <MemoryRecordsPanel records={summary?.records ?? []} isLoading={inspectorQuery.isLoading} />
-        <ProposalPanel proposals={summary?.proposals ?? []} />
+        <ProposalPanel proposals={summary?.proposals ?? []} reviewMutation={reviewMutation} />
       </section>
 
       <SnapshotPanel snapshots={summary?.snapshots ?? []} />
+    </section>
+  );
+}
+
+function RetrievalDiagnosticsPanel(props: { summary: NonNullable<ReturnType<typeof useDurableMemoryInspectorQuery>["data"]> }) {
+  const diagnostics = props.summary.diagnostics;
+  const tiles = retrievalDiagnosticsSummary(diagnostics);
+  const omitted = diagnostics?.omitted ?? [];
+  const reasons = diagnostics?.degradationReasons ?? [];
+  const matches = props.summary.matches ?? [];
+  return (
+    <section className={styles.settingsPanel}>
+      <div className={styles.settingsHeader}>
+        <div>
+          <p className={styles.key}>Retrieval Diagnostics</p>
+          <h3 className={styles.resourceTitle}>Search explanation</h3>
+        </div>
+        <Search size={18} />
+      </div>
+      <div className={styles.repoSummaryGrid}>
+        {tiles.map((tile) => (
+          <StatusTile key={tile.label} label={tile.label} value={tile.value} {...(tile.tone ? { tone: tile.tone } : {})} />
+        ))}
+      </div>
+      {reasons.length > 0 ? (
+        <p className={styles.readinessNextStep}>{reasons.join("; ")}</p>
+      ) : (
+        <p className={styles.readinessMeta}>No degraded retrieval fallback was reported.</p>
+      )}
+      {omitted.length > 0 ? (
+        <dl className={styles.repoMetaGrid}>
+          {omitted.map((item) => (
+            <Meta key={item.category} label={durableMemoryStatusLabel(item.category)} value={String(item.count)} />
+          ))}
+        </dl>
+      ) : null}
+      {matches.length > 0 ? (
+        <div className={styles.repoList}>
+          {matches.slice(0, 5).map((match) => (
+            <article key={match.recordId} className={styles.repoRow}>
+              <div className={styles.repoRowMain}>
+                <div>
+                  <p className={styles.repoName}>{match.recordId}</p>
+                  <p className={styles.readinessMeta}>{retrievalMatchSummary(match)}</p>
+                </div>
+              </div>
+              {match.snippet ? <p className={styles.readinessNextStep}>{match.snippet}</p> : null}
+            </article>
+          ))}
+        </div>
+      ) : null}
+      <p className={styles.readinessMeta}>Diagnostics describe canonical retrieval signals and do not expose raw vectors or backend ids.</p>
     </section>
   );
 }
@@ -257,7 +315,45 @@ function MemoryRecordsPanel(props: { records: DurableMemoryRecord[]; isLoading: 
   );
 }
 
-function ProposalPanel(props: { proposals: DurableMemoryProposal[] }) {
+function ProposalPanel(props: {
+  proposals: DurableMemoryProposal[];
+  reviewMutation: ReturnType<typeof useDurableMemoryProposalReviewMutation>;
+}) {
+  const [drafts, setDrafts] = useState<Record<string, { reason: string; proposedBody: string }>>({});
+
+  function draftFor(proposal: DurableMemoryProposal): { reason: string; proposedBody: string } {
+    return drafts[proposal.id] ?? { reason: "", proposedBody: proposal.proposedBody };
+  }
+
+  function updateDraft(proposal: DurableMemoryProposal, patch: Partial<{ reason: string; proposedBody: string }>) {
+    const current = draftFor(proposal);
+    setDrafts((next) => ({
+      ...next,
+      [proposal.id]: {
+        ...current,
+        ...patch,
+      },
+    }));
+  }
+
+  function review(proposal: DurableMemoryProposal, action: "approve" | "reject" | "archive") {
+    const draft = draftFor(proposal);
+    const reason = draft.reason.trim();
+    if (!reason) {
+      updateDraft(proposal, { reason: "" });
+      return;
+    }
+    props.reviewMutation.mutate({
+      proposalId: proposal.id,
+      action,
+      request: {
+        actorId: "console-operator",
+        reason,
+        ...(action === "approve" && draft.proposedBody !== proposal.proposedBody ? { editedProposedBody: draft.proposedBody } : {}),
+      },
+    });
+  }
+
   return (
     <section className={styles.settingsPanel}>
       <div className={styles.settingsHeader}>
@@ -270,29 +366,67 @@ function ProposalPanel(props: { proposals: DurableMemoryProposal[] }) {
       {props.proposals.length === 0 ? (
         <div className={styles.repoEmptyState}>
           <p className={styles.value}>No durable memory proposals are in this namespace.</p>
-          <p className={styles.readinessMeta}>Approval and rejection controls are intentionally deferred.</p>
+          <p className={styles.readinessMeta}>Pending proposals will appear here for review.</p>
         </div>
       ) : null}
+      {props.reviewMutation.error ? <p className={styles.repoStatusMessage}>{mutationError(props.reviewMutation.error)}</p> : null}
       <div className={styles.repoList}>
-        {props.proposals.map((proposal) => (
-          <article key={proposal.id} className={styles.repoRow}>
-            <div className={styles.repoRowMain}>
-              <div>
-                <p className={styles.repoName}>{proposal.memoryType}</p>
-                <p className={styles.readinessMeta}>{proposal.id}</p>
+        {props.proposals.map((proposal) => {
+          const draft = draftFor(proposal);
+          const isPending = proposal.status === "pending";
+          const disabled = props.reviewMutation.isPending;
+          return (
+            <article key={proposal.id} className={styles.repoRow}>
+              <div className={styles.repoRowMain}>
+                <div>
+                  <p className={styles.repoName}>{proposal.memoryType}</p>
+                  <p className={styles.readinessMeta}>{proposal.id}</p>
+                </div>
+                <span className={`${styles.readinessMiniBadge} ${proposal.status === "pending" ? styles.readinessWarn : styles.readinessPass}`}>
+                  {proposal.status}
+                </span>
               </div>
-              <span className={`${styles.readinessMiniBadge} ${proposal.status === "pending" ? styles.readinessWarn : styles.readinessPass}`}>
-                {proposal.status}
-              </span>
-            </div>
-            <p className={styles.readinessNextStep}>{proposal.reason || textPreview(proposal.proposedBody)}</p>
-            <dl className={styles.repoMetaGrid}>
-              <Meta label="Namespace" value={namespaceLabel(proposal.targetNamespace)} />
-              <Meta label="Provenance" value={provenanceSummary(proposal.provenance)} />
-              <Meta label="Created" value={formatDate(proposal.createdAt)} />
-            </dl>
-          </article>
-        ))}
+              <p className={styles.readinessNextStep}>{proposal.reason || textPreview(proposal.proposedBody)}</p>
+              <label className={styles.repoField}>
+                Proposed content
+                <textarea
+                  value={draft.proposedBody}
+                  onChange={(event) => updateDraft(proposal, { proposedBody: event.target.value })}
+                  disabled={!isPending || disabled}
+                  rows={5}
+                />
+              </label>
+              <label className={styles.repoField}>
+                Review reason
+                <input
+                  value={draft.reason}
+                  onChange={(event) => updateDraft(proposal, { reason: event.target.value })}
+                  disabled={!isPending || disabled}
+                  placeholder={isPending ? "Required before review" : "Reviewed"}
+                />
+              </label>
+              {isPending && draft.reason.trim() === "" ? <p className={styles.readinessMeta}>A review reason is required.</p> : null}
+              <div className={styles.headerActions}>
+                <button type="button" className={styles.primaryCta} disabled={!isPending || disabled} onClick={() => review(proposal, "approve")}>
+                  <CheckCircle2 size={16} /> Approve
+                </button>
+                <button type="button" className={styles.secondaryCta} disabled={!isPending || disabled} onClick={() => review(proposal, "reject")}>
+                  <XCircle size={16} /> Reject
+                </button>
+                <button type="button" className={styles.secondaryCta} disabled={!isPending || disabled} onClick={() => review(proposal, "archive")}>
+                  <Archive size={16} /> Archive
+                </button>
+              </div>
+              <dl className={styles.repoMetaGrid}>
+                <Meta label="Namespace" value={namespaceLabel(proposal.targetNamespace)} />
+                <Meta label="Provenance" value={provenanceSummary(proposal.provenance)} />
+                <Meta label="Created" value={formatDate(proposal.createdAt)} />
+                <Meta label="Reviewed" value={formatDate(proposal.reviewedAt)} />
+                <Meta label="Reviewed by" value={proposal.reviewedBy ?? ""} />
+              </dl>
+            </article>
+          );
+        })}
       </div>
     </section>
   );

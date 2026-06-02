@@ -5,6 +5,8 @@ import {
   memoryPreview,
   namespaceFromParts,
   provenanceSummary,
+  retrievalDiagnosticsSummary,
+  retrievalMatchSummary,
 } from "./inspectorModel";
 
 describe("durable memory inspector model", () => {
@@ -41,5 +43,37 @@ describe("durable memory inspector model", () => {
         updatedAt: "2026-06-02T12:00:00.000Z",
       }),
     ).toHaveLength(180);
+  });
+
+  it("summarizes retrieval diagnostics without backend internals", () => {
+    expect(
+      retrievalDiagnosticsSummary({
+        requestedMode: "hybrid",
+        effectiveMode: "keyword",
+        degraded: true,
+        degradationReasons: ["semantic retrieval requires a configured semantic index adapter"],
+        providerCapabilities: {
+          keyword: true,
+          semantic: false,
+          hybrid: false,
+        },
+        omitted: [{ category: "namespace-mismatch", count: 2 }],
+      }),
+    ).toEqual([
+      { label: "Requested", value: "Hybrid" },
+      { label: "Effective", value: "Keyword" },
+      { label: "Fallback", value: "Degraded", tone: "warn" },
+      { label: "Capabilities", value: "keyword" },
+    ]);
+    expect(
+      retrievalMatchSummary({
+        recordId: "memory-1",
+        score: 0.82,
+        signals: [
+          { kind: "keyword", score: 0.65 },
+          { kind: "recency", score: 0.1 },
+        ],
+      }),
+    ).toBe("score 0.82 via keyword:0.65, recency:0.10");
   });
 });

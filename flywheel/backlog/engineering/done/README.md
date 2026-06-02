@@ -103,3 +103,15 @@ Engineering work accepted by QA.
 97. `STORY-20260602-durable-memory-remote-provider-client.md`
 98. `STORY-20260602-durable-memory-readiness-config.md`
 99. `STORY-20260602-durable-memory-console-inspector.md`
+100. `STORY-20260602-memory-manifest-permissions.md`
+101. `STORY-20260602-memory-runtime-context.md`
+102. `STORY-20260602-memory-usage-events.md`
+103. `STORY-20260602-memory-proposed-review.md`
+104. `STORY-20260602-memory-artifact-promotion.md`
+105. `STORY-20260602-memory-aware-run-detail.md`
+106. `STORY-20260602-memory-embedding-lifecycle.md`
+107. `STORY-20260602-memory-hybrid-retrieval.md`
+108. `STORY-20260602-memory-local-cache-sync.md`
+109. `STORY-20260602-memory-chroma-adapter.md`
+110. `STORY-20260602-memory-athena-adapter-evaluation.md`
+111. `STORY-20260602-memory-retrieval-diagnostics.md`

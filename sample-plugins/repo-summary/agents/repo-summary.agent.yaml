@@ -43,6 +43,17 @@ agent:
     filesystem: scoped
     shell: allow
     credentials: deny
+    durableMemory:
+      read:
+        namespaces:
+          - repo-summary/*
+        maxSensitivity: internal
+        reason: Allow future memory-aware repo summaries to read curated repo notes.
+      propose:
+        namespaces:
+          - repo-summary/*
+        maxSensitivity: internal
+        reason: Allow summary artifacts to become operator-reviewed memory proposals.
   limits:
     maxRuntimeSeconds: 60
     maxToolCalls: 0

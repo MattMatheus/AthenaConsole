@@ -51,9 +51,26 @@ export interface DurableMemoryProvenanceRef {
 }
 
 export type DurableMemoryRecordStatus = "active" | "archived" | "deleted";
-export type DurableMemoryProposalStatus = "pending" | "approved" | "rejected";
+export type DurableMemoryProposalStatus = "pending" | "approved" | "rejected" | "archived";
 export type DurableMemoryProviderKind = "local-dev" | "server-mode" | "remote-http";
 export type DurableMemoryProviderHealthStatus = "ok" | "degraded" | "unavailable" | "unauthorized" | "disabled";
+export type DurableMemoryEmbeddingStatus = "not-indexed" | "queued" | "indexed" | "stale" | "failed" | "unsupported";
+export type DurableMemoryRetrievalMode = "keyword" | "semantic" | "hybrid" | "auto";
+export type DurableMemoryRetrievalEffectiveMode = "keyword" | "semantic" | "hybrid";
+export type DurableMemoryRetrievalSignalKind = "keyword" | "semantic" | "metadata" | "recency" | "provenance";
+
+export interface DurableMemoryEmbeddingMetadata {
+  status: DurableMemoryEmbeddingStatus;
+  providerId?: string;
+  model?: string;
+  modelVersion?: string;
+  backendKind?: string;
+  indexRevision?: string;
+  indexedAt?: string;
+  failureCode?: string;
+  failureReason?: string;
+  reindexReason?: string;
+}
 
 export const DURABLE_MEMORY_OPERATOR_VISIBLE_STATUSES = [
   "remote-current",
@@ -108,6 +125,7 @@ export interface DurableMemoryRecord {
   archivedAt?: string;
   deletedAt?: string;
   provider?: DurableMemoryCacheMetadata;
+  embedding?: DurableMemoryEmbeddingMetadata;
 }
 
 export interface DurableMemoryProposal {
@@ -166,6 +184,7 @@ export interface DurableMemorySearchRequest {
   query: string;
   includeDescendants?: boolean;
   limit?: number;
+  mode?: DurableMemoryRetrievalMode;
 }
 
 export interface DurableMemoryWriteRequest {
@@ -175,6 +194,7 @@ export interface DurableMemoryWriteRequest {
   body: string;
   sensitivity?: DurableMemorySensitivity;
   reason?: string;
+  embedding?: DurableMemoryEmbeddingMetadata;
 }
 
 export interface DurableMemoryGetRequest {
@@ -209,6 +229,7 @@ export interface DurableMemoryProposalReviewRequest {
   id: string;
   actorId: string;
   reason: string;
+  editedProposedBody?: string;
 }
 
 export interface DurableMemorySnapshotCreateRequest {
@@ -233,6 +254,37 @@ export interface DurableMemorySearchResult {
   records: DurableMemoryRecord[];
   total: number;
   operatorStatus: DurableMemoryOperatorVisibleStatus;
+  matches?: DurableMemorySearchMatch[];
+  diagnostics?: DurableMemoryRetrievalDiagnostics;
+}
+
+export interface DurableMemorySearchMatch {
+  recordId: string;
+  score: number;
+  signals: DurableMemoryRetrievalSignal[];
+  snippet?: string;
+}
+
+export interface DurableMemoryRetrievalSignal {
+  kind: DurableMemoryRetrievalSignalKind;
+  score: number;
+  evidence?: string;
+}
+
+export interface DurableMemoryRetrievalDiagnostics {
+  requestedMode: DurableMemoryRetrievalMode;
+  effectiveMode: DurableMemoryRetrievalEffectiveMode;
+  degraded: boolean;
+  degradationReasons: string[];
+  providerCapabilities: {
+    keyword: boolean;
+    semantic: boolean;
+    hybrid: boolean;
+  };
+  omitted: Array<{
+    category: string;
+    count: number;
+  }>;
 }
 
 export interface DurableMemorySnapshotListResult {
@@ -267,6 +319,7 @@ export type DurableMemoryMutationOperation =
   | "proposal-create"
   | "proposal-approve"
   | "proposal-reject"
+  | "proposal-archive"
   | "archive"
   | "delete"
   | "snapshot-create"

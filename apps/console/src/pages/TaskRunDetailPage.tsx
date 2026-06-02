@@ -3,12 +3,19 @@ import { ArrowLeft, Box, BrainCircuit, Clock3, FileText, RefreshCw, ShieldCheck,
 import ReactMarkdown from "react-markdown";
 import { Link, useParams } from "react-router-dom";
 import {
+  namespaceFromParts,
+  useDurableMemoryPromotionMutation,
+  type DurableMemoryNamespaceScope,
+  type DurableMemorySensitivity,
+} from "../features/durable-memory";
+import {
   artifactPreviewState,
   classifyRunEvent,
   formatBytes,
   formatUnknown,
   formatVerificationFailureDetails,
   isProposedChangeArtifact,
+  memoryRunSummary,
   modelProviderRunMetadata,
   modelRunOutput,
   proposedChangeArtifact,
@@ -150,6 +157,26 @@ function renderArtifactContent(artifact: TaskWorkbenchArtifactRecord): JSX.Eleme
   return <pre className={artifact.format === "diff" ? styles.diffBlock : styles.codeBlock}>{artifact.content.text}</pre>;
 }
 
+function artifactPromotionBody(artifact: TaskWorkbenchArtifactRecord): string | undefined {
+  if (artifact.content.kind === "text") {
+    return artifact.content.text;
+  }
+  if (artifact.content.kind === "json") {
+    return JSON.stringify(artifact.content.value, null, 2);
+  }
+  return undefined;
+}
+
+function artifactPromotionUnsupportedReason(artifact: TaskWorkbenchArtifactRecord): string | undefined {
+  if (artifact.content.kind !== "text" && artifact.content.kind !== "json") {
+    return "Only text-like artifact payloads can be promoted.";
+  }
+  if (artifact.format === "binary") {
+    return "Binary artifacts cannot be promoted into durable memory.";
+  }
+  return undefined;
+}
+
 function ArtifactPreview({ artifactId, runId }: { artifactId: string; runId: string | undefined }): JSX.Element {
   const artifactQuery = useTaskRunArtifactQuery(runId, artifactId);
 
@@ -172,7 +199,112 @@ function ArtifactPreview({ artifactId, runId }: { artifactId: string; runId: str
         <span className={styles.badge}>{artifactQuery.data.content.kind}</span>
       </div>
       {renderArtifactContent(artifactQuery.data)}
+      <ArtifactPromotionForm artifact={artifactQuery.data} runId={runId} />
     </div>
+  );
+}
+
+function ArtifactPromotionForm({ artifact, runId }: { artifact: TaskWorkbenchArtifactRecord; runId: string | undefined }): JSX.Element {
+  const [scope, setScope] = useState<DurableMemoryNamespaceScope>("run");
+  const [namespaceId, setNamespaceId] = useState(runId ?? "run");
+  const [memoryType, setMemoryType] = useState(artifact.format === "json" ? "artifact-json" : "artifact-note");
+  const [sensitivity, setSensitivity] = useState<DurableMemorySensitivity>("internal");
+  const [reason, setReason] = useState("");
+  const body = artifactPromotionBody(artifact);
+  const unsupportedReason = artifactPromotionUnsupportedReason(artifact);
+  const namespace = namespaceFromParts(scope, namespaceId || "default");
+  const promotionMutation = useDurableMemoryPromotionMutation(namespace);
+  const requiresProposal = sensitivity === "sensitive" || sensitivity === "secret-adjacent";
+  const canSubmit = Boolean(body && reason.trim() && memoryType.trim() && namespaceId.trim() && !unsupportedReason);
+
+  return (
+    <form
+      className={styles.promotionForm}
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!body || !canSubmit || !runId) {
+          return;
+        }
+        const provenance = {
+          sourceKind: "artifact" as const,
+          actorType: "operator" as const,
+          actorId: "console-operator",
+          runId,
+          artifactId: artifact.id,
+          createdByAction: "artifact-promoted-to-memory",
+          ...(artifact.taskId ? { taskId: artifact.taskId } : {}),
+          ...(artifact.agentId ? { agentId: artifact.agentId } : {}),
+        };
+        if (requiresProposal) {
+          promotionMutation.mutate({
+            mode: "proposal",
+            request: {
+              targetNamespace: namespace,
+              provenance,
+              memoryType,
+              proposedBody: body,
+              reason,
+            },
+          });
+          return;
+        }
+        promotionMutation.mutate({
+          mode: "record",
+          request: {
+            namespace,
+            provenance,
+            memoryType,
+            body,
+            summary: artifact.label,
+            sensitivity,
+            reason,
+          },
+        });
+      }}
+    >
+      <p className={styles.panelTitle}>Promote To Memory</p>
+      {unsupportedReason ? <p className={styles.errorText}>{unsupportedReason}</p> : null}
+      <div className={styles.promotionGrid}>
+        <label>
+          Namespace scope
+          <select value={scope} onChange={(event) => setScope(event.target.value as DurableMemoryNamespaceScope)}>
+            <option value="run">run</option>
+            <option value="task">task</option>
+            <option value="repository">repository</option>
+            <option value="workspace">workspace</option>
+          </select>
+        </label>
+        <label>
+          Namespace id
+          <input value={namespaceId} onChange={(event) => setNamespaceId(event.target.value)} />
+        </label>
+        <label>
+          Memory type
+          <input value={memoryType} onChange={(event) => setMemoryType(event.target.value)} />
+        </label>
+        <label>
+          Sensitivity
+          <select value={sensitivity} onChange={(event) => setSensitivity(event.target.value as DurableMemorySensitivity)}>
+            <option value="public">public</option>
+            <option value="internal">internal</option>
+            <option value="sensitive">sensitive</option>
+            <option value="secret-adjacent">secret-adjacent</option>
+          </select>
+        </label>
+      </div>
+      <label>
+        Reason
+        <input value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Required before promotion" />
+      </label>
+      <p className={styles.description}>
+        {requiresProposal ? "Sensitive promotions create a reviewed memory proposal." : "Public/internal promotions create a durable record."}
+      </p>
+      {promotionMutation.error ? <p className={styles.errorText}>{promotionMutation.error.message}</p> : null}
+      {promotionMutation.isSuccess ? <p className={styles.description}>Promotion submitted.</p> : null}
+      <button type="submit" className={styles.secondaryButton} disabled={!canSubmit || !runId || promotionMutation.isPending}>
+        Promote
+      </button>
+    </form>
   );
 }
 
@@ -184,6 +316,7 @@ export function TaskRunDetailPage() {
   const detail = runQuery.data;
   const modelProvider = detail ? modelProviderRunMetadata(detail.events) : undefined;
   const modelOutput = detail ? modelRunOutput(detail.run.output) : undefined;
+  const memorySummary = detail ? memoryRunSummary(detail.events) : undefined;
 
   return (
     <section className={styles.page}>
@@ -336,6 +469,46 @@ export function TaskRunDetailPage() {
           <section className={styles.panel}>
             <div className={styles.panelHeader}>
               <div>
+                <p className={styles.panelTitle}>Memory Evidence</p>
+                <p className={styles.panelMeta}>Durable memory only</p>
+              </div>
+            </div>
+            {!memorySummary ||
+            (memorySummary.usedRecords.length === 0 &&
+              memorySummary.proposals.length === 0 &&
+              memorySummary.writes.length === 0 &&
+              memorySummary.statuses.length === 0) ? (
+              <p className={styles.description}>No durable-memory usage was recorded for this run.</p>
+            ) : (
+              <div className={styles.memoryEvidenceGrid}>
+                <MemoryEvidenceList
+                  title="Used records"
+                  empty="No memory records influenced this run."
+                  items={memorySummary.usedRecords.map((record) => `${record.id}${record.sensitivity ? ` / ${record.sensitivity}` : ""}`)}
+                />
+                <MemoryEvidenceList
+                  title="Proposals"
+                  empty="No memory proposals were created."
+                  items={memorySummary.proposals.map((proposal) => `${proposal.id}${proposal.status ? ` / ${proposal.status}` : ""}`)}
+                />
+                <MemoryEvidenceList
+                  title="Writes"
+                  empty="No memory records were written."
+                  items={memorySummary.writes.map((write) => `${write.id}${write.status ? ` / ${write.status}` : ""}`)}
+                />
+                <MemoryEvidenceList title="Namespaces" empty="No namespaces recorded." items={memorySummary.namespaces} />
+                <MemoryEvidenceList title="Statuses" empty="No provider statuses recorded." items={memorySummary.statuses} />
+                <MemoryEvidenceList title="Warnings" empty="No memory warnings recorded." items={memorySummary.warnings} warning />
+              </div>
+            )}
+            <Link className={styles.secondaryButton} to="/memory">
+              Open Memory Inspector
+            </Link>
+          </section>
+
+          <section className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <div>
                 <p className={styles.panelTitle}>Verification</p>
                 <p className={styles.panelMeta}>Policy evaluation</p>
               </div>
@@ -462,6 +635,25 @@ export function TaskRunDetailPage() {
         </>
       ) : null}
     </section>
+  );
+}
+
+function MemoryEvidenceList(props: { title: string; empty: string; items: string[]; warning?: boolean }): JSX.Element {
+  return (
+    <div className={styles.memoryEvidenceList}>
+      <p className={styles.panelMeta}>{props.title}</p>
+      {props.items.length === 0 ? (
+        <p className={styles.description}>{props.empty}</p>
+      ) : (
+        <ul>
+          {props.items.map((item) => (
+            <li key={item} className={props.warning ? styles.warningText : undefined}>
+              {item}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

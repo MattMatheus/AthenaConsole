@@ -5,6 +5,7 @@ import { isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AthenaError } from "../../runtime/errors.js";
 import type { AthenaConfig } from "../../shared/config.js";
+import { validateDurableMemoryEventPayload } from "../../shared/contracts/durable-memory.js";
 import type { VerificationPolicyFailure } from "../../shared/contracts/harness.js";
 import type {
   ModelProviderRequirement,
@@ -32,6 +33,13 @@ import type {
 import { DEFAULT_TASK_WORKBENCH_RUN_MODE, TASK_WORKBENCH_RUN_MODES, TASK_WORKBENCH_STATUSES } from "../../shared/contracts.js";
 import type { ModelProviderRuntimeConfig } from "../../shared/contracts/model-providers.js";
 import type {
+  DurableMemoryGetRequest,
+  DurableMemoryNamespaceRef,
+  DurableMemoryProposalCreateRequest,
+  DurableMemorySearchRequest,
+  DurableMemorySensitivity
+} from "../../shared/contracts/durable-memory.js";
+import type {
   AgentIndexRecord,
   AppStateDatabase,
   ArtifactMetadataRecord,
@@ -45,11 +53,13 @@ import type {
 import { openAppStateDatabase } from "../app-state/index.js";
 import type { TaskWorkbenchService } from "../interfaces.js";
 import { LocalModelProviderConfigService } from "./model-providers.js";
+import type { DurableMemoryService } from "./durable-memory.js";
 import { evaluateProviderReadiness, normalizeModelProviderRequirement } from "./provider-readiness.js";
 import { LocalWorkflowStateService } from "./workflow-state.js";
 
 export interface LocalTaskWorkbenchServiceOptions {
   appState?: AppStateDatabase;
+  durableMemoryService?: DurableMemoryService;
 }
 
 interface ActiveTaskRun {
@@ -124,6 +134,7 @@ interface AgentManifestDocument {
     permissions?: {
       containers?: string;
       approvalRequiredFor?: unknown[];
+      durableMemory?: DurableMemoryPermissionDeclaration;
     };
     limits?: {
       maxRuntimeSeconds?: unknown;
@@ -187,6 +198,7 @@ interface TaskRunSafetyStop {
 interface AgentRunEnvelope {
   output: unknown;
   artifacts: AgentRunArtifact[];
+  memoryRequests: RuntimeMemoryRequest[];
   verificationStatus?: RunVerificationStatus;
   verificationFailures?: VerificationPolicyFailure[];
 }
@@ -201,6 +213,57 @@ interface AgentRunArtifact {
   hash?: string;
   metadata?: unknown;
   schemaValidation?: unknown;
+}
+
+interface DurableMemoryPermissionDeclaration {
+  read?: DurableMemoryAccessDeclaration;
+  propose?: DurableMemoryAccessDeclaration;
+  writeReviewed?: DurableMemoryAccessDeclaration;
+}
+
+interface DurableMemoryAccessDeclaration {
+  namespaces?: unknown[];
+  maxSensitivity?: unknown;
+  reason?: unknown;
+}
+
+interface ResolvedRuntimeMemoryAccess {
+  namespaces: string[];
+  maxSensitivity: DurableMemorySensitivity;
+  reason?: string;
+}
+
+interface ResolvedRuntimeMemoryContext {
+  status: "unavailable" | "denied" | "permitted";
+  message: string;
+  operations: {
+    read?: ResolvedRuntimeMemoryAccess;
+    propose?: ResolvedRuntimeMemoryAccess;
+    writeReviewed?: ResolvedRuntimeMemoryAccess;
+  };
+}
+
+type RuntimeMemoryRequest = RuntimeMemorySearchRequest | RuntimeMemoryGetRuntimeRequest | RuntimeMemoryProposeRequest;
+
+interface RuntimeMemorySearchRequest {
+  operation: "search";
+  namespace: DurableMemoryNamespaceRef;
+  query: string;
+  limit?: number;
+}
+
+interface RuntimeMemoryGetRuntimeRequest {
+  operation: "get";
+  id: string;
+  namespace?: DurableMemoryNamespaceRef;
+}
+
+interface RuntimeMemoryProposeRequest {
+  operation: "propose";
+  targetNamespace: DurableMemoryNamespaceRef;
+  memoryType: string;
+  proposedBody: string;
+  reason: string;
 }
 
 export class LocalTaskWorkbenchService implements TaskWorkbenchService {
@@ -349,6 +412,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       const modelProvider = modelProviderRequirement
         ? await resolveTaskModelProvider(this.config, appState, modelProviderRequirement)
         : undefined;
+      const memoryContext = resolveRuntimeMemoryContext(manifest, this.options.durableMemoryService);
       const runId = request.runId ?? `run-${randomUUID()}`;
       const startedAt = new Date().toISOString();
       let run = appState.runs.create({
@@ -383,6 +447,12 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
           model: modelProvider.defaultModel
         });
       }
+      appendDurableMemoryRunEvent(appState, run.id, task, agent.id, "memory.context", memoryContext.message, {
+        ...sanitizeRuntimeMemoryContext(memoryContext),
+        taskId: task.id,
+        runId: run.id,
+        agentId: agent.id
+      });
       appendApprovalRequiredEvents(appState, run, task, agent.id, execution.backend, safety);
       appendRunEvent(appState, run.id, task, agent.id, "run.started", `${backendLabel(execution.backend)} task run started.`, {
         backend: execution.backend,
@@ -390,7 +460,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       });
 
       if (execution.backend === "http-api") {
-        return await this.runHttpApiTask(appState, run, task, agent, execution, safety);
+        return await this.runHttpApiTask(appState, run, task, agent, execution, safety, memoryContext);
       }
       const command = execution;
       let child: ChildProcessWithoutNullStreams;
@@ -428,7 +498,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
           stream: "stderr"
         });
       });
-      child.stdin.end(JSON.stringify(createAgentTaskRunEnvelope(task, agent, run, modelProvider)));
+      child.stdin.end(JSON.stringify(createAgentTaskRunEnvelope(task, agent, run, modelProvider, memoryContext)));
 
       let exit: { code: number | null; signal: NodeJS.Signals | null; safetyStop?: TaskRunSafetyStop };
       try {
@@ -480,6 +550,14 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         const envelopeSafetyStop = validateEnvelopeLimits(envelope, command.backend, safety);
         if (envelopeSafetyStop) {
           return stopTaskRunByLimit(appState, run, task, agent.id, envelopeSafetyStop);
+        }
+        try {
+          await processRuntimeMemoryRequests(appState, this.options.durableMemoryService, memoryContext, run, task, agent.id, envelope.memoryRequests);
+        } catch (error) {
+          return failTaskRun(appState, run, task, agent.id, "Runtime memory request failed.", {
+            phase: "memory",
+            error: error instanceof Error ? error.message : String(error)
+          });
         }
         for (const artifact of envelope.artifacts) {
           try {
@@ -560,7 +638,8 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
     task: TaskRecord,
     agent: AgentIndexRecord,
     request: ResolvedHttpApiRequest,
-    safety: ResolvedTaskRunSafety
+    safety: ResolvedTaskRunSafety,
+    memoryContext: ResolvedRuntimeMemoryContext
   ): Promise<TaskWorkbenchTaskRun> {
     let run = initialRun;
     const active: ActiveTaskRun = {
@@ -587,7 +666,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
           accept: "application/json, text/plain",
           ...request.headers
         },
-        body: JSON.stringify(createAgentTaskRunEnvelope(task, agent, run)),
+        body: JSON.stringify(createAgentTaskRunEnvelope(task, agent, run, undefined, memoryContext)),
         signal: abortController.signal
       });
       responseText = await response.text();
@@ -645,6 +724,14 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
     const envelopeSafetyStop = validateEnvelopeLimits(envelope, request.backend, safety);
     if (envelopeSafetyStop) {
       return stopTaskRunByLimit(appState, run, task, agent.id, envelopeSafetyStop);
+    }
+    try {
+      await processRuntimeMemoryRequests(appState, this.options.durableMemoryService, memoryContext, run, task, agent.id, envelope.memoryRequests);
+    } catch (error) {
+      return failTaskRun(appState, run, task, agent.id, "Runtime memory request failed.", {
+        phase: "memory",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
     for (const artifact of envelope.artifacts) {
       try {
@@ -1253,7 +1340,8 @@ function parseAgentRunEnvelope(stdout: string): AgentRunEnvelope {
   if (!trimmed) {
     return {
       output: {},
-      artifacts: []
+      artifacts: [],
+      memoryRequests: []
     };
   }
   let parsed: unknown;
@@ -1262,13 +1350,15 @@ function parseAgentRunEnvelope(stdout: string): AgentRunEnvelope {
   } catch {
     return {
       output: { stdout },
-      artifacts: []
+      artifacts: [],
+      memoryRequests: []
     };
   }
   if (isRecord(parsed)) {
     return {
       output: "output" in parsed ? parsed.output : parsed,
       artifacts: Array.isArray(parsed.artifacts) ? parsed.artifacts.map(parseAgentRunArtifact) : [],
+      memoryRequests: Array.isArray(parsed.memoryRequests) ? parsed.memoryRequests.map(parseRuntimeMemoryRequest) : [],
       ...(isRunVerificationStatus(parsed.verificationStatus) ? { verificationStatus: parsed.verificationStatus } : {}),
       ...(Array.isArray(parsed.verificationFailures)
         ? {
@@ -1281,8 +1371,254 @@ function parseAgentRunEnvelope(stdout: string): AgentRunEnvelope {
   }
   return {
     output: parsed,
-    artifacts: []
+    artifacts: [],
+    memoryRequests: []
   };
+}
+
+function parseRuntimeMemoryRequest(value: unknown): RuntimeMemoryRequest {
+  if (!isRecord(value) || typeof value.operation !== "string") {
+    throw new AthenaError("CONFIG_ERROR", "memoryRequests items must include an operation.");
+  }
+  if (value.operation === "search") {
+    if (!isDurableMemoryNamespaceRef(value.namespace) || typeof value.query !== "string") {
+      throw new AthenaError("CONFIG_ERROR", "memory search requests require namespace and query.");
+    }
+    return {
+      operation: "search",
+      namespace: value.namespace,
+      query: value.query,
+      ...(typeof value.limit === "number" && Number.isInteger(value.limit) && value.limit > 0 ? { limit: value.limit } : {})
+    };
+  }
+  if (value.operation === "get") {
+    if (typeof value.id !== "string") {
+      throw new AthenaError("CONFIG_ERROR", "memory get requests require id.");
+    }
+    return {
+      operation: "get",
+      id: value.id,
+      ...(isDurableMemoryNamespaceRef(value.namespace) ? { namespace: value.namespace } : {})
+    };
+  }
+  if (value.operation === "propose") {
+    if (
+      !isDurableMemoryNamespaceRef(value.targetNamespace) ||
+      typeof value.memoryType !== "string" ||
+      typeof value.proposedBody !== "string" ||
+      typeof value.reason !== "string"
+    ) {
+      throw new AthenaError("CONFIG_ERROR", "memory propose requests require targetNamespace, memoryType, proposedBody, and reason.");
+    }
+    return {
+      operation: "propose",
+      targetNamespace: value.targetNamespace,
+      memoryType: value.memoryType,
+      proposedBody: value.proposedBody,
+      reason: value.reason
+    };
+  }
+  throw new AthenaError("CONFIG_ERROR", `Unsupported memory request operation: ${value.operation}`);
+}
+
+async function processRuntimeMemoryRequests(
+  appState: AppStateDatabase,
+  durableMemoryService: DurableMemoryService | undefined,
+  context: ResolvedRuntimeMemoryContext,
+  run: RunRecord,
+  task: TaskRecord,
+  agentId: string,
+  requests: RuntimeMemoryRequest[]
+): Promise<void> {
+  for (const request of requests) {
+    if (!durableMemoryService) {
+      throw new AthenaError("CONFIG_ERROR", "Durable memory is unavailable for this runtime.");
+    }
+    if (request.operation === "search") {
+      requireRuntimeMemoryAccess(context, "read", request.namespace);
+      const serviceRequest: DurableMemorySearchRequest = {
+        namespace: request.namespace,
+        query: request.query,
+        ...(request.limit ? { limit: request.limit } : {})
+      };
+      const result = await durableMemoryService.search(serviceRequest);
+      appendDurableMemoryRunEvent(appState, run.id, task, agentId, "memory.search", "Runtime durable-memory search completed.", {
+        namespace: request.namespace,
+        operatorStatus: result.operatorStatus,
+        resultCount: result.records.length,
+        total: result.total,
+        taskId: task.id,
+        runId: run.id,
+        agentId
+      });
+      if (result.records.length > 0) {
+        appendDurableMemoryRunEvent(appState, run.id, task, agentId, "memory.records.selected", "Runtime durable-memory records selected.", {
+          namespace: request.namespace,
+          recordIds: result.records.map((record) => record.id),
+          records: result.records.map((record) => ({
+            recordId: record.id,
+            namespace: record.namespace,
+            sensitivity: record.sensitivity,
+            status: record.status
+          })),
+          taskId: task.id,
+          runId: run.id,
+          agentId
+        });
+      }
+      continue;
+    }
+    if (request.operation === "get") {
+      if (request.namespace) {
+        requireRuntimeMemoryAccess(context, "read", request.namespace);
+      } else {
+        requireRuntimeMemoryAccess(context, "read");
+      }
+      const serviceRequest: DurableMemoryGetRequest = {
+        id: request.id,
+        ...(request.namespace ? { namespace: request.namespace } : {})
+      };
+      const record = await durableMemoryService.get(serviceRequest);
+      appendDurableMemoryRunEvent(appState, run.id, task, agentId, "memory.record.selected", "Runtime durable-memory record selected.", {
+        recordId: record.id,
+        namespace: record.namespace,
+        sensitivity: record.sensitivity,
+        status: record.status,
+        taskId: task.id,
+        runId: run.id,
+        agentId
+      });
+      continue;
+    }
+    requireRuntimeMemoryAccess(context, "propose", request.targetNamespace);
+    const serviceRequest: DurableMemoryProposalCreateRequest = {
+      targetNamespace: request.targetNamespace,
+      memoryType: request.memoryType,
+      proposedBody: request.proposedBody,
+      reason: request.reason,
+      provenance: {
+        sourceKind: "task-run",
+        actorType: "agent",
+        actorId: agentId,
+        agentId,
+        taskId: task.id,
+        runId: run.id,
+        createdByAction: "runtime-memory-proposal"
+      }
+    };
+    const proposal = await durableMemoryService.createProposal(serviceRequest);
+    appendDurableMemoryRunEvent(appState, run.id, task, agentId, "memory.proposal.created", "Runtime durable-memory proposal created.", {
+      proposalId: proposal.id,
+      namespace: proposal.targetNamespace,
+      memoryType: proposal.memoryType,
+      status: proposal.status,
+      reason: proposal.reason,
+      provenance: {
+        sourceKind: proposal.provenance.sourceKind,
+        taskId: proposal.provenance.taskId,
+        runId: proposal.provenance.runId,
+        agentId: proposal.provenance.agentId,
+        createdByAction: proposal.provenance.createdByAction
+      },
+      taskId: task.id,
+      runId: run.id,
+      agentId
+    });
+  }
+}
+
+function resolveRuntimeMemoryContext(
+  manifest: AgentManifestDocument,
+  durableMemoryService: DurableMemoryService | undefined
+): ResolvedRuntimeMemoryContext {
+  if (!durableMemoryService) {
+    return {
+      status: "unavailable",
+      message: "Durable memory is unavailable for this runtime.",
+      operations: {}
+    };
+  }
+  const declaration = manifest.agent?.permissions?.durableMemory;
+  const operations = {
+    ...resolveRuntimeMemoryOperation("read", declaration?.read),
+    ...resolveRuntimeMemoryOperation("propose", declaration?.propose),
+    ...resolveRuntimeMemoryOperation("writeReviewed", declaration?.writeReviewed)
+  };
+  if (!operations.read && !operations.propose && !operations.writeReviewed) {
+    return {
+      status: "denied",
+      message: "Assigned agent does not declare durable-memory access.",
+      operations: {}
+    };
+  }
+  return {
+    status: "permitted",
+    message: "Assigned agent declares durable-memory access.",
+    operations
+  };
+}
+
+function resolveRuntimeMemoryOperation(
+  operation: keyof ResolvedRuntimeMemoryContext["operations"],
+  declaration: DurableMemoryAccessDeclaration | undefined
+): Partial<ResolvedRuntimeMemoryContext["operations"]> {
+  if (!declaration) {
+    return {};
+  }
+  const namespaces = Array.isArray(declaration.namespaces)
+    ? declaration.namespaces.filter((namespace): namespace is string => typeof namespace === "string" && namespace.length > 0)
+    : [];
+  if (namespaces.length === 0 || !isDurableMemorySensitivity(declaration.maxSensitivity)) {
+    return {};
+  }
+  return {
+    [operation]: {
+      namespaces,
+      maxSensitivity: declaration.maxSensitivity,
+      ...(typeof declaration.reason === "string" ? { reason: declaration.reason } : {})
+    }
+  };
+}
+
+function sanitizeRuntimeMemoryContext(context: ResolvedRuntimeMemoryContext): Record<string, unknown> {
+  return {
+    status: context.status,
+    message: context.message,
+    operations: context.operations
+  };
+}
+
+function requireRuntimeMemoryAccess(
+  context: ResolvedRuntimeMemoryContext,
+  operation: "read" | "propose" | "writeReviewed",
+  namespace?: DurableMemoryNamespaceRef
+): void {
+  if (context.status !== "permitted") {
+    throw new AthenaError("CONFIG_ERROR", context.message);
+  }
+  const access = context.operations[operation];
+  if (!access) {
+    throw new AthenaError("CONFIG_ERROR", `Assigned agent does not declare durable-memory ${operation} access.`);
+  }
+  if (namespace && !access.namespaces.some((scope) => durableMemoryNamespaceMatches(scope, namespace))) {
+    throw new AthenaError("CONFIG_ERROR", `Assigned agent durable-memory ${operation} access does not include namespace ${namespace.scope}:${namespace.id}.`);
+  }
+}
+
+function durableMemoryNamespaceMatches(scope: string, namespace: DurableMemoryNamespaceRef): boolean {
+  const normalized = `${namespace.scope}:${namespace.id}`;
+  if (scope.endsWith("/*")) {
+    return normalized.startsWith(scope.slice(0, -1)) || namespace.id.startsWith(scope.slice(0, -1));
+  }
+  return scope === normalized || scope === namespace.id;
+}
+
+function isDurableMemoryNamespaceRef(value: unknown): value is DurableMemoryNamespaceRef {
+  return isRecord(value) && typeof value.scope === "string" && typeof value.id === "string";
+}
+
+function isDurableMemorySensitivity(value: unknown): value is DurableMemorySensitivity {
+  return value === "public" || value === "internal" || value === "sensitive" || value === "secret-adjacent";
 }
 
 function isRunVerificationStatus(value: unknown): value is RunVerificationStatus {
@@ -1348,6 +1684,22 @@ function appendRunEvent(
     message,
     payload
   });
+}
+
+function appendDurableMemoryRunEvent(
+  appState: AppStateDatabase,
+  runId: string,
+  task: TaskRecord,
+  agentId: string,
+  type: string,
+  message: string,
+  payload: Record<string, unknown>
+): void {
+  const validation = validateDurableMemoryEventPayload(payload);
+  if (!validation.ok) {
+    throw new AthenaError("CONFIG_ERROR", `Invalid durable-memory event payload: ${validation.errors.join("; ")}`);
+  }
+  appendRunEvent(appState, runId, task, agentId, type, message, payload);
 }
 
 function stopTaskRunByLimit(
@@ -1628,12 +1980,14 @@ function createAgentTaskRunEnvelope(
   task: TaskRecord,
   agent: AgentIndexRecord,
   run: RunRecord,
-  modelProvider?: ModelProviderRuntimeConfig
+  modelProvider?: ModelProviderRuntimeConfig,
+  memoryContext?: ResolvedRuntimeMemoryContext
 ): Record<string, unknown> {
   return {
     task,
     agent: { id: agent.id, version: agent.version },
     run: { id: run.id },
+    durableMemory: memoryContext ? sanitizeRuntimeMemoryContext(memoryContext) : { status: "unavailable", operations: {} },
     ...(modelProvider ? { modelProvider } : {})
   };
 }

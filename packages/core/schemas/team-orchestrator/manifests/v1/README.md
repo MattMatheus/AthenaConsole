@@ -13,6 +13,13 @@ Provider readiness is declared with manifest-compatible references, not raw secr
 - Workflows can declare `workflow.providerRequirements` as an array with the same fields. If omitted, workflow readiness is inferred from assigned agents.
 - Provider configs and API keys remain app-state/runtime concerns; manifests reference only provider identity, kind, or model preferences.
 
+Durable-memory access is default-deny unless a plugin or agent manifest declares it under `permissions.durableMemory`:
+
+- Supported operations are `read`, `propose`, and `writeReviewed`.
+- Each operation declares explicit `namespaces` and a `maxSensitivity` of `public`, `internal`, `sensitive`, or `secret-adjacent`.
+- Namespace scopes are literal namespace IDs or a prefix ending in `/*`.
+- Prefer `propose` over `writeReviewed` for examples; reviewed writes should stay narrow and operator-governed.
+
 Schema versioning is explicit:
 
 - Manifest documents use `schemaVersion: 1`.

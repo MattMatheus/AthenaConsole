@@ -60,6 +60,12 @@ plugin:
     filesystem: scoped
     shell: allow
     credentials: deny
+    durableMemory:
+      propose:
+        namespaces:
+          - tutorial/*
+        maxSensitivity: internal
+        reason: Allow operator-reviewed memory proposals for tutorial outputs.
   ui:
     icon: message-square-text
     color: "#3b7c6e"
@@ -348,10 +354,11 @@ To build a real agent:
 1. Start with a small plugin directory and one agent manifest.
 2. Use clear namespaced capabilities such as `article.summarize` or `repo.inspect`.
 3. Keep permissions narrow, especially `network`, `filesystem`, and `credentials`.
-4. Use `@athena/pdk` helpers in the runner.
-5. Return structured output plus artifact metadata.
-6. Validate the plugin package before starting the API.
-7. Confirm the agent in the console catalog before creating tasks.
+4. Declare durable-memory access only when the agent needs it; omitted declarations mean no memory access.
+5. Use `@athena/pdk` helpers in the runner.
+6. Return structured output plus artifact metadata.
+7. Validate the plugin package before starting the API.
+8. Confirm the agent in the console catalog before creating tasks.
 
 For larger examples, compare the checked-in sample plugins:
 

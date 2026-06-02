@@ -52,6 +52,7 @@ describe("api route registration", () => {
       "POST /api/v1/durable-memory/proposals/list",
       "POST /api/v1/durable-memory/proposals/:id/approve",
       "POST /api/v1/durable-memory/proposals/:id/reject",
+      "POST /api/v1/durable-memory/proposals/:id/archive",
       "POST /api/v1/durable-memory/snapshots",
       "POST /api/v1/durable-memory/snapshots/list",
       "POST /api/v1/durable-memory/snapshots/:id/restore"

@@ -3,6 +3,7 @@ import type {
   DurableMemoryArchiveRequest,
   DurableMemoryCacheMetadata,
   DurableMemoryDeleteRequest,
+  DurableMemoryEmbeddingMetadata,
   DurableMemoryListRequest,
   DurableMemoryNamespaceRef,
   DurableMemoryProposal,
@@ -12,6 +13,11 @@ import type {
   DurableMemoryRecord,
   DurableMemoryRecordListResult,
   DurableMemoryRecordStatus,
+  DurableMemoryRetrievalDiagnostics,
+  DurableMemoryRetrievalEffectiveMode,
+  DurableMemoryRetrievalMode,
+  DurableMemorySearchMatch,
+  DurableMemoryRetrievalSignal,
   DurableMemorySearchRequest,
   DurableMemorySearchResult,
   DurableMemorySensitivity,
@@ -24,6 +30,8 @@ import type {
 
 export interface DurableMemoryServerStorage {
   writeRecord(input: DurableMemoryServerRecordWriteInput): DurableMemoryRecord;
+  refreshRecordCache(input: DurableMemoryServerCacheRefreshInput): DurableMemoryRecord | undefined;
+  invalidateRecordCache(input: DurableMemoryServerCacheInvalidationInput): DurableMemoryRecord | undefined;
   getRecord(id: string): DurableMemoryRecord | undefined;
   listRecords(request: DurableMemoryListRequest): DurableMemoryRecordListResult;
   searchRecords(request: DurableMemorySearchRequest): DurableMemorySearchResult;
@@ -42,6 +50,21 @@ export interface DurableMemoryServerRecordWriteInput extends DurableMemoryWriteR
   id: string;
   summary?: string;
   provider?: DurableMemoryCacheMetadata;
+  embedding?: DurableMemoryEmbeddingMetadata;
+  now?: Date;
+}
+
+export interface DurableMemoryServerCacheRefreshInput {
+  id: string;
+  namespace: DurableMemoryNamespaceRef;
+  provider: DurableMemoryCacheMetadata;
+  now?: Date;
+}
+
+export interface DurableMemoryServerCacheInvalidationInput {
+  id: string;
+  namespace: DurableMemoryNamespaceRef;
+  reason: "provider-unavailable" | "provider-config-changed" | "namespace-permission-changed" | "snapshot-restored" | "record-mutated" | "revision-mismatch";
   now?: Date;
 }
 
@@ -70,6 +93,7 @@ interface DurableMemoryRecordRow {
   sensitivity: DurableMemorySensitivity;
   status: DurableMemoryRecordStatus;
   provider_json: string | null;
+  embedding_json: string | null;
   revision: string;
   created_at: string;
   updated_at: string;
@@ -123,6 +147,7 @@ export function ensureDurableMemoryServerStorageSchema(db: Database.Database): v
       sensitivity text not null,
       status text not null,
       provider_json text,
+      embedding_json text,
       revision text not null,
       created_at text not null,
       updated_at text not null,
@@ -172,11 +197,13 @@ export function ensureDurableMemoryServerStorageSchema(db: Database.Database): v
     create index if not exists durable_memory_snapshots_namespace_idx
       on durable_memory_snapshots(namespace_scope, namespace_id, created_at);
   `);
+  ensureColumn(db, "durable_memory_records", "embedding_json", "text");
 }
 
 export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStorage {
   private readonly insertRecordStatement: Database.Statement;
   private readonly getRecordStatement: Database.Statement;
+  private readonly updateRecordProviderStatement: Database.Statement;
   private readonly updateRecordStatusStatement: Database.Statement;
   private readonly listRecordStatement: Database.Statement;
   private readonly listAllRecordsStatement: Database.Statement;
@@ -205,6 +232,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
         sensitivity,
         status,
         provider_json,
+        embedding_json,
         revision,
         created_at,
         updated_at,
@@ -225,6 +253,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
         @sensitivity,
         @status,
         @providerJson,
+        @embeddingJson,
         @revision,
         @createdAt,
         @updatedAt,
@@ -233,6 +262,13 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
       )
     `);
     this.getRecordStatement = db.prepare(recordSelectSql("where id = ?"));
+    this.updateRecordProviderStatement = db.prepare(`
+      update durable_memory_records set
+        provider_json = @providerJson,
+        revision = @revision,
+        updated_at = @updatedAt
+      where id = @id
+    `);
     this.updateRecordStatusStatement = db.prepare(`
       update durable_memory_records set
         status = @status,
@@ -341,6 +377,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
       sensitivity: input.sensitivity ?? "internal",
       status: "active",
       providerJson: JSON.stringify(provider),
+      embeddingJson: input.embedding ? JSON.stringify(input.embedding) : null,
       revision: provider.revision ?? "1",
       createdAt: now,
       updatedAt: now,
@@ -355,6 +392,55 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
     return row ? mapRecordRow(row) : undefined;
   }
 
+  refreshRecordCache(input: DurableMemoryServerCacheRefreshInput): DurableMemoryRecord | undefined {
+    const existing = this.getRecord(input.id);
+    if (!existing || !sameNamespace(existing.namespace, input.namespace)) {
+      return undefined;
+    }
+    const now = (input.now ?? new Date()).toISOString();
+    const provider: DurableMemoryCacheMetadata = {
+      ...input.provider,
+      providerRecordId: input.provider.providerRecordId ?? input.id,
+      syncStatus: "cache-current",
+      operatorStatus: "cache-current",
+      fetchedAt: input.provider.fetchedAt ?? now
+    };
+    this.updateRecordProviderStatement.run({
+      id: input.id,
+      providerJson: JSON.stringify(provider),
+      revision: provider.revision ?? existing.provider?.revision ?? "1",
+      updatedAt: now
+    });
+    return this.getRecord(input.id);
+  }
+
+  invalidateRecordCache(input: DurableMemoryServerCacheInvalidationInput): DurableMemoryRecord | undefined {
+    const existing = this.getRecord(input.id);
+    if (!existing || !sameNamespace(existing.namespace, input.namespace)) {
+      return undefined;
+    }
+    const now = (input.now ?? new Date()).toISOString();
+    const provider: DurableMemoryCacheMetadata = {
+      providerId: existing.provider?.providerId ?? "server-mode",
+      providerRecordId: existing.provider?.providerRecordId ?? input.id,
+      revision: existing.provider?.revision ?? "1",
+      ...(existing.provider?.etag ? { etag: existing.provider.etag } : {}),
+      syncStatus: input.reason === "provider-unavailable" ? "offline" : "cache-stale",
+      operatorStatus: input.reason === "provider-unavailable" ? "remote-unavailable" : "cache-stale",
+      ...(existing.provider?.fetchedAt ? { fetchedAt: existing.provider.fetchedAt } : {}),
+      staleAt: now,
+      ...(existing.provider?.expiresAt ? { expiresAt: existing.provider.expiresAt } : {}),
+      ...(existing.provider?.localDevOnly !== undefined ? { localDevOnly: existing.provider.localDevOnly } : {})
+    };
+    this.updateRecordProviderStatement.run({
+      id: input.id,
+      providerJson: JSON.stringify(provider),
+      revision: provider.revision ?? "1",
+      updatedAt: now
+    });
+    return this.getRecord(input.id);
+  }
+
   listRecords(request: DurableMemoryListRequest): DurableMemoryRecordListResult {
     const rows = this.listRecordStatement.all().map((row) => mapRecordRow(row as DurableMemoryRecordRow));
     const records = rows.filter((record) => matchesRecordQuery(record, request));
@@ -367,22 +453,46 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
 
   searchRecords(request: DurableMemorySearchRequest): DurableMemorySearchResult {
     const query = request.query.trim().toLowerCase();
+    const requestedMode = request.mode ?? "keyword";
     if (!query) {
       return {
         records: [],
         total: 0,
-        operatorStatus: "remote-current"
+        operatorStatus: aggregateOperatorStatus([]),
+        matches: [],
+        diagnostics: buildRetrievalDiagnostics({
+          requestedMode,
+          effectiveMode: "keyword",
+          degraded: requestedMode !== "keyword",
+          degradationReasons: requestedMode === "keyword" ? [] : ["semantic retrieval requires a configured semantic index adapter"],
+          omitted: []
+        })
       };
     }
     const rows = this.listAllRecordsStatement.all().map((row) => mapRecordRow(row as DurableMemoryRecordRow));
-    const records = rows
-      .filter((record) => matchesNamespace(record.namespace, request.namespace, request.includeDescendants ?? false))
-      .filter((record) => [record.memoryType, record.summary ?? "", record.body].join("\n").toLowerCase().includes(query));
+    const namespaceRows = rows.filter((record) => matchesNamespace(record.namespace, request.namespace, request.includeDescendants ?? false));
+    const ranked = namespaceRows
+      .map((record, index) => scoreSearchRecord(record, query, index, namespaceRows.length))
+      .filter((match): match is { record: DurableMemoryRecord; match: DurableMemorySearchMatch } => Boolean(match))
+      .sort((left, right) => right.match.score - left.match.score || right.record.updatedAt.localeCompare(left.record.updatedAt));
     const limit = clampLimit(request.limit);
+    const limited = ranked.slice(0, limit);
+    const degradationReasons = semanticDegradationReasons(requestedMode, namespaceRows);
     return {
-      records: records.slice(0, limit),
-      total: records.length,
-      operatorStatus: "remote-current"
+      records: limited.map((entry) => entry.record),
+      total: ranked.length,
+      operatorStatus: aggregateOperatorStatus(limited.map((entry) => entry.record)),
+      matches: limited.map((entry) => entry.match),
+      diagnostics: buildRetrievalDiagnostics({
+        requestedMode,
+        effectiveMode: "keyword",
+        degraded: degradationReasons.length > 0,
+        degradationReasons,
+        omitted: [
+          { category: "namespace-mismatch", count: rows.length - namespaceRows.length },
+          { category: "keyword-no-match", count: namespaceRows.length - ranked.length }
+        ].filter((entry) => entry.count > 0)
+      })
     };
   }
 
@@ -546,7 +656,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
 function recordSelectSql(suffix: string): string {
   return `
     select id, namespace_scope, namespace_id, namespace_json, namespace_ancestors_json, provenance_json, source_kind,
-      memory_type, body, summary, sensitivity, status, provider_json, revision, created_at, updated_at, archived_at, deleted_at
+      memory_type, body, summary, sensitivity, status, provider_json, embedding_json, revision, created_at, updated_at, archived_at, deleted_at
     from durable_memory_records ${suffix}
   `;
 }
@@ -569,6 +679,7 @@ function snapshotSelectSql(suffix: string): string {
 
 function mapRecordRow(row: DurableMemoryRecordRow): DurableMemoryRecord {
   const provider = row.provider_json ? (JSON.parse(row.provider_json) as DurableMemoryCacheMetadata) : undefined;
+  const embedding = row.embedding_json ? (JSON.parse(row.embedding_json) as DurableMemoryEmbeddingMetadata) : undefined;
   return {
     id: row.id,
     namespace: JSON.parse(row.namespace_json) as DurableMemoryNamespaceRef,
@@ -582,8 +693,16 @@ function mapRecordRow(row: DurableMemoryRecordRow): DurableMemoryRecord {
     updatedAt: row.updated_at,
     ...(row.archived_at ? { archivedAt: row.archived_at } : {}),
     ...(row.deleted_at ? { deletedAt: row.deleted_at } : {}),
-    ...(provider ? { provider: { ...provider, revision: row.revision } } : {})
+    ...(provider ? { provider: { ...provider, revision: row.revision } } : {}),
+    ...(embedding ? { embedding } : {})
   };
+}
+
+function ensureColumn(db: Database.Database, table: string, column: string, definition: string): void {
+  const columns = db.pragma(`table_info(${table})`) as Array<{ name: string }>;
+  if (!columns.some((entry) => entry.name === column)) {
+    db.exec(`alter table ${table} add column ${column} ${definition}`);
+  }
 }
 
 function mapProposalRow(row: DurableMemoryProposalRow): DurableMemoryProposal {
@@ -617,6 +736,112 @@ function matchesRecordQuery(record: DurableMemoryRecord, request: DurableMemoryL
     return false;
   }
   return matchesNamespace(record.namespace, request.namespace, request.includeDescendants ?? false);
+}
+
+function scoreSearchRecord(
+  record: DurableMemoryRecord,
+  query: string,
+  index: number,
+  total: number
+): { record: DurableMemoryRecord; match: DurableMemorySearchMatch } | undefined {
+  const signals: DurableMemoryRetrievalSignal[] = [];
+  const bodyMatch = record.body.toLowerCase().includes(query) || (record.summary ?? "").toLowerCase().includes(query);
+  if (bodyMatch) {
+    signals.push({ kind: "keyword", score: 0.65, evidence: "body-or-summary" });
+  }
+  if (record.memoryType.toLowerCase().includes(query)) {
+    signals.push({ kind: "metadata", score: 0.2, evidence: "memoryType" });
+  }
+  const provenanceText = JSON.stringify(record.provenance).toLowerCase();
+  if (provenanceText.includes(query)) {
+    signals.push({ kind: "provenance", score: 0.15, evidence: record.provenance.sourceKind });
+  }
+  if (signals.length === 0) {
+    return undefined;
+  }
+  const recencyScore = total > 1 ? Math.max(0, 0.1 * (1 - index / (total - 1))) : 0.1;
+  signals.push({ kind: "recency", score: Number(recencyScore.toFixed(3)), evidence: record.updatedAt });
+  const score = Number(signals.reduce((sum, signal) => sum + signal.score, 0).toFixed(3));
+  return {
+    record,
+    match: {
+      recordId: record.id,
+      score,
+      signals,
+      snippet: snippetFor(record, query)
+    }
+  };
+}
+
+function semanticDegradationReasons(requestedMode: DurableMemoryRetrievalMode, records: DurableMemoryRecord[]): string[] {
+  if (requestedMode === "keyword") {
+    return [];
+  }
+  const reasons = ["semantic retrieval requires a configured semantic index adapter"];
+  const indexedCount = records.filter((record) => record.embedding?.status === "indexed").length;
+  if (indexedCount > 0 && indexedCount < records.length) {
+    reasons.push("only some records have current semantic indexes");
+  }
+  if (records.some((record) => record.embedding?.status === "failed")) {
+    reasons.push("one or more records have failed embedding lifecycle state");
+  }
+  if (records.some((record) => record.embedding?.status === "stale")) {
+    reasons.push("one or more records have stale embedding lifecycle state");
+  }
+  return reasons;
+}
+
+function buildRetrievalDiagnostics(input: {
+  requestedMode: DurableMemoryRetrievalMode;
+  effectiveMode: DurableMemoryRetrievalEffectiveMode;
+  degraded: boolean;
+  degradationReasons: string[];
+  omitted: DurableMemoryRetrievalDiagnostics["omitted"];
+}): DurableMemoryRetrievalDiagnostics {
+  return {
+    requestedMode: input.requestedMode,
+    effectiveMode: input.effectiveMode,
+    degraded: input.degraded,
+    degradationReasons: input.degradationReasons,
+    providerCapabilities: {
+      keyword: true,
+      semantic: false,
+      hybrid: false
+    },
+    omitted: input.omitted
+  };
+}
+
+function aggregateOperatorStatus(records: DurableMemoryRecord[]): DurableMemorySearchResult["operatorStatus"] {
+  if (records.some((record) => record.provider?.operatorStatus === "remote-unavailable")) {
+    return "remote-unavailable";
+  }
+  if (records.some((record) => record.provider?.operatorStatus === "conflict-review-required")) {
+    return "conflict-review-required";
+  }
+  if (records.some((record) => record.provider?.operatorStatus === "cache-stale")) {
+    return "cache-stale";
+  }
+  if (records.some((record) => record.provider?.operatorStatus === "queued-intent")) {
+    return "queued-intent";
+  }
+  if (records.some((record) => record.provider?.operatorStatus === "cache-current")) {
+    return "cache-current";
+  }
+  if (records.every((record) => record.provider?.operatorStatus === "local-dev-only") && records.length > 0) {
+    return "local-dev-only";
+  }
+  return "remote-current";
+}
+
+function snippetFor(record: DurableMemoryRecord, query: string): string | undefined {
+  const text = record.summary ?? record.body;
+  const lower = text.toLowerCase();
+  const index = lower.indexOf(query);
+  if (index < 0) {
+    return text.slice(0, 160);
+  }
+  return text.slice(Math.max(0, index - 40), Math.min(text.length, index + query.length + 80));
 }
 
 function matchesNamespace(

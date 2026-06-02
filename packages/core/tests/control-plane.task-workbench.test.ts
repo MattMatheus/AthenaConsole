@@ -3,8 +3,9 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { openAppStateDatabase } from "../src/control-plane/app-state/index.js";
+import type { DurableMemoryService } from "../src/control-plane/services/durable-memory.js";
 import { LocalTaskWorkbenchService } from "../src/control-plane/services/task-workbench.js";
 import { LocalWorkflowStatusService } from "../src/control-plane/services/workflow-status.js";
 import { AthenaError } from "../src/runtime/errors.js";
@@ -270,6 +271,205 @@ process.stdin.on("end", () => {
             metadata: { source: "test" }
           })
         ]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("passes durable-memory diagnostics to local runtimes when no provider is configured", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-memory-unavailable-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "memory-context.js"),
+        `
+let raw = "";
+process.stdin.on("data", (chunk) => { raw += chunk; });
+process.stdin.on("end", () => {
+  const envelope = JSON.parse(raw);
+  process.stdout.write(JSON.stringify({ output: { durableMemory: envelope.durableMemory }, artifacts: [] }));
+});
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "memory-context.js", {
+          durableMemoryPermissions: {
+            read: { namespaces: ["repository:demo"], maxSensitivity: "internal" }
+          }
+        });
+        appState.tasks.create({
+          id: "task-memory-unavailable",
+          title: "Memory unavailable",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: { taskBrief: "Inspect memory context" }
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+
+        const run = await service.runTask("task-memory-unavailable", { runId: "run-memory-unavailable" });
+        const detail = await service.getRun("run-memory-unavailable");
+
+        expect(run.output).toMatchObject({
+          durableMemory: {
+            status: "unavailable",
+            operations: {}
+          }
+        });
+        expect(detail.events).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: "memory.context",
+              payload: expect.objectContaining({ status: "unavailable" })
+            })
+          ])
+        );
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("fails denied runtime memory requests without calling durable memory", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-memory-denied-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "memory-denied.js"),
+        `
+process.stdin.resume();
+process.stdin.on("end", () => {
+  process.stdout.write(JSON.stringify({
+    output: { ok: true },
+    memoryRequests: [
+      { operation: "search", namespace: { scope: "repository", id: "demo" }, query: "notes" }
+    ],
+    artifacts: []
+  }));
+});
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "memory-denied.js");
+        appState.tasks.create({
+          id: "task-memory-denied",
+          title: "Memory denied",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: { taskBrief: "Search memory" }
+        });
+        const durableMemoryService = createMockDurableMemoryService();
+        const service = new LocalTaskWorkbenchService(config, { appState, durableMemoryService });
+
+        const run = await service.runTask("task-memory-denied", { runId: "run-memory-denied" });
+
+        expect(run).toMatchObject({
+          status: "failed",
+          failure: expect.objectContaining({
+            phase: "memory",
+            error: "Assigned agent does not declare durable-memory access."
+          })
+        });
+        expect(durableMemoryService.search).not.toHaveBeenCalled();
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("executes permitted runtime memory search and proposal requests with run provenance", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-memory-allowed-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "memory-allowed.js"),
+        `
+process.stdin.resume();
+process.stdin.on("end", () => {
+  process.stdout.write(JSON.stringify({
+    output: { ok: true },
+    memoryRequests: [
+      { operation: "search", namespace: { scope: "repository", id: "demo" }, query: "notes", limit: 3 },
+      {
+        operation: "propose",
+        targetNamespace: { scope: "repository", id: "demo" },
+        memoryType: "repo-note",
+        proposedBody: "Remember the test convention.",
+        reason: "Captured during run."
+      }
+    ],
+    artifacts: []
+  }));
+});
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "memory-allowed.js", {
+          durableMemoryPermissions: {
+            read: { namespaces: ["repository:demo"], maxSensitivity: "internal" },
+            propose: { namespaces: ["repository:demo"], maxSensitivity: "internal" }
+          }
+        });
+        appState.tasks.create({
+          id: "task-memory-allowed",
+          title: "Memory allowed",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: { taskBrief: "Use memory" }
+        });
+        const durableMemoryService = createMockDurableMemoryService();
+        const service = new LocalTaskWorkbenchService(config, { appState, durableMemoryService });
+
+        const run = await service.runTask("task-memory-allowed", { runId: "run-memory-allowed" });
+        const detail = await service.getRun("run-memory-allowed");
+
+        expect(run).toMatchObject({ status: "completed" });
+        expect(durableMemoryService.search).toHaveBeenCalledWith({
+          namespace: { scope: "repository", id: "demo" },
+          query: "notes",
+          limit: 3
+        });
+        expect(durableMemoryService.createProposal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            targetNamespace: { scope: "repository", id: "demo" },
+            memoryType: "repo-note",
+            provenance: expect.objectContaining({
+              sourceKind: "task-run",
+              actorType: "agent",
+              agentId: "software.run.local",
+              taskId: "task-memory-allowed",
+              runId: "run-memory-allowed"
+            })
+          })
+        );
+        expect(detail.events.map((event) => event.type)).toEqual(
+          expect.arrayContaining(["memory.context", "memory.search", "memory.records.selected", "memory.proposal.created"])
+        );
+        expect(JSON.stringify(detail.events.filter((event) => event.type.startsWith("memory.")))).not.toContain("Remember the test convention.");
       } finally {
         appState.close();
       }
@@ -1850,6 +2050,7 @@ function seedRunnableCatalog(
     approvalRequiredFor?: string[];
     policyPackId?: string;
     modelProvider?: Record<string, unknown>;
+    durableMemoryPermissions?: Record<string, unknown>;
   } = {}
 ): void {
   appState.plugins.upsert({
@@ -1898,10 +2099,72 @@ function seedRunnableCatalog(
           ...(options.modelProvider ? { modelProvider: options.modelProvider } : {})
         },
         ...(options.limits ? { limits: options.limits } : {}),
-        ...(options.approvalRequiredFor ? { permissions: { approvalRequiredFor: options.approvalRequiredFor } } : {})
+        ...(options.approvalRequiredFor || options.durableMemoryPermissions
+          ? {
+              permissions: {
+                ...(options.approvalRequiredFor ? { approvalRequiredFor: options.approvalRequiredFor } : {}),
+                ...(options.durableMemoryPermissions ? { durableMemory: options.durableMemoryPermissions } : {})
+              }
+            }
+          : {})
       }
     }
   });
+}
+
+function createMockDurableMemoryService(): DurableMemoryService {
+  return {
+    write: vi.fn(),
+    get: vi.fn(async () => ({
+      id: "record-test",
+      namespace: { scope: "repository" as const, id: "demo" },
+      provenance: { sourceKind: "task-run" as const, createdByAction: "test" },
+      memoryType: "repo-note",
+      body: "body",
+      sensitivity: "internal" as const,
+      status: "active" as const,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z"
+    })),
+    list: vi.fn(),
+    search: vi.fn(async () => ({
+      records: [
+        {
+          id: "record-test",
+          namespace: { scope: "repository" as const, id: "demo" },
+          provenance: { sourceKind: "task-run" as const, createdByAction: "test" },
+          memoryType: "repo-note",
+          body: "body must not appear in events",
+          sensitivity: "internal" as const,
+          status: "active" as const,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      total: 1,
+      operatorStatus: "local-dev-only" as const
+    })),
+    archive: vi.fn(),
+    delete: vi.fn(),
+    createProposal: vi.fn(async (request) => ({
+      id: "proposal-test",
+      targetNamespace: request.targetNamespace,
+      provenance: request.provenance,
+      memoryType: request.memoryType,
+      proposedBody: request.proposedBody,
+      reason: request.reason,
+      status: "pending" as const,
+      createdAt: "2026-01-01T00:00:00.000Z"
+    })),
+    listProposals: vi.fn(),
+    approveProposal: vi.fn(),
+    rejectProposal: vi.fn(),
+    archiveProposal: vi.fn(),
+    createSnapshot: vi.fn(),
+    listSnapshots: vi.fn(),
+    restoreSnapshot: vi.fn(),
+    getHealth: vi.fn()
+  };
 }
 
 function seedContainerRunnableCatalog(

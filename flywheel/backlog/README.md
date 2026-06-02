@@ -10,7 +10,7 @@ No active engineering or architecture work.
 
 Work currently awaiting QA:
 
-No engineering or architecture work is waiting for QA.
+No engineering or architecture work awaiting QA.
 
 ## Next
 
@@ -22,17 +22,25 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-- `engineering/intake/STORY-20260602-memory-manifest-permissions.md`
-- `engineering/intake/STORY-20260602-memory-runtime-context.md`
-- `engineering/intake/STORY-20260602-memory-usage-events.md`
-- `engineering/intake/STORY-20260602-memory-proposed-review.md`
-- `engineering/intake/STORY-20260602-memory-artifact-promotion.md`
-- `engineering/intake/STORY-20260602-memory-aware-run-detail.md`
+No candidate engineering or architecture intake items.
 
 ## Done
 
 Recently completed:
 
+- `engineering/done/STORY-20260602-memory-retrieval-diagnostics.md`
+- `engineering/done/STORY-20260602-memory-athena-adapter-evaluation.md`
+- `engineering/done/STORY-20260602-memory-chroma-adapter.md`
+- `engineering/done/STORY-20260602-memory-local-cache-sync.md`
+- `engineering/done/STORY-20260602-memory-hybrid-retrieval.md`
+- `engineering/done/STORY-20260602-memory-embedding-lifecycle.md`
+- `architecture/done/ARCH-20260602-semantic-memory-backend-strategy.md`
+- `engineering/done/STORY-20260602-memory-aware-run-detail.md`
+- `engineering/done/STORY-20260602-memory-artifact-promotion.md`
+- `engineering/done/STORY-20260602-memory-proposed-review.md`
+- `engineering/done/STORY-20260602-memory-usage-events.md`
+- `engineering/done/STORY-20260602-memory-runtime-context.md`
+- `engineering/done/STORY-20260602-memory-manifest-permissions.md`
 - `engineering/done/STORY-20260602-durable-memory-console-inspector.md`
 - `engineering/done/STORY-20260602-durable-memory-readiness-config.md`
 - `engineering/done/STORY-20260602-durable-memory-remote-provider-client.md`

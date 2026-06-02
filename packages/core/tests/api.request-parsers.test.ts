@@ -440,14 +440,23 @@ describe("api request parsers", () => {
         namespace,
         query: "server mode",
         includeDescendants: true,
-        limit: 5
+        limit: 5,
+        mode: "hybrid"
       })
     ).toEqual({
       namespace,
       query: "server mode",
       includeDescendants: true,
-      limit: 5
+      limit: 5,
+      mode: "hybrid"
     });
+    expect(() =>
+      parseDurableMemorySearchRequest({
+        namespace,
+        query: "server mode",
+        mode: "vector"
+      })
+    ).toThrow("durable-memory.search.mode");
 
     expect(() => parseDurableMemoryArchiveRequest("record-1", { namespace, provenance })).toThrow(
       "durable-memory.archive.reason"

@@ -5,6 +5,8 @@ import type {
   DurableMemoryProvenanceRef,
   DurableMemoryProviderHealthStatus,
   DurableMemoryRecord,
+  DurableMemoryRetrievalDiagnostics,
+  DurableMemorySearchMatch,
 } from "./types";
 import { namespaceLabel } from "./api";
 
@@ -62,4 +64,35 @@ export function inspectorCounts(summary: DurableMemoryInspectorSummary): Array<{
     { label: "Snapshots", value: String(summary.snapshots.length) },
     { label: "Namespace", value: summary.records[0] ? namespaceLabel(summary.records[0].namespace) : "Current scope" },
   ];
+}
+
+export function retrievalDiagnosticsSummary(
+  diagnostics: DurableMemoryRetrievalDiagnostics | undefined,
+): Array<{ label: string; value: string; tone?: "pass" | "warn" | "fail" }> {
+  if (!diagnostics) {
+    return [
+      { label: "Mode", value: "List" },
+      { label: "Fallback", value: "None", tone: "pass" },
+    ];
+  }
+  return [
+    { label: "Requested", value: durableMemoryStatusLabel(diagnostics.requestedMode) },
+    { label: "Effective", value: durableMemoryStatusLabel(diagnostics.effectiveMode) },
+    { label: "Fallback", value: diagnostics.degraded ? "Degraded" : "None", tone: diagnostics.degraded ? "warn" : "pass" },
+    {
+      label: "Capabilities",
+      value: [
+        diagnostics.providerCapabilities.keyword ? "keyword" : undefined,
+        diagnostics.providerCapabilities.semantic ? "semantic" : undefined,
+        diagnostics.providerCapabilities.hybrid ? "hybrid" : undefined,
+      ]
+        .filter((value): value is string => Boolean(value))
+        .join(", ") || "none",
+    },
+  ];
+}
+
+export function retrievalMatchSummary(match: DurableMemorySearchMatch): string {
+  const signals = match.signals.map((signal) => `${signal.kind}:${signal.score.toFixed(2)}`).join(", ");
+  return signals ? `score ${match.score.toFixed(2)} via ${signals}` : `score ${match.score.toFixed(2)}`;
 }

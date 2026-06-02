@@ -309,7 +309,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     stateDiagnosticsService,
     agentCatalogService,
     missionWorkbenchService: new LocalMissionWorkbenchService(options.config),
-    taskWorkbenchService: new LocalTaskWorkbenchService(options.config),
+    taskWorkbenchService: new LocalTaskWorkbenchService(options.config, { durableMemoryService }),
     connectedRepositoryService: new LocalConnectedRepositoryService(options.config),
     modelProviderConfigService,
     shutdown: async () => {

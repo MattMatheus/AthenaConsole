@@ -13,3 +13,4 @@ Architecture work accepted by review.
 8. `ARCH-20260602-memory-namespace-provenance.md`
 9. `ARCH-20260602-memory-local-cache-boundary.md`
 10. `ARCH-20260602-memory-remote-backend-recommendation.md`
+11. `ARCH-20260602-semantic-memory-backend-strategy.md`
