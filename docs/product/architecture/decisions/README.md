@@ -26,6 +26,7 @@ Architecture notes and decisions for Team Orchestrator.
 - [ADR 0020: Durable Memory Provider Interface](0020-durable-memory-provider-interface.md) - Accepted
 - [ADR 0021: Durable Memory Namespace And Provenance Model](0021-durable-memory-namespace-and-provenance-model.md) - Accepted
 - [ADR 0022: Durable Memory Local Cache Boundary](0022-durable-memory-local-cache-boundary.md) - Accepted
+- [ADR 0023: Durable Memory Remote Backend Recommendation](0023-durable-memory-remote-backend-recommendation.md) - Accepted
 
 ## Archived Records
 

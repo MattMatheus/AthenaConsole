@@ -35,6 +35,7 @@ Current product direction starts from the accepted reset ADRs:
 - `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`
 - `docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md`
 - `docs/product/architecture/decisions/0022-durable-memory-local-cache-boundary.md`
+- `docs/product/architecture/decisions/0023-durable-memory-remote-backend-recommendation.md`
 
 Pre-reset ProjectAthena, Foundry-first, fleet-governance, persona-kit, and A2A-observability records are archived historical context unless rewritten against this direction.
 
@@ -266,6 +267,7 @@ Accepted architecture:
 - `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`
 - `docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md`
 - `docs/product/architecture/decisions/0022-durable-memory-local-cache-boundary.md`
+- `docs/product/architecture/decisions/0023-durable-memory-remote-backend-recommendation.md`
 
 Source epics:
 
@@ -298,7 +300,7 @@ Flywheel lanes are the operational source of truth. No engineering or architectu
 
 The `2026.1` local-first release candidate is cut and published as `release-2026.1`.
 
-Post-release roadmap refinement has started with durable remote-capable memory. The accepted architecture records are `docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md`, `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`, `docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md`, and `docs/product/architecture/decisions/0022-durable-memory-local-cache-boundary.md`; the next refinement target is the `2026.34.05` remote backend recommendation story.
+Post-release roadmap refinement has accepted the durable memory architecture baseline. The accepted architecture records are `docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md`, `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`, `docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md`, `docs/product/architecture/decisions/0022-durable-memory-local-cache-boundary.md`, and `docs/product/architecture/decisions/0023-durable-memory-remote-backend-recommendation.md`; the next refinement target is `2026.35` remote memory MVP implementation planning.
 
 Recently completed tracks now live in Flywheel done history:
 
