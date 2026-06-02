@@ -9,7 +9,7 @@ import {
 
 describe("control-plane api contracts", () => {
   it("declares the full initial v1 route surface", () => {
-    expect(API_V1_ROUTES.length).toBe(92);
+    expect(API_V1_ROUTES.length).toBe(106);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/capabilities")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/health")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/readiness")).toBe(true);
@@ -52,6 +52,11 @@ describe("control-plane api contracts", () => {
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/sessions/search")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/memory/search")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/memory/get")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/durable-memory/health")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/durable-memory/records")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/durable-memory/records/search")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/durable-memory/proposals/:id/approve")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/durable-memory/snapshots/:id/restore")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/work/observability")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/work/observability/alerts")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/work/observability/alerts/export.csv")).toBe(

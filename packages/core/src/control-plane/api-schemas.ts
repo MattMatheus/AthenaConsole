@@ -121,6 +121,111 @@ const JSON_VALUE_SCHEMA: ApiSchema = {
 
 const STRING_SCHEMA: ApiSchema = { type: "string", minLength: 1 };
 
+const DURABLE_MEMORY_NAMESPACE_SCHEMA: ApiSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    scope: {
+      type: "string",
+      enum: ["account", "operator", "workspace", "project", "repository", "team", "agent", "task", "run", "artifact"]
+    },
+    id: STRING_SCHEMA,
+    parent: { type: "object", additionalProperties: true }
+  },
+  required: ["scope", "id"]
+};
+
+const DURABLE_MEMORY_PROVENANCE_SCHEMA: ApiSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    sourceKind: {
+      type: "string",
+      enum: ["operator", "agent", "task-run", "workflow-run", "artifact", "connector", "import", "system"]
+    },
+    actorType: { type: "string", enum: ["operator", "agent", "system"] },
+    actorId: STRING_SCHEMA,
+    agentId: STRING_SCHEMA,
+    taskId: STRING_SCHEMA,
+    runId: STRING_SCHEMA,
+    workflowRunId: STRING_SCHEMA,
+    artifactId: STRING_SCHEMA,
+    connectorId: STRING_SCHEMA,
+    externalSourceUri: STRING_SCHEMA,
+    importJobId: STRING_SCHEMA,
+    createdByAction: STRING_SCHEMA,
+    traceId: STRING_SCHEMA
+  },
+  required: ["sourceKind", "createdByAction"]
+};
+
+const DURABLE_MEMORY_RECORD_SCHEMA: ApiSchema = {
+  type: "object",
+  additionalProperties: true,
+  properties: {
+    id: STRING_SCHEMA,
+    namespace: DURABLE_MEMORY_NAMESPACE_SCHEMA,
+    provenance: DURABLE_MEMORY_PROVENANCE_SCHEMA,
+    memoryType: STRING_SCHEMA,
+    body: STRING_SCHEMA,
+    status: { type: "string", enum: ["active", "archived", "deleted"] }
+  },
+  required: ["id", "namespace", "provenance", "memoryType", "body", "status"]
+};
+
+const DURABLE_MEMORY_PROPOSAL_SCHEMA: ApiSchema = {
+  type: "object",
+  additionalProperties: true,
+  properties: {
+    id: STRING_SCHEMA,
+    targetNamespace: DURABLE_MEMORY_NAMESPACE_SCHEMA,
+    provenance: DURABLE_MEMORY_PROVENANCE_SCHEMA,
+    memoryType: STRING_SCHEMA,
+    proposedBody: STRING_SCHEMA,
+    reason: STRING_SCHEMA,
+    status: { type: "string", enum: ["pending", "approved", "rejected"] }
+  },
+  required: ["id", "targetNamespace", "provenance", "memoryType", "proposedBody", "reason", "status"]
+};
+
+const DURABLE_MEMORY_SNAPSHOT_SCHEMA: ApiSchema = {
+  type: "object",
+  additionalProperties: true,
+  properties: {
+    id: STRING_SCHEMA,
+    namespace: DURABLE_MEMORY_NAMESPACE_SCHEMA,
+    provenance: DURABLE_MEMORY_PROVENANCE_SCHEMA,
+    recordIds: { type: "array", items: STRING_SCHEMA },
+    reason: STRING_SCHEMA
+  },
+  required: ["id", "namespace", "provenance", "recordIds", "reason"]
+};
+
+const DURABLE_MEMORY_LIST_REQUEST_SCHEMA: ApiSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    namespace: DURABLE_MEMORY_NAMESPACE_SCHEMA,
+    includeDescendants: { type: "boolean" },
+    includeArchived: { type: "boolean" },
+    limit: { type: "integer", minimum: 1 },
+    cursor: STRING_SCHEMA
+  },
+  required: ["namespace"]
+};
+
+const DURABLE_MEMORY_REASON_REQUEST_SCHEMA: ApiSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    namespace: DURABLE_MEMORY_NAMESPACE_SCHEMA,
+    provenance: DURABLE_MEMORY_PROVENANCE_SCHEMA,
+    reason: STRING_SCHEMA,
+    hardDelete: { type: "boolean" }
+  },
+  required: ["namespace", "provenance", "reason"]
+};
+
 const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
   ModelProviderRequirement: {
     type: "object",
@@ -2808,6 +2913,266 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       required: ["path"]
     },
     responseSchema: { $ref: "#/components/schemas/MemoryGetResult" }
+  },
+  getDurableMemoryHealth: {
+    operationId: "getDurableMemoryHealth",
+    method: "GET",
+    path: "/api/v1/durable-memory/health",
+    querySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        includeStorage: { type: "boolean" }
+      }
+    },
+    responseSchema: {
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        providerId: STRING_SCHEMA,
+        status: { type: "string", enum: ["ok", "degraded", "unavailable", "unauthorized", "disabled"] },
+        operatorStatus: {
+          type: "string",
+          enum: [
+            "remote-current",
+            "remote-unavailable",
+            "cache-current",
+            "cache-stale",
+            "queued-intent",
+            "conflict-review-required",
+            "local-dev-only",
+            "diagnostic-only"
+          ]
+        },
+        checkedAt: STRING_SCHEMA,
+        message: STRING_SCHEMA
+      },
+      required: ["providerId", "status", "operatorStatus", "checkedAt"]
+    }
+  },
+  writeDurableMemoryRecord: {
+    operationId: "writeDurableMemoryRecord",
+    method: "POST",
+    path: "/api/v1/durable-memory/records",
+    requestBodySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        namespace: DURABLE_MEMORY_NAMESPACE_SCHEMA,
+        provenance: DURABLE_MEMORY_PROVENANCE_SCHEMA,
+        memoryType: STRING_SCHEMA,
+        body: STRING_SCHEMA,
+        sensitivity: { type: "string", enum: ["public", "internal", "sensitive", "secret-adjacent"] },
+        reason: STRING_SCHEMA
+      },
+      required: ["namespace", "provenance", "memoryType", "body"]
+    },
+    responseSchema: DURABLE_MEMORY_RECORD_SCHEMA
+  },
+  getDurableMemoryRecord: {
+    operationId: "getDurableMemoryRecord",
+    method: "POST",
+    path: "/api/v1/durable-memory/records/get",
+    requestBodySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        id: STRING_SCHEMA,
+        namespace: DURABLE_MEMORY_NAMESPACE_SCHEMA
+      },
+      required: ["id"]
+    },
+    responseSchema: DURABLE_MEMORY_RECORD_SCHEMA
+  },
+  listDurableMemoryRecords: {
+    operationId: "listDurableMemoryRecords",
+    method: "POST",
+    path: "/api/v1/durable-memory/records/list",
+    requestBodySchema: DURABLE_MEMORY_LIST_REQUEST_SCHEMA,
+    responseSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        records: { type: "array", items: DURABLE_MEMORY_RECORD_SCHEMA },
+        nextCursor: STRING_SCHEMA
+      },
+      required: ["records"]
+    }
+  },
+  searchDurableMemoryRecords: {
+    operationId: "searchDurableMemoryRecords",
+    method: "POST",
+    path: "/api/v1/durable-memory/records/search",
+    requestBodySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        namespace: DURABLE_MEMORY_NAMESPACE_SCHEMA,
+        query: STRING_SCHEMA,
+        includeDescendants: { type: "boolean" },
+        limit: { type: "integer", minimum: 1 }
+      },
+      required: ["namespace", "query"]
+    },
+    responseSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        records: { type: "array", items: DURABLE_MEMORY_RECORD_SCHEMA },
+        total: { type: "integer", minimum: 0 },
+        operatorStatus: { type: "string" }
+      },
+      required: ["records", "total", "operatorStatus"]
+    }
+  },
+  archiveDurableMemoryRecord: {
+    operationId: "archiveDurableMemoryRecord",
+    method: "POST",
+    path: "/api/v1/durable-memory/records/:id/archive",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: { id: STRING_SCHEMA },
+      required: ["id"]
+    },
+    requestBodySchema: DURABLE_MEMORY_REASON_REQUEST_SCHEMA,
+    responseSchema: DURABLE_MEMORY_RECORD_SCHEMA
+  },
+  deleteDurableMemoryRecord: {
+    operationId: "deleteDurableMemoryRecord",
+    method: "POST",
+    path: "/api/v1/durable-memory/records/:id/delete",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: { id: STRING_SCHEMA },
+      required: ["id"]
+    },
+    requestBodySchema: DURABLE_MEMORY_REASON_REQUEST_SCHEMA,
+    responseSchema: DURABLE_MEMORY_RECORD_SCHEMA
+  },
+  createDurableMemoryProposal: {
+    operationId: "createDurableMemoryProposal",
+    method: "POST",
+    path: "/api/v1/durable-memory/proposals",
+    requestBodySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        targetNamespace: DURABLE_MEMORY_NAMESPACE_SCHEMA,
+        provenance: DURABLE_MEMORY_PROVENANCE_SCHEMA,
+        memoryType: STRING_SCHEMA,
+        proposedBody: STRING_SCHEMA,
+        reason: STRING_SCHEMA
+      },
+      required: ["targetNamespace", "provenance", "memoryType", "proposedBody", "reason"]
+    },
+    responseSchema: DURABLE_MEMORY_PROPOSAL_SCHEMA
+  },
+  listDurableMemoryProposals: {
+    operationId: "listDurableMemoryProposals",
+    method: "POST",
+    path: "/api/v1/durable-memory/proposals/list",
+    requestBodySchema: DURABLE_MEMORY_LIST_REQUEST_SCHEMA,
+    responseSchema: {
+      type: "array",
+      items: DURABLE_MEMORY_PROPOSAL_SCHEMA
+    }
+  },
+  approveDurableMemoryProposal: {
+    operationId: "approveDurableMemoryProposal",
+    method: "POST",
+    path: "/api/v1/durable-memory/proposals/:id/approve",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: { id: STRING_SCHEMA },
+      required: ["id"]
+    },
+    requestBodySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        actorId: STRING_SCHEMA,
+        reason: STRING_SCHEMA
+      },
+      required: ["actorId", "reason"]
+    },
+    responseSchema: DURABLE_MEMORY_PROPOSAL_SCHEMA
+  },
+  rejectDurableMemoryProposal: {
+    operationId: "rejectDurableMemoryProposal",
+    method: "POST",
+    path: "/api/v1/durable-memory/proposals/:id/reject",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: { id: STRING_SCHEMA },
+      required: ["id"]
+    },
+    requestBodySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        actorId: STRING_SCHEMA,
+        reason: STRING_SCHEMA
+      },
+      required: ["actorId", "reason"]
+    },
+    responseSchema: DURABLE_MEMORY_PROPOSAL_SCHEMA
+  },
+  createDurableMemorySnapshot: {
+    operationId: "createDurableMemorySnapshot",
+    method: "POST",
+    path: "/api/v1/durable-memory/snapshots",
+    requestBodySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        namespace: DURABLE_MEMORY_NAMESPACE_SCHEMA,
+        provenance: DURABLE_MEMORY_PROVENANCE_SCHEMA,
+        reason: STRING_SCHEMA
+      },
+      required: ["namespace", "provenance", "reason"]
+    },
+    responseSchema: DURABLE_MEMORY_SNAPSHOT_SCHEMA
+  },
+  listDurableMemorySnapshots: {
+    operationId: "listDurableMemorySnapshots",
+    method: "POST",
+    path: "/api/v1/durable-memory/snapshots/list",
+    requestBodySchema: DURABLE_MEMORY_LIST_REQUEST_SCHEMA,
+    responseSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        snapshots: { type: "array", items: DURABLE_MEMORY_SNAPSHOT_SCHEMA },
+        nextCursor: STRING_SCHEMA
+      },
+      required: ["snapshots"]
+    }
+  },
+  restoreDurableMemorySnapshot: {
+    operationId: "restoreDurableMemorySnapshot",
+    method: "POST",
+    path: "/api/v1/durable-memory/snapshots/:id/restore",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: { id: STRING_SCHEMA },
+      required: ["id"]
+    },
+    requestBodySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        targetNamespace: DURABLE_MEMORY_NAMESPACE_SCHEMA,
+        provenance: DURABLE_MEMORY_PROVENANCE_SCHEMA,
+        reason: STRING_SCHEMA
+      },
+      required: ["targetNamespace", "provenance", "reason"]
+    },
+    responseSchema: DURABLE_MEMORY_SNAPSHOT_SCHEMA
   },
   enqueueWork: {
     operationId: "enqueueWork",

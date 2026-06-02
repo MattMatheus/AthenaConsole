@@ -6,6 +6,12 @@ import {
   parseA2aStallAlertCsvExportQuery,
   parseA2aStallAlertHistoryQuery,
   parseCreateDirectiveRequest,
+  parseDurableMemoryArchiveRequest,
+  parseDurableMemoryDeleteRequest,
+  parseDurableMemoryProposalCreateRequest,
+  parseDurableMemorySearchRequest,
+  parseDurableMemorySnapshotRestoreRequest,
+  parseDurableMemoryWriteRequest,
   parseCreateHarnessProfileRequest,
   parseCreateRunTemplateRequest,
   parseCreateWorkflowRequest,
@@ -402,6 +408,79 @@ describe("api request parsers", () => {
 
     const invalidRequestUrl = new URL("http://localhost/api/v1/memory/search?query=athena&maxResults=0");
     expect(() => parseMemorySearchQuery(invalidRequestUrl)).toThrow("memory.search.maxResults");
+  });
+
+  it("parses durable memory requests with namespace, provenance, and reason guardrails", () => {
+    const namespace = { scope: "workspace" as const, id: "workspace-1" };
+    const provenance = {
+      sourceKind: "operator" as const,
+      actorType: "operator" as const,
+      actorId: "operator-1",
+      createdByAction: "test.write"
+    };
+
+    expect(
+      parseDurableMemoryWriteRequest({
+        namespace,
+        provenance,
+        memoryType: "decision",
+        body: "Ship server mode memory.",
+        sensitivity: "internal"
+      })
+    ).toEqual({
+      namespace,
+      provenance,
+      memoryType: "decision",
+      body: "Ship server mode memory.",
+      sensitivity: "internal"
+    });
+
+    expect(
+      parseDurableMemorySearchRequest({
+        namespace,
+        query: "server mode",
+        includeDescendants: true,
+        limit: 5
+      })
+    ).toEqual({
+      namespace,
+      query: "server mode",
+      includeDescendants: true,
+      limit: 5
+    });
+
+    expect(() => parseDurableMemoryArchiveRequest("record-1", { namespace, provenance })).toThrow(
+      "durable-memory.archive.reason"
+    );
+    expect(() =>
+      parseDurableMemoryWriteRequest({
+        namespace,
+        provenance: {
+          sourceKind: "agent",
+          actorType: "agent",
+          createdByAction: "test.write"
+        },
+        memoryType: "decision",
+        body: "invalid provenance"
+      })
+    ).toThrow("provenance.agentId is required");
+    expect(() => parseDurableMemoryDeleteRequest("record-1", { namespace, provenance, reason: "" })).toThrow(
+      "durable-memory.delete.reason"
+    );
+    expect(() =>
+      parseDurableMemoryProposalCreateRequest({
+        targetNamespace: namespace,
+        provenance,
+        memoryType: "decision",
+        proposedBody: "proposal"
+      })
+    ).toThrow("durable-memory.proposal.reason");
+    expect(() =>
+      parseDurableMemorySnapshotRestoreRequest("snapshot-1", {
+        targetNamespace: namespace,
+        provenance
+      })
+    ).toThrow("durable-memory.snapshot-restore.reason");
   });
 
   it("parses cursor/tail query parameters with normalized bounds", () => {

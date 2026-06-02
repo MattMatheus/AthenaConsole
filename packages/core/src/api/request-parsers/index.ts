@@ -5,6 +5,19 @@ export {
   parseA2aStallAlertHistoryQuery
 } from "./a2a.js";
 export { parseCreateDirectiveRequest } from "./directive.js";
+export {
+  parseDurableMemoryArchiveRequest,
+  parseDurableMemoryDeleteRequest,
+  parseDurableMemoryGetRequest,
+  parseDurableMemoryHealthQuery,
+  parseDurableMemoryListRequest,
+  parseDurableMemoryProposalCreateRequest,
+  parseDurableMemoryProposalReviewRequest,
+  parseDurableMemorySearchRequest,
+  parseDurableMemorySnapshotCreateRequest,
+  parseDurableMemorySnapshotRestoreRequest,
+  parseDurableMemoryWriteRequest
+} from "./durable-memory.js";
 export { parseEventsListQuery, parseGovernanceAuditHistoryQuery } from "./events.js";
 export { parseFailedWorkDiscardRequest, parseFailedWorkListQuery } from "./failed-work.js";
 export { parseOperationsCostReportQuery, parseProviderCostSettingsPutRequest } from "./operations.js";

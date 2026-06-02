@@ -7,6 +7,7 @@ import { MODEL_PROVIDER_ROUTES } from "../src/api/routes/model-provider-routes.j
 import { POLICY_ROUTES, SCHEDULE_ROUTES } from "../src/api/routes/policy-schedule-routes.js";
 import { RUN_ROUTES, SESSION_ROUTES } from "../src/api/routes/run-routes.js";
 import { DIRECTIVE_ROUTES } from "../src/api/routes/directive-routes.js";
+import { DURABLE_MEMORY_ROUTES } from "../src/api/routes/durable-memory-routes.js";
 import { HARNESS_PROFILE_ROUTES } from "../src/api/routes/harness-profile-routes.js";
 import { RUN_TEMPLATE_ROUTES } from "../src/api/routes/run-template-routes.js";
 import { WORKFLOW_ROUTES } from "../src/api/routes/workflow-routes.js";
@@ -37,6 +38,23 @@ describe("api route registration", () => {
     expect(MEMORY_ROUTES.map((route) => `${route.method} ${route.path}`)).toEqual([
       "GET /api/v1/memory/search",
       "POST /api/v1/memory/get"
+    ]);
+    expect(DURABLE_MEMORY_ROUTES.every((route) => route.meta.family === "durable-memory")).toBe(true);
+    expect(DURABLE_MEMORY_ROUTES.map((route) => `${route.method} ${route.path}`)).toEqual([
+      "GET /api/v1/durable-memory/health",
+      "POST /api/v1/durable-memory/records",
+      "POST /api/v1/durable-memory/records/get",
+      "POST /api/v1/durable-memory/records/list",
+      "POST /api/v1/durable-memory/records/search",
+      "POST /api/v1/durable-memory/records/:id/archive",
+      "POST /api/v1/durable-memory/records/:id/delete",
+      "POST /api/v1/durable-memory/proposals",
+      "POST /api/v1/durable-memory/proposals/list",
+      "POST /api/v1/durable-memory/proposals/:id/approve",
+      "POST /api/v1/durable-memory/proposals/:id/reject",
+      "POST /api/v1/durable-memory/snapshots",
+      "POST /api/v1/durable-memory/snapshots/list",
+      "POST /api/v1/durable-memory/snapshots/:id/restore"
     ]);
     expect(WORK_ROUTES.map((route) => `${route.method} ${route.path}`)).toEqual([
       "POST /api/v1/work/enqueue",
@@ -87,6 +105,7 @@ describe("api route registration", () => {
       RUN_TEMPLATE_ROUTES,
       WORKFLOW_ROUTES,
       MEMORY_ROUTES,
+      DURABLE_MEMORY_ROUTES,
       WORK_ROUTES,
       FAILED_WORK_ROUTES,
       SCHEDULE_ROUTES,
@@ -107,6 +126,9 @@ describe("api route registration", () => {
     expect(table.some((route) => route.path === "/api/v1/memory/search" && route.meta.family === "memory")).toBe(
       true
     );
+    expect(
+      table.some((route) => route.path === "/api/v1/durable-memory/records" && route.meta.family === "durable-memory")
+    ).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/failed-work" && route.meta.family === "failed-work")).toBe(
       true
     );

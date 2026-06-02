@@ -18,6 +18,7 @@ export type ApiRouteFamily =
   | "workflows"
   | "workflow-templates"
   | "memory"
+  | "durable-memory"
   | "work"
   | "failed-work"
   | "schedules"

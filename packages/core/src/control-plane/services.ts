@@ -27,6 +27,7 @@ import {
   AuthorizedDirectiveService,
   AuthorizedEventService,
   AuthorizedOperationsService,
+  AuthorizedDurableMemoryService,
   AuthorizedGovernanceAuditService,
   AuthorizedLspService,
   AuthorizedMemoryService,
@@ -68,6 +69,7 @@ import { LocalStateDiagnosticsService } from "./services/state-diagnostics.js";
 import { LocalWorkflowStatusService } from "./services/workflow-status.js";
 import { LocalWorkflowDagExecutorService } from "./services/workflow-dag-executor.js";
 import { LocalWorkflowTemplateCatalogService } from "./services/workflow-template-catalog.js";
+import { LocalDurableMemoryService, type DurableMemoryService } from "./services/durable-memory.js";
 import { recoverStaleTaskAndMissionRuns, recoverStaleWorkflowDagRuns } from "./services/stale-run-recovery.js";
 import type {
   FailedWorkService,
@@ -103,6 +105,7 @@ import { FileStateStore, type StateStore } from "./state-store.js";
 import { openAppStateDatabase } from "./app-state/index.js";
 import { indexConfiguredLocalPlugins } from "./plugins/index.js";
 import { SqliteHarnessProfileStateStore } from "./state-store/sqlite-harness-profile-state-store.js";
+import { SqliteDurableMemoryServerStorage } from "../durable-memory/server-storage.js";
 
 interface LocalControlPlaneOptions {
   config: AthenaConfig;
@@ -135,6 +138,7 @@ export interface ControlPlaneServices {
   workflowTemplateCatalogService: WorkflowTemplateCatalogService;
   workService: WorkService;
   memoryService: MemoryService;
+  durableMemoryService: DurableMemoryService;
   lspService: LspService;
   scheduleService: ScheduleService;
   policyService: PolicyService;
@@ -239,6 +243,11 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
   const workflowStatusService = new AuthorizedWorkflowStatusService(new LocalWorkflowStatusService(options.config), authorizer);
   const workService = new AuthorizedWorkService(new LocalWorkService(options.config, executionBackend), authorizer);
   const memoryService = new AuthorizedMemoryService(new LocalMemoryService(options.config), authorizer);
+  const durableMemoryDb = openAppStateDatabase(options.config);
+  const durableMemoryService = new AuthorizedDurableMemoryService(
+    new LocalDurableMemoryService(new SqliteDurableMemoryServerStorage(durableMemoryDb.db)),
+    authorizer
+  );
   const authorizedLspService = new AuthorizedLspService(baseLspService, authorizer);
   const authorizedEventService = new AuthorizedEventService(eventService, authorizer);
   const failedWorkService = new AuthorizedFailedWorkService(new LocalFailedWorkService(options.config), authorizer);
@@ -275,6 +284,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     workflowTemplateCatalogService,
     workService,
     memoryService,
+    durableMemoryService,
     lspService: authorizedLspService,
     scheduleService,
     policyService: authorizedPolicyService,
@@ -309,6 +319,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
       if (hasShutdown(baseLspService)) {
         await baseLspService.shutdown();
       }
+      durableMemoryDb.close();
     }
   };
 }

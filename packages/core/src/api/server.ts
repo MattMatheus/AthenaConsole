@@ -34,6 +34,7 @@ import { RUN_TEMPLATE_ROUTES } from "./routes/run-template-routes.js";
 import { WORKFLOW_TEMPLATE_CATALOG_ROUTES } from "./routes/workflow-template-catalog-routes.js";
 import { WORKFLOW_ROUTES } from "./routes/workflow-routes.js";
 import { MEMORY_ROUTES, WORK_ROUTES } from "./routes/work-memory-routes.js";
+import { DURABLE_MEMORY_ROUTES } from "./routes/durable-memory-routes.js";
 import {
   composeApiRouteTable,
   type ApiRouteContext as RouteContext,
@@ -67,6 +68,7 @@ const API_V1_ROUTE_TABLE = composeApiRouteTable(
   WORKFLOW_TEMPLATE_CATALOG_ROUTES,
   WORKFLOW_ROUTES,
   MEMORY_ROUTES,
+  DURABLE_MEMORY_ROUTES,
   WORK_ROUTES,
   FAILED_WORK_ROUTES,
   SCHEDULE_ROUTES,

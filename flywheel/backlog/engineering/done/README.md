@@ -99,3 +99,4 @@ Engineering work accepted by QA.
 93. `STORY-20260601-future-roadmap-arcs.md`
 94. `STORY-20260602-durable-memory-contracts.md`
 95. `STORY-20260602-durable-memory-server-storage.md`
+96. `STORY-20260602-durable-memory-api-routes.md`

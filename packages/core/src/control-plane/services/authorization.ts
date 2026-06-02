@@ -27,6 +27,7 @@ import type {
   WorkflowStatusService,
   WorkService
 } from "../interfaces.js";
+import type { DurableMemoryService } from "./durable-memory.js";
 
 interface AuthorizationRequirement {
   operation:
@@ -39,6 +40,20 @@ interface AuthorizationRequirement {
     | "failedWork.retry"
     | "directives.create"
     | "directives.list"
+    | "durableMemory.archive"
+    | "durableMemory.delete"
+    | "durableMemory.get"
+    | "durableMemory.health"
+    | "durableMemory.list"
+    | "durableMemory.proposal.approve"
+    | "durableMemory.proposal.create"
+    | "durableMemory.proposal.list"
+    | "durableMemory.proposal.reject"
+    | "durableMemory.search"
+    | "durableMemory.snapshot.create"
+    | "durableMemory.snapshot.list"
+    | "durableMemory.snapshot.restore"
+    | "durableMemory.write"
     | "events.list"
     | "operations.cost.export"
     | "operations.cost.settings.read"
@@ -557,6 +572,125 @@ export class AuthorizedMemoryService implements MemoryService {
       requiredRoles: ["Viewer", "Operator", "Admin"]
     });
     return this.delegate.get(request);
+  }
+}
+
+export class AuthorizedDurableMemoryService implements DurableMemoryService {
+  constructor(
+    private readonly delegate: DurableMemoryService,
+    private readonly authorizer: ServiceAuthorizer
+  ) {}
+
+  async write(request: Parameters<DurableMemoryService["write"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "durableMemory.write",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.write(request);
+  }
+
+  async get(request: Parameters<DurableMemoryService["get"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "durableMemory.get",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.get(request);
+  }
+
+  async list(request: Parameters<DurableMemoryService["list"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "durableMemory.list",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.list(request);
+  }
+
+  async search(request: Parameters<DurableMemoryService["search"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "durableMemory.search",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.search(request);
+  }
+
+  async archive(request: Parameters<DurableMemoryService["archive"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "durableMemory.archive",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.archive(request);
+  }
+
+  async delete(request: Parameters<DurableMemoryService["delete"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "durableMemory.delete",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.delete(request);
+  }
+
+  async createProposal(request: Parameters<DurableMemoryService["createProposal"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "durableMemory.proposal.create",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.createProposal(request);
+  }
+
+  async listProposals(request: Parameters<DurableMemoryService["listProposals"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "durableMemory.proposal.list",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.listProposals(request);
+  }
+
+  async approveProposal(request: Parameters<DurableMemoryService["approveProposal"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "durableMemory.proposal.approve",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.approveProposal(request);
+  }
+
+  async rejectProposal(request: Parameters<DurableMemoryService["rejectProposal"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "durableMemory.proposal.reject",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.rejectProposal(request);
+  }
+
+  async createSnapshot(request: Parameters<DurableMemoryService["createSnapshot"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "durableMemory.snapshot.create",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.createSnapshot(request);
+  }
+
+  async listSnapshots(request: Parameters<DurableMemoryService["listSnapshots"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "durableMemory.snapshot.list",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.listSnapshots(request);
+  }
+
+  async restoreSnapshot(request: Parameters<DurableMemoryService["restoreSnapshot"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "durableMemory.snapshot.restore",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.restoreSnapshot(request);
+  }
+
+  async getHealth() {
+    await this.authorizer.assertAllowed({
+      operation: "durableMemory.health",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.getHealth();
   }
 }
 

@@ -131,6 +131,46 @@ describe("api server", () => {
     }
   });
 
+  it("rejects unauthenticated durable memory routes when API auth is enabled", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-server-durable-memory-auth-"));
+    writeFileSync(
+      join(dir, ".env"),
+      "ATHENA_AUTH_ENABLED=true\nATHENA_AUTH_API_TOKEN=test-token-123456\nATHENA_AUTHZ_MODE=enforce",
+      "utf8"
+    );
+    const config = loadConfig(dir);
+    const server = createApiServer({
+      config,
+      host: "127.0.0.1",
+      port: 0
+    });
+    let started = false;
+    try {
+      let bound: { host: string; port: number };
+      try {
+        bound = await server.start();
+        started = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("EPERM")) {
+          return;
+        }
+        throw error;
+      }
+
+      const response = await fetch(`http://${bound.host}:${bound.port}/api/v1/durable-memory/health`);
+      expect(response.status).toBe(401);
+      const envelope = (await response.json()) as { ok: boolean; error: { code: string } };
+      expect(envelope.ok).toBe(false);
+      expect(envelope.error.code).toBe("AUTH_TOKEN_MISSING");
+    } finally {
+      if (started) {
+        await server.stop();
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("refuses externally bound API startup without token auth or explicit local-dev override", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-api-server-auth-posture-"));
     const config = loadConfig(dir);
@@ -986,6 +1026,155 @@ describe("api server", () => {
       };
       expect(memoryGetEnvelope.ok).toBe(true);
       expect(memoryGetEnvelope.data.text).toBe("line 2\nline 3");
+
+      const durableNamespace = { scope: "workspace", id: "workspace-1" };
+      const durableProvenance = {
+        sourceKind: "operator",
+        actorType: "operator",
+        actorId: "operator-1",
+        createdByAction: "api.server.test"
+      };
+      const durableHealthResponse = await fetch(`${base}/api/v1/durable-memory/health`);
+      expect(durableHealthResponse.status).toBe(200);
+      const durableHealthEnvelope = (await durableHealthResponse.json()) as {
+        ok: boolean;
+        data: { status: string; operatorStatus: string };
+      };
+      expect(durableHealthEnvelope.ok).toBe(true);
+      expect(durableHealthEnvelope.data).toMatchObject({
+        status: "ok",
+        operatorStatus: "remote-current"
+      });
+
+      const durableWriteResponse = await fetch(`${base}/api/v1/durable-memory/records`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          namespace: durableNamespace,
+          provenance: durableProvenance,
+          memoryType: "decision",
+          body: "Durable memory API routes persist server-mode records.",
+          sensitivity: "internal"
+        })
+      });
+      expect(durableWriteResponse.status).toBe(201);
+      const durableWriteEnvelope = (await durableWriteResponse.json()) as {
+        ok: boolean;
+        data: { id: string; body: string; status: string; provider?: { operatorStatus: string } };
+      };
+      expect(durableWriteEnvelope.ok).toBe(true);
+      expect(durableWriteEnvelope.data.status).toBe("active");
+      expect(durableWriteEnvelope.data.provider?.operatorStatus).toBe("remote-current");
+
+      const durableSearchResponse = await fetch(`${base}/api/v1/durable-memory/records/search`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          namespace: durableNamespace,
+          query: "server-mode",
+          limit: 5
+        })
+      });
+      expect(durableSearchResponse.status).toBe(200);
+      const durableSearchEnvelope = (await durableSearchResponse.json()) as {
+        ok: boolean;
+        data: { records: Array<{ id: string }>; total: number; operatorStatus: string };
+      };
+      expect(durableSearchEnvelope.ok).toBe(true);
+      expect(durableSearchEnvelope.data.operatorStatus).toBe("remote-current");
+      expect(durableSearchEnvelope.data.records.map((record) => record.id)).toContain(durableWriteEnvelope.data.id);
+
+      const durableArchiveMissingReasonResponse = await fetch(
+        `${base}/api/v1/durable-memory/records/${encodeURIComponent(durableWriteEnvelope.data.id)}/archive`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({
+            namespace: durableNamespace,
+            provenance: durableProvenance
+          })
+        }
+      );
+      expect(durableArchiveMissingReasonResponse.status).toBe(400);
+
+      const durableArchiveResponse = await fetch(
+        `${base}/api/v1/durable-memory/records/${encodeURIComponent(durableWriteEnvelope.data.id)}/archive`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({
+            namespace: durableNamespace,
+            provenance: durableProvenance,
+            reason: "Covered by newer canonical memory."
+          })
+        }
+      );
+      expect(durableArchiveResponse.status).toBe(200);
+      const durableArchiveEnvelope = (await durableArchiveResponse.json()) as {
+        ok: boolean;
+        data: { status: string; archivedAt?: string };
+      };
+      expect(durableArchiveEnvelope.ok).toBe(true);
+      expect(durableArchiveEnvelope.data.status).toBe("archived");
+      expect(durableArchiveEnvelope.data.archivedAt).toBeDefined();
+
+      const durableSnapshotResponse = await fetch(`${base}/api/v1/durable-memory/snapshots`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          namespace: durableNamespace,
+          provenance: durableProvenance,
+          reason: "Release checkpoint."
+        })
+      });
+      expect(durableSnapshotResponse.status).toBe(201);
+      const durableSnapshotEnvelope = (await durableSnapshotResponse.json()) as {
+        ok: boolean;
+        data: { id: string; recordIds: string[] };
+      };
+      expect(durableSnapshotEnvelope.ok).toBe(true);
+
+      const durableRestoreResponse = await fetch(
+        `${base}/api/v1/durable-memory/snapshots/${encodeURIComponent(durableSnapshotEnvelope.data.id)}/restore`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({
+            targetNamespace: durableNamespace,
+            provenance: durableProvenance,
+            reason: "Restore drill."
+          })
+        }
+      );
+      expect(durableRestoreResponse.status).toBe(200);
+
+      const durableRestoreWrongNamespaceResponse = await fetch(
+        `${base}/api/v1/durable-memory/snapshots/${encodeURIComponent(durableSnapshotEnvelope.data.id)}/restore`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({
+            targetNamespace: { scope: "workspace", id: "workspace-2" },
+            provenance: durableProvenance,
+            reason: "Restore drill with wrong namespace."
+          })
+        }
+      );
+      expect(durableRestoreWrongNamespaceResponse.status).toBe(400);
 
       const cancelResponse = await fetch(`${base}/api/v1/runs/s1/cancel`, {
         method: "POST",
