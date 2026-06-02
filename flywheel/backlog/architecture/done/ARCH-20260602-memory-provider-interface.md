@@ -1,7 +1,7 @@
 ---
 kind: architecture_story
 id: ARCH-20260602-memory-provider-interface
-status: active
+status: done
 owner_role: architect
 source: planning
 decision_owner: architect
@@ -14,7 +14,7 @@ ready: true
 ## Metadata
 - `id`: ARCH-20260602-memory-provider-interface
 - `owner_role`: architect
-- `status`: active
+- `status`: done
 - `source`: planning
 - `decision_refs`: [ADR-0019, docs/product/epics/refinement/2026.34.00-epic-durable-memory-service-architecture.md, docs/product/roadmap/future-horizon.md]
 - `decision_owner`: architect
@@ -92,7 +92,7 @@ ready: true
 - Confirm it leaves namespace/provenance and local-cache boundary decisions to their dedicated stories without blocking provider-interface implementation.
 
 ## Next Step
-- Move to architecture active and define the durable memory provider-interface decision.
+- Architecture QA should review ADR 0020 against the acceptance criteria, then move this story to done or return it to active with specific required changes.
 
 ## Intake Promotion Checklist
 - [x] Decision scope is explicit and bounded.
@@ -103,10 +103,18 @@ ready: true
 - [x] Follow-on implementation work is split out when needed.
 
 ## Architecture Handoff
-- `decision_summary`:
-- `alternatives_considered`:
-- `operational_impact`:
-- `follow_on_work`:
+- `decision_summary`: Added accepted ADR 0020, defining a backend-neutral `DurableMemoryProvider` interface with request/response shapes for write, propose, get, search, list, archive, delete, snapshot creation/listing, and snapshot restore. The decision recommends adding the interfaces under `packages/core/src/memory/durable-provider.ts` as additive contracts while preserving existing diagnostic memory behavior.
+- `alternatives_considered`: Kept the provider contract only in prose; added backend-specific local/remote interfaces first; reused current `MemoryManager`; accepted one backend-neutral provider interface with adapters behind it.
+- `operational_impact`: Future providers can be swapped without rewriting agent/runtime contracts. Existing `/api/v1/memory/search`, `/api/v1/memory/get`, and `memory://` artifact previews remain no-behavior-change compatibility surfaces until a dedicated migration story changes them.
+- `follow_on_work`: Implement the provider interface types additively with type-focused validation; then refine `2026.34.03 Namespace And Provenance Model`, `2026.34.04 Local Cache Boundary`, and `2026.34.05 Remote Backend Recommendation` before remote memory MVP work.
+
+## QA Verdict
+- `verdict`: Pass. ADR 0020 satisfies the provider-interface acceptance criteria and keeps runtime behavior unchanged.
+- `evidence_quality`: Good. QA checked the ADR for all ADR 0019 operations, concrete TypeScript request/response shapes, additive package placement, compatibility with current diagnostic memory search and artifact preview behavior, explicit namespace/provenance deferrals, workflow validation, and `git diff --check`.
+- `defects`: None found.
+- `state_transition`: Move to done.
 
 ## Transition History
 - `2026-06-02T15:02:45Z`: `intake` -> `active`; next durable memory architecture story refined and ready
+- `2026-06-02T15:14:06Z`: `active` -> `qa`; durable memory provider-interface ADR ready for architecture QA
+- `2026-06-02T15:14:55Z`: `qa` -> `done`; QA passed durable memory provider-interface ADR

@@ -32,6 +32,7 @@ Current product direction starts from the accepted reset ADRs:
 - `docs/product/architecture/decisions/0015-canonical-orchestration-state-model.md`
 - `docs/product/architecture/decisions/0016-core-service-decomposition-plan.md`
 - `docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md`
+- `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`
 
 Pre-reset ProjectAthena, Foundry-first, fleet-governance, persona-kit, and A2A-observability records are archived historical context unless rewritten against this direction.
 
@@ -260,6 +261,7 @@ Source roadmap:
 Accepted architecture:
 
 - `docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md`
+- `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`
 
 Source epics:
 
@@ -292,7 +294,7 @@ Flywheel lanes are the operational source of truth. No engineering or architectu
 
 The `2026.1` local-first release candidate is cut and published as `release-2026.1`.
 
-Post-release roadmap refinement has started with durable remote-capable memory. The first accepted architecture record is `docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md`; the next refinement target is the `2026.34.02` provider-interface story.
+Post-release roadmap refinement has started with durable remote-capable memory. The accepted architecture records are `docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md` and `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`; the next refinement target is the `2026.34.03` namespace and provenance story.
 
 Recently completed tracks now live in Flywheel done history:
 
