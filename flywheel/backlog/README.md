@@ -6,7 +6,7 @@ This is the operational view of current and future work.
 
 Work currently being implemented:
 
-No active engineering or architecture work.
+- `architecture/active/ARCH-20260602-memory-provider-interface.md`
 
 Work currently awaiting QA:
 
