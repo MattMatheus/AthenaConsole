@@ -246,7 +246,7 @@ export interface DurableMemoryProvider {
   list(request: DurableMemoryListRequest): Promise<DurableMemoryRecordListResult>;
   search(request: DurableMemorySearchRequest): Promise<DurableMemorySearchResult>;
   createProposal(request: DurableMemoryProposalCreateRequest): Promise<DurableMemoryProposal>;
-  approveProposal(request: DurableMemoryProposalReviewRequest): Promise<DurableMemoryRecord>;
+  approveProposal(request: DurableMemoryProposalReviewRequest): Promise<DurableMemoryProposal>;
   rejectProposal(request: DurableMemoryProposalReviewRequest): Promise<DurableMemoryProposal>;
   archive(request: DurableMemoryArchiveRequest): Promise<DurableMemoryRecord>;
   delete(request: DurableMemoryDeleteRequest): Promise<DurableMemoryRecord>;
