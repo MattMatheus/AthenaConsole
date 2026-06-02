@@ -16,7 +16,7 @@ No engineering or architecture work awaiting QA.
 
 Refined work ready to activate:
 
-- `engineering/ready/STORY-20260602-durable-memory-contracts.md`
+No ready engineering or architecture work.
 
 ## Later
 
@@ -32,6 +32,7 @@ Candidate work that needs PM refinement before activation:
 
 Recently completed:
 
+- `engineering/done/STORY-20260602-durable-memory-contracts.md`
 - `architecture/done/ARCH-20260602-memory-remote-backend-recommendation.md`
 - `architecture/done/ARCH-20260602-memory-local-cache-boundary.md`
 - `architecture/done/ARCH-20260602-memory-namespace-provenance.md`

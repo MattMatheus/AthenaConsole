@@ -9,6 +9,7 @@ export * from "./workflow-status.js";
 export * from "./work.js";
 export * from "./session.js";
 export * from "./memory.js";
+export * from "./durable-memory.js";
 export * from "./schedule.js";
 export * from "./capabilities.js";
 export * from "./agent-catalog.js";
