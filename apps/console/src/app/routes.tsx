@@ -4,6 +4,7 @@ import { AgentCatalogPage } from "../pages/AgentCatalogPage";
 import { AgentDetailPage } from "../pages/AgentDetailPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { DocumentationPage } from "../pages/DocumentationPage";
+import { DurableMemoryPage } from "../pages/DurableMemoryPage";
 import { MissionsPage } from "../pages/MissionsPage";
 import { FailedWorkPage } from "../pages/FailedWorkPage";
 import { AuditTrailPage } from "../pages/AuditTrailPage";
@@ -79,6 +80,10 @@ export const router = createBrowserRouter([
       {
         path: "resources",
         element: <ResourcesPage />,
+      },
+      {
+        path: "memory",
+        element: <DurableMemoryPage />,
       },
       {
         path: "docs",

@@ -33,6 +33,7 @@ const navSections: NavSection[] = [
     items: [
       { path: "/run-templates", label: "Run Templates", match: /^\/run-templates/ },
       { path: "/resources", label: "Resource Controls", match: /^\/resources/ },
+      { path: "/memory", label: "Memory", match: /^\/memory/ },
       { path: "/docs", label: "Documentation", match: /^\/docs/ },
     ],
   },

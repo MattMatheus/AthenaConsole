@@ -1,0 +1,128 @@
+{
+  "cycle_id": "20260602-durable-memory-console-inspector",
+  "generated_at_utc": "2026-06-02T18:07:34Z",
+  "branch": "main",
+  "story_path": "flywheel/backlog/engineering/done/STORY-20260602-durable-memory-console-inspector.md",
+  "actor": "Codex",
+  "stage_trace": [],
+  "diff_inventory": [
+    "A\tapps/console/src/features/durable-memory/api.test.ts",
+    "A\tapps/console/src/features/durable-memory/api.ts",
+    "A\tapps/console/src/features/durable-memory/index.ts",
+    "A\tapps/console/src/features/durable-memory/inspectorModel.test.ts",
+    "A\tapps/console/src/features/durable-memory/inspectorModel.ts",
+    "A\tapps/console/src/features/durable-memory/queries.ts",
+    "A\tapps/console/src/features/durable-memory/types.ts",
+    "A\tapps/console/src/pages/DurableMemoryPage.tsx",
+    "A\tflywheel/backlog/engineering/done/STORY-20260602-durable-memory-console-inspector.md",
+    "D\tflywheel/backlog/engineering/intake/STORY-20260602-durable-memory-console-inspector.md",
+    "M\tapps/console/src/app/routes.tsx",
+    "M\tapps/console/src/features/index.ts",
+    "M\tapps/console/src/layout/AppLayout.tsx",
+    "M\tdocs/product/direction/current-direction.md",
+    "M\tdocs/product/epics/refinement/2026.35.00-epic-remote-memory-mvp.md",
+    "M\tflywheel/backlog/README.md",
+    "M\tflywheel/backlog/engineering/done/README.md",
+    "M\tflywheel/backlog/engineering/intake/README.md"
+  ],
+  "objective": {
+    "intended_outcome": "Complete the durable-memory console inspector so operators can inspect provider status, namespaces, records, provenance, proposals, snapshots, and legacy diagnostic-memory separation from the console.",
+    "scope_boundary": "Included read-only console inspection, API parsing/query hooks, route/nav wiring, tests, browser QA, and workflow state; excluded approval/rejection/restore actions and semantic retrieval workflows."
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [
+      "flywheel/backlog/engineering/done/STORY-20260602-durable-memory-console-inspector.md",
+      "docs/product/epics/refinement/2026.35.00-epic-remote-memory-mvp.md",
+      "packages/core/src/shared/contracts/durable-memory.ts",
+      "packages/core/src/api/routes/durable-memory-routes.ts"
+    ],
+    "tools_used": [
+      "flywheel_state.sh",
+      "validate_workflow_state.sh",
+      "run_observer_cycle.sh",
+      "vitest",
+      "tsc",
+      "eslint",
+      "Playwright with system Chrome",
+      "git diff --check"
+    ],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [
+      "apps/console/src/features/durable-memory/api.ts",
+      "apps/console/src/features/durable-memory/types.ts",
+      "apps/console/src/features/durable-memory/queries.ts",
+      "apps/console/src/features/durable-memory/inspectorModel.ts",
+      "apps/console/src/features/durable-memory/api.test.ts",
+      "apps/console/src/features/durable-memory/inspectorModel.test.ts",
+      "apps/console/src/pages/DurableMemoryPage.tsx",
+      "apps/console/src/app/routes.tsx",
+      "apps/console/src/layout/AppLayout.tsx",
+      "apps/console/src/features/index.ts",
+      "docs/product/direction/current-direction.md",
+      "docs/product/epics/refinement/2026.35.00-epic-remote-memory-mvp.md",
+      "flywheel/backlog/README.md",
+      "flywheel/backlog/engineering/done/STORY-20260602-durable-memory-console-inspector.md"
+    ],
+    "state_transitions": [
+      "engineering/intake -> engineering/active",
+      "engineering/active -> engineering/qa",
+      "engineering/qa -> engineering/done"
+    ],
+    "non_file_actions": [
+      "Ran desktop/mobile browser QA against http://127.0.0.1:5173/memory using system Chrome."
+    ]
+  },
+  "validation": {
+    "checks_run": [
+      "npm --workspace @athena/console exec -- vitest run src/features/durable-memory/api.test.ts src/features/durable-memory/inspectorModel.test.ts src/app/routeModel.test.ts",
+      "npm --workspace @athena/console run typecheck",
+      "npm --workspace @athena/console run lint",
+      "Browser QA at /memory for desktop 1440x1000 and mobile 390x844",
+      "./flywheel/tools/validate_workflow_state.sh --format json",
+      "git diff --check"
+    ],
+    "results": [
+      "Vitest passed: 3 files, 8 tests.",
+      "Console typecheck passed.",
+      "Console lint passed.",
+      "Browser QA passed: expected sections present, no page errors, no main-content overflow.",
+      "Workflow validation passed.",
+      "Whitespace check passed."
+    ],
+    "checks_not_run": []
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": true,
+    "prompts_updated_if_stage_behavior_changed": true,
+    "process_docs_updated_if_contracts_or_gates_changed": true,
+    "queue_order_and_state_synchronized": true
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [
+      "Browser QA used the console dev server without a live API backend; populated records/proposals/snapshots are covered through parser/model tests rather than a seeded API visual run."
+    ],
+    "assumptions_carried": [
+      "Approval/rejection and snapshot restore controls remain follow-on workflows.",
+      "The inspector should stay read-only for this slice."
+    ],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "low",
+    "approval_required": "false",
+    "approval_reference": "none"
+  },
+  "next_step": {
+    "recommended_next_state": "Keep the story in engineering/done and orient the next cycle from the now-empty active/ready/QA lanes.",
+    "follow_up_work": [
+      "Refine follow-on approval/restore workflows or the next future-horizon capability pack item."
+    ],
+    "durable_promotions": []
+  },
+  "release_impact": {
+    "release_scope": "post-release 2026.35 durable-memory MVP",
+    "additional_release_actions": []
+  }
+}

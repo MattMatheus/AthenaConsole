@@ -4,7 +4,7 @@ Raw engineering work enters here before PM refinement.
 
 ## Candidate Sequence
 
-1. `STORY-20260602-durable-memory-console-inspector.md`
+No candidate engineering items.
 
 ## Refinement Rule
 

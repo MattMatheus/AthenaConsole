@@ -22,12 +22,13 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-- `engineering/intake/STORY-20260602-durable-memory-console-inspector.md`
+No candidate engineering or architecture intake items.
 
 ## Done
 
 Recently completed:
 
+- `engineering/done/STORY-20260602-durable-memory-console-inspector.md`
 - `engineering/done/STORY-20260602-durable-memory-readiness-config.md`
 - `engineering/done/STORY-20260602-durable-memory-remote-provider-client.md`
 - `engineering/done/STORY-20260602-durable-memory-api-routes.md`

@@ -13,4 +13,5 @@ export * from "./governance-audit";
 export * from "./failed-work";
 export * from "./agent-catalog";
 export * from "./connected-repositories";
+export * from "./durable-memory";
 export * from "./model-providers";
