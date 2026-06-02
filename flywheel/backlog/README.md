@@ -10,7 +10,7 @@ No active engineering or architecture work.
 
 Work currently awaiting QA:
 
-No engineering or architecture work awaiting QA.
+No engineering or architecture work is waiting for QA.
 
 ## Next
 
@@ -22,7 +22,6 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-- `engineering/intake/STORY-20260602-durable-memory-server-storage.md`
 - `engineering/intake/STORY-20260602-durable-memory-api-routes.md`
 - `engineering/intake/STORY-20260602-durable-memory-remote-provider-client.md`
 - `engineering/intake/STORY-20260602-durable-memory-readiness-config.md`
@@ -32,6 +31,7 @@ Candidate work that needs PM refinement before activation:
 
 Recently completed:
 
+- `engineering/done/STORY-20260602-durable-memory-server-storage.md`
 - `engineering/done/STORY-20260602-durable-memory-contracts.md`
 - `architecture/done/ARCH-20260602-memory-remote-backend-recommendation.md`
 - `architecture/done/ARCH-20260602-memory-local-cache-boundary.md`

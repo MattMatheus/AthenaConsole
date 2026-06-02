@@ -98,3 +98,4 @@ Engineering work accepted by QA.
 92. `STORY-20260531-release-presentability-cleanup.md`
 93. `STORY-20260601-future-roadmap-arcs.md`
 94. `STORY-20260602-durable-memory-contracts.md`
+95. `STORY-20260602-durable-memory-server-storage.md`

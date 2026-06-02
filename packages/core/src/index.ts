@@ -2,6 +2,7 @@ export * from "./cli/index.js";
 export * from "./runtime/index.js";
 export * from "./work/index.js";
 export * from "./memory/index.js";
+export * from "./durable-memory/index.js";
 export * from "./schedule/index.js";
 export * from "./context/index.js";
 export * from "./providers/index.js";

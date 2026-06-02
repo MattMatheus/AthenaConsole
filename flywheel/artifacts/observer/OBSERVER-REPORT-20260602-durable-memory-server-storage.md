@@ -1,0 +1,71 @@
+# Observer Report: 20260602-durable-memory-server-storage
+
+## Metadata
+- `cycle_id`: 20260602-durable-memory-server-storage
+- `generated_at_utc`: 2026-06-02T17:08:09Z
+- `branch`: main
+- `story_path`: flywheel/backlog/engineering/done/STORY-20260602-durable-memory-server-storage.md
+- `actor`: Codex
+
+## Structured Trace
+- `trace_path`: OBSERVER-REPORT-20260602-durable-memory-server-storage.json
+
+## Stage Trace
+- `events`: []
+
+## Diff Inventory
+- A	flywheel/backlog/engineering/done/STORY-20260602-durable-memory-server-storage.md
+- A	packages/core/src/durable-memory/index.ts
+- A	packages/core/src/durable-memory/server-storage.ts
+- A	packages/core/tests/durable-memory.server-storage.test.ts
+- D	flywheel/backlog/engineering/intake/STORY-20260602-durable-memory-server-storage.md
+- M	docs/product/direction/current-direction.md
+- M	docs/product/epics/refinement/2026.35.00-epic-remote-memory-mvp.md
+- M	flywheel/backlog/README.md
+- M	flywheel/backlog/engineering/done/README.md
+- M	flywheel/backlog/engineering/intake/README.md
+- M	packages/core/src/index.ts
+
+## Objective
+- `intended_outcome`: Complete the `2026.35` durable memory server storage implementation slice by adding a replaceable server-owned storage adapter.
+- `scope_boundary`: Additive core storage adapter/tests and workflow documentation only. No API routes, remote provider client, console inspector, runtime wiring, legacy memory route migration, semantic retrieval, or agent memory writes.
+
+## Inputs And Evidence
+- `artifacts_reviewed`: [flywheel/backlog/engineering/done/STORY-20260602-durable-memory-server-storage.md, docs/product/epics/refinement/2026.35.00-epic-remote-memory-mvp.md, docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md, docs/product/architecture/decisions/0020-durable-memory-provider-interface.md, docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md, docs/product/architecture/decisions/0022-durable-memory-local-cache-boundary.md, docs/product/architecture/decisions/0023-durable-memory-remote-backend-recommendation.md, packages/core/src/shared/contracts/durable-memory.ts, packages/core/src/state/database.ts]
+- `tools_used`: [sed, rg, apply_patch, flywheel_state.sh, vitest, tsc, validate_workflow_state.sh, git diff --check, run_observer_cycle.sh]
+- `external_sources`: []
+
+## Changes Made
+- `files_changed`: [packages/core/src/durable-memory/index.ts, packages/core/src/durable-memory/server-storage.ts, packages/core/src/index.ts, packages/core/tests/durable-memory.server-storage.test.ts, flywheel/backlog/engineering/done/STORY-20260602-durable-memory-server-storage.md, flywheel/backlog/engineering/done/README.md, flywheel/backlog/engineering/intake/README.md, flywheel/backlog/README.md, docs/product/epics/refinement/2026.35.00-epic-remote-memory-mvp.md, docs/product/direction/current-direction.md]
+- `state_transitions`: [engineering intake -> active, engineering active -> qa, engineering qa -> done]
+- `non_file_actions`: []
+
+## Validation
+- `checks_run`: [npm --workspace @athena/core exec -- vitest run tests/durable-memory.contracts.test.ts tests/durable-memory.server-storage.test.ts, npm --workspace @athena/core run typecheck, ./flywheel/tools/validate_workflow_state.sh --format json, git diff --check]
+- `results`: [focused durable-memory tests pass: 2 files / 10 tests, core typecheck pass, workflow_state pass with no failures or warnings, diff hygiene pass]
+- `checks_not_run`: []
+
+## Workflow Sync Checks
+- [ ] Entry docs updated if workflow behavior changed.
+- [ ] Prompts updated if stage behavior changed.
+- [ ] Process docs updated if contracts or gates changed.
+- [x] Queue order and state remain synchronized.
+
+## Warnings And Risks
+- `unresolved_risks`: [API routes, remote provider client, readiness/config, and console inspector remain follow-on stories. The adapter is not wired into runtime durable-memory operations yet.]
+- `assumptions_carried`: [SQLite is the first server-mode backing store but remains behind a replaceable adapter boundary. Snapshot restore intentionally requires an exact target namespace match.]
+- `warnings`: []
+
+## Action Record
+- `highest_action_class`: local write
+- `approval_required`: false
+- `approval_reference`: 
+
+## Next Step
+- `recommended_next_state`: PM/refine or promote `STORY-20260602-durable-memory-api-routes` as the next 2026.35 implementation slice.
+- `follow_up_work`: [Durable-memory API routes, remote provider client, readiness/config, and console inspector.]
+- `durable_promotions`: []
+
+## Release Impact
+- Release scope: post-2026.1 implementation
+- Additional release actions: []
