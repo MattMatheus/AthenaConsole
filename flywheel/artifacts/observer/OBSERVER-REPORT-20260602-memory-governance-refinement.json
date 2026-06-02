@@ -1,0 +1,105 @@
+{
+  "cycle_id": "20260602-memory-governance-refinement",
+  "generated_at_utc": "2026-06-02T18:57:30Z",
+  "branch": "main",
+  "story_path": "docs/product/epics/refinement/2026.36.00-epic-memory-governance-agent-integration.md",
+  "actor": "Codex",
+  "stage_trace": [],
+  "diff_inventory": [
+    "A\tflywheel/backlog/engineering/intake/STORY-20260602-memory-artifact-promotion.md",
+    "A\tflywheel/backlog/engineering/intake/STORY-20260602-memory-aware-run-detail.md",
+    "A\tflywheel/backlog/engineering/intake/STORY-20260602-memory-manifest-permissions.md",
+    "A\tflywheel/backlog/engineering/intake/STORY-20260602-memory-proposed-review.md",
+    "A\tflywheel/backlog/engineering/intake/STORY-20260602-memory-runtime-context.md",
+    "A\tflywheel/backlog/engineering/intake/STORY-20260602-memory-usage-events.md",
+    "M\tdocs/product/direction/current-direction.md",
+    "M\tdocs/product/epics/refinement/2026.36.00-epic-memory-governance-agent-integration.md",
+    "M\tflywheel/backlog/README.md",
+    "M\tflywheel/backlog/engineering/intake/README.md"
+  ],
+  "objective": {
+    "intended_outcome": "Convert the 2026.36 Memory Governance And Agent Integration epic into a sequenced set of engineering intake stories.",
+    "scope_boundary": "Planning/refinement only; no implementation stories were activated and no product code changed."
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [
+      "docs/product/roadmap/future-horizon.md",
+      "docs/product/epics/refinement/2026.36.00-epic-memory-governance-agent-integration.md",
+      "flywheel/backlog/README.md",
+      "flywheel/backlog/engineering/intake/README.md"
+    ],
+    "tools_used": [
+      "validate_workflow_state.sh",
+      "run_observer_cycle.sh",
+      "git diff --check"
+    ],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [
+      "flywheel/backlog/engineering/intake/STORY-20260602-memory-manifest-permissions.md",
+      "flywheel/backlog/engineering/intake/STORY-20260602-memory-runtime-context.md",
+      "flywheel/backlog/engineering/intake/STORY-20260602-memory-usage-events.md",
+      "flywheel/backlog/engineering/intake/STORY-20260602-memory-proposed-review.md",
+      "flywheel/backlog/engineering/intake/STORY-20260602-memory-artifact-promotion.md",
+      "flywheel/backlog/engineering/intake/STORY-20260602-memory-aware-run-detail.md",
+      "docs/product/epics/refinement/2026.36.00-epic-memory-governance-agent-integration.md",
+      "docs/product/direction/current-direction.md",
+      "flywheel/backlog/README.md",
+      "flywheel/backlog/engineering/intake/README.md"
+    ],
+    "state_transitions": [],
+    "non_file_actions": [
+      "Refined the next epic into six sequenced engineering intake stories."
+    ]
+  },
+  "validation": {
+    "checks_run": [
+      "./flywheel/tools/validate_workflow_state.sh --format json",
+      "git diff --check"
+    ],
+    "results": [
+      "Workflow validation passed.",
+      "Whitespace check passed."
+    ],
+    "checks_not_run": [
+      "Code tests were not run because this was a planning-only backlog refinement cycle."
+    ]
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": true,
+    "prompts_updated_if_stage_behavior_changed": true,
+    "process_docs_updated_if_contracts_or_gates_changed": true,
+    "queue_order_and_state_synchronized": true
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [
+      "The six stories remain in intake; PM or engineering should promote only the first bounded slice when ready to implement."
+    ],
+    "assumptions_carried": [
+      "2026.35 durable-memory primitives remain the implementation baseline for 2026.36 governance work."
+    ],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "low",
+    "approval_required": "false",
+    "approval_reference": "none"
+  },
+  "next_step": {
+    "recommended_next_state": "Promote STORY-20260602-memory-manifest-permissions.md from engineering intake when implementation should begin.",
+    "follow_up_work": [
+      "STORY-20260602-memory-manifest-permissions.md",
+      "STORY-20260602-memory-runtime-context.md",
+      "STORY-20260602-memory-usage-events.md",
+      "STORY-20260602-memory-proposed-review.md",
+      "STORY-20260602-memory-artifact-promotion.md",
+      "STORY-20260602-memory-aware-run-detail.md"
+    ],
+    "durable_promotions": []
+  },
+  "release_impact": {
+    "release_scope": "post-release 2026.36 planning",
+    "additional_release_actions": []
+  }
+}

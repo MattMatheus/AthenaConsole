@@ -22,7 +22,12 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-No candidate engineering or architecture intake items.
+- `engineering/intake/STORY-20260602-memory-manifest-permissions.md`
+- `engineering/intake/STORY-20260602-memory-runtime-context.md`
+- `engineering/intake/STORY-20260602-memory-usage-events.md`
+- `engineering/intake/STORY-20260602-memory-proposed-review.md`
+- `engineering/intake/STORY-20260602-memory-artifact-promotion.md`
+- `engineering/intake/STORY-20260602-memory-aware-run-detail.md`
 
 ## Done
 
