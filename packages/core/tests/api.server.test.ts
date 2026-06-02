@@ -536,6 +536,7 @@ describe("api server", () => {
         "plugin-paths",
         "secret-root",
         "model-providers",
+        "durable-memory",
         "plugins",
         "runtime",
         "server-exposure",
@@ -551,6 +552,15 @@ describe("api server", () => {
       expect(readinessEnvelope.data.checks.find((check) => check.id === "sample-demo")).toMatchObject({
         status: "degraded",
         required: false
+      });
+      expect(readinessEnvelope.data.checks.find((check) => check.id === "durable-memory")).toMatchObject({
+        status: "degraded",
+        required: false,
+        details: {
+          mode: "disabled",
+          operatorStatus: "diagnostic-only",
+          legacyDiagnosticMemorySeparate: true
+        }
       });
       expect(readinessEnvelope.data.checks.find((check) => check.id === "server-exposure")).toMatchObject({
         status: "ok",

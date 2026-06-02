@@ -41,6 +41,17 @@ describe("loadConfig", () => {
       expect(config.history?.maxEntries).toBe(200);
       expect(config.memory?.enabled).toBe(false);
       expect(config.memory?.includeTranscripts).toBe(false);
+      expect(config.durableMemory).toMatchObject({
+        mode: "disabled",
+        timeoutMs: 15000,
+        operatorStatus: "diagnostic-only",
+        provider: {
+          id: "durable-memory",
+          kind: "local-dev",
+          label: "Durable memory",
+          localDevOnly: true
+        }
+      });
       expect(config.plugins?.searchPaths).toEqual(["sample-plugins", ".athena/plugins"]);
       expect(config.plugins?.systemPluginPaths).toEqual([]);
       expect(config.context?.strategy).toBe("raw");
@@ -152,6 +163,14 @@ describe("loadConfig", () => {
           "ATHENA_MEMORY_INCLUDE_TRANSCRIPTS=true",
           "ATHENA_MEMORY_SQLITE_PATH=.athena/memory/main.sqlite",
           "ATHENA_MEMORY_MAX_RESULTS=8",
+          "ATHENA_DURABLE_MEMORY_MODE=remote-http",
+          "ATHENA_DURABLE_MEMORY_PROVIDER_ID=team-memory",
+          "ATHENA_DURABLE_MEMORY_PROVIDER_LABEL=Team Memory",
+          "ATHENA_DURABLE_MEMORY_REMOTE_URL=http://127.0.0.1:8787",
+          "ATHENA_DURABLE_MEMORY_TOKEN_ENV=TEAM_MEMORY_TOKEN",
+          "ATHENA_DURABLE_MEMORY_CACHE_MODE=read-through-write-queue",
+          "ATHENA_DURABLE_MEMORY_TIMEOUT_MS=2500",
+          "ATHENA_DURABLE_MEMORY_OPERATOR_STATUS=queued-intent",
           "ATHENA_PLUGIN_PATHS=plugins/news,/opt/team-orchestrator/plugins",
           "ATHENA_SYSTEM_PLUGIN_PATHS=packages/core/system-plugins",
           "ATHENA_CONTEXT_STRATEGY=summary",
@@ -241,6 +260,23 @@ describe("loadConfig", () => {
       expect(config.memory?.includeTranscripts).toBe(true);
       expect(config.memory?.sqlitePath).toBe(".athena/memory/main.sqlite");
       expect(config.memory?.maxResults).toBe(8);
+      expect(config.durableMemory).toMatchObject({
+        mode: "remote-http",
+        timeoutMs: 2500,
+        operatorStatus: "queued-intent",
+        provider: {
+          id: "team-memory",
+          kind: "remote-http",
+          label: "Team Memory",
+          baseUrl: "http://127.0.0.1:8787",
+          tokenRef: {
+            kind: "env",
+            name: "TEAM_MEMORY_TOKEN"
+          },
+          cacheMode: "read-through-write-queue",
+          localDevOnly: false
+        }
+      });
       expect(config.plugins?.searchPaths).toEqual(["plugins/news", "/opt/team-orchestrator/plugins"]);
       expect(config.plugins?.systemPluginPaths).toEqual(["packages/core/system-plugins"]);
       expect(config.context?.strategy).toBe("summary");
@@ -281,6 +317,59 @@ describe("loadConfig", () => {
       const config = loadConfig(dir);
       expect(config.sandbox?.requireForHighSecurity).toBe(true);
       expect(config.runtimeIsolation?.profiles["high-security"].requireSandbox).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("parses durable memory server-mode and local-file token references", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-config-"));
+    try {
+      writeFileSync(
+        join(dir, ".env"),
+        [
+          "ATHENA_DURABLE_MEMORY_MODE=server-mode",
+          "ATHENA_DURABLE_MEMORY_TOKEN_FILE=/run/secrets/athena/durable-memory-token",
+          "ATHENA_DURABLE_MEMORY_CACHE_MODE=read-through",
+          "ATHENA_DURABLE_MEMORY_OPERATOR_STATUS=cache-stale",
+          "ATHENA_DURABLE_MEMORY_LOCAL_DEV_ONLY=false"
+        ].join("\n"),
+        "utf8"
+      );
+      const config = loadConfig(dir);
+      expect(config.durableMemory).toMatchObject({
+        mode: "server-mode",
+        operatorStatus: "cache-stale",
+        provider: {
+          kind: "server-mode",
+          tokenRef: {
+            kind: "local-file",
+            name: "/run/secrets/athena/durable-memory-token"
+          },
+          cacheMode: "read-through",
+          localDevOnly: false
+        }
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("throws for invalid durable memory mode or competing token references", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-config-"));
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_DURABLE_MEMORY_MODE=shared-db", "utf8");
+      expect(() => loadConfig(dir)).toThrow("ATHENA_DURABLE_MEMORY_MODE");
+
+      writeFileSync(
+        join(dir, ".env"),
+        ["ATHENA_DURABLE_MEMORY_TOKEN_ENV=TEAM_MEMORY_TOKEN", "ATHENA_DURABLE_MEMORY_TOKEN_FILE=/run/token"].join("\n"),
+        "utf8"
+      );
+      expect(() => loadConfig(dir)).toThrow("Configure only one durable-memory token reference");
+
+      writeFileSync(join(dir, ".env"), "ATHENA_DURABLE_MEMORY_OPERATOR_STATUS=stuck", "utf8");
+      expect(() => loadConfig(dir)).toThrow("ATHENA_DURABLE_MEMORY_OPERATOR_STATUS");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

@@ -1,4 +1,4 @@
-import { accessSync, constants, mkdirSync, statSync } from "node:fs";
+import { accessSync, constants, existsSync, mkdirSync, statSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 import type { AthenaConfig } from "../../shared/config.js";
 import type {
@@ -36,6 +36,7 @@ export class LocalReadinessService implements ReadinessService {
       Promise.resolve(this.buildPluginPathCheck()),
       Promise.resolve(this.buildSecretRootCheck()),
       this.buildModelProviderCheck(),
+      Promise.resolve(this.buildDurableMemoryCheck()),
       this.buildPluginIndexCheck(),
       this.buildRuntimeCheck(),
       Promise.resolve(this.buildServerExposureCheck()),
@@ -327,6 +328,118 @@ export class LocalReadinessService implements ReadinessService {
     }
   }
 
+  private buildDurableMemoryCheck(): ReadinessCheck {
+    const durable = this.config.durableMemory;
+    const mode = durable?.mode ?? "disabled";
+    const provider = durable?.provider;
+    const operatorStatus = durable?.operatorStatus ?? defaultDurableMemoryOperatorStatus(mode);
+    const token = resolveDurableMemoryTokenPosture(provider);
+    const details = {
+      mode,
+      providerKind: provider?.kind ?? "local-dev",
+      cacheMode: provider?.cacheMode ?? "disabled",
+      operatorStatus,
+      tokenRefConfigured: token.configured,
+      tokenRefAvailable: token.available,
+      legacyDiagnosticMemorySeparate: true
+    };
+
+    if (mode === "disabled") {
+      return degradedCheck({
+        id: "durable-memory",
+        label: "Durable memory",
+        category: "providers",
+        required: false,
+        message: "Durable memory is disabled; legacy diagnostic memory search remains separate.",
+        nextStep: "Enable durable memory when cross-machine memory continuity is needed.",
+        details
+      });
+    }
+
+    if (mode === "local-dev") {
+      return degradedCheck({
+        id: "durable-memory",
+        label: "Durable memory",
+        category: "providers",
+        required: false,
+        message: "Durable memory is local-dev-only and will not travel across machines.",
+        nextStep: "Use server-mode or remote-http durable memory for laptop/server continuity.",
+        details: {
+          ...details,
+          operatorStatus: "local-dev-only"
+        }
+      });
+    }
+
+    if (mode === "server-mode") {
+      return okCheck({
+        id: "durable-memory",
+        label: "Durable memory",
+        category: "providers",
+        required: false,
+        message: "Durable memory is configured for server-mode storage.",
+        nextStep: "Confirm server backups include the durable-memory SQLite/app-state volume.",
+        details: {
+          ...details,
+          operatorStatus: operatorStatus === "diagnostic-only" ? "remote-current" : operatorStatus
+        }
+      });
+    }
+
+    if (!provider?.baseUrl) {
+      return degradedCheck({
+        id: "durable-memory",
+        label: "Durable memory",
+        category: "providers",
+        required: false,
+        message: "Remote durable memory is selected but no server URL is configured.",
+        nextStep: "Configure the remote durable-memory server URL before relying on shared memory.",
+        details: {
+          ...details,
+          operatorStatus: "remote-unavailable"
+        }
+      });
+    }
+
+    if (token.configured && !token.available) {
+      return degradedCheck({
+        id: "durable-memory",
+        label: "Durable memory",
+        category: "providers",
+        required: false,
+        message: "Remote durable memory token reference is configured but unavailable.",
+        nextStep: "Fix the durable-memory token reference before connecting to the remote server.",
+        details: {
+          ...details,
+          operatorStatus: "remote-unavailable",
+          authStatus: "unauthorized"
+        }
+      });
+    }
+
+    if (operatorStatus === "remote-current" || operatorStatus === "cache-current") {
+      return okCheck({
+        id: "durable-memory",
+        label: "Durable memory",
+        category: "providers",
+        required: false,
+        message: "Remote durable memory is configured and current.",
+        nextStep: "No action needed.",
+        details
+      });
+    }
+
+    return degradedCheck({
+      id: "durable-memory",
+      label: "Durable memory",
+      category: "providers",
+      required: false,
+      message: durableMemoryStatusMessage(operatorStatus),
+      nextStep: durableMemoryStatusNextStep(operatorStatus),
+      details
+    });
+  }
+
   private async buildPluginIndexCheck(): Promise<ReadinessCheck> {
     try {
       const pluginIndex = await this.options.agentCatalogService.listPlugins();
@@ -565,7 +678,16 @@ function buildFirstRunDemoLane(checks: ReadinessCheck[]): ReadinessLane {
 }
 
 function buildRealWorkLane(checks: ReadinessCheck[]): ReadinessLane {
-  const checkIds = ["api", "app-state", "artifact-storage", "managed-repo-root", "plugin-paths", "plugins", "runtime"];
+  const checkIds = [
+    "api",
+    "app-state",
+    "artifact-storage",
+    "managed-repo-root",
+    "plugin-paths",
+    "plugins",
+    "runtime",
+    "durable-memory"
+  ];
   const laneChecks = checksById(checks, checkIds);
   if (laneChecks.some((check) => check.required && check.status === "failed")) {
     return {
@@ -598,7 +720,7 @@ function buildRealWorkLane(checks: ReadinessCheck[]): ReadinessLane {
 }
 
 function buildProviderSetupLane(checks: ReadinessCheck[]): ReadinessLane {
-  const checkIds = ["model-providers", "secret-root", "runtime"];
+  const checkIds = ["model-providers", "secret-root", "runtime", "durable-memory"];
   const laneChecks = checksById(checks, checkIds);
   if (laneChecks.some((check) => check.required && check.status === "failed")) {
     return {
@@ -631,7 +753,7 @@ function buildProviderSetupLane(checks: ReadinessCheck[]): ReadinessLane {
 }
 
 function buildServerHardeningLane(checks: ReadinessCheck[]): ReadinessLane {
-  const checkIds = ["server-exposure", "secret-root"];
+  const checkIds = ["server-exposure", "secret-root", "durable-memory"];
   const laneChecks = checksById(checks, checkIds);
   if (laneChecks.some((check) => check.id === "server-exposure" && check.status === "failed")) {
     return {
@@ -722,6 +844,19 @@ function isReadableDirectory(path: string): boolean {
   }
 }
 
+function isReadableFile(path: string): boolean {
+  try {
+    const stats = statSync(path);
+    if (!stats.isFile()) {
+      return false;
+    }
+    accessSync(path, constants.R_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function resolveConfiguredPath(workspaceRoot: string, path: string): string {
   return isAbsolute(path) ? path : resolve(workspaceRoot, path);
 }
@@ -793,5 +928,67 @@ function resolveProviderPosture(config: AthenaConfig): { configured: boolean; me
         message: "Selected provider is not recognized by readiness checks.",
         nextStep: "Select mock, openai, foundry, http, or local as the default provider."
       };
+  }
+}
+
+function defaultDurableMemoryOperatorStatus(mode: string): string {
+  if (mode === "server-mode" || mode === "remote-http") {
+    return "remote-current";
+  }
+  if (mode === "local-dev") {
+    return "local-dev-only";
+  }
+  return "diagnostic-only";
+}
+
+function resolveDurableMemoryTokenPosture(provider: NonNullable<AthenaConfig["durableMemory"]>["provider"] | undefined): {
+  configured: boolean;
+  available: boolean;
+} {
+  const ref = provider?.tokenRef;
+  if (!ref) {
+    return { configured: false, available: false };
+  }
+  if (ref.kind === "env") {
+    return { configured: true, available: Boolean(process.env[ref.name]?.trim()) };
+  }
+  return { configured: true, available: existsSync(ref.name) && isReadableFile(ref.name) };
+}
+
+function durableMemoryStatusMessage(status: string): string {
+  switch (status) {
+    case "remote-unavailable":
+      return "Remote durable memory is configured but currently unavailable.";
+    case "cache-stale":
+      return "Durable memory is serving stale cached state.";
+    case "queued-intent":
+      return "Durable memory has queued write intent waiting for remote replay.";
+    case "conflict-review-required":
+      return "Durable memory has a conflict that requires operator review.";
+    case "local-dev-only":
+      return "Durable memory is local-dev-only and will not travel across machines.";
+    case "diagnostic-only":
+      return "Only legacy diagnostic memory is available; durable product memory is not enabled.";
+    default:
+      return "Durable memory is configured with a degraded operator-visible status.";
+  }
+}
+
+function durableMemoryStatusNextStep(status: string): string {
+  switch (status) {
+    case "remote-unavailable":
+      return "Check remote durable-memory server reachability and auth configuration.";
+    case "cache-stale":
+      return "Reconnect to the remote durable-memory server before trusting stale cached context.";
+    case "queued-intent":
+      return "Reconnect to the remote durable-memory server so queued memory writes can replay.";
+    case "conflict-review-required":
+      return "Review memory conflicts before running agents that depend on durable memory.";
+    case "local-dev-only":
+      return "Use server-mode or remote-http durable memory for laptop/server continuity.";
+    case "diagnostic-only":
+      return "Enable durable memory when cross-machine memory continuity is needed.";
+    default:
+      return "Inspect durable-memory configuration before relying on shared memory.";
   }
 }

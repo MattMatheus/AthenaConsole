@@ -54,6 +54,32 @@ then configure the provider secret as:
 
 Environment variables such as `ATHENA_OPENAI_API_KEY` are supported for compatibility, but local-file references make ownership and backups easier to reason about.
 
+## Durable Memory
+
+Durable product memory is separate from the legacy diagnostic memory search routes under `/api/v1/memory/*`. The durable-memory API lives under `/api/v1/durable-memory/*`, and readiness reports it as its own provider-style check so operators can distinguish disabled memory, local-only memory, and remote-memory fallback states.
+
+The default mode is disabled. For a local server that owns the durable-memory store, set server mode in `server.env`:
+
+```bash
+ATHENA_DURABLE_MEMORY_MODE=server-mode
+ATHENA_DURABLE_MEMORY_CACHE_MODE=disabled
+```
+
+For a laptop or another node that should use the server's memory API, configure remote HTTP mode and reference the token without placing the token value in diagnostics:
+
+```bash
+ATHENA_DURABLE_MEMORY_MODE=remote-http
+ATHENA_DURABLE_MEMORY_REMOTE_URL=http://server-hostname:8787
+ATHENA_DURABLE_MEMORY_TOKEN_ENV=ATHENA_AUTH_API_TOKEN
+ATHENA_DURABLE_MEMORY_CACHE_MODE=read-through
+```
+
+Use `ATHENA_DURABLE_MEMORY_TOKEN_FILE=/run/secrets/athena/durable-memory-token` when the token is mounted as a file. Configure only one durable-memory token reference.
+
+Back up the host path behind `ATHENA_SERVER_STATE_PATH`; the MVP durable-memory tables live with the app-state SQLite database in that state volume. Do not copy the database between active servers. Stop the stack or use a SQLite-safe backup process, then include the matching artifact and repository paths when restoring a whole Team Orchestrator server.
+
+Readiness uses operator-visible statuses for fallback behavior: `remote-current` and `cache-current` are clean, while `remote-unavailable`, `cache-stale`, `queued-intent`, and `conflict-review-required` tell the operator whether to reconnect, replay queued writes, or review conflicts before memory-dependent agents run. `local-dev-only` is expected for laptop-only experiments and should not be treated as cross-machine continuity.
+
 ## Repositories And Plugins
 
 Managed repository clones are written under `/athena/workspace/repos/managed`, backed by `ATHENA_SERVER_REPOS_PATH`. Existing-path repositories should use container paths that are mounted into the API container. If an agent or task needs the same path from a Docker-backed sandbox, keep `ATHENA_SANDBOX_WORKSPACE_HOST_PATH` aligned with the host path that backs `/athena/workspace`.

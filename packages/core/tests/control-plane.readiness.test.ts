@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -40,8 +40,8 @@ describe("control-plane readiness", () => {
       expect(report.summary).toEqual({
         ready: false,
         requiredFailed: 0,
-        degraded: 3,
-        optionalUnavailable: 3
+        degraded: 4,
+        optionalUnavailable: 4
       });
       expect(report.checks.map((check) => check.id)).toEqual([
         "api",
@@ -51,6 +51,7 @@ describe("control-plane readiness", () => {
         "plugin-paths",
         "secret-root",
         "model-providers",
+        "durable-memory",
         "plugins",
         "runtime",
         "server-exposure",
@@ -93,6 +94,17 @@ describe("control-plane readiness", () => {
           availableWorkflowTemplates: 0
         }
       });
+      expect(report.checks.find((check) => check.id === "durable-memory")).toMatchObject({
+        status: "degraded",
+        required: false,
+        details: {
+          mode: "disabled",
+          providerKind: "local-dev",
+          operatorStatus: "diagnostic-only",
+          tokenRefConfigured: false,
+          legacyDiagnosticMemorySeparate: true
+        }
+      });
       expect(report.lanes).toEqual([
         expect.objectContaining({
           id: "first-run-demo",
@@ -101,7 +113,8 @@ describe("control-plane readiness", () => {
         }),
         expect.objectContaining({
           id: "real-work",
-          status: "ready"
+          status: "degraded",
+          message: "Repo-backed work is available with local readiness warnings."
         }),
         expect.objectContaining({
           id: "provider-setup",
@@ -221,7 +234,171 @@ describe("control-plane readiness", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("reports current remote durable memory without exposing token references", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-readiness-durable-current-"));
+    const previousToken = process.env.TEAM_MEMORY_TOKEN;
+    try {
+      process.env.TEAM_MEMORY_TOKEN = "team-memory-secret";
+      writeFileSync(
+        join(dir, ".env"),
+        [
+          "ATHENA_DURABLE_MEMORY_MODE=remote-http",
+          "ATHENA_DURABLE_MEMORY_REMOTE_URL=http://127.0.0.1:8787",
+          "ATHENA_DURABLE_MEMORY_TOKEN_ENV=TEAM_MEMORY_TOKEN",
+          "ATHENA_DURABLE_MEMORY_CACHE_MODE=read-through",
+          "ATHENA_DURABLE_MEMORY_OPERATOR_STATUS=remote-current"
+        ].join("\n"),
+        "utf8"
+      );
+      mkdirSync(join(dir, "sample-plugins"), { recursive: true });
+      const readiness = new LocalReadinessService(loadConfig(dir), readinessOptions(dir));
+
+      const report = await readiness.getReadiness();
+
+      expect(report.checks.find((check) => check.id === "durable-memory")).toMatchObject({
+        status: "ok",
+        required: false,
+        details: {
+          mode: "remote-http",
+          providerKind: "remote-http",
+          cacheMode: "read-through",
+          operatorStatus: "remote-current",
+          tokenRefConfigured: true,
+          tokenRefAvailable: true,
+          legacyDiagnosticMemorySeparate: true
+        }
+      });
+      expect(JSON.stringify(report)).not.toContain("TEAM_MEMORY_TOKEN");
+      expect(JSON.stringify(report)).not.toContain("team-memory-secret");
+      expect(JSON.stringify(report)).not.toContain("ATHENA_");
+    } finally {
+      if (previousToken === undefined) {
+        delete process.env.TEAM_MEMORY_TOKEN;
+      } else {
+        process.env.TEAM_MEMORY_TOKEN = previousToken;
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("reports unauthorized remote durable memory when a token reference is unavailable", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-readiness-durable-unauthorized-"));
+    const previousToken = process.env.TEAM_MEMORY_MISSING_TOKEN;
+    try {
+      delete process.env.TEAM_MEMORY_MISSING_TOKEN;
+      writeFileSync(
+        join(dir, ".env"),
+        [
+          "ATHENA_DURABLE_MEMORY_MODE=remote-http",
+          "ATHENA_DURABLE_MEMORY_REMOTE_URL=http://127.0.0.1:8787",
+          "ATHENA_DURABLE_MEMORY_TOKEN_ENV=TEAM_MEMORY_MISSING_TOKEN"
+        ].join("\n"),
+        "utf8"
+      );
+      mkdirSync(join(dir, "sample-plugins"), { recursive: true });
+      const readiness = new LocalReadinessService(loadConfig(dir), readinessOptions(dir));
+
+      const report = await readiness.getReadiness();
+
+      expect(report.checks.find((check) => check.id === "durable-memory")).toMatchObject({
+        status: "degraded",
+        required: false,
+        details: {
+          mode: "remote-http",
+          operatorStatus: "remote-unavailable",
+          tokenRefConfigured: true,
+          tokenRefAvailable: false,
+          authStatus: "unauthorized"
+        }
+      });
+      expect(JSON.stringify(report)).not.toContain("TEAM_MEMORY_MISSING_TOKEN");
+      expect(JSON.stringify(report)).not.toContain("ATHENA_");
+    } finally {
+      if (previousToken === undefined) {
+        delete process.env.TEAM_MEMORY_MISSING_TOKEN;
+      } else {
+        process.env.TEAM_MEMORY_MISSING_TOKEN = previousToken;
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("reports operator-visible durable memory fallback statuses", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-readiness-durable-fallback-"));
+    try {
+      writeFileSync(
+        join(dir, ".env"),
+        [
+          "ATHENA_DURABLE_MEMORY_MODE=remote-http",
+          "ATHENA_DURABLE_MEMORY_REMOTE_URL=http://127.0.0.1:8787",
+          "ATHENA_DURABLE_MEMORY_CACHE_MODE=read-through-write-queue",
+          "ATHENA_DURABLE_MEMORY_OPERATOR_STATUS=conflict-review-required"
+        ].join("\n"),
+        "utf8"
+      );
+      mkdirSync(join(dir, "sample-plugins"), { recursive: true });
+      const readiness = new LocalReadinessService(loadConfig(dir), readinessOptions(dir));
+
+      const report = await readiness.getReadiness();
+
+      expect(report.checks.find((check) => check.id === "durable-memory")).toMatchObject({
+        status: "degraded",
+        message: "Durable memory has a conflict that requires operator review.",
+        nextStep: "Review memory conflicts before running agents that depend on durable memory.",
+        details: {
+          mode: "remote-http",
+          cacheMode: "read-through-write-queue",
+          operatorStatus: "conflict-review-required",
+          legacyDiagnosticMemorySeparate: true
+        }
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("reports local-dev-only durable memory mode", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-readiness-durable-local-dev-"));
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_DURABLE_MEMORY_MODE=local-dev", "utf8");
+      mkdirSync(join(dir, "sample-plugins"), { recursive: true });
+      const readiness = new LocalReadinessService(loadConfig(dir), readinessOptions(dir));
+
+      const report = await readiness.getReadiness();
+
+      expect(report.checks.find((check) => check.id === "durable-memory")).toMatchObject({
+        status: "degraded",
+        message: "Durable memory is local-dev-only and will not travel across machines.",
+        details: {
+          mode: "local-dev",
+          operatorStatus: "local-dev-only"
+        }
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
+
+function readinessOptions(dir: string): ConstructorParameters<typeof LocalReadinessService>[1] {
+  return {
+    stateDiagnosticsService: stateDiagnosticsService({
+      sqlitePath: join(dir, ".athena", "team-orchestrator.sqlite"),
+      artifactPath: join(dir, ".athena", "run-evidence")
+    }),
+    agentCatalogService: agentCatalogService({
+      total: 1,
+      plugins: [{ id: "demo", enabled: true, status: "loaded" }]
+    }),
+    workflowTemplateCatalogService: workflowTemplateCatalogService({
+      total: 1,
+      templates: [{ available: true }]
+    }),
+    capabilityService: capabilityService(),
+    modelProviderConfigService: modelProviderConfigService({ total: 0, providers: [] })
+  };
+}
 
 function stateDiagnosticsService(input: { sqlitePath: string; artifactPath: string }): StateDiagnosticsService {
   return {

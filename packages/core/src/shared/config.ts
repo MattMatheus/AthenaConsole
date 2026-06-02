@@ -3,10 +3,15 @@ import { isAbsolute, resolve } from "node:path";
 import { AthenaError } from "../runtime/errors.js";
 import type { AthenaRbacRole } from "./contracts.js";
 import type { ContextStrategy } from "./contracts.js";
+import type {
+  DurableMemoryOperatorVisibleStatus,
+  DurableMemoryProviderConfig
+} from "./contracts/durable-memory.js";
 
 export type ConfigRuntimeIsolationProfile = "standard" | "high-security";
 export type AuthzMode = "off" | "observe" | "soft-enforce" | "enforce";
 export type AuthzDefaultDecision = "allow" | "deny";
+export type DurableMemoryMode = "disabled" | "local-dev" | "server-mode" | "remote-http";
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
 const DAY_MS = 24 * 60 * 60 * 1_000;
 
@@ -97,6 +102,12 @@ export interface AthenaConfig {
     maxResults: number;
     maxSnippetChars: number;
     maxInjectedChars: number;
+  };
+  durableMemory?: {
+    mode: DurableMemoryMode;
+    provider: DurableMemoryProviderConfig;
+    timeoutMs: number;
+    operatorStatus?: DurableMemoryOperatorVisibleStatus;
   };
   plugins?: {
     searchPaths: string[];
@@ -208,6 +219,17 @@ const DEFAULT_CONFIG: AthenaConfig = {
     maxSnippetChars: 700,
     maxInjectedChars: 2_500
   },
+  durableMemory: {
+    mode: "disabled",
+    provider: {
+      id: "durable-memory",
+      kind: "local-dev",
+      label: "Durable memory",
+      localDevOnly: true
+    },
+    timeoutMs: 15_000,
+    operatorStatus: "diagnostic-only"
+  },
   plugins: {
     searchPaths: ["sample-plugins", ".athena/plugins"],
     systemPluginPaths: []
@@ -307,6 +329,83 @@ function parseCliTransport(input: string | undefined, defaultValue: "local" | "a
     return normalized;
   }
   return defaultValue;
+}
+
+function parseDurableMemoryMode(input: string | undefined, defaultValue: DurableMemoryMode): DurableMemoryMode {
+  if (!input) {
+    return defaultValue;
+  }
+  const normalized = input.trim().toLowerCase();
+  if (normalized === "disabled" || normalized === "local-dev" || normalized === "server-mode" || normalized === "remote-http") {
+    return normalized;
+  }
+  throw new AthenaError(
+    "CONFIG_ERROR",
+    `ATHENA_DURABLE_MEMORY_MODE must be one of: disabled, local-dev, server-mode, remote-http. Received: ${input}.`
+  );
+}
+
+function parseDurableMemoryCacheMode(
+  input: string | undefined,
+  defaultValue: NonNullable<DurableMemoryProviderConfig["cacheMode"]>
+): NonNullable<DurableMemoryProviderConfig["cacheMode"]> {
+  if (!input) {
+    return defaultValue;
+  }
+  const normalized = input.trim().toLowerCase();
+  if (normalized === "disabled" || normalized === "read-through" || normalized === "read-through-write-queue") {
+    return normalized;
+  }
+  throw new AthenaError(
+    "CONFIG_ERROR",
+    "ATHENA_DURABLE_MEMORY_CACHE_MODE must be one of: disabled, read-through, read-through-write-queue. " +
+      `Received: ${input}.`
+  );
+}
+
+function parseDurableMemoryOperatorStatus(input: string | undefined): DurableMemoryOperatorVisibleStatus | undefined {
+  if (!input) {
+    return undefined;
+  }
+  const normalized = input.trim().toLowerCase();
+  if (
+    normalized === "remote-current" ||
+    normalized === "remote-unavailable" ||
+    normalized === "cache-current" ||
+    normalized === "cache-stale" ||
+    normalized === "queued-intent" ||
+    normalized === "conflict-review-required" ||
+    normalized === "local-dev-only" ||
+    normalized === "diagnostic-only"
+  ) {
+    return normalized;
+  }
+  throw new AthenaError(
+    "CONFIG_ERROR",
+    "ATHENA_DURABLE_MEMORY_OPERATOR_STATUS must be one of the durable-memory operator-visible statuses. " +
+      `Received: ${input}.`
+  );
+}
+
+function parseDurableMemoryTokenRef(input: {
+  envName?: string;
+  fileName?: string;
+}): DurableMemoryProviderConfig["tokenRef"] | undefined {
+  const envName = input.envName?.trim();
+  const fileName = input.fileName?.trim();
+  if (envName && fileName) {
+    throw new AthenaError(
+      "CONFIG_ERROR",
+      "Configure only one durable-memory token reference: ATHENA_DURABLE_MEMORY_TOKEN_ENV or ATHENA_DURABLE_MEMORY_TOKEN_FILE."
+    );
+  }
+  if (envName) {
+    return { kind: "env", name: envName };
+  }
+  if (fileName) {
+    return { kind: "local-file", name: fileName };
+  }
+  return undefined;
 }
 
 function parseOperationsMetricsProvider(input: string | undefined): "local" | "k8s" | undefined {
@@ -590,6 +689,26 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
   }
 
   const memorySqlitePath = env.ATHENA_MEMORY_SQLITE_PATH ?? process.env.ATHENA_MEMORY_SQLITE_PATH;
+  const durableMemoryMode = parseDurableMemoryMode(
+    env.ATHENA_DURABLE_MEMORY_MODE ?? process.env.ATHENA_DURABLE_MEMORY_MODE,
+    DEFAULT_CONFIG.durableMemory!.mode
+  );
+  const durableMemoryBaseUrl =
+    env.ATHENA_DURABLE_MEMORY_REMOTE_URL ??
+    process.env.ATHENA_DURABLE_MEMORY_REMOTE_URL ??
+    env.ATHENA_DURABLE_MEMORY_BASE_URL ??
+    process.env.ATHENA_DURABLE_MEMORY_BASE_URL;
+  const durableMemoryTokenRef = parseDurableMemoryTokenRef({
+    envName: env.ATHENA_DURABLE_MEMORY_TOKEN_ENV ?? process.env.ATHENA_DURABLE_MEMORY_TOKEN_ENV,
+    fileName: env.ATHENA_DURABLE_MEMORY_TOKEN_FILE ?? process.env.ATHENA_DURABLE_MEMORY_TOKEN_FILE
+  });
+  const durableMemoryCacheMode = parseDurableMemoryCacheMode(
+    env.ATHENA_DURABLE_MEMORY_CACHE_MODE ?? process.env.ATHENA_DURABLE_MEMORY_CACHE_MODE,
+    DEFAULT_CONFIG.durableMemory!.provider.cacheMode ?? "disabled"
+  );
+  const durableMemoryOperatorStatus = parseDurableMemoryOperatorStatus(
+    env.ATHENA_DURABLE_MEMORY_OPERATOR_STATUS ?? process.env.ATHENA_DURABLE_MEMORY_OPERATOR_STATUS
+  );
   const cliApiBaseUrl = env.ATHENA_API_BASE_URL ?? process.env.ATHENA_API_BASE_URL;
   const openaiApiKey = env.ATHENA_OPENAI_API_KEY ?? process.env.ATHENA_OPENAI_API_KEY;
   const foundryEnabled = parseBoolean(
@@ -901,6 +1020,39 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
         env.ATHENA_MEMORY_MAX_INJECTED_CHARS ?? process.env.ATHENA_MEMORY_MAX_INJECTED_CHARS,
         DEFAULT_CONFIG.memory!.maxInjectedChars
       )
+    },
+    durableMemory: {
+      mode: durableMemoryMode,
+      provider: {
+        id:
+          env.ATHENA_DURABLE_MEMORY_PROVIDER_ID ??
+          process.env.ATHENA_DURABLE_MEMORY_PROVIDER_ID ??
+          DEFAULT_CONFIG.durableMemory!.provider.id,
+        kind: durableMemoryMode === "disabled" ? "local-dev" : durableMemoryMode,
+        label:
+          env.ATHENA_DURABLE_MEMORY_PROVIDER_LABEL ??
+          process.env.ATHENA_DURABLE_MEMORY_PROVIDER_LABEL ??
+          DEFAULT_CONFIG.durableMemory!.provider.label,
+        ...(durableMemoryBaseUrl ? { baseUrl: durableMemoryBaseUrl } : {}),
+        ...(durableMemoryTokenRef ? { tokenRef: durableMemoryTokenRef } : {}),
+        cacheMode: durableMemoryCacheMode,
+        localDevOnly:
+          durableMemoryMode === "disabled" ||
+          durableMemoryMode === "local-dev" ||
+          parseBoolean(
+            env.ATHENA_DURABLE_MEMORY_LOCAL_DEV_ONLY ?? process.env.ATHENA_DURABLE_MEMORY_LOCAL_DEV_ONLY,
+            false
+          )
+      },
+      timeoutMs: parseNumber(
+        env.ATHENA_DURABLE_MEMORY_TIMEOUT_MS ?? process.env.ATHENA_DURABLE_MEMORY_TIMEOUT_MS,
+        DEFAULT_CONFIG.durableMemory!.timeoutMs
+      ),
+      ...(durableMemoryOperatorStatus
+        ? { operatorStatus: durableMemoryOperatorStatus }
+        : DEFAULT_CONFIG.durableMemory!.operatorStatus
+          ? { operatorStatus: DEFAULT_CONFIG.durableMemory!.operatorStatus }
+          : {})
     },
     plugins: {
       searchPaths:
