@@ -80,7 +80,6 @@ export function AuditTrailPage() {
 
   return (
     <section className={styles.page}>
-      <h2>Audit Trail</h2>
       <p className={styles.lead}>Immutable policy and access-control history from the local event store.</p>
       {unavailableNotice ? (
         <div className={styles.advancedNotice}>

@@ -1,4 +1,23 @@
-import { Menu, Search, Settings } from "lucide-react";
+import {
+  AlertTriangle,
+  BookOpen,
+  Bot,
+  CalendarClock,
+  Database,
+  History,
+  LayoutDashboard,
+  ListChecks,
+  type LucideIcon,
+  Menu,
+  ScrollText,
+  Search,
+  Settings,
+  ShieldCheck,
+  SlidersHorizontal,
+  SquareStack,
+  Target,
+  Workflow,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { usePersistentState } from "../hooks";
@@ -8,6 +27,7 @@ type NavItem = {
   path: string;
   label: string;
   match: RegExp;
+  icon: LucideIcon;
 };
 
 type NavSection = {
@@ -19,31 +39,31 @@ const navSections: NavSection[] = [
   {
     label: "Operate",
     items: [
-      { path: "/", label: "Dashboard", match: /^\/$/ },
-      { path: "/agents", label: "Agents", match: /^\/agents/ },
-      { path: "/workflows", label: "Workflows", match: /^\/workflows/ },
-      { path: "/missions", label: "Missions", match: /^\/missions/ },
-      { path: "/tasks", label: "Tasks", match: /^\/tasks/ },
-      { path: "/schedules", label: "Schedules", match: /^\/schedules/ },
-      { path: "/runs", label: "Run History", match: /^\/runs|^\/sessions/ },
+      { path: "/", label: "Dashboard", match: /^\/$/, icon: LayoutDashboard },
+      { path: "/agents", label: "Agents", match: /^\/agents/, icon: Bot },
+      { path: "/workflows", label: "Workflows", match: /^\/workflows/, icon: Workflow },
+      { path: "/missions", label: "Missions", match: /^\/missions/, icon: Target },
+      { path: "/tasks", label: "Tasks", match: /^\/tasks/, icon: ListChecks },
+      { path: "/schedules", label: "Schedules", match: /^\/schedules/, icon: CalendarClock },
+      { path: "/runs", label: "Run History", match: /^\/runs|^\/sessions/, icon: History },
     ],
   },
   {
     label: "Configure",
     items: [
-      { path: "/run-templates", label: "Run Templates", match: /^\/run-templates/ },
-      { path: "/resources", label: "Resource Controls", match: /^\/resources/ },
-      { path: "/memory", label: "Memory", match: /^\/memory/ },
-      { path: "/docs", label: "Documentation", match: /^\/docs/ },
+      { path: "/run-templates", label: "Run Templates", match: /^\/run-templates/, icon: SquareStack },
+      { path: "/resources", label: "Resource Controls", match: /^\/resources/, icon: SlidersHorizontal },
+      { path: "/memory", label: "Memory", match: /^\/memory/, icon: Database },
+      { path: "/docs", label: "Documentation", match: /^\/docs/, icon: BookOpen },
     ],
   },
   {
     label: "Advanced admin",
     items: [
-      { path: "/audit-trail", label: "Audit Trail", match: /^\/audit-trail/ },
-      { path: "/rbac", label: "Access Control", match: /^\/rbac/ },
-      { path: "/failed-work", label: "Failed Work", match: /^\/failed-work/ },
-      { path: "/settings", label: "Settings", match: /^\/settings/ },
+      { path: "/audit-trail", label: "Audit Trail", match: /^\/audit-trail/, icon: ScrollText },
+      { path: "/rbac", label: "Access Control", match: /^\/rbac/, icon: ShieldCheck },
+      { path: "/failed-work", label: "Failed Work", match: /^\/failed-work/, icon: AlertTriangle },
+      { path: "/settings", label: "Settings", match: /^\/settings/, icon: Settings },
     ],
   },
 ];
@@ -51,7 +71,7 @@ const navSections: NavSection[] = [
 const navItems = navSections.flatMap((section) => section.items);
 
 const SIDEBAR_VISIBILITY_KEY = "athena.console.sidebar.visible";
-const MOBILE_BREAKPOINT = "(max-width: 900px)";
+const MOBILE_BREAKPOINT = "(max-width: 768px)";
 
 function isMobileViewport(): boolean {
   if (typeof window === "undefined") {
@@ -145,23 +165,27 @@ export function AppLayout() {
             <section className={styles.navSection} key={section.label} aria-label={section.label}>
               <p className={styles.navSectionLabel}>{section.label}</p>
               <div className={styles.navSectionItems}>
-                {section.items.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    className={({ isActive }: { isActive: boolean }) =>
-                      `${styles.navLink} ${isActive ? styles.navLinkActive : ""}`
-                    }
-                    end={item.path === "/"}
-                    onClick={() => {
-                      if (isMobile) {
-                        setSidebarVisible(false);
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className={({ isActive }: { isActive: boolean }) =>
+                        `${styles.navLink} ${isActive ? styles.navLinkActive : ""}`
                       }
-                    }}
-                  >
-                    {item.label}
-                  </NavLink>
-                ))}
+                      end={item.path === "/"}
+                      onClick={() => {
+                        if (isMobile) {
+                          setSidebarVisible(false);
+                        }
+                      }}
+                    >
+                      <Icon size={16} className={styles.navIcon} aria-hidden />
+                      <span>{item.label}</span>
+                    </NavLink>
+                  );
+                })}
               </div>
             </section>
           ))}
@@ -191,7 +215,9 @@ export function AppLayout() {
             </button>
             <div>
               <h1 className={styles.pageTitle}>{title}</h1>
-              <p className={styles.breadcrumb}>{breadcrumb.join(" / ")}</p>
+              {breadcrumb.length > 1 ? (
+                <p className={styles.breadcrumb}>{breadcrumb.join(" / ")}</p>
+              ) : null}
             </div>
           </div>
 
@@ -201,7 +227,7 @@ export function AppLayout() {
               <input
                 type="search"
                 className={styles.searchInput}
-                placeholder="Search run_01HF..."
+                placeholder="Search runs, agents, sessions…"
                 aria-label="Global search"
               />
             </label>

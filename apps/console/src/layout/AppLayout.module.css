@@ -2,7 +2,7 @@
   height: 100vh;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 256px) minmax(0, 1fr);
   overflow: hidden;
   background: var(--color-surface);
 }
@@ -14,8 +14,8 @@
   min-height: 0;
   overflow-y: auto;
   border-right: 1px solid var(--color-border);
-  background: linear-gradient(180deg, #ffffff, #f4f8ff);
-  padding: var(--space-5);
+  background: var(--color-surface-elevated);
+  padding: var(--space-4) var(--space-3);
   scrollbar-gutter: stable;
   transition: transform 160ms ease;
 }
@@ -29,21 +29,27 @@
 }
 
 .sidebarHeader {
-  margin-bottom: var(--space-6);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-5);
 }
 
 .brand {
-  color: var(--color-brand-900);
-  font-weight: 800;
-  font-size: var(--font-size-400);
+  color: var(--color-text);
+  font-weight: 700;
+  font-size: var(--font-size-300);
   line-height: 1.15;
+  letter-spacing: -0.01em;
 }
 
 .brandSubtle {
   color: var(--color-text-muted);
-  font-size: var(--font-size-200);
+  font-size: var(--font-size-100);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
+  font-weight: 600;
 }
 
 .nav {
@@ -56,40 +62,60 @@
   gap: var(--space-2);
 }
 
-.navSection + .navSection {
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-4);
-}
-
 .navSectionLabel {
   color: var(--color-text-muted);
   font-size: var(--font-size-100);
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
+  padding: 0 var(--space-3);
 }
 
 .navSectionItems {
   display: grid;
-  gap: var(--space-1);
+  gap: 2px;
 }
 
 .navLink {
-  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
   text-decoration: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-3);
-  font-weight: 600;
+  font-weight: 500;
+  font-size: var(--font-size-300);
   line-height: 1.2;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.navIcon {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  transition: color 0.12s ease;
 }
 
 .navLink:hover {
-  background: #eaf2ff;
+  background: var(--color-surface-hover);
+  color: var(--color-text);
 }
 
-.navLinkActive {
-  background: var(--color-brand-100);
-  color: var(--color-brand-900);
+.navLink:hover .navIcon {
+  color: var(--color-text);
+}
+
+.navLinkActive,
+.navLinkActive:hover {
+  background: var(--color-accent-soft);
+  color: var(--accent-700);
+  font-weight: 600;
+}
+
+.navLinkActive .navIcon {
+  color: var(--accent-600);
 }
 
 .mainColumn {
@@ -101,11 +127,11 @@
 
 .header {
   border-bottom: 1px solid var(--color-border);
-  background: #fff;
+  background: var(--color-surface-elevated);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-3) var(--space-5);
   gap: var(--space-4);
 }
 
@@ -119,8 +145,8 @@
 .menuButton {
   display: none;
   border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
-  background: #fff;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-elevated);
   color: var(--color-text);
   align-items: center;
   justify-content: center;
@@ -131,8 +157,10 @@
 
 .pageTitle {
   font-size: var(--font-size-500);
-  color: var(--color-brand-900);
-  line-height: 1.1;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .breadcrumb {
@@ -152,28 +180,42 @@
   align-items: center;
   gap: var(--space-2);
   border: 1px solid var(--color-border);
-  border-radius: 0.625rem;
+  border-radius: var(--radius-md);
   padding: 0 var(--space-3);
-  min-width: min(28rem, 52vw);
+  min-width: min(24rem, 44vw);
   height: 2.25rem;
   color: var(--color-text-muted);
-  background: #fff;
+  background: var(--color-surface);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.searchBox:focus-within {
+  border-color: var(--accent-500);
+  background: var(--color-surface-elevated);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
 }
 
 .searchInput {
   border: none;
   outline: none;
   width: 100%;
+  background: transparent;
   color: var(--color-text);
-  font-family: var(--font-family-mono);
   font-size: var(--font-size-200);
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-muted);
 }
 
 .iconButton {
   border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
-  background: #fff;
-  color: var(--color-text);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-elevated);
+  color: var(--color-text-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -181,6 +223,16 @@
   height: 2.125rem;
   cursor: pointer;
   text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.iconButton:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-hover);
+  color: var(--color-text);
 }
 
 .detailPane {
@@ -194,12 +246,12 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgb(15 23 42 / 0.3);
+  background: rgb(18 25 38 / 0.4);
   border: none;
   z-index: 20;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .shell {
     grid-template-columns: 1fr;
   }
@@ -209,6 +261,7 @@
     inset: 0 auto 0 0;
     width: min(80vw, 280px);
     transform: translateX(-100%);
+    box-shadow: var(--shadow-md);
   }
 
   .sidebarOpen {

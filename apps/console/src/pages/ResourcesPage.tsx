@@ -135,10 +135,7 @@ export function ResourcesPage() {
   return (
     <section className={styles.page}>
       <div className={styles.pageHeader}>
-        <div>
-          <p className={styles.key}>Resource Controls</p>
-          <h2 className={styles.pageTitle}>Repositories</h2>
-        </div>
+        <h2 className={styles.pageTitle}>Repositories</h2>
         <div className={styles.headerActions}>
           <button
             type="button"

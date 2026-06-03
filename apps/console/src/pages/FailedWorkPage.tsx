@@ -136,7 +136,6 @@ export function FailedWorkPage() {
 
   return (
     <section className={styles.page}>
-      <h2>Failed Work Recovery</h2>
       <p className={styles.lead}>
         Inspect failed work items, request a retry for recoverable failures, and discard terminal failures with audit
         notes.

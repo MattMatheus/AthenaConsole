@@ -2,7 +2,13 @@ body {
   font-family: var(--font-family-base);
   font-size: var(--font-size-300);
   color: var(--color-text);
-  background:
-    radial-gradient(circle at 20% 10%, #e7f0ff 0%, transparent 45%),
-    linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+  background: var(--color-surface);
+  letter-spacing: -0.006em;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: -0.018em;
 }

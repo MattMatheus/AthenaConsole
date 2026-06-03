@@ -1,6 +1,7 @@
 import { CheckCircle2, FileSearch, Play, RefreshCw, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { GuidanceNote } from "../components";
 import {
   useAgentCatalogAgentsQuery,
   type AgentCatalogAgentSummary,
@@ -270,17 +271,14 @@ export function TaskCreatePage() {
         </button>
       </div>
 
-      <section className={styles.guidancePanel}>
-        <div>
-          <p className={styles.panelTitle}>Use a task for one clear unit of work</p>
-          <p className={styles.description}>
-            Pick an existing plugin-backed agent, describe the objective, and provide manifest inputs such as repo path, files, branch, or other run context.
-          </p>
-        </div>
-        {agentIdParam ? (
-          <p className={styles.mono}>Requested agent: {agentIdParam}{agentVersionParam ? `@${agentVersionParam}` : ""}</p>
-        ) : null}
-      </section>
+      <GuidanceNote title="When to use a task">
+        <p>
+          Pick an existing plugin-backed agent, describe the objective, and provide manifest inputs such as repo path, files, branch, or other run context.
+        </p>
+      </GuidanceNote>
+      {agentIdParam ? (
+        <p className={styles.mono}>Requested agent: {agentIdParam}{agentVersionParam ? `@${agentVersionParam}` : ""}</p>
+      ) : null}
 
       {error instanceof Error ? (
         <div className={styles.state}>

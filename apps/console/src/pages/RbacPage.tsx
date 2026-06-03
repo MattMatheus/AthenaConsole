@@ -71,7 +71,6 @@ export function RbacPage() {
 
   return (
     <section className={styles.page}>
-      <h2>Access Control</h2>
       <p className={styles.lead}>
         Manage role-based access control (RBAC) for identities and service tokens, then audit the permissions an operator receives.
       </p>

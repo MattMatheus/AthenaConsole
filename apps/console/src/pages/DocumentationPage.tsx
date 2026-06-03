@@ -208,10 +208,7 @@ export function DocumentationPage() {
   return (
     <section className={styles.page}>
       <div className={styles.pageHeader}>
-        <div>
-          <p className={styles.key}>Documentation</p>
-          <h2 className={styles.pageTitle}>Learn Team Orchestrator</h2>
-        </div>
+        <h2 className={styles.pageTitle}>Learn Team Orchestrator</h2>
         <div className={styles.headerActions}>
           <Link to="/workflows" className={styles.secondaryCta}>
             <Workflow size={16} /> Run Demo

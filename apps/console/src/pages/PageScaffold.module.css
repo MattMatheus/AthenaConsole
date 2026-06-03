@@ -1,6 +1,9 @@
 .page {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-6);
+  width: 100%;
+  max-width: 1240px;
+  margin-inline: auto;
 }
 
 .pageHeader,
@@ -37,37 +40,61 @@
   gap: var(--space-2);
   min-height: 2.35rem;
   padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--color-brand-700);
-  border-radius: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
   font-weight: 600;
   text-decoration: none;
   font-size: var(--font-size-200);
-  transition: opacity 0.2s;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .primaryCta {
   background-color: var(--color-brand-700);
   color: white;
+  box-shadow: var(--shadow-xs);
 }
 
 .secondaryCta,
 .inlineAction {
-  background: #fff;
-  color: var(--color-brand-900);
+  background: var(--color-surface-elevated);
+  border-color: var(--color-border);
+  color: var(--color-text);
 }
 
 .primaryCta:hover {
-  opacity: 0.9;
+  background-color: var(--accent-700);
 }
 
 .secondaryCta:hover,
 .inlineAction:hover {
-  border-color: var(--color-brand-500);
-  color: var(--color-brand-700);
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-hover);
 }
 
 .lead {
   color: var(--color-text-muted);
+  max-width: 70ch;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: var(--font-size-400);
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.panelMeta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-100);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .stack {
@@ -96,13 +123,13 @@
   font-size: var(--font-size-200);
   padding: 0.15rem 0.35rem;
   border-radius: 0.4rem;
-  background: #eef4ff;
-  border: 1px solid #dce9ff;
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent-border);
 }
 
 .settingsPanel {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: var(--space-3);
   display: grid;
   gap: var(--space-3);
@@ -111,7 +138,7 @@
 
 .advancedNotice {
   border: 1px solid color-mix(in srgb, var(--color-warning) 28%, var(--color-border));
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: #fffaf0;
   padding: var(--space-4);
   display: grid;
@@ -132,9 +159,10 @@
 
 .createWorkPanel {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: white;
-  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-5);
   display: grid;
   gap: var(--space-3);
 }
@@ -147,26 +175,32 @@
 
 .createWorkEntry {
   min-width: 0;
-  border: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent);
-  border-radius: 8px;
-  background: #f8fbff;
-  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+  padding: var(--space-4);
   display: grid;
   gap: var(--space-1);
   color: var(--color-text);
   text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .createWorkEntry:hover {
-  border-color: var(--color-brand-500);
-  background: #f3f8ff;
+  border-color: var(--color-accent-border);
+  background: var(--color-accent-soft);
+  box-shadow: var(--shadow-sm);
 }
 
 .resourceHero {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: white;
-  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-5);
   display: grid;
   grid-template-columns: minmax(18rem, 0.85fr) minmax(0, 1.15fr);
   gap: var(--space-4);
@@ -230,8 +264,8 @@
 
 .repoEmptyState {
   border: 1px dashed var(--color-border);
-  border-radius: 8px;
-  background: #f8fbff;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
   padding: var(--space-4);
   display: grid;
   gap: var(--space-1);
@@ -244,8 +278,8 @@
 
 .repoRow {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: #fbfcff;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
   padding: var(--space-3);
   display: grid;
   gap: var(--space-3);
@@ -254,7 +288,7 @@
 
 .repoRowSelected {
   border-color: var(--color-brand-500);
-  background: #f3f8ff;
+  background: var(--color-accent-soft);
 }
 
 .repoRowMain {
@@ -327,8 +361,8 @@
 
 .resourceTerm {
   border: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent);
-  border-radius: 8px;
-  background: #f8fbff;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
   padding: var(--space-3);
   display: grid;
   gap: var(--space-1);
@@ -378,7 +412,7 @@
 
 .resourceCallout {
   border: 1px solid color-mix(in srgb, var(--color-warning) 32%, var(--color-border));
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: #fff7ed;
   padding: var(--space-3);
   display: grid;
@@ -394,9 +428,10 @@
 
 .docsBand {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: white;
-  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-5);
   display: grid;
   gap: var(--space-3);
   min-width: 0;
@@ -411,8 +446,8 @@
 .docsStepCard {
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent);
-  border-radius: 8px;
-  background: #f8fbff;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
   padding: var(--space-3);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -476,9 +511,9 @@
   max-width: 100%;
   overflow-x: auto;
   white-space: pre;
-  border: 1px solid #dce9ff;
-  border-radius: 8px;
-  background: #f7faff;
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
   color: var(--color-text);
   padding: var(--space-3);
   font-family: var(--font-family-mono);
@@ -490,9 +525,10 @@
   display: grid;
   gap: var(--space-3);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: white;
-  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-5);
 }
 
 .onboardingTitle {
@@ -515,8 +551,8 @@
   align-items: start;
   min-width: 0;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: #f8fbff;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
   padding: var(--space-3);
 }
 
@@ -535,8 +571,8 @@
 .readinessLane {
   min-width: 0;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: #f8fbff;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
   padding: var(--space-3);
   display: grid;
   gap: var(--space-2);
@@ -545,8 +581,8 @@
 .readinessItem {
   min-width: 0;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: #fbfcff;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
   padding: var(--space-3);
   display: grid;
   gap: var(--space-2);
@@ -627,7 +663,7 @@
   width: 2rem;
   height: 2rem;
   border-radius: 6px;
-  background: #eef4ff;
+  background: var(--color-accent-soft);
   color: var(--color-brand-700);
 }
 
@@ -783,8 +819,8 @@
 .providerGuidanceItem {
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--color-border) 76%, transparent);
-  border-radius: 8px;
-  background: #f8fbff;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
   padding: var(--space-3);
   display: grid;
   gap: var(--space-1);
@@ -809,8 +845,8 @@
 
 .providerForm {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: #fbfcff;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
   padding: var(--space-3);
 }
 
@@ -822,7 +858,7 @@
   width: 100%;
   min-width: 0;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: white;
   padding: var(--space-3);
   display: grid;
@@ -836,7 +872,7 @@
 .providerRow:hover,
 .providerRowSelected {
   border-color: var(--color-brand-500);
-  background: #f3f8ff;
+  background: var(--color-accent-soft);
 }
 
 .providerRowHeader {
@@ -881,8 +917,8 @@
 
 .policyPreviewPanel {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: #f8fbff;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
   padding: var(--space-3);
   display: grid;
   gap: var(--space-2);
@@ -968,8 +1004,8 @@
 }
 
 .permissionChip {
-  border: 1px solid #dce9ff;
-  background: #f3f8ff;
+  border: 1px solid var(--color-accent-border);
+  background: var(--color-accent-soft);
   color: var(--color-brand-900);
   border-radius: 999px;
   padding: 0.15rem 0.45rem;
@@ -1029,7 +1065,7 @@
 
 .heatmapRow {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: var(--space-2);
   display: flex;
   align-items: center;
@@ -1056,8 +1092,8 @@
   margin: 0;
   padding: var(--space-2);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: #f7faff;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
   font-family: var(--font-family-mono);
   font-size: var(--font-size-200);
   white-space: pre-wrap;
@@ -1084,9 +1120,9 @@
 
 .auditEntry {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: var(--space-3);
-  background: #fbfcff;
+  background: var(--color-surface-subtle);
   display: grid;
   gap: var(--space-2);
 }

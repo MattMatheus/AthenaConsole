@@ -176,10 +176,9 @@ export function MissionsPage() {
   return (
     <section className={styles.page}>
       <div className={styles.pageHeader}>
-        <div>
-          <p className={styles.panelMeta}>Mission Workbench</p>
-          <h2 className={styles.pageTitle}>Missions</h2>
-        </div>
+        <p className={styles.lead}>
+          Inspect, run, and track multi-task missions across the workbench.
+        </p>
         <button
           type="button"
           className={styles.iconButton}

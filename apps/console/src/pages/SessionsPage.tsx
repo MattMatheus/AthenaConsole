@@ -453,7 +453,6 @@ export function RunHistoryPage() {
 
   return (
     <section className={styles.page}>
-      <h2>Run History</h2>
       <div className={styles.layout}>
         <aside className={styles.panel}>
           <header className={styles.panelHeader}>

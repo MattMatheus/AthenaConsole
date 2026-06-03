@@ -1,6 +1,7 @@
 import { FileCode2, FolderCog, RefreshCw, Search, Wrench } from "lucide-react";
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { GuidanceNote } from "../components";
 import {
   useAgentCatalogAgentsQuery,
   useAgentCatalogPluginsQuery,
@@ -245,16 +246,10 @@ export function AgentCatalogPage() {
         </button>
       </div>
 
-      <section className={styles.guidanceBand} aria-labelledby="agent-catalog-operating-model">
-        <div>
-          <p id="agent-catalog-operating-model" className={styles.panelTitle}>How agents arrive here</p>
-          <p className={styles.description}>
-            Agents are provided by local plugin packages discovered from configured plugin paths. To add or change agents, update plugin files on disk and refresh the catalog.
-          </p>
-          <Link className={styles.detailLink} to="/resources">
-            Repo wiring guidance
-          </Link>
-        </div>
+      <GuidanceNote title="How agents arrive here">
+        <p>
+          Agents are provided by local plugin packages discovered from configured plugin paths. To add or change agents, update plugin files on disk and refresh the catalog.
+        </p>
         <div className={styles.guidanceGrid}>
           <div className={styles.guidanceItem}>
             <FolderCog size={18} />
@@ -269,7 +264,10 @@ export function AgentCatalogPage() {
             <span>Run context, including target repo details, is supplied when work starts.</span>
           </div>
         </div>
-      </section>
+        <Link className={styles.detailLink} to="/resources">
+          Repo wiring guidance
+        </Link>
+      </GuidanceNote>
 
       {duplicateIdIssues > 0 ? (
         <section className={styles.warningBand} aria-labelledby="agent-catalog-duplicate-id-warning">

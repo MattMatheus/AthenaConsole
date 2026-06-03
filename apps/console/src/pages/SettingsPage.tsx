@@ -434,7 +434,6 @@ export function SettingsPage() {
 
   return (
     <section className={styles.page}>
-      <h2>Settings</h2>
       <p className={styles.lead}>Configure runtime model providers, usage pricing, and policy guardrails for local Team Orchestrator runs.</p>
 
       <div className={styles.settingsPanel}>

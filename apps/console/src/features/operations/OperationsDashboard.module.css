@@ -1,6 +1,6 @@
 .dashboard {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 
 .stateCard {

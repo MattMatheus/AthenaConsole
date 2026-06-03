@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { GuidanceNote } from "../components";
 import type { TaskInputField, TaskInputValues } from "../features/task-workbench";
 import {
   buildCreateScheduleRequest,
@@ -282,10 +283,9 @@ export function SchedulesPage() {
   return (
     <section className={styles.page}>
       <div className={styles.pageHeader}>
-        <div>
-          <p className={styles.panelMeta}>Task & Workflow Schedules</p>
-          <h2 className={styles.pageTitle}>Schedules</h2>
-        </div>
+        <p className={styles.lead}>
+          Repeat ready tasks and workflows on a recurring cadence.
+        </p>
         <div className={styles.headerActions}>
           <button
             type="button"
@@ -308,13 +308,10 @@ export function SchedulesPage() {
         </div>
       </div>
 
-      <section className={styles.guidancePanel}>
-        <div>
-          <p className={styles.panelTitle}>Use a schedule for repeated work</p>
-          <p className={styles.description}>
-            Schedules run a ready task or instantiate a workflow template on a cadence. Use tasks or workflows first when you are still shaping repo context and inputs.
-          </p>
-        </div>
+      <GuidanceNote title="When to use a schedule">
+        <p>
+          Schedules run a ready task or instantiate a workflow template on a cadence. Use tasks or workflows first when you are still shaping repo context and inputs.
+        </p>
         <div className={styles.headerActions}>
           <Link className={styles.inlineLink} to="/tasks">
             New task
@@ -323,7 +320,7 @@ export function SchedulesPage() {
             Workflow templates
           </Link>
         </div>
-      </section>
+      </GuidanceNote>
 
       {dataError ? (
         <div className={styles.state}>

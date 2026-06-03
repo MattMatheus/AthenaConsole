@@ -34,6 +34,7 @@ export function DashboardPage() {
           </Link>
         </div>
       </div>
+      <OperationsDashboard />
       <section className={styles.createWorkPanel}>
         <div>
           <p className={styles.key}>Create Work</p>
@@ -46,22 +47,6 @@ export function DashboardPage() {
           <WorkEntry to="/run-templates" title="Run preset" body="Advanced directive preset for repeatable local runs." />
         </div>
       </section>
-      <section className={styles.createWorkPanel}>
-        <div>
-          <p className={styles.key}>After First-Run</p>
-          <h2 className={styles.onboardingTitle}>Move from demo to your repo</h2>
-          <p className={styles.settingsMuted}>
-            The demo proves the local runtime. For real work, wire a target repo, confirm plugin-backed agents, then create a task or workflow with repo context.
-          </p>
-        </div>
-        <div className={styles.createWorkGrid}>
-          <WorkEntry to="/workflows" title="Run the demo" body="Validate the sample plugin and workflow path first." />
-          <WorkEntry to="/resources" title="Wire repo" body="Review target repo, plugin path, and run-context guidance." />
-          <WorkEntry to="/agents" title="Confirm agents" body="Check which plugin-backed capabilities are loaded." />
-          <WorkEntry to="/tasks" title="Start real work" body="Create one clear task with repo path or objective inputs." />
-        </div>
-      </section>
-      <OperationsDashboard />
       <section className={styles.onboardingPanel}>
         <div className={styles.onboardingHeader}>
           <div>

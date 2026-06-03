@@ -1,6 +1,7 @@
 import { CheckCircle2, Play, Plus, RefreshCw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { GuidanceNote } from "../components";
 import {
   buildRunTemplateCreateRequest,
   buildTemplateRunRequest,
@@ -138,13 +139,10 @@ export function RunTemplatesPage() {
         </button>
       </div>
 
-      <section className={styles.guidancePanel}>
-        <div>
-          <p className={styles.panelTitle}>Use run presets for advanced repeated prompts</p>
-          <p className={styles.description}>
-            Run templates are saved directive presets with parameter overrides. Use plugin workflow templates for orchestrated task graphs, and tasks for ordinary one-off agent work.
-          </p>
-        </div>
+      <GuidanceNote title="When to use a run preset">
+        <p>
+          Run templates are saved directive presets with parameter overrides. Use plugin workflow templates for orchestrated task graphs, and tasks for ordinary one-off agent work.
+        </p>
         <div className={styles.actionBar}>
           <Link className={styles.inlineLink} to="/tasks">
             Tasks
@@ -153,7 +151,7 @@ export function RunTemplatesPage() {
             Workflows
           </Link>
         </div>
-      </section>
+      </GuidanceNote>
 
       <div className={styles.summaryGrid}>
         <div className={styles.metric}>

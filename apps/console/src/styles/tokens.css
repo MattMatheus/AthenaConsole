@@ -1,20 +1,51 @@
 :root {
   color-scheme: light;
-  --color-brand-900: #052b5d;
-  --color-brand-700: #0b4a94;
-  --color-brand-500: #1f6fd4;
-  --color-brand-100: #dceafe;
 
-  --color-success: #15803d;
-  --color-warning: #b45309;
-  --color-error: #b91c1c;
+  /* Neutral scale — the backbone of the UI */
+  --gray-25: #fcfcfd;
+  --gray-50: #f9fafb;
+  --gray-100: #f2f4f7;
+  --gray-200: #e7eaee;
+  --gray-300: #d3d8df;
+  --gray-400: #9aa2ae;
+  --gray-500: #697586;
+  --gray-600: #4b5563;
+  --gray-700: #364152;
+  --gray-800: #202939;
+  --gray-900: #121926;
 
-  --color-surface: #f8fafc;
+  /* Accent — restrained indigo, used for primary actions and active state */
+  --accent-50: #eef2ff;
+  --accent-100: #e0e7ff;
+  --accent-200: #c7d2fe;
+  --accent-500: #6366f1;
+  --accent-600: #4f46e5;
+  --accent-700: #4338ca;
+
+  /* Brand aliases (kept for backwards compatibility across pages) */
+  --color-brand-900: var(--gray-900);
+  --color-brand-700: var(--accent-600);
+  --color-brand-500: var(--accent-500);
+  --color-brand-100: var(--accent-100);
+
+  /* Semantic status colors */
+  --color-success: #067647;
+  --color-warning: #b54708;
+  --color-error: #d92d20;
+
+  /* Surfaces & text */
+  --color-surface: var(--gray-50);
   --color-surface-elevated: #ffffff;
-  --color-text: #0f172a;
-  --color-text-muted: #475569;
-  --color-border: #dbe4ee;
+  --color-surface-subtle: var(--gray-50);
+  --color-surface-hover: var(--gray-100);
+  --color-accent-soft: var(--accent-50);
+  --color-accent-border: var(--accent-100);
+  --color-text: var(--gray-900);
+  --color-text-muted: var(--gray-500);
+  --color-border: var(--gray-200);
+  --color-border-strong: var(--gray-300);
 
+  /* Spacing */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -23,12 +54,26 @@
   --space-6: 2rem;
   --space-8: 3rem;
 
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  /* Elevation — soft, neutral shadows */
+  --shadow-xs: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow-sm: 0 1px 3px rgb(16 24 40 / 0.08), 0 1px 2px rgb(16 24 40 / 0.04);
+  --shadow-md: 0 4px 12px rgb(16 24 40 / 0.08), 0 2px 4px rgb(16 24 40 / 0.04);
+
+  /* Typography */
   --font-family-base:
-    "Manrope", "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+    "Inter", "Manrope", "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
   --font-family-mono:
     "IBM Plex Mono", "JetBrains Mono", "SFMono-Regular", "Menlo", monospace;
-  --font-size-200: 0.875rem;
-  --font-size-300: 1rem;
-  --font-size-500: 1.5rem;
-  --font-size-700: 2.25rem;
+  --font-size-100: 0.75rem;
+  --font-size-200: 0.8125rem;
+  --font-size-300: 0.9375rem;
+  --font-size-400: 1.125rem;
+  --font-size-500: 1.375rem;
+  --font-size-700: 2rem;
 }

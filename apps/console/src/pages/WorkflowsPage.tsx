@@ -1,6 +1,7 @@
 import { CheckCircle2, Play, RefreshCw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { GuidanceNote } from "../components";
 import type { CapabilityPackMetadata, ProviderReadiness } from "../features/agent-catalog";
 import {
   connectedRepositoryReadinessMessage,
@@ -273,17 +274,14 @@ export function WorkflowsPage() {
         </button>
       </div>
 
-      <section className={styles.guidancePanel}>
-        <div>
-          <p className={styles.panelTitle}>Use a workflow for coordinated work</p>
-          <p className={styles.description}>
-            Workflow templates come from plugins. Instantiating one creates a mission, tasks, and a workflow run; provide repo path or objective inputs when the template asks for run context.
-          </p>
-        </div>
+      <GuidanceNote title="When to use a workflow">
+        <p>
+          Workflow templates come from plugins. Instantiating one creates a mission, tasks, and a workflow run; provide repo path or objective inputs when the template asks for run context.
+        </p>
         <Link className={styles.inlineLink} to="/tasks">
           Create a one-off task instead
         </Link>
-      </section>
+      </GuidanceNote>
 
       <div className={styles.summaryGrid}>
         <div className={styles.metric}>
