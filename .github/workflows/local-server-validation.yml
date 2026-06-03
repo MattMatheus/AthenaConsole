@@ -45,11 +45,20 @@ jobs:
       - name: Check generated schemas
         run: npm --workspace @athena/core run check:schemas
 
+      - name: Check documentation links
+        run: npm run check:docs
+
+      - name: Test core
+        run: npm --workspace @athena/core run test:unit
+
       - name: Test PDK
         run: npm --workspace @athena/pdk test
 
       - name: Typecheck console
         run: npm --workspace @athena/console run typecheck
+
+      - name: Test console
+        run: npm --workspace @athena/console run test
 
       - name: Validate compose files
         run: |

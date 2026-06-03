@@ -4,7 +4,7 @@
 
 ## Goal
 
-Start the next post-release epic after the completed durable-memory governance sequence by refining `docs/product/epics/2026.37.00-epic-semantic-memory-and-sync-backends.md` into Flywheel intake work.
+Start the next post-release epic after the completed durable-memory governance sequence by refining `docs/product/epics/completed/2026.37.00-epic-semantic-memory-and-sync-backends.md` into Flywheel intake work.
 
 ## Context
 
@@ -45,16 +45,16 @@ Out of scope for this planning pass:
 
 Architecture intake:
 
-- `flywheel/backlog/architecture/intake/ARCH-20260602-semantic-memory-backend-strategy.md`
+- `ARCH-20260602-semantic-memory-backend-strategy`
 
 Engineering intake:
 
-- `flywheel/backlog/engineering/intake/STORY-20260602-memory-embedding-lifecycle.md`
-- `flywheel/backlog/engineering/intake/STORY-20260602-memory-hybrid-retrieval.md`
-- `flywheel/backlog/engineering/intake/STORY-20260602-memory-chroma-adapter.md`
-- `flywheel/backlog/engineering/intake/STORY-20260602-memory-athena-adapter-evaluation.md`
-- `flywheel/backlog/engineering/intake/STORY-20260602-memory-local-cache-sync.md`
-- `flywheel/backlog/engineering/intake/STORY-20260602-memory-retrieval-diagnostics.md`
+- `STORY-20260602-memory-embedding-lifecycle`
+- `STORY-20260602-memory-hybrid-retrieval`
+- `STORY-20260602-memory-chroma-adapter`
+- `STORY-20260602-memory-athena-adapter-evaluation`
+- `STORY-20260602-memory-local-cache-sync`
+- `STORY-20260602-memory-retrieval-diagnostics`
 
 ## Recommended Next Stage
 

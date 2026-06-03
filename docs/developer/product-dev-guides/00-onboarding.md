@@ -51,14 +51,14 @@ To keep your context window efficient, follow these pointers to more detailed in
 - **Need planning structure orientation first?** Start with:
   - `flywheel/README.md` (workflow harness)
   - `flywheel/backlog/engineering/active/README.md` (execution queue)
-  - `docs/product/history/completed-stories/README.md` (delivery history)
-  - `docs/product/roadmap/backlog-roadmap/roadmap.md` (future plan)
+  - `docs/product/epics/completed/` (delivery history)
+  - `docs/product/roadmap/flight-path.md` (future plan)
   - `flywheel/prompts/engineering.md` (current directive)
   - `flywheel/artifacts/observer/` (cycle closure reports)
 - **Need Architecture Details?** See `docs/developer/product-dev-guides/01-architecture.md`.
 - **Need Current Product Direction?** See `docs/product/architecture/decisions/0006-team-orchestrator-direction-and-agent-model.md`.
 - **Need CLI Command Reference?** See `docs/developer/product-dev-guides/06-cli-reference.md`.
-- **Looking for the Roadmap?** See `docs/product/roadmap/backlog-roadmap/roadmap.md`.
+- **Looking for the Roadmap?** See `docs/product/roadmap/flight-path.md`.
 - **Deep Dive on ADRs?** See `docs/product/architecture/decisions/`.
 
 *If you find a directory without a README, or a complex file without clear intent, your task is to add the necessary hints to help the next agent.*

@@ -9,7 +9,7 @@
 - Workflow DAG validation now catches duplicate ids, missing dependency references, self-dependencies, malformed dependency arrays, and dependency cycles.
 - Workflow manifest validation, plugin package validation, and plugin indexing now surface DAG validation errors before invalid workflow templates are indexed.
 - Workflow-template instantiation now uses parsed DAG order and dependency maps, while preserving legacy manifest-order behavior for templates without explicit dependencies.
-- Promoted `flywheel/backlog/engineering/active/STORY-20260528-workflow-state-store-resumption.md` as the next story.
+- Promoted `STORY-20260528-workflow-state-store-resumption` as the next story.
 
 ## Validation
 
@@ -20,6 +20,6 @@
 
 ## Next Work
 
-- Execute `flywheel/backlog/engineering/active/STORY-20260528-workflow-state-store-resumption.md`.
-- Start from `docs/product/direction/current-direction.md`, `docs/product/epics/2026.17.00-epic-workflow-dag-engine.md`, the new workflow-template DAG parser output, and existing app-state run/event repositories.
+- Execute `STORY-20260528-workflow-state-store-resumption`.
+- Start from `docs/product/direction/current-direction.md`, `docs/product/epics/completed/2026.17.00-epic-workflow-dag-engine.md`, the new workflow-template DAG parser output, and existing app-state run/event repositories.
 - Preserve current mission run and workflow-template instantiation behavior while adding durable workflow step state and restart-safe resumption helpers.

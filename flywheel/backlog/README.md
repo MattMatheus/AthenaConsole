@@ -59,10 +59,7 @@ Recently completed:
 - `engineering/done/STORY-20260528-console-product-identity-polish.md`
 - `engineering/done/STORY-20260528-operator-dashboard-polish.md`
 
-Older completed items are summarized in:
-
-- `docs/product/history/completed-stories/README.md`
-- `docs/product/archive/README.md`
+Older completed items are summarized in the completed epic records under `docs/product/epics/completed/`.
 
 ## Rule
 

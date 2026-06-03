@@ -13,7 +13,8 @@
     "typecheck": "turbo run typecheck",
     "dev": "turbo run dev",
     "athena": "node packages/core/dist/src/cli/main.js",
-    "smoke:product": "node scripts/product-readiness-smoke.mjs"
+    "smoke:product": "node scripts/product-readiness-smoke.mjs",
+    "check:docs": "node scripts/check-doc-links.mjs"
   },
   "devDependencies": {
     "turbo": "^2.4.4"

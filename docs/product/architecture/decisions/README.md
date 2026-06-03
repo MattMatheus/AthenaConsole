@@ -10,7 +10,7 @@ This directory is the primary long-term record for product decision history.
 
 - Keep decisions here when they establish or revise product direction, architecture, ownership, or invariants.
 - Prefer linking epics and stories back to the relevant ADRs instead of duplicating decision rationale in later implementation docs.
-- If an implementation file is only preserving old reasoning, summarize the outcome and move the detailed record to `docs/product/archive/` or `docs/product/history/`.
+- If an implementation file is only preserving old reasoning, summarize the outcome in the relevant ADR and remove the superseded implementation detail.
 
 ## Current Direction
 
@@ -39,6 +39,4 @@ This directory is the primary long-term record for product decision history.
 
 ## Archived Records
 
-Pre-reset architecture notes, Foundry-first records, ProjectAthena docs-ingestion contracts, and older UI/RBAC design records were moved to:
-
-- `docs/product/archive/2026-planning-cleanup-stale-records/architecture/`
+Pre-reset architecture notes, Foundry-first records, ProjectAthena docs-ingestion contracts, and older UI/RBAC design records were retired during the docs consolidation. The accepted ADRs above are the canonical decision record.

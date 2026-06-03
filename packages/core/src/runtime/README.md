@@ -14,4 +14,4 @@ The `runtime` module manages the execution lifecycle of agent turns.
 
 The `run` function in `index.ts` (or the `Runtime` class) is the primary engine for executing agent logic.
 
-*Refer to `docs/developer/01-architecture.md` for a deep dive into the runtime loop.*
+*Refer to `docs/developer/product-dev-guides/01-architecture.md` for a deep dive into the runtime loop.*

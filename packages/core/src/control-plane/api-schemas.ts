@@ -226,6 +226,63 @@ const DURABLE_MEMORY_REASON_REQUEST_SCHEMA: ApiSchema = {
   required: ["namespace", "provenance", "reason"]
 };
 
+const DURABLE_MEMORY_RETRIEVAL_SIGNAL_SCHEMA: ApiSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    kind: { type: "string", enum: ["keyword", "semantic", "metadata", "recency", "provenance"] },
+    score: { type: "number" },
+    evidence: STRING_SCHEMA
+  },
+  required: ["kind", "score"]
+};
+
+const DURABLE_MEMORY_SEARCH_MATCH_SCHEMA: ApiSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    recordId: STRING_SCHEMA,
+    score: { type: "number" },
+    signals: { type: "array", items: DURABLE_MEMORY_RETRIEVAL_SIGNAL_SCHEMA },
+    snippet: STRING_SCHEMA
+  },
+  required: ["recordId", "score", "signals"]
+};
+
+const DURABLE_MEMORY_RETRIEVAL_DIAGNOSTICS_SCHEMA: ApiSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    requestedMode: { type: "string", enum: ["keyword", "semantic", "hybrid", "auto"] },
+    effectiveMode: { type: "string", enum: ["keyword", "semantic", "hybrid"] },
+    degraded: { type: "boolean" },
+    degradationReasons: { type: "array", items: STRING_SCHEMA },
+    providerCapabilities: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        keyword: { type: "boolean" },
+        semantic: { type: "boolean" },
+        hybrid: { type: "boolean" }
+      },
+      required: ["keyword", "semantic", "hybrid"]
+    },
+    omitted: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          category: STRING_SCHEMA,
+          count: { type: "integer", minimum: 0 }
+        },
+        required: ["category", "count"]
+      }
+    }
+  },
+  required: ["requestedMode", "effectiveMode", "degraded", "degradationReasons", "providerCapabilities", "omitted"]
+};
+
 const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
   ModelProviderRequirement: {
     type: "object",
@@ -3020,7 +3077,9 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       properties: {
         records: { type: "array", items: DURABLE_MEMORY_RECORD_SCHEMA },
         total: { type: "integer", minimum: 0 },
-        operatorStatus: { type: "string" }
+        operatorStatus: { type: "string" },
+        matches: { type: "array", items: DURABLE_MEMORY_SEARCH_MATCH_SCHEMA },
+        diagnostics: DURABLE_MEMORY_RETRIEVAL_DIAGNOSTICS_SCHEMA
       },
       required: ["records", "total", "operatorStatus"]
     }
@@ -3104,6 +3163,27 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
     operationId: "rejectDurableMemoryProposal",
     method: "POST",
     path: "/api/v1/durable-memory/proposals/:id/reject",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: { id: STRING_SCHEMA },
+      required: ["id"]
+    },
+    requestBodySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        actorId: STRING_SCHEMA,
+        reason: STRING_SCHEMA
+      },
+      required: ["actorId", "reason"]
+    },
+    responseSchema: DURABLE_MEMORY_PROPOSAL_SCHEMA
+  },
+  archiveDurableMemoryProposal: {
+    operationId: "archiveDurableMemoryProposal",
+    method: "POST",
+    path: "/api/v1/durable-memory/proposals/:id/archive",
     pathParamsSchema: {
       type: "object",
       additionalProperties: false,

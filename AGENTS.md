@@ -51,9 +51,9 @@ Canonical decisions:
 
 ## Current State
 
-The completed foundation reset lives in:
+The completed foundation reset is recorded in:
 
-- `docs/product/history/completed-stories/2026-product-direction-reset/`
+- `docs/product/epics/completed/2026.10.00-epic-team-orchestrator-foundation-reset.md`
 
 It delivered SQLite app state, manifest schemas, local plugin loading/indexing, and task/mission/run/event/artifact repositories.
 

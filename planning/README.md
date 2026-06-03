@@ -17,8 +17,7 @@ Use product docs for durable product context:
 
 - `docs/product/direction/current-direction.md`
 - `docs/product/architecture/decisions/`
-- `docs/product/epics/refinement/`
+- `docs/product/epics/`
 - `docs/product/roadmap/`
-- `docs/product/history/`
 
-The old mixed planning records were moved into `docs/product/` or archived under `docs/product/archive/`. Do not add new active stories, prompts, handoffs, or queue state under `planning/`.
+The old mixed planning records were consolidated into `docs/product/` or retired during the docs cleanup. Do not add new active stories, prompts, handoffs, or queue state under `planning/`.

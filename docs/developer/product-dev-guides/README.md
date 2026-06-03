@@ -21,6 +21,4 @@ For the repo-wide audience map, start at `docs/README.md`.
 - Fresh server real-work walkthrough: `docs/developer/product-dev-guides/fresh-server-real-work-walkthrough.md`
 - Chroma semantic memory adapter: `docs/developer/product-dev-guides/chroma-semantic-memory-adapter.md`
 
-Pre-reset docs/content, analytics, deployment, GitHub Actions, AppInsights, and legacy docs-sync records were moved to:
-
-- `docs/product/archive/2026-planning-cleanup-stale-records/developer/`
+Pre-reset docs/content, analytics, deployment, GitHub Actions, AppInsights, and legacy docs-sync records were retired during the docs consolidation.

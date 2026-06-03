@@ -47,8 +47,6 @@ Use these when you want to change the product or understand the current implemen
 3. [Architecture Decisions](product/architecture/decisions/README.md)
 4. [Roadmap Flight Path](product/roadmap/flight-path.md)
 5. [Release Readiness](product/release/README.md)
-6. [Repository Cleanup Audit](product/audits/2026-05-30-repo-cleanup-audit.md)
-7. [Code Retirement And Rename Audit](product/audits/2026-05-30-code-retirement-and-rename-audit.md)
 
 ## Internal Workflow
 
@@ -61,9 +59,7 @@ Workflow state does not live in `docs/`. Use the Flywheel harness for active que
 
 ## Historical Context
 
-Archived and completed planning records remain useful for rationale, but they are not the current user path:
+Completed planning and research records remain useful for rationale, but they are not the current user path:
 
-- `docs/product/archive/`
-- `docs/product/history/`
+- `docs/product/epics/completed/`
 - `docs/product/research/`
-- `docs/product/audits/2026-05-30-persona-specialist-compatibility-plan.md`

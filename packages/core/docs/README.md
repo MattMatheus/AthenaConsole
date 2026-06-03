@@ -23,4 +23,3 @@ These pages are retained for older links and implementation history. They are no
 - [Console UI](user/08-console-ui.md)
 - [Symbolic Navigation](user/09-symbolic-navigation.md)
 - [Package Getting Started](getting-started/README.md)
-- [Agents](agents/README.md)

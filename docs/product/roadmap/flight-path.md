@@ -39,7 +39,7 @@ Outcome: workflow templates now create durable canonical workflow DAG runs, sche
 
 Source epic:
 
-- `docs/product/epics/2026.17.00-epic-workflow-dag-engine.md`
+- `docs/product/epics/completed/2026.17.00-epic-workflow-dag-engine.md`
 
 ### 2026.22 State Ownership And SQLite Migration
 
@@ -49,7 +49,7 @@ Outcome: durable state ownership is explicit, startup diagnostics show active st
 
 Source epic:
 
-- `docs/product/epics/2026.22.00-epic-state-ownership-and-sqlite-migration.md`
+- `docs/product/epics/completed/2026.22.00-epic-state-ownership-and-sqlite-migration.md`
 
 ### 2026.23 Operator Readiness And First-Run Experience
 
@@ -69,14 +69,14 @@ Target outcome:
 
 Source epic:
 
-- `docs/product/epics/2026.23.00-epic-operator-readiness-first-run.md`
+- `docs/product/epics/completed/2026.23.00-epic-operator-readiness-first-run.md`
 
 Completed story sequence:
 
-1. `flywheel/backlog/engineering/done/STORY-20260528-first-run-health-readiness.md`
-2. `flywheel/backlog/engineering/done/STORY-20260528-sample-plugin-workflow-demo.md`
-3. `flywheel/backlog/engineering/done/STORY-20260528-console-empty-states-onboarding.md`
-4. `flywheel/backlog/engineering/done/STORY-20260528-quickstart-demo-docs-alignment.md`
+1. `STORY-20260528-first-run-health-readiness`
+2. `STORY-20260528-sample-plugin-workflow-demo`
+3. `STORY-20260528-console-empty-states-onboarding`
+4. `STORY-20260528-quickstart-demo-docs-alignment`
 
 ### 2026.24 Console Product Surface Polish
 
@@ -96,14 +96,14 @@ Target outcome:
 
 Source epic:
 
-- `docs/product/epics/2026.24.00-epic-console-product-surface-polish.md`
+- `docs/product/epics/completed/2026.24.00-epic-console-product-surface-polish.md`
 
 Completed story sequence:
 
-1. `flywheel/backlog/engineering/done/STORY-20260528-console-product-identity-polish.md`
-2. `flywheel/backlog/engineering/done/STORY-20260528-console-navigation-surface-grouping.md`
-3. `flywheel/backlog/engineering/done/STORY-20260528-operator-dashboard-polish.md`
-4. `flywheel/backlog/engineering/done/STORY-20260528-legacy-advanced-surface-containment.md`
+1. `STORY-20260528-console-product-identity-polish`
+2. `STORY-20260528-console-navigation-surface-grouping`
+3. `STORY-20260528-operator-dashboard-polish`
+4. `STORY-20260528-legacy-advanced-surface-containment`
 
 ### 2026.25 Operator Workflow Clarity And Repo Wiring
 
@@ -124,15 +124,15 @@ Target outcome:
 
 Source epic:
 
-- `docs/product/epics/2026.25.00-epic-operator-workflow-clarity-repo-wiring.md`
+- `docs/product/epics/completed/2026.25.00-epic-operator-workflow-clarity-repo-wiring.md`
 
 Completed story sequence:
 
-1. `flywheel/backlog/architecture/done/ARCH-20260529-repo-wiring-operating-model.md`
-2. `flywheel/backlog/engineering/done/STORY-20260529-agent-catalog-operating-guidance.md`
-3. `flywheel/backlog/engineering/done/STORY-20260529-repo-wiring-guidance-surface.md`
-4. `flywheel/backlog/engineering/done/STORY-20260529-create-work-entry-points.md`
-5. `flywheel/backlog/engineering/done/STORY-20260529-first-run-to-real-repo-bridge.md`
+1. `ARCH-20260529-repo-wiring-operating-model`
+2. `STORY-20260529-agent-catalog-operating-guidance`
+3. `STORY-20260529-repo-wiring-guidance-surface`
+4. `STORY-20260529-create-work-entry-points`
+5. `STORY-20260529-first-run-to-real-repo-bridge`
 
 ## Next Roadmap Arc
 
@@ -156,36 +156,36 @@ Target outcome:
 
 Source epics:
 
-1. `docs/product/epics/2026.26.00-epic-real-work-repo-connection.md`
-2. `docs/product/epics/2026.27.00-epic-model-provider-and-secrets-setup.md`
-3. `docs/product/epics/2026.28.00-epic-agent-sdk-and-examples.md`
-4. `docs/product/epics/2026.29.00-epic-real-work-run-loop.md`
-5. `docs/product/epics/2026.30.00-epic-local-server-deployment-readiness.md`
+1. `docs/product/epics/completed/2026.26.00-epic-real-work-repo-connection.md`
+2. `docs/product/epics/completed/2026.27.00-epic-model-provider-and-secrets-setup.md`
+3. `docs/product/epics/completed/2026.28.00-epic-agent-sdk-and-examples.md`
+4. `docs/product/epics/completed/2026.29.00-epic-real-work-run-loop.md`
+5. `docs/product/epics/completed/2026.30.00-epic-local-server-deployment-readiness.md`
 
 Completed architecture item:
 
-- `flywheel/backlog/architecture/done/ARCH-20260529-real-work-enablement-operating-model.md`
+- `ARCH-20260529-real-work-enablement-operating-model`
 
 Completed sequence:
 
-1. `flywheel/backlog/architecture/done/ARCH-20260529-real-work-enablement-operating-model.md`
-2. `flywheel/backlog/engineering/done/STORY-20260529-repo-app-state-inspection.md`
-3. `flywheel/backlog/engineering/done/STORY-20260529-repo-managed-clone-flow.md`
-4. `flywheel/backlog/engineering/done/STORY-20260529-repo-connection-console.md`
-5. `flywheel/backlog/engineering/done/STORY-20260529-repo-context-create-work.md`
-6. `flywheel/backlog/engineering/done/STORY-20260529-provider-config-secret-model.md`
-7. `flywheel/backlog/engineering/done/STORY-20260529-provider-settings-console.md`
-8. `flywheel/backlog/engineering/done/STORY-20260529-agent-provider-readiness.md`
-9. `flywheel/backlog/engineering/done/STORY-20260529-agent-sdk-core-package.md`
-10. `flywheel/backlog/engineering/done/STORY-20260529-example-repo-summary-agent.md`
-11. `flywheel/backlog/engineering/done/STORY-20260529-example-generic-research-agents.md`
-12. `flywheel/backlog/engineering/done/STORY-20260529-build-your-first-agent-guide.md`
-13. `flywheel/backlog/engineering/done/STORY-20260529-manifest-input-schema-forms.md`
-14. `flywheel/backlog/engineering/done/STORY-20260529-run-readiness-gates.md`
-15. `flywheel/backlog/engineering/done/STORY-20260529-safe-run-modes-and-proposed-changes.md`
-16. `flywheel/backlog/engineering/done/STORY-20260529-local-server-compose-profile.md`
-17. `flywheel/backlog/engineering/done/STORY-20260529-deployment-readiness-diagnostics.md`
-18. `flywheel/backlog/engineering/done/STORY-20260529-fresh-server-real-work-walkthrough.md`
+1. `ARCH-20260529-real-work-enablement-operating-model`
+2. `STORY-20260529-repo-app-state-inspection`
+3. `STORY-20260529-repo-managed-clone-flow`
+4. `STORY-20260529-repo-connection-console`
+5. `STORY-20260529-repo-context-create-work`
+6. `STORY-20260529-provider-config-secret-model`
+7. `STORY-20260529-provider-settings-console`
+8. `STORY-20260529-agent-provider-readiness`
+9. `STORY-20260529-agent-sdk-core-package`
+10. `STORY-20260529-example-repo-summary-agent`
+11. `STORY-20260529-example-generic-research-agents`
+12. `STORY-20260529-build-your-first-agent-guide`
+13. `STORY-20260529-manifest-input-schema-forms`
+14. `STORY-20260529-run-readiness-gates`
+15. `STORY-20260529-safe-run-modes-and-proposed-changes`
+16. `STORY-20260529-local-server-compose-profile`
+17. `STORY-20260529-deployment-readiness-diagnostics`
+18. `STORY-20260529-fresh-server-real-work-walkthrough`
 
 ## Completed Roadmap Arc
 
@@ -208,16 +208,16 @@ Target outcome:
 
 Source epic:
 
-- `docs/product/epics/2026.31.00-epic-productization-docs-and-agent-developer-kit.md`
+- `docs/product/epics/completed/2026.31.00-epic-productization-docs-and-agent-developer-kit.md`
 
 Completed sequence:
 
-1. `flywheel/backlog/engineering/done/STORY-20260530-repo-cleanup-audit.md`
-2. `flywheel/backlog/engineering/done/STORY-20260530-remove-stale-marketing-app.md`
-3. `flywheel/backlog/engineering/done/STORY-20260530-docs-information-architecture.md`
-4. `flywheel/backlog/engineering/done/STORY-20260530-agent-developer-kit-hardening.md`
-5. `flywheel/backlog/engineering/done/STORY-20260530-agent-scaffold-command.md`
-6. `flywheel/backlog/engineering/done/STORY-20260530-product-readiness-smoke-suite.md`
+1. `STORY-20260530-repo-cleanup-audit`
+2. `STORY-20260530-remove-stale-marketing-app`
+3. `STORY-20260530-docs-information-architecture`
+4. `STORY-20260530-agent-developer-kit-hardening`
+5. `STORY-20260530-agent-scaffold-command`
+6. `STORY-20260530-product-readiness-smoke-suite`
 
 ## Completed Roadmap Arc
 
@@ -231,12 +231,12 @@ Outcome: the product now has a comprehensive user guide and in-product documenta
 
 Source epic:
 
-- `docs/product/epics/2026.32.00-epic-comprehensive-user-documentation.md`
+- `docs/product/epics/completed/2026.32.00-epic-comprehensive-user-documentation.md`
 
 Completed sequence:
 
-1. `flywheel/backlog/engineering/done/STORY-20260530-comprehensive-user-guide.md`
-2. `flywheel/backlog/engineering/done/STORY-20260530-in-product-documentation-guide.md`
+1. `STORY-20260530-comprehensive-user-guide`
+2. `STORY-20260530-in-product-documentation-guide`
 
 ### 2026.33 First Real Work Confidence
 
@@ -248,15 +248,15 @@ Outcome: the first real-work path now has a normalized repo task input contract,
 
 Source epic:
 
-- `docs/product/epics/2026.33.00-epic-first-real-work-confidence.md`
+- `docs/product/epics/completed/2026.33.00-epic-first-real-work-confidence.md`
 
 Completed sequence:
 
-1. `flywheel/backlog/engineering/done/STORY-20260531-repo-task-input-contract.md`
-2. `flywheel/backlog/engineering/done/STORY-20260531-advanced-surface-empty-states.md`
-3. `flywheel/backlog/engineering/done/STORY-20260531-demo-artifact-preview-confidence.md`
-4. `flywheel/backlog/engineering/done/STORY-20260531-workflow-run-output-bridge.md`
-5. `flywheel/backlog/engineering/done/STORY-20260531-readiness-first-run-clarity.md`
+1. `STORY-20260531-repo-task-input-contract`
+2. `STORY-20260531-advanced-surface-empty-states`
+3. `STORY-20260531-demo-artifact-preview-confidence`
+4. `STORY-20260531-workflow-run-output-bridge`
+5. `STORY-20260531-readiness-first-run-clarity`
 
 ## Future Horizon Roadmap
 
@@ -273,18 +273,18 @@ Overview:
 
 Memory arc source epics:
 
-- `docs/product/epics/2026.34.00-epic-durable-memory-service-architecture.md`
-- `docs/product/epics/2026.35.00-epic-remote-memory-mvp.md`
-- `docs/product/epics/2026.36.00-epic-memory-governance-agent-integration.md`
-- `docs/product/epics/2026.37.00-epic-semantic-memory-and-sync-backends.md`
+- `docs/product/epics/completed/2026.34.00-epic-durable-memory-service-architecture.md`
+- `docs/product/epics/completed/2026.35.00-epic-remote-memory-mvp.md`
+- `docs/product/epics/completed/2026.36.00-epic-memory-governance-agent-integration.md`
+- `docs/product/epics/completed/2026.37.00-epic-semantic-memory-and-sync-backends.md`
 
 Capability and connector arc source epics:
 
-- `docs/product/epics/2026.38.00-epic-capability-pack-foundation.md`
-- `docs/product/epics/2026.39.00-epic-built-in-software-team-agent-pack.md`
-- `docs/product/epics/2026.40.00-epic-connector-pack-platform.md`
-- `docs/product/epics/2026.41.00-epic-github-connector-pack.md`
-- `docs/product/epics/2026.42.00-epic-knowledge-work-connector-pack.md`
+- `docs/product/epics/active/2026.38.00-epic-capability-pack-foundation.md`
+- `docs/product/epics/active/2026.39.00-epic-built-in-software-team-agent-pack.md`
+- `docs/product/epics/active/2026.40.00-epic-connector-pack-platform.md`
+- `docs/product/epics/active/2026.41.00-epic-github-connector-pack.md`
+- `docs/product/epics/active/2026.42.00-epic-knowledge-work-connector-pack.md`
 
 ## Current Flywheel Priorities
 
@@ -306,6 +306,4 @@ Until the `2026.1` release is cut, avoid adding more general product surface are
 
 ## Archived Roadmap Context
 
-The superseded pre-reset roadmap snapshot is archived at:
-
-- `docs/product/archive/2026-product-direction-reset/roadmap-snapshot/vision-roadmap.md`
+The superseded pre-reset roadmap snapshot was retired during the docs consolidation. This flight path and `docs/product/direction/current-direction.md` are the canonical roadmap record.
