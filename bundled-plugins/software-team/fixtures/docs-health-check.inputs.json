@@ -1,0 +1,8 @@
+{
+  "workflowId": "bundled.software-team.docs-health-check.workflow",
+  "inputs": {
+    "docsPath": "docs",
+    "objective": "Identify documentation coverage gaps before release.",
+    "evidence": "Docs include user guide, developer guides, product direction, and architecture decisions."
+  }
+}

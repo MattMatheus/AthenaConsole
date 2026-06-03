@@ -1,0 +1,38 @@
+schemaVersion: 1
+workflow:
+  id: bundled.software-team.ci-failure-triage.workflow
+  name: CI Failure Triage
+  version: 0.1.0
+  description: Explain test failure logs and suggest local diagnostic steps.
+  goal: Help an operator understand test failures from supplied logs.
+  inputs:
+    testLog:
+      type: markdown
+      label: Test Log
+      required: true
+    objective:
+      type: markdown
+      label: Objective
+      required: false
+      default: Explain the likely failure signal and next local checks.
+    evidence:
+      type: markdown
+      label: Evidence
+      required: false
+  tasks:
+    - id: explain
+      title: Explain failure
+      capabilityRequirements:
+        - test.failure.explain
+      assignedAgentId: bundled.software-team.test-failure-explain.local
+      assignedAgentVersion: 0.1.0
+      inputs:
+        testLog: "{{ testLog }}"
+        objective: "{{ objective }}"
+        evidence: "{{ evidence }}"
+  ui:
+    icon: flask-conical
+    color: "#246b5b"
+    tags:
+      - ci
+      - test

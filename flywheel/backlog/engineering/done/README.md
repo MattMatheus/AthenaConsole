@@ -120,3 +120,9 @@ Engineering work accepted by QA.
 114. `STORY-20260602-pack-console-grouping.md`
 115. `STORY-20260602-pack-fixtures-and-tests.md`
 116. `STORY-20260602-pack-authoring-guide.md`
+117. `STORY-20260602-software-team-pack-skeleton.md`
+118. `STORY-20260602-software-team-repo-docs-agents.md`
+119. `STORY-20260602-software-team-review-failure-agents.md`
+120. `STORY-20260602-software-team-release-agents.md`
+121. `STORY-20260602-software-team-workflow-templates.md`
+122. `STORY-20260602-software-team-memory-enhancements.md`

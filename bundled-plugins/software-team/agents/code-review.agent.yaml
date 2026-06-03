@@ -1,0 +1,69 @@
+schemaVersion: 1
+agent:
+  id: bundled.software-team.code-review.local
+  name: Code Review Helper
+  version: 0.1.0
+  description: Produces review-support notes from local diff and repository evidence.
+  capabilities:
+    - code.review
+  inputs:
+    diff:
+      type: markdown
+      required: false
+    objective:
+      type: markdown
+      required: false
+    evidence:
+      type: markdown
+      required: false
+    memoryContext:
+      type: markdown
+      required: false
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: codeReview
+        label: Code review notes
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/software-team-runner.mjs
+      - code-review
+  runtime:
+    preferredBackend: local-process
+    workingDirectory: .
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+    durableMemory:
+      read:
+        namespaces:
+          - software-team/*
+        maxSensitivity: internal
+        reason: Read remembered review preferences when durable memory is configured.
+      propose:
+        namespaces:
+          - software-team/*
+        maxSensitivity: internal
+        reason: Propose recurring review guidance for operator approval.
+  limits:
+    maxRuntimeSeconds: 45
+    maxToolCalls: 0
+  observability:
+    mode: inspectable
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    pluginApi: team-orchestrator.manifests.v1
+  ui:
+    icon: scan-search
+    color: "#246b5b"
+    inputOrder:
+      - diff
+      - objective
+      - evidence
+      - memoryContext

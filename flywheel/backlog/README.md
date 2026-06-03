@@ -28,6 +28,12 @@ No candidate engineering or architecture intake items.
 
 Recently completed:
 
+- `engineering/done/STORY-20260602-software-team-memory-enhancements.md`
+- `engineering/done/STORY-20260602-software-team-workflow-templates.md`
+- `engineering/done/STORY-20260602-software-team-release-agents.md`
+- `engineering/done/STORY-20260602-software-team-review-failure-agents.md`
+- `engineering/done/STORY-20260602-software-team-repo-docs-agents.md`
+- `engineering/done/STORY-20260602-software-team-pack-skeleton.md`
 - `engineering/done/STORY-20260602-pack-authoring-guide.md`
 - `engineering/done/STORY-20260602-pack-fixtures-and-tests.md`
 - `engineering/done/STORY-20260602-pack-console-grouping.md`

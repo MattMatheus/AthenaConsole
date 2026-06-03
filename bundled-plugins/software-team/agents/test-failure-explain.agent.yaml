@@ -1,0 +1,54 @@
+schemaVersion: 1
+agent:
+  id: bundled.software-team.test-failure-explain.local
+  name: Test Failure Explainer
+  version: 0.1.0
+  description: Explains supplied test failure logs and suggests next diagnostic steps.
+  capabilities:
+    - test.failure.explain
+  inputs:
+    testLog:
+      type: markdown
+      required: true
+    objective:
+      type: markdown
+      required: false
+    evidence:
+      type: markdown
+      required: false
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: testFailureExplanation
+        label: Test failure explanation
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/software-team-runner.mjs
+      - test-failure
+  runtime:
+    preferredBackend: local-process
+    workingDirectory: .
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+  limits:
+    maxRuntimeSeconds: 45
+    maxToolCalls: 0
+  observability:
+    mode: inspectable
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    pluginApi: team-orchestrator.manifests.v1
+  ui:
+    icon: flask-conical
+    color: "#246b5b"
+    inputOrder:
+      - testLog
+      - objective
+      - evidence

@@ -1,0 +1,43 @@
+schemaVersion: 1
+workflow:
+  id: bundled.software-team.pr-review-support.workflow
+  name: PR Review Support
+  version: 0.1.0
+  description: Summarize a local change and produce code review support notes.
+  goal: Help an operator review local diff evidence before external PR tooling.
+  inputs:
+    diff:
+      type: markdown
+      label: Diff
+      required: false
+    objective:
+      type: markdown
+      label: Objective
+      required: false
+      default: Review local changes and identify risks to verify.
+    evidence:
+      type: markdown
+      label: Evidence
+      required: false
+    memoryContext:
+      type: markdown
+      label: Memory Context
+      required: false
+  tasks:
+    - id: review
+      title: Review local changes
+      capabilityRequirements:
+        - code.review
+      assignedAgentId: bundled.software-team.code-review.local
+      assignedAgentVersion: 0.1.0
+      inputs:
+        diff: "{{ diff }}"
+        objective: "{{ objective }}"
+        evidence: "{{ evidence }}"
+        memoryContext: "{{ memoryContext }}"
+  ui:
+    icon: scan-search
+    color: "#246b5b"
+    tags:
+      - review
+      - pr

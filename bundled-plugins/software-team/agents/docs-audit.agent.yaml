@@ -1,0 +1,64 @@
+schemaVersion: 1
+agent:
+  id: bundled.software-team.docs-audit.local
+  name: Docs Auditor
+  version: 0.1.0
+  description: Reviews supplied documentation evidence and highlights coverage gaps.
+  capabilities:
+    - docs.audit
+  inputs:
+    docsPath:
+      type: string
+      required: false
+    objective:
+      type: markdown
+      required: false
+    evidence:
+      type: markdown
+      required: false
+    memoryContext:
+      type: markdown
+      required: false
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: docsAudit
+        label: Docs audit
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/software-team-runner.mjs
+      - docs-audit
+  runtime:
+    preferredBackend: local-process
+    workingDirectory: .
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+    durableMemory:
+      read:
+        namespaces:
+          - software-team/*
+        maxSensitivity: internal
+        reason: Read remembered documentation conventions when durable memory is configured.
+  limits:
+    maxRuntimeSeconds: 45
+    maxToolCalls: 0
+  observability:
+    mode: inspectable
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    pluginApi: team-orchestrator.manifests.v1
+  ui:
+    icon: book-open-check
+    color: "#246b5b"
+    inputOrder:
+      - docsPath
+      - objective
+      - evidence
+      - memoryContext

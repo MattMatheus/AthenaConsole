@@ -1,0 +1,103 @@
+schemaVersion: 1
+plugin:
+  id: team-orchestrator.bundled.software-team
+  name: Software Team Pack
+  version: 0.1.0
+  description: First-party bundled capability pack for local software-team repository work.
+  pack:
+    category: software-team
+    maturity: preview
+    credentialRequirements:
+      - none
+    memoryRequirements:
+      - read
+      - propose
+    safety:
+      posture: read-only
+      externalWrites: false
+      notes: Uses deterministic local fixtures and does not modify external systems.
+    exampleWorkflows:
+      - path: workflows/release-readiness.workflow.yaml
+        id: bundled.software-team.release-readiness.workflow
+        version: 0.1.0
+      - path: workflows/repo-onboarding.workflow.yaml
+        id: bundled.software-team.repo-onboarding.workflow
+        version: 0.1.0
+      - path: workflows/docs-health-check.workflow.yaml
+        id: bundled.software-team.docs-health-check.workflow
+        version: 0.1.0
+      - path: workflows/pr-review-support.workflow.yaml
+        id: bundled.software-team.pr-review-support.workflow
+        version: 0.1.0
+      - path: workflows/ci-failure-triage.workflow.yaml
+        id: bundled.software-team.ci-failure-triage.workflow
+        version: 0.1.0
+  authors:
+    - name: Team Orchestrator
+  agents:
+    - path: agents/repo-summary.agent.yaml
+      id: bundled.software-team.repo-summary.local
+      version: 0.1.0
+    - path: agents/docs-audit.agent.yaml
+      id: bundled.software-team.docs-audit.local
+      version: 0.1.0
+    - path: agents/code-review.agent.yaml
+      id: bundled.software-team.code-review.local
+      version: 0.1.0
+    - path: agents/test-failure-explain.agent.yaml
+      id: bundled.software-team.test-failure-explain.local
+      version: 0.1.0
+    - path: agents/changelog-draft.agent.yaml
+      id: bundled.software-team.changelog-draft.local
+      version: 0.1.0
+    - path: agents/release-readiness.agent.yaml
+      id: bundled.software-team.release-readiness.local
+      version: 0.1.0
+  workflowTemplates:
+    - path: workflows/repo-onboarding.workflow.yaml
+      id: bundled.software-team.repo-onboarding.workflow
+      version: 0.1.0
+    - path: workflows/docs-health-check.workflow.yaml
+      id: bundled.software-team.docs-health-check.workflow
+      version: 0.1.0
+    - path: workflows/pr-review-support.workflow.yaml
+      id: bundled.software-team.pr-review-support.workflow
+      version: 0.1.0
+    - path: workflows/ci-failure-triage.workflow.yaml
+      id: bundled.software-team.ci-failure-triage.workflow
+      version: 0.1.0
+    - path: workflows/release-readiness.workflow.yaml
+      id: bundled.software-team.release-readiness.workflow
+      version: 0.1.0
+  docs:
+    readme: docs/README.md
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    manifestSchema: team-orchestrator.manifests.v1
+    runtimeBackends:
+      - local-process
+    platforms:
+      - any
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+    durableMemory:
+      read:
+        namespaces:
+          - software-team/*
+        maxSensitivity: internal
+        reason: Read operator-approved repository conventions and prior software-team guidance when configured.
+      propose:
+        namespaces:
+          - software-team/*
+        maxSensitivity: internal
+        reason: Propose recurring software-team guidance for operator review.
+  ui:
+    icon: list-checks
+    color: "#246b5b"
+    tags:
+      - bundled
+      - software-team
+      - first-party

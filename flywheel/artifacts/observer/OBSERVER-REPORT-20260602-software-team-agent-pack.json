@@ -1,0 +1,96 @@
+{
+  "cycle_id": "20260602-software-team-agent-pack",
+  "generated_at_utc": "2026-06-03T02:36:51Z",
+  "branch": "main",
+  "story_path": "",
+  "actor": "",
+  "stage_trace": [],
+  "diff_inventory": [
+    "A\tbundled-plugins/software-team/agents/changelog-draft.agent.yaml",
+    "A\tbundled-plugins/software-team/agents/code-review.agent.yaml",
+    "A\tbundled-plugins/software-team/agents/docs-audit.agent.yaml",
+    "A\tbundled-plugins/software-team/agents/release-readiness.agent.yaml",
+    "A\tbundled-plugins/software-team/agents/repo-summary.agent.yaml",
+    "A\tbundled-plugins/software-team/agents/test-failure-explain.agent.yaml",
+    "A\tbundled-plugins/software-team/docs/README.md",
+    "A\tbundled-plugins/software-team/fixtures/ci-failure-triage.inputs.json",
+    "A\tbundled-plugins/software-team/fixtures/docs-health-check.inputs.json",
+    "A\tbundled-plugins/software-team/fixtures/memory-disabled.inputs.json",
+    "A\tbundled-plugins/software-team/fixtures/pr-review-support.inputs.json",
+    "A\tbundled-plugins/software-team/fixtures/release-readiness.inputs.json",
+    "A\tbundled-plugins/software-team/fixtures/repo-onboarding.inputs.json",
+    "A\tbundled-plugins/software-team/plugin.yaml",
+    "A\tbundled-plugins/software-team/scripts/software-team-runner.mjs",
+    "A\tbundled-plugins/software-team/workflows/ci-failure-triage.workflow.yaml",
+    "A\tbundled-plugins/software-team/workflows/docs-health-check.workflow.yaml",
+    "A\tbundled-plugins/software-team/workflows/pr-review-support.workflow.yaml",
+    "A\tbundled-plugins/software-team/workflows/release-readiness.workflow.yaml",
+    "A\tbundled-plugins/software-team/workflows/repo-onboarding.workflow.yaml",
+    "A\tdocs/product/epics/completed/2026.38.00-epic-capability-pack-foundation.md",
+    "A\tdocs/product/epics/completed/2026.39.00-epic-built-in-software-team-agent-pack.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260602-software-team-memory-enhancements.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260602-software-team-pack-skeleton.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260602-software-team-release-agents.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260602-software-team-repo-docs-agents.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260602-software-team-review-failure-agents.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260602-software-team-workflow-templates.md",
+    "D\tbundled-plugins/software-team-demo/agents/release-readiness.agent.yaml",
+    "D\tbundled-plugins/software-team-demo/docs/README.md",
+    "D\tbundled-plugins/software-team-demo/fixtures/release-readiness.inputs.json",
+    "D\tbundled-plugins/software-team-demo/plugin.yaml",
+    "D\tbundled-plugins/software-team-demo/scripts/release-readiness-runner.mjs",
+    "D\tbundled-plugins/software-team-demo/workflows/release-readiness.workflow.yaml",
+    "D\tdocs/product/epics/active/2026.38.00-epic-capability-pack-foundation.md",
+    "D\tdocs/product/epics/active/2026.39.00-epic-built-in-software-team-agent-pack.md",
+    "M\tdocs/developer/product-dev-guides/capability-pack-authoring.md",
+    "M\tdocs/product/direction/current-direction.md",
+    "M\tdocs/product/roadmap/flight-path.md",
+    "M\tdocs/product/roadmap/future-horizon.md",
+    "M\tflywheel/backlog/README.md",
+    "M\tflywheel/backlog/engineering/done/README.md"
+  ],
+  "objective": {
+    "intended_outcome": "",
+    "scope_boundary": ""
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [],
+    "tools_used": [],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [],
+    "state_transitions": [],
+    "non_file_actions": []
+  },
+  "validation": {
+    "checks_run": [],
+    "results": [],
+    "checks_not_run": []
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": false,
+    "prompts_updated_if_stage_behavior_changed": false,
+    "process_docs_updated_if_contracts_or_gates_changed": false,
+    "queue_order_and_state_synchronized": false
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [],
+    "assumptions_carried": [],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "",
+    "approval_required": "",
+    "approval_reference": ""
+  },
+  "next_step": {
+    "recommended_next_state": "",
+    "follow_up_work": [],
+    "durable_promotions": []
+  },
+  "release_impact": {
+    "release_scope": "",
+    "additional_release_actions": []
+  }
+}

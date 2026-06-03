@@ -1,0 +1,64 @@
+schemaVersion: 1
+agent:
+  id: bundled.software-team.repo-summary.local
+  name: Repository Summarizer
+  version: 0.1.0
+  description: Summarizes repository structure and supplied local evidence without external credentials.
+  capabilities:
+    - repo.summary
+  inputs:
+    repositoryPath:
+      type: string
+      required: false
+    objective:
+      type: markdown
+      required: false
+    evidence:
+      type: markdown
+      required: false
+    memoryContext:
+      type: markdown
+      required: false
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: repoSummary
+        label: Repository summary
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/software-team-runner.mjs
+      - repo-summary
+  runtime:
+    preferredBackend: local-process
+    workingDirectory: .
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+    durableMemory:
+      read:
+        namespaces:
+          - software-team/*
+        maxSensitivity: internal
+        reason: Read remembered repository conventions when durable memory is configured.
+  limits:
+    maxRuntimeSeconds: 45
+    maxToolCalls: 0
+  observability:
+    mode: inspectable
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    pluginApi: team-orchestrator.manifests.v1
+  ui:
+    icon: folder-search
+    color: "#246b5b"
+    inputOrder:
+      - repositoryPath
+      - objective
+      - evidence
+      - memoryContext

@@ -80,7 +80,7 @@ Built-in packs should be ordinary plugins that use the same manifest, runtime, s
 
 Source epic:
 
-- `docs/product/epics/active/2026.38.00-epic-capability-pack-foundation.md`
+- `docs/product/epics/completed/2026.38.00-epic-capability-pack-foundation.md`
 
 Outcome:
 
@@ -88,9 +88,11 @@ Outcome:
 
 ### 2026.39 Built-In Software Team Agent Pack
 
+Status: Complete.
+
 Source epic:
 
-- `docs/product/epics/active/2026.39.00-epic-built-in-software-team-agent-pack.md`
+- `docs/product/epics/completed/2026.39.00-epic-built-in-software-team-agent-pack.md`
 
 Outcome:
 

@@ -1,0 +1,44 @@
+schemaVersion: 1
+workflow:
+  id: bundled.software-team.docs-health-check.workflow
+  name: Docs Health Check
+  version: 0.1.0
+  description: Review documentation coverage and maintenance signals.
+  goal: Produce docs-health notes from local documentation evidence.
+  inputs:
+    docsPath:
+      type: string
+      label: Docs Path
+      required: false
+      default: docs
+    objective:
+      type: markdown
+      label: Objective
+      required: false
+      default: Check docs health and identify review gaps.
+    evidence:
+      type: markdown
+      label: Evidence
+      required: false
+    memoryContext:
+      type: markdown
+      label: Memory Context
+      required: false
+  tasks:
+    - id: audit-docs
+      title: Audit documentation
+      capabilityRequirements:
+        - docs.audit
+      assignedAgentId: bundled.software-team.docs-audit.local
+      assignedAgentVersion: 0.1.0
+      inputs:
+        docsPath: "{{ docsPath }}"
+        objective: "{{ objective }}"
+        evidence: "{{ evidence }}"
+        memoryContext: "{{ memoryContext }}"
+  ui:
+    icon: book-open-check
+    color: "#246b5b"
+    tags:
+      - docs
+      - health

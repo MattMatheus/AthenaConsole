@@ -1,0 +1,8 @@
+{
+  "workflowId": "bundled.software-team.repo-onboarding.workflow",
+  "inputs": {
+    "repositoryPath": ".",
+    "objective": "Exercise no-memory behavior for the bundled software-team pack.",
+    "evidence": "No durable-memory context is supplied in this fixture."
+  }
+}

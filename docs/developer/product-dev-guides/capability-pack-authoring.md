@@ -4,7 +4,7 @@
 
 A capability pack is a normal Team Orchestrator plugin package that groups agents, workflow templates, docs, fixtures, and validation evidence around a useful capability area.
 
-First-party bundled packs and user-authored local packs use the same manifest model. The bundled example at `bundled-plugins/software-team-demo/` is the canonical fixture for this pattern.
+First-party bundled packs and user-authored local packs use the same manifest model. The bundled example at `bundled-plugins/software-team/` is the canonical fixture for this pattern.
 
 ## Pack Structure
 

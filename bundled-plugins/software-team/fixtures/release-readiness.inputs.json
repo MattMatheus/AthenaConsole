@@ -1,0 +1,10 @@
+{
+  "workflowId": "bundled.software-team.release-readiness.workflow",
+  "inputs": {
+    "releaseName": "2026.1-fixture",
+    "scope": "Confirm that the bundled pack workflow can be instantiated with deterministic local inputs.",
+    "changes": "- Added bundled software-team pack conventions.\n- Added fixture validation.",
+    "evidence": "Manifest validation and pack fixture validation passed in local smoke.",
+    "memoryContext": "Prior release convention: include validation evidence and unresolved risks."
+  }
+}

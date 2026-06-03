@@ -1,0 +1,56 @@
+schemaVersion: 1
+workflow:
+  id: bundled.software-team.repo-onboarding.workflow
+  name: Repository Onboarding
+  version: 0.1.0
+  description: Summarize a repository and audit its documentation from local evidence.
+  goal: Help an operator understand a local repository before starting agent work.
+  inputs:
+    repositoryPath:
+      type: string
+      label: Repository Path
+      required: false
+    objective:
+      type: markdown
+      label: Objective
+      required: false
+      default: Build a quick local understanding of the repository.
+    evidence:
+      type: markdown
+      label: Evidence
+      required: false
+    memoryContext:
+      type: markdown
+      label: Memory Context
+      required: false
+  tasks:
+    - id: summarize
+      title: Summarize repository
+      capabilityRequirements:
+        - repo.summary
+      assignedAgentId: bundled.software-team.repo-summary.local
+      assignedAgentVersion: 0.1.0
+      inputs:
+        repositoryPath: "{{ repositoryPath }}"
+        objective: "{{ objective }}"
+        evidence: "{{ evidence }}"
+        memoryContext: "{{ memoryContext }}"
+    - id: audit-docs
+      title: Audit documentation
+      capabilityRequirements:
+        - docs.audit
+      assignedAgentId: bundled.software-team.docs-audit.local
+      assignedAgentVersion: 0.1.0
+      dependsOn:
+        - summarize
+      inputs:
+        docsPath: docs
+        objective: "{{ objective }}"
+        evidence: "{{ evidence }}"
+        memoryContext: "{{ memoryContext }}"
+  ui:
+    icon: folder-search
+    color: "#246b5b"
+    tags:
+      - repo
+      - onboarding

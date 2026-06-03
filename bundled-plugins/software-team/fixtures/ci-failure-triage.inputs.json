@@ -1,0 +1,8 @@
+{
+  "workflowId": "bundled.software-team.ci-failure-triage.workflow",
+  "inputs": {
+    "testLog": "FAIL example.test.ts\nExpected true but received false",
+    "objective": "Explain the failing assertion and next local checks.",
+    "evidence": "The failure comes from a deterministic fixture log."
+  }
+}

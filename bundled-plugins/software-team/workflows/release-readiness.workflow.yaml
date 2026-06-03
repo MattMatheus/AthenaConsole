@@ -1,0 +1,60 @@
+schemaVersion: 1
+workflow:
+  id: bundled.software-team.release-readiness.workflow
+  name: Release Readiness Review
+  version: 0.1.0
+  description: Draft release notes and review readiness from local release evidence.
+  goal: Prepare operator-reviewed release notes and readiness guidance.
+  inputs:
+    releaseName:
+      type: string
+      label: Release Name
+      required: true
+    scope:
+      type: markdown
+      label: Scope
+      required: false
+      default: Review release readiness using local fixture evidence.
+    changes:
+      type: markdown
+      label: Changes
+      required: false
+    evidence:
+      type: markdown
+      label: Evidence
+      required: false
+    memoryContext:
+      type: markdown
+      label: Memory Context
+      required: false
+  tasks:
+    - id: draft-notes
+      title: Draft changelog
+      capabilityRequirements:
+        - release.notes.draft
+      assignedAgentId: bundled.software-team.changelog-draft.local
+      assignedAgentVersion: 0.1.0
+      inputs:
+        releaseName: "{{ releaseName }}"
+        changes: "{{ changes }}"
+        evidence: "{{ evidence }}"
+        memoryContext: "{{ memoryContext }}"
+    - id: review
+      title: Review release readiness
+      capabilityRequirements:
+        - release.review
+      assignedAgentId: bundled.software-team.release-readiness.local
+      assignedAgentVersion: 0.1.0
+      dependsOn:
+        - draft-notes
+      inputs:
+        releaseName: "{{ releaseName }}"
+        scope: "{{ scope }}"
+        evidence: "{{ evidence }}"
+        memoryContext: "{{ memoryContext }}"
+  ui:
+    icon: list-checks
+    color: "#246b5b"
+    tags:
+      - release
+      - readiness

@@ -1,0 +1,8 @@
+{
+  "workflowId": "bundled.software-team.pr-review-support.workflow",
+  "inputs": {
+    "diff": "diff --git a/example.ts b/example.ts\n+export const enabled = true;",
+    "objective": "Review a small local change for risks.",
+    "evidence": "The supplied diff changes a feature flag."
+  }
+}
