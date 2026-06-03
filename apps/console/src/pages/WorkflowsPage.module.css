@@ -85,7 +85,7 @@
 .filters {
   padding: var(--space-3);
   display: grid;
-  grid-template-columns: minmax(14rem, 1fr) minmax(12rem, 16rem);
+  grid-template-columns: minmax(14rem, 1fr) repeat(3, minmax(10rem, 14rem));
   gap: var(--space-3);
   align-items: end;
 }

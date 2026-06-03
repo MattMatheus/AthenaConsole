@@ -4,6 +4,21 @@ plugin:
   name: Podcast Operations
   version: 0.1.0
   description: Multi-agent plugin for podcast transcript and show-note workflows.
+  pack:
+    category: knowledge-work
+    maturity: preview
+    credentialRequirements:
+      - none
+    memoryRequirements:
+      - none
+    safety:
+      posture: read-only
+      externalWrites: false
+      notes: Uses local transcript fixtures and produces reviewable artifacts only.
+    exampleWorkflows:
+      - path: workflows/podcast-production.workflow.yaml
+        id: podcast.production.workflow
+        version: 0.1.0
   authors:
     - name: Team Orchestrator
   agents:

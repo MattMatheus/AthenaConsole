@@ -1,5 +1,5 @@
 import type { TaskWorkbenchTask, TaskWorkbenchTaskStatus } from "../task-workbench";
-import type { ModelProviderRequirement, ProviderReadiness } from "../agent-catalog";
+import type { CapabilityPackMetadata, ModelProviderRequirement, ProviderReadiness } from "../agent-catalog";
 
 export type WorkflowTemplateValidationIssue = {
   file?: string;
@@ -16,6 +16,7 @@ export type WorkflowTemplatePluginRef = {
   sourceType: string;
   enabled: boolean;
   status: string;
+  pack?: CapabilityPackMetadata;
 };
 
 export type WorkflowTemplateInputType =

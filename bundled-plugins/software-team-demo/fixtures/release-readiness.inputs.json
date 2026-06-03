@@ -1,0 +1,7 @@
+{
+  "workflowId": "bundled.software-team.release-readiness.workflow",
+  "inputs": {
+    "releaseName": "2026.1-fixture",
+    "scope": "Confirm that the bundled pack workflow can be instantiated with deterministic local inputs."
+  }
+}

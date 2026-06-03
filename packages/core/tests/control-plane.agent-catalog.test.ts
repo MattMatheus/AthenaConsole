@@ -43,7 +43,15 @@ describe("agent catalog service", () => {
           sourceScope: "workspace",
           metadata: {
             name: "Software Plugin",
-            description: "Developer workflow agents."
+            description: "Developer workflow agents.",
+            pack: {
+              category: "software-team",
+              maturity: "preview",
+              safety: {
+                posture: "review-required",
+                externalWrites: false
+              }
+            }
           },
           agentCount: 2
         });
@@ -65,7 +73,11 @@ describe("agent catalog service", () => {
             id: "team-orchestrator.test.software",
             name: "Software Plugin",
             sourceType: "local",
-            sourceScope: "workspace"
+            sourceScope: "workspace",
+            pack: {
+              category: "software-team",
+              maturity: "preview"
+            }
           },
           metadata: {
             implementation: {
@@ -187,6 +199,16 @@ function seedCatalog(appState: ReturnType<typeof openAppStateDatabase>): void {
       plugin: {
         name: "Software Plugin",
         description: "Developer workflow agents.",
+        pack: {
+          category: "software-team",
+          maturity: "preview",
+          credentialRequirements: ["model-provider"],
+          memoryRequirements: ["none"],
+          safety: {
+            posture: "review-required",
+            externalWrites: false
+          }
+        },
         ui: {
           icon: "code"
         }

@@ -53,7 +53,7 @@ describe("loadConfig", () => {
         }
       });
       expect(config.plugins?.searchPaths).toEqual(["sample-plugins", ".athena/plugins"]);
-      expect(config.plugins?.systemPluginPaths).toEqual([]);
+      expect(config.plugins?.systemPluginPaths).toEqual(["bundled-plugins"]);
       expect(config.context?.strategy).toBe("raw");
       expect(config.context?.maxChars).toBe(32000);
       expect(config.context?.maxOverflowRetries).toBe(2);

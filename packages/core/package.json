@@ -29,6 +29,7 @@
     "test:watch": "vitest",
     "lint": "tsc -p tsconfig.json --noEmit",
     "validate:manifests": "tsx scripts/validate-manifest-examples.ts",
+    "validate:pack-fixtures": "tsx scripts/validate-pack-fixtures.ts",
     "athena": "node dist/src/cli/main.js",
     "test:runtime-isolation-benchmark:smoke": "vitest run tests/runtime-isolation.benchmark-smoke.test.ts"
   },

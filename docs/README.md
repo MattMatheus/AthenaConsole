@@ -29,8 +29,9 @@ Use these when you want to create or adapt a plugin-backed agent.
 1. [Team Orchestrator User Guide](user-guide/README.md#create-a-plugin-backed-agent)
 2. [Build Your First Agent](../packages/core/docs/user/07-pdk-guide.md)
 3. [Copy The Model Provider Smoke Agent](../packages/core/docs/user/10-copy-sample-agent.md)
-4. [Agent Developer Kit Package](../packages/pdk/README.md)
-5. Sample plugins:
+4. [Capability Pack Authoring](developer/product-dev-guides/capability-pack-authoring.md)
+5. [Agent Developer Kit Package](../packages/pdk/README.md)
+6. Sample plugins:
    - `sample-plugins/first-run-demo/`
    - `sample-plugins/model-provider-smoke/`
    - `sample-plugins/local-user-test/`

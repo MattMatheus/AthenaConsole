@@ -326,6 +326,40 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
     },
     required: ["path", "message", "resourceType"]
   },
+  CapabilityPackMetadata: {
+    type: "object",
+    additionalProperties: true,
+    properties: {
+      category: { type: "string" },
+      maturity: { type: "string" },
+      credentialRequirements: {
+        type: "array",
+        items: { type: "string" }
+      },
+      memoryRequirements: {
+        type: "array",
+        items: { type: "string" }
+      },
+      safety: {
+        type: "object",
+        additionalProperties: true,
+        properties: {
+          posture: { type: "string" },
+          externalWrites: { type: "boolean" },
+          approvalRequiredFor: {
+            type: "array",
+            items: { type: "string" }
+          },
+          notes: { type: "string" }
+        }
+      },
+      exampleWorkflows: {
+        type: "array",
+        items: JSON_VALUE_SCHEMA
+      }
+    },
+    required: ["category", "maturity", "credentialRequirements", "memoryRequirements", "safety"]
+  },
   AgentCatalogPluginListResult: {
     type: "object",
     additionalProperties: false,
@@ -347,7 +381,8 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
               type: "object",
               additionalProperties: true,
               properties: {
-                name: { type: "string", minLength: 1 }
+                name: { type: "string", minLength: 1 },
+                pack: { $ref: "#/components/schemas/CapabilityPackMetadata" }
               },
               required: ["name"]
             },
@@ -402,7 +437,8 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
                 sourceType: { type: "string", minLength: 1 },
                 sourceScope: { type: "string", enum: ["workspace", "system"] },
                 enabled: { type: "boolean" },
-                status: { type: "string", minLength: 1 }
+                status: { type: "string", minLength: 1 },
+                pack: { $ref: "#/components/schemas/CapabilityPackMetadata" }
               },
               required: ["id", "version", "name", "sourceType", "sourceScope", "enabled", "status"]
             },
@@ -582,7 +618,8 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       name: { type: "string", minLength: 1 },
       sourceType: { type: "string", minLength: 1 },
       enabled: { type: "boolean" },
-      status: { type: "string", minLength: 1 }
+      status: { type: "string", minLength: 1 },
+      pack: { $ref: "#/components/schemas/CapabilityPackMetadata" }
     },
     required: ["id", "version", "name", "sourceType", "enabled", "status"]
   },

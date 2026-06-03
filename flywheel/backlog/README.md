@@ -28,6 +28,11 @@ No candidate engineering or architecture intake items.
 
 Recently completed:
 
+- `engineering/done/STORY-20260602-pack-authoring-guide.md`
+- `engineering/done/STORY-20260602-pack-fixtures-and-tests.md`
+- `engineering/done/STORY-20260602-pack-console-grouping.md`
+- `engineering/done/STORY-20260602-bundled-pack-loader.md`
+- `engineering/done/STORY-20260602-pack-manifest-conventions.md`
 - `engineering/done/STORY-20260602-memory-retrieval-diagnostics.md`
 - `engineering/done/STORY-20260602-memory-athena-adapter-evaluation.md`
 - `engineering/done/STORY-20260602-memory-chroma-adapter.md`

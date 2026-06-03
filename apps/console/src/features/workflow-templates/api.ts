@@ -11,6 +11,7 @@ import type {
   WorkflowTemplateValidationIssue,
 } from "./types";
 import type { ProviderReadiness } from "../agent-catalog";
+import type { CapabilityPackMetadata } from "../agent-catalog";
 import { parseRunReadiness } from "../task-workbench/api";
 
 type RecordValue = Record<string, unknown>;
@@ -27,6 +28,29 @@ function toStringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string" && item.length > 0)
     : [];
+}
+
+function parsePackMetadata(value: unknown): CapabilityPackMetadata | undefined {
+  if (!isRecord(value) || typeof value.category !== "string" || typeof value.maturity !== "string" || !isRecord(value.safety)) {
+    return undefined;
+  }
+  return {
+    category: value.category,
+    maturity: value.maturity,
+    credentialRequirements: toStringArray(value.credentialRequirements),
+    memoryRequirements: toStringArray(value.memoryRequirements),
+    safety: {
+      posture: typeof value.safety.posture === "string" ? value.safety.posture : "unspecified",
+      externalWrites: Boolean(value.safety.externalWrites),
+      ...(Array.isArray(value.safety.approvalRequiredFor)
+        ? { approvalRequiredFor: toStringArray(value.safety.approvalRequiredFor) }
+        : {}),
+      ...(typeof value.safety.notes === "string" ? { notes: value.safety.notes } : {}),
+    },
+    ...(Array.isArray(value.exampleWorkflows)
+      ? { exampleWorkflows: value.exampleWorkflows.filter(isRecord) as Array<Record<string, unknown>> }
+      : {}),
+  };
 }
 
 function parseProviderReadiness(value: unknown): ProviderReadiness {
@@ -84,6 +108,7 @@ function parsePlugin(value: unknown): WorkflowTemplatePluginRef {
       status: "unknown",
     };
   }
+  const pack = parsePackMetadata(value.pack);
   return {
     id: typeof value.id === "string" ? value.id : "",
     version: typeof value.version === "string" ? value.version : "",
@@ -91,6 +116,7 @@ function parsePlugin(value: unknown): WorkflowTemplatePluginRef {
     sourceType: typeof value.sourceType === "string" ? value.sourceType : "local",
     enabled: Boolean(value.enabled),
     status: typeof value.status === "string" ? value.status : "unknown",
+    ...(pack ? { pack } : {}),
   };
 }
 

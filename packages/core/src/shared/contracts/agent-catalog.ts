@@ -30,9 +30,24 @@ export interface AgentCatalogValidationIssue {
   resourceType: "plugin" | "agent" | "unknown";
 }
 
+export interface CapabilityPackMetadata {
+  category: string;
+  maturity: string;
+  credentialRequirements: string[];
+  memoryRequirements: string[];
+  safety: {
+    posture: string;
+    externalWrites: boolean;
+    approvalRequiredFor?: string[];
+    notes?: string;
+  };
+  exampleWorkflows?: Array<Record<string, unknown>>;
+}
+
 export interface AgentCatalogPluginMetadata {
   name: string;
   description?: string;
+  pack?: CapabilityPackMetadata;
   authors?: unknown[];
   docs?: Record<string, unknown>;
   compatibility?: Record<string, unknown>;
@@ -48,6 +63,7 @@ export interface AgentCatalogAgentPluginReference {
   sourceScope: AgentCatalogPluginSourceScope;
   enabled: boolean;
   status: AgentCatalogPluginStatus;
+  pack?: CapabilityPackMetadata;
 }
 
 export interface AgentCatalogPluginSummary {

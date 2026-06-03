@@ -28,6 +28,9 @@
         "description": {
           "type": "string"
         },
+        "pack": {
+          "$ref": "#/definitions/packMetadata"
+        },
         "authors": {
           "type": "array",
           "items": {
@@ -163,6 +166,68 @@
       "minLength": 1,
       "not": {
         "pattern": "^(?:/|[A-Za-z]:|.*\\.\\./)"
+      }
+    },
+    "packMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category", "maturity", "credentialRequirements", "memoryRequirements", "safety"],
+      "properties": {
+        "category": {
+          "enum": ["software-team", "research", "knowledge-work", "operations", "connector", "example"]
+        },
+        "maturity": {
+          "enum": ["experimental", "preview", "stable"]
+        },
+        "credentialRequirements": {
+          "type": "array",
+          "items": {
+            "enum": ["none", "model-provider", "connector-account", "local-filesystem"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "memoryRequirements": {
+          "type": "array",
+          "items": {
+            "enum": ["none", "read", "propose", "write-reviewed", "semantic-search"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "safety": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["posture", "externalWrites"],
+          "properties": {
+            "posture": {
+              "enum": ["read-only", "review-required", "operator-approved-writes"]
+            },
+            "externalWrites": {
+              "type": "boolean"
+            },
+            "approvalRequiredFor": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "notes": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "exampleWorkflows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/resourceReference"
+          },
+          "uniqueItems": true,
+          "default": []
+        }
       }
     },
     "resourceReference": {

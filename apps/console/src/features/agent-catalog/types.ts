@@ -28,6 +28,20 @@ export type AgentCatalogValidationIssue = {
   resourceType: "plugin" | "agent" | "unknown";
 };
 
+export type CapabilityPackMetadata = {
+  category: string;
+  maturity: string;
+  credentialRequirements: string[];
+  memoryRequirements: string[];
+  safety: {
+    posture: string;
+    externalWrites: boolean;
+    approvalRequiredFor?: string[];
+    notes?: string;
+  };
+  exampleWorkflows?: Array<Record<string, unknown>>;
+};
+
 export type AgentCatalogPluginSummary = {
   id: string;
   version: string;
@@ -39,6 +53,7 @@ export type AgentCatalogPluginSummary = {
   metadata: {
     name: string;
     description?: string;
+    pack?: CapabilityPackMetadata;
     ui?: Record<string, unknown>;
     compatibility?: Record<string, unknown>;
     permissions?: Record<string, unknown>;
@@ -61,6 +76,7 @@ export type AgentCatalogAgentSummary = {
     sourceScope: AgentCatalogPluginSourceScope;
     enabled: boolean;
     status: string;
+    pack?: CapabilityPackMetadata;
   };
   capabilities: string[];
   status: string;

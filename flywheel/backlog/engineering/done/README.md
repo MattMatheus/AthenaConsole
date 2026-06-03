@@ -115,3 +115,8 @@ Engineering work accepted by QA.
 109. `STORY-20260602-memory-chroma-adapter.md`
 110. `STORY-20260602-memory-athena-adapter-evaluation.md`
 111. `STORY-20260602-memory-retrieval-diagnostics.md`
+112. `STORY-20260602-pack-manifest-conventions.md`
+113. `STORY-20260602-bundled-pack-loader.md`
+114. `STORY-20260602-pack-console-grouping.md`
+115. `STORY-20260602-pack-fixtures-and-tests.md`
+116. `STORY-20260602-pack-authoring-guide.md`

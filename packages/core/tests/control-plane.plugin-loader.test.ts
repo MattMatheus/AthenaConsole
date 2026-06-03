@@ -210,6 +210,129 @@ describe("local plugin loader and indexer", () => {
     }
   });
 
+  it("indexes bundled packs from the default system plugin path", () => {
+    const dir = mkdtemp("athena-plugin-bundled-");
+    try {
+      writePluginPackage(join(dir, "bundled-plugins", "software-pack"), {
+        pluginId: "team-orchestrator.bundled.software-pack",
+        agentId: "bundled.software.agent"
+      });
+
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        const result = indexConfiguredLocalPlugins(config, { appState });
+
+        expect(result.plugins).toHaveLength(1);
+        expect(result.plugins[0]).toMatchObject({
+          id: "team-orchestrator.bundled.software-pack",
+          sourceType: "system",
+          status: "loaded"
+        });
+        expect(appState.plugins.list()[0]).toMatchObject({
+          id: "team-orchestrator.bundled.software-pack",
+          sourceType: "system",
+          status: "loaded"
+        });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("indexes bundled packs and local plugins together without changing local source type", () => {
+    const dir = mkdtemp("athena-plugin-bundled-mixed-");
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_PLUGIN_PATHS=plugins\n", "utf8");
+      writePluginPackage(join(dir, "bundled-plugins", "software-pack"), {
+        pluginId: "team-orchestrator.bundled.mixed",
+        agentId: "bundled.mixed.agent"
+      });
+      writePluginPackage(join(dir, "plugins", "local-pack"), {
+        pluginId: "team-orchestrator.local.mixed",
+        agentId: "local.mixed.agent"
+      });
+
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        const result = indexConfiguredLocalPlugins(config, { appState });
+
+        expect(result.plugins.map((plugin) => [plugin.id, plugin.sourceType]).sort()).toEqual([
+          ["team-orchestrator.bundled.mixed", "system"],
+          ["team-orchestrator.local.mixed", "local"]
+        ]);
+        expect(appState.agents.list().map((agent) => agent.id).sort()).toEqual([
+          "bundled.mixed.agent",
+          "local.mixed.agent"
+        ]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("reports invalid bundled pack diagnostics without hiding valid local plugins", () => {
+    const dir = mkdtemp("athena-plugin-invalid-bundled-");
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_PLUGIN_PATHS=plugins\n", "utf8");
+      writePluginPackage(join(dir, "plugins", "local-pack"), {
+        pluginId: "team-orchestrator.local.valid",
+        agentId: "local.valid.agent"
+      });
+      mkdirSync(join(dir, "bundled-plugins", "broken"), { recursive: true });
+      writeFileSync(
+        join(dir, "bundled-plugins", "broken", "plugin.yaml"),
+        [
+          "schemaVersion: 1",
+          "plugin:",
+          "  id: team-orchestrator.bundled.broken",
+          "  name: Broken Bundled Pack",
+          "  version: 0.1.0",
+          "  pack:",
+          "    category: marketplace",
+          "    maturity: preview",
+          "    credentialRequirements:",
+          "      - none",
+          "    memoryRequirements:",
+          "      - none",
+          "    safety:",
+          "      posture: read-only",
+          "      externalWrites: false",
+          ""
+        ].join("\n"),
+        "utf8"
+      );
+
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        const result = indexConfiguredLocalPlugins(config, { appState });
+        const invalidBundled = result.plugins.find((plugin) => plugin.id === "team-orchestrator.bundled.broken");
+        const validLocal = result.plugins.find((plugin) => plugin.id === "team-orchestrator.local.valid");
+
+        expect(invalidBundled).toMatchObject({
+          sourceType: "system",
+          status: "invalid"
+        });
+        expect(invalidBundled?.validationErrors.some((issue) => issue.path.includes("pack"))).toBe(true);
+        expect(validLocal).toMatchObject({
+          sourceType: "local",
+          status: "loaded"
+        });
+        expect(appState.agents.list().map((agent) => agent.id)).toEqual(["local.valid.agent"]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("records duplicate plugin id diagnostics without hiding the first valid plugin", () => {
     const dir = mkdtemp("athena-plugin-duplicate-plugin-");
     try {

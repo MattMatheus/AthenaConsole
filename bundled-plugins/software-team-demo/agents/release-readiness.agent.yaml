@@ -1,0 +1,51 @@
+schemaVersion: 1
+agent:
+  id: bundled.software-team.release-readiness.local
+  name: Release Readiness Reviewer
+  version: 0.1.0
+  description: Deterministic fixture agent for release-readiness workflow smoke validation.
+  capabilities:
+    - release.review
+  inputs:
+    releaseName:
+      type: string
+      required: true
+    scope:
+      type: markdown
+      required: false
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: readinessNotes
+        label: Readiness notes
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/release-readiness-runner.mjs
+  runtime:
+    preferredBackend: local-process
+    workingDirectory: .
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: deny
+  limits:
+    maxRuntimeSeconds: 30
+    maxToolCalls: 0
+  observability:
+    mode: inspectable
+    eventHints:
+      - fixture.release-readiness
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    pluginApi: team-orchestrator.manifests.v1
+  ui:
+    icon: clipboard-check
+    color: "#246b5b"
+    inputOrder:
+      - releaseName
+      - scope

@@ -16,6 +16,7 @@ For the repo-wide audience map, start at `docs/README.md`.
 - Extension guide: `docs/developer/product-dev-guides/04-extending.md`
 - Standards: `docs/developer/product-dev-guides/05-standards.md`
 - CLI reference: `docs/developer/product-dev-guides/06-cli-reference.md`
+- Capability pack authoring: `docs/developer/product-dev-guides/capability-pack-authoring.md`
 - Local server deployment: `docs/developer/product-dev-guides/local-server-deployment.md`
 - Deployment automation: `docs/developer/product-dev-guides/deployment-automation.md`
 - Fresh server real-work walkthrough: `docs/developer/product-dev-guides/fresh-server-real-work-walkthrough.md`

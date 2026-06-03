@@ -1,7 +1,7 @@
 import { CheckCircle2, Play, RefreshCw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import type { ProviderReadiness } from "../features/agent-catalog";
+import type { CapabilityPackMetadata, ProviderReadiness } from "../features/agent-catalog";
 import {
   connectedRepositoryReadinessMessage,
   mergeConnectedRepositoryContext,
@@ -26,6 +26,7 @@ const EMPTY_TEMPLATES: WorkflowTemplateSummary[] = [];
 const RUN_MODES: TaskWorkbenchRunMode[] = ["read-only", "propose-changes", "approved-write"];
 
 type AvailabilityFilter = "all" | "available" | "unavailable";
+type SourceFilter = "all" | "workspace" | "system";
 
 function statusClass(template: WorkflowTemplateSummary): string {
   if (!template.available || template.status === "invalid") {
@@ -49,8 +50,41 @@ function matchesSearch(template: WorkflowTemplateSummary, search: string): boole
     template.description,
     template.plugin.id,
     template.plugin.name,
+    template.plugin.pack?.category ?? "",
+    template.plugin.pack?.maturity ?? "",
+    template.plugin.pack?.safety.posture ?? "",
     template.metadata.goal ?? "",
   ].some((value) => value.toLowerCase().includes(lower));
+}
+
+function sourceScope(sourceType: string): "workspace" | "system" {
+  return sourceType === "system" ? "system" : "workspace";
+}
+
+function sourceLabel(sourceType: string): string {
+  return sourceScope(sourceType) === "system" ? "System" : "Workspace";
+}
+
+function packLabel(pack: CapabilityPackMetadata | undefined): string {
+  return pack ? `${pack.category} / ${pack.maturity}` : "Unpackaged";
+}
+
+function requirementLabels(pack: CapabilityPackMetadata | undefined): string[] {
+  if (!pack) {
+    return [];
+  }
+  return [
+    ...pack.credentialRequirements.map((item) => `credential ${item}`),
+    ...pack.memoryRequirements.map((item) => `memory ${item}`),
+    pack.safety.externalWrites ? "external writes" : "no external writes",
+    pack.safety.posture,
+  ];
+}
+
+function uniquePackCategories(templates: WorkflowTemplateSummary[]): string[] {
+  return Array.from(
+    new Set(templates.map((template) => template.plugin.pack?.category).filter((item): item is string => Boolean(item))),
+  ).sort((left, right) => left.localeCompare(right));
 }
 
 function formatJson(value: unknown): string {
@@ -106,6 +140,8 @@ function runReadinessClass(status: "ready" | "ready-with-warnings" | "blocked" |
 export function WorkflowsPage() {
   const [search, setSearch] = useState("");
   const [availability, setAvailability] = useState<AvailabilityFilter>("all");
+  const [source, setSource] = useState<SourceFilter>("all");
+  const [pack, setPack] = useState("all");
   const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
   const [selectedRepositoryId, setSelectedRepositoryId] = useState("");
   const [inputValues, setInputValues] = useState<TaskInputValues>({});
@@ -128,9 +164,15 @@ export function WorkflowsPage() {
         if (availability === "unavailable" && template.available) {
           return false;
         }
+        if (source !== "all" && sourceScope(template.plugin.sourceType) !== source) {
+          return false;
+        }
+        if (pack !== "all" && template.plugin.pack?.category !== pack) {
+          return false;
+        }
         return matchesSearch(template, search.trim());
       }),
-    [availability, search, templates],
+    [availability, pack, search, source, templates],
   );
   const selectedTemplate = useMemo(
     () => templates.find((template) => templateKey(template) === selectedTemplateKey) ?? visibleTemplates[0],
@@ -155,6 +197,7 @@ export function WorkflowsPage() {
   const displayedValidation = hasAttemptedInstantiate ? inputValidation : {};
   const availableCount = templates.filter((template) => template.available).length;
   const unavailableCount = templates.length - availableCount;
+  const packCategories = useMemo(() => uniquePackCategories(templates), [templates]);
 
   useEffect(() => {
     if (!selectedTemplate && selectedTemplateKey) {
@@ -283,6 +326,25 @@ export function WorkflowsPage() {
             <option value="unavailable">Unavailable</option>
           </select>
         </label>
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Source</span>
+          <select className={styles.select} value={source} onChange={(event) => setSource(event.target.value as SourceFilter)}>
+            <option value="all">All sources</option>
+            <option value="workspace">Workspace</option>
+            <option value="system">System</option>
+          </select>
+        </label>
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Pack</span>
+          <select className={styles.select} value={pack} onChange={(event) => setPack(event.target.value)}>
+            <option value="all">All packs</option>
+            {packCategories.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {templatesQuery.isLoading || repositoriesQuery.isLoading ? (
@@ -345,10 +407,19 @@ export function WorkflowsPage() {
                     <span className={styles.badgeRow}>
                       <span className={styles.badge}>{template.taskCount} tasks</span>
                       <span className={styles.badgeMuted}>{template.plugin.name}</span>
+                      <span className={styles.badgeMuted}>{sourceLabel(template.plugin.sourceType)}</span>
+                      <span className={template.plugin.pack ? styles.badge : styles.badgeMuted}>
+                        {packLabel(template.plugin.pack)}
+                      </span>
                       <span className={styles.badgeMuted}>{inputMeta(workflowTemplateInputFields(template))}</span>
                       <span className={providerReadinessClass(template.providerReadiness)}>
                         provider {template.providerReadiness.status}
                       </span>
+                      {requirementLabels(template.plugin.pack).map((item) => (
+                        <span key={`${templateKey(template)}-${item}`} className={styles.badgeMuted}>
+                          {item}
+                        </span>
+                      ))}
                     </span>
                   </button>
                 ))}
@@ -382,6 +453,10 @@ export function WorkflowsPage() {
                   </div>
                   <p className={styles.description}>{selectedTemplate.description || "No description declared."}</p>
                   <div className={styles.badgeRow}>
+                    <span className={styles.badgeMuted}>{sourceLabel(selectedTemplate.plugin.sourceType)}</span>
+                    <span className={selectedTemplate.plugin.pack ? styles.badge : styles.badgeMuted}>
+                      {packLabel(selectedTemplate.plugin.pack)}
+                    </span>
                     <span className={providerReadinessClass(selectedTemplate.providerReadiness)}>
                       provider {selectedTemplate.providerReadiness.status}
                     </span>
@@ -389,6 +464,15 @@ export function WorkflowsPage() {
                       <span className={styles.badgeMuted}>{selectedTemplate.providerReadiness.providerName}</span>
                     ) : null}
                   </div>
+                  {requirementLabels(selectedTemplate.plugin.pack).length > 0 ? (
+                    <div className={styles.badgeRow}>
+                      {requirementLabels(selectedTemplate.plugin.pack).map((item) => (
+                        <span key={`${templateKey(selectedTemplate)}-selected-${item}`} className={styles.badgeMuted}>
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                   <p className={styles.description}>{selectedTemplate.providerReadiness.message}</p>
                   {selectedTemplate.metadata.goal ? (
                     <dl className={styles.kvList}>

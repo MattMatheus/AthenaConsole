@@ -6,6 +6,7 @@ import {
   useAgentCatalogPluginsQuery,
   type AgentCatalogValidationIssue,
   type AgentCatalogAgentSummary,
+  type CapabilityPackMetadata,
   type AgentCatalogPluginSourceScope,
   type AgentCatalogPluginSummary,
   type ProviderReadiness,
@@ -14,6 +15,7 @@ import styles from "./AgentCatalogPage.module.css";
 
 type AvailabilityFilter = "all" | "available" | "warnings";
 type SourceFilter = "all" | AgentCatalogPluginSourceScope;
+type PackFilter = "all" | string;
 
 const EMPTY_PLUGINS: AgentCatalogPluginSummary[] = [];
 const EMPTY_AGENTS: AgentCatalogAgentSummary[] = [];
@@ -68,10 +70,35 @@ function matchesSearch(agent: AgentCatalogAgentSummary, search: string): boolean
     agent.version,
     agent.plugin.id,
     agent.plugin.name,
+    agent.plugin.pack?.category ?? "",
+    agent.plugin.pack?.maturity ?? "",
+    agent.plugin.pack?.safety.posture ?? "",
     implementationType(agent),
     observabilityMode(agent),
     ...agent.capabilities,
   ].some((value) => value.toLowerCase().includes(lower));
+}
+
+function packLabel(pack: CapabilityPackMetadata | undefined): string {
+  return pack ? `${pack.category} / ${pack.maturity}` : "Unpackaged";
+}
+
+function requirementLabels(pack: CapabilityPackMetadata | undefined): string[] {
+  if (!pack) {
+    return [];
+  }
+  return [
+    ...pack.credentialRequirements.map((item) => `credential ${item}`),
+    ...pack.memoryRequirements.map((item) => `memory ${item}`),
+    pack.safety.externalWrites ? "external writes" : "no external writes",
+    pack.safety.posture,
+  ];
+}
+
+function uniquePackCategories(plugins: AgentCatalogPluginSummary[]): string[] {
+  return Array.from(new Set(plugins.map((plugin) => plugin.metadata.pack?.category).filter((item): item is string => Boolean(item)))).sort(
+    (left, right) => left.localeCompare(right),
+  );
 }
 
 function statusBadgeClass(status: string, available = true): string {
@@ -147,6 +174,7 @@ export function AgentCatalogPage() {
   const capability = searchParams.get("capability") ?? "";
   const search = searchParams.get("q") ?? "";
   const source = parseSourceFilter(searchParams.get("source"));
+  const pack = searchParams.get("pack") ?? "all";
   const availability = parseAvailabilityFilter(searchParams.get("state"));
   const capabilityQuery = capability ? { capabilities: [capability] } : {};
   const pluginsQuery = useAgentCatalogPluginsQuery();
@@ -163,6 +191,9 @@ export function AgentCatalogPage() {
         if (source !== "all" && agent.plugin.sourceScope !== source) {
           return false;
         }
+        if (pack !== "all" && agent.plugin.pack?.category !== pack) {
+          return false;
+        }
         if (availability === "available" && !agent.available) {
           return false;
         }
@@ -171,7 +202,7 @@ export function AgentCatalogPage() {
         }
         return matchesSearch(agent, search.trim());
       }),
-    [agents, availability, search, source],
+    [agents, availability, pack, search, source],
   );
 
   const isLoading = pluginsQuery.isLoading || allAgentsQuery.isLoading || agentsQuery.isLoading;
@@ -180,12 +211,13 @@ export function AgentCatalogPage() {
   const systemPlugins = plugins.filter((plugin) => plugin.sourceScope === "system").length;
   const validationIssues = countValidationIssues(plugins);
   const duplicateIdIssues = countDuplicateIdIssues(plugins);
+  const packCategories = useMemo(() => uniquePackCategories(plugins), [plugins]);
 
   async function handleRefresh(): Promise<void> {
     await Promise.all([pluginsQuery.refetch(), agentsQuery.refetch()]);
   }
 
-  function updateFilter(key: "capability" | "q" | "source" | "state", value: string): void {
+  function updateFilter(key: "capability" | "pack" | "q" | "source" | "state", value: string): void {
     const next = new URLSearchParams(searchParams);
     if (!value || value === "all") {
       next.delete(key);
@@ -312,6 +344,17 @@ export function AgentCatalogPage() {
           </select>
         </label>
         <label className={styles.field}>
+          <span className={styles.fieldLabel}>Pack</span>
+          <select className={styles.select} value={pack} onChange={(event) => updateFilter("pack", event.target.value as PackFilter)}>
+            <option value="all">All packs</option>
+            {packCategories.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={styles.field}>
           <span className={styles.fieldLabel}>State</span>
           <select
             className={styles.select}
@@ -379,11 +422,23 @@ export function AgentCatalogPage() {
                   {plugin.metadata.description ? <p className={styles.description}>{plugin.metadata.description}</p> : null}
                   <div className={styles.badgeRow}>
                     <span className={styles.badge}>{sourceLabel(plugin.sourceScope)}</span>
+                    <span className={plugin.metadata.pack ? styles.badge : styles.badgeMuted}>
+                      {packLabel(plugin.metadata.pack)}
+                    </span>
                     <span className={plugin.enabled ? styles.badgeSuccess : styles.badgeDanger}>
                       {plugin.enabled ? "Enabled" : "Disabled"}
                     </span>
                     <span className={styles.badgeMuted}>{plugin.agentCount} agents</span>
                   </div>
+                  {plugin.metadata.pack ? (
+                    <div className={styles.badgeRow}>
+                      {requirementLabels(plugin.metadata.pack).map((item) => (
+                        <span key={`${plugin.id}-${item}`} className={styles.badgeMuted}>
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                   {renderPluginValidation(plugin)}
                 </li>
               ))}
@@ -434,6 +489,7 @@ export function AgentCatalogPage() {
                               {agent.id}@{agent.version}
                             </Link>
                             <span className={styles.agentSecondary}>{agent.plugin.name}</span>
+                            {agent.plugin.pack ? <span className={styles.agentSecondary}>{packLabel(agent.plugin.pack)}</span> : null}
                           </div>
                         </td>
                         <td>
@@ -461,6 +517,7 @@ export function AgentCatalogPage() {
                               {agent.available ? "Available" : "Unavailable"}
                             </span>
                             <span className={styles.badgeMuted}>{sourceLabel(agent.plugin.sourceScope)}</span>
+                            {agent.plugin.pack ? <span className={styles.badgeMuted}>{agent.plugin.pack.safety.posture}</span> : null}
                           </div>
                         </td>
                       </tr>

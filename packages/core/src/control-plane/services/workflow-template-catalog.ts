@@ -29,6 +29,7 @@ import {
 interface PluginManifestDocument {
   plugin?: {
     name?: string;
+    pack?: import("../../shared/contracts.js").CapabilityPackMetadata;
   };
 }
 
@@ -440,7 +441,8 @@ function mapTemplateSummary(
       name: pluginManifest.plugin?.name ?? plugin.id,
       sourceType: plugin.sourceType,
       enabled: plugin.enabled,
-      status: plugin.status
+      status: plugin.status,
+      ...(pluginManifest.plugin?.pack ? { pack: pluginManifest.plugin.pack } : {})
     },
     status: template.status,
     available: plugin.enabled && plugin.status === "loaded" && template.status === "loaded",

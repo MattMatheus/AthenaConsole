@@ -33,6 +33,7 @@ interface PluginManifestDocument {
   plugin?: {
     name?: string;
     description?: string;
+    pack?: import("../../shared/contracts.js").CapabilityPackMetadata;
     authors?: unknown[];
     docs?: Record<string, unknown>;
     compatibility?: Record<string, unknown>;
@@ -109,6 +110,7 @@ function mapPluginSummary(plugin: PluginIndexRecord, agents: AgentIndexRecord[])
     metadata: {
       name: manifest.plugin?.name ?? plugin.id,
       ...(manifest.plugin?.description ? { description: manifest.plugin.description } : {}),
+      ...(manifest.plugin?.pack ? { pack: manifest.plugin.pack } : {}),
       ...(manifest.plugin?.authors ? { authors: manifest.plugin.authors } : {}),
       ...(manifest.plugin?.docs ? { docs: manifest.plugin.docs } : {}),
       ...(manifest.plugin?.compatibility ? { compatibility: manifest.plugin.compatibility } : {}),
@@ -144,7 +146,8 @@ function mapAgentSummary(
       sourceType: plugin.sourceType,
       sourceScope: resolveSourceScope(plugin.sourceType),
       enabled: plugin.enabled,
-      status: plugin.status
+      status: plugin.status,
+      ...(pluginManifest.plugin?.pack ? { pack: pluginManifest.plugin.pack } : {})
     },
     capabilities: agent.capabilities,
     status: agent.status,

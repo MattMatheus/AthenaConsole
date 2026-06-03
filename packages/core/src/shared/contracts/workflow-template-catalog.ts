@@ -5,6 +5,7 @@ export interface WorkflowTemplateCatalogPluginRef {
   sourceType: string;
   enabled: boolean;
   status: string;
+  pack?: import("./agent-catalog.js").CapabilityPackMetadata;
 }
 
 export interface WorkflowTemplateCatalogValidationIssue {

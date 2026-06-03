@@ -3,6 +3,7 @@ import type {
   AgentCatalogAgentListQuery,
   AgentCatalogAgentListResult,
   AgentCatalogAgentSummary,
+  CapabilityPackMetadata,
   AgentCatalogPluginListResult,
   AgentCatalogPluginSourceScope,
   AgentCatalogPluginSummary,
@@ -28,6 +29,29 @@ function toStringArray(value: unknown): string[] {
 
 function toRecord(value: unknown): Record<string, unknown> | undefined {
   return isRecord(value) ? value : undefined;
+}
+
+function parsePackMetadata(value: unknown): CapabilityPackMetadata | undefined {
+  if (!isRecord(value) || typeof value.category !== "string" || typeof value.maturity !== "string" || !isRecord(value.safety)) {
+    return undefined;
+  }
+  return {
+    category: value.category,
+    maturity: value.maturity,
+    credentialRequirements: toStringArray(value.credentialRequirements),
+    memoryRequirements: toStringArray(value.memoryRequirements),
+    safety: {
+      posture: typeof value.safety.posture === "string" ? value.safety.posture : "unspecified",
+      externalWrites: Boolean(value.safety.externalWrites),
+      ...(Array.isArray(value.safety.approvalRequiredFor)
+        ? { approvalRequiredFor: toStringArray(value.safety.approvalRequiredFor) }
+        : {}),
+      ...(typeof value.safety.notes === "string" ? { notes: value.safety.notes } : {}),
+    },
+    ...(Array.isArray(value.exampleWorkflows)
+      ? { exampleWorkflows: value.exampleWorkflows.filter(isRecord) as Array<Record<string, unknown>> }
+      : {}),
+  };
 }
 
 function parseProviderReadiness(value: unknown): ProviderReadiness {
@@ -82,6 +106,7 @@ function parsePlugin(value: unknown): AgentCatalogPluginSummary | undefined {
   const ui = toRecord(metadata.ui);
   const compatibility = toRecord(metadata.compatibility);
   const permissions = toRecord(metadata.permissions);
+  const pack = parsePackMetadata(metadata.pack);
   return {
     id: value.id,
     version: value.version,
@@ -93,6 +118,7 @@ function parsePlugin(value: unknown): AgentCatalogPluginSummary | undefined {
     metadata: {
       name: typeof metadata.name === "string" ? metadata.name : value.id,
       ...(typeof metadata.description === "string" ? { description: metadata.description } : {}),
+      ...(pack ? { pack } : {}),
       ...(ui ? { ui } : {}),
       ...(compatibility ? { compatibility } : {}),
       ...(permissions ? { permissions } : {}),
@@ -120,6 +146,7 @@ function parseAgent(value: unknown): AgentCatalogAgentSummary | undefined {
   const limits = toRecord(metadata.limits);
   const compatibility = toRecord(metadata.compatibility);
   const ui = toRecord(metadata.ui);
+  const pack = parsePackMetadata(value.plugin.pack);
   return {
     id: value.id,
     version: value.version,
@@ -132,6 +159,7 @@ function parseAgent(value: unknown): AgentCatalogAgentSummary | undefined {
       sourceScope: toSourceScope(value.plugin.sourceScope),
       enabled: Boolean(value.plugin.enabled),
       status: typeof value.plugin.status === "string" ? value.plugin.status : "unknown",
+      ...(pack ? { pack } : {}),
     },
     capabilities: toStringArray(value.capabilities),
     status: typeof value.status === "string" ? value.status : "unknown",

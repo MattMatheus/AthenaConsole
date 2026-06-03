@@ -232,7 +232,7 @@ const DEFAULT_CONFIG: AthenaConfig = {
   },
   plugins: {
     searchPaths: ["sample-plugins", ".athena/plugins"],
-    systemPluginPaths: []
+    systemPluginPaths: ["bundled-plugins"]
   },
   context: {
     strategy: "raw",

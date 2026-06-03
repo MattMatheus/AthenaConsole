@@ -24,7 +24,17 @@ describe("workflow template catalog service", () => {
             plugin: {
               id: "team-orchestrator.test.templates",
               name: "Template Plugin",
-              version: "0.1.0"
+              version: "0.1.0",
+              pack: {
+                category: "software-team",
+                maturity: "preview",
+                credentialRequirements: ["model-provider"],
+                memoryRequirements: ["none"],
+                safety: {
+                  posture: "review-required",
+                  externalWrites: false
+                }
+              }
             }
           },
           validationErrors: []
@@ -87,7 +97,11 @@ describe("workflow template catalog service", () => {
             id: "team-orchestrator.test.templates",
             name: "Template Plugin",
             enabled: true,
-            status: "loaded"
+            status: "loaded",
+            pack: {
+              category: "software-team",
+              maturity: "preview"
+            }
           },
           metadata: {
             goal: "Prepare a release plan.",

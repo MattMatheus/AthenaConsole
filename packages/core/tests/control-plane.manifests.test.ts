@@ -31,6 +31,20 @@ describe("Team Orchestrator manifest schemas", () => {
     }
   });
 
+  it("accepts optional first-party pack metadata on plugin manifests", () => {
+    const result = validateManifestDocument("plugin", buildPluginManifest());
+
+    expect(result.issues).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects malformed first-party pack metadata on plugin manifests", () => {
+    const result = validateManifestDocument("plugin", buildPluginManifest({ category: "marketplace" }));
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.some((issue) => issue.path.includes("pack"))).toBe(true);
+  });
+
   it("rejects agent manifests without declared capabilities", () => {
     const result = validateManifestDocument("agent", {
       schemaVersion: 1,
@@ -218,6 +232,38 @@ function buildAgentManifest(
       observability: {
         mode: "black-box"
       }
+    }
+  };
+}
+
+function buildPluginManifest(overrides: { category?: string } = {}): Record<string, unknown> {
+  return {
+    schemaVersion: 1,
+    plugin: {
+      id: "valid.plugin",
+      name: "Valid Plugin",
+      version: "0.1.0",
+      pack: {
+        category: overrides.category ?? "software-team",
+        maturity: "preview",
+        credentialRequirements: ["model-provider"],
+        memoryRequirements: ["none"],
+        safety: {
+          posture: "review-required",
+          externalWrites: false,
+          approvalRequiredFor: ["filesystem.write"],
+          notes: "Produces proposed changes for operator review."
+        },
+        exampleWorkflows: [
+          {
+            path: "workflows/example.workflow.yaml",
+            id: "valid.workflow",
+            version: "0.1.0"
+          }
+        ]
+      },
+      agents: [],
+      workflowTemplates: []
     }
   };
 }
