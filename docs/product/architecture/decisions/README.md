@@ -4,6 +4,14 @@
 
 Architecture notes and decisions for Team Orchestrator.
 
+## Canonical History Rule
+
+This directory is the primary long-term record for product decision history.
+
+- Keep decisions here when they establish or revise product direction, architecture, ownership, or invariants.
+- Prefer linking epics and stories back to the relevant ADRs instead of duplicating decision rationale in later implementation docs.
+- If an implementation file is only preserving old reasoning, summarize the outcome and move the detailed record to `docs/product/archive/` or `docs/product/history/`.
+
 ## Current Direction
 
 - [ADR 0006: Team Orchestrator Direction and Formal Agent Model](0006-team-orchestrator-direction-and-agent-model.md)

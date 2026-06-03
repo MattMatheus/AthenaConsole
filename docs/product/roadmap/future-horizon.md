@@ -30,7 +30,7 @@ Agents may run on a laptop, local server, or remote host, but durable memory sho
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.34.00-epic-durable-memory-service-architecture.md`
+- `docs/product/epics/2026.34.00-epic-durable-memory-service-architecture.md`
 
 Outcome:
 
@@ -40,7 +40,7 @@ Outcome:
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.35.00-epic-remote-memory-mvp.md`
+- `docs/product/epics/2026.35.00-epic-remote-memory-mvp.md`
 
 Outcome:
 
@@ -50,7 +50,7 @@ Outcome:
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.36.00-epic-memory-governance-agent-integration.md`
+- `docs/product/epics/2026.36.00-epic-memory-governance-agent-integration.md`
 
 Outcome:
 
@@ -60,7 +60,7 @@ Outcome:
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.37.00-epic-semantic-memory-and-sync-backends.md`
+- `docs/product/epics/2026.37.00-epic-semantic-memory-and-sync-backends.md`
 
 Outcome:
 
@@ -80,7 +80,7 @@ Built-in packs should be ordinary plugins that use the same manifest, runtime, s
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.38.00-epic-capability-pack-foundation.md`
+- `docs/product/epics/2026.38.00-epic-capability-pack-foundation.md`
 
 Outcome:
 
@@ -90,7 +90,7 @@ Outcome:
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.39.00-epic-built-in-software-team-agent-pack.md`
+- `docs/product/epics/2026.39.00-epic-built-in-software-team-agent-pack.md`
 
 Outcome:
 
@@ -100,7 +100,7 @@ Outcome:
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.40.00-epic-connector-pack-platform.md`
+- `docs/product/epics/2026.40.00-epic-connector-pack-platform.md`
 
 Outcome:
 
@@ -110,7 +110,7 @@ Outcome:
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.41.00-epic-github-connector-pack.md`
+- `docs/product/epics/2026.41.00-epic-github-connector-pack.md`
 
 Outcome:
 
@@ -120,7 +120,7 @@ Outcome:
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.42.00-epic-knowledge-work-connector-pack.md`
+- `docs/product/epics/2026.42.00-epic-knowledge-work-connector-pack.md`
 
 Outcome:
 

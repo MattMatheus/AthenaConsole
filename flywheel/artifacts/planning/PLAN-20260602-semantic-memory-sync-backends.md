@@ -4,7 +4,7 @@
 
 ## Goal
 
-Start the next post-release epic after the completed durable-memory governance sequence by refining `docs/product/epics/refinement/2026.37.00-epic-semantic-memory-and-sync-backends.md` into Flywheel intake work.
+Start the next post-release epic after the completed durable-memory governance sequence by refining `docs/product/epics/2026.37.00-epic-semantic-memory-and-sync-backends.md` into Flywheel intake work.
 
 ## Context
 

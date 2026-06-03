@@ -188,6 +188,6 @@ This ADR should be reviewed against:
 - current task, mission, run, event, artifact, plugin, agent, provider, and authorization models
 - `docs/product/architecture/state-ownership-map.md`
 - `docs/product/roadmap/future-horizon.md`
-- `docs/product/epics/refinement/2026.34.00-epic-durable-memory-service-architecture.md`
+- `docs/product/epics/2026.34.00-epic-durable-memory-service-architecture.md`
 
 Architecture QA should confirm that this decision is specific enough to start provider-interface refinement and narrow enough to avoid implementing remote memory in the ADR story.

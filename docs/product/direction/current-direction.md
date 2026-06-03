@@ -92,7 +92,7 @@ No workflow DAG implementation candidates remain in refinement.
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.17.00-epic-workflow-dag-engine.md`
+- `docs/product/epics/2026.17.00-epic-workflow-dag-engine.md`
 
 ### 2026.22 State Ownership and SQLite Migration
 
@@ -114,7 +114,7 @@ Next refinement sequence:
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.22.00-epic-state-ownership-and-sqlite-migration.md`
+- `docs/product/epics/2026.22.00-epic-state-ownership-and-sqlite-migration.md`
 
 ### 2026.23 Operator Readiness And First-Run Experience
 
@@ -129,7 +129,7 @@ Engineering sequence:
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.23.00-epic-operator-readiness-first-run.md`
+- `docs/product/epics/2026.23.00-epic-operator-readiness-first-run.md`
 
 ### 2026.24 Console Product Surface Polish
 
@@ -144,7 +144,7 @@ Completed story sequence:
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.24.00-epic-console-product-surface-polish.md`
+- `docs/product/epics/2026.24.00-epic-console-product-surface-polish.md`
 
 ### 2026.25 Operator Workflow Clarity And Repo Wiring
 
@@ -160,7 +160,7 @@ Completed story sequence:
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.25.00-epic-operator-workflow-clarity-repo-wiring.md`
+- `docs/product/epics/2026.25.00-epic-operator-workflow-clarity-repo-wiring.md`
 
 ### 2026.26-2026.30 Real Work Enablement
 
@@ -194,11 +194,11 @@ Completed implementation sequence:
 
 Source epics:
 
-- `docs/product/epics/refinement/2026.26.00-epic-real-work-repo-connection.md`
-- `docs/product/epics/refinement/2026.27.00-epic-model-provider-and-secrets-setup.md`
-- `docs/product/epics/refinement/2026.28.00-epic-agent-sdk-and-examples.md`
-- `docs/product/epics/refinement/2026.29.00-epic-real-work-run-loop.md`
-- `docs/product/epics/refinement/2026.30.00-epic-local-server-deployment-readiness.md`
+- `docs/product/epics/2026.26.00-epic-real-work-repo-connection.md`
+- `docs/product/epics/2026.27.00-epic-model-provider-and-secrets-setup.md`
+- `docs/product/epics/2026.28.00-epic-agent-sdk-and-examples.md`
+- `docs/product/epics/2026.29.00-epic-real-work-run-loop.md`
+- `docs/product/epics/2026.30.00-epic-local-server-deployment-readiness.md`
 
 ### 2026.31 Productization, Documentation, And Agent Developer Kit
 
@@ -217,7 +217,7 @@ Completed sequence:
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.31.00-epic-productization-docs-and-agent-developer-kit.md`
+- `docs/product/epics/2026.31.00-epic-productization-docs-and-agent-developer-kit.md`
 
 ### 2026.32 Comprehensive User Documentation
 
@@ -232,7 +232,7 @@ Completed story:
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.32.00-epic-comprehensive-user-documentation.md`
+- `docs/product/epics/2026.32.00-epic-comprehensive-user-documentation.md`
 
 ### 2026.33 First Real Work Confidence
 
@@ -250,7 +250,7 @@ Completed engineering sequence:
 
 Source epic:
 
-- `docs/product/epics/refinement/2026.33.00-epic-first-real-work-confidence.md`
+- `docs/product/epics/2026.33.00-epic-first-real-work-confidence.md`
 
 ### Future Horizon: Durable Memory System
 
@@ -273,10 +273,10 @@ Accepted architecture:
 
 Source epics:
 
-- `docs/product/epics/refinement/2026.34.00-epic-durable-memory-service-architecture.md`
-- `docs/product/epics/refinement/2026.35.00-epic-remote-memory-mvp.md`
-- `docs/product/epics/refinement/2026.36.00-epic-memory-governance-agent-integration.md`
-- `docs/product/epics/refinement/2026.37.00-epic-semantic-memory-and-sync-backends.md`
+- `docs/product/epics/2026.34.00-epic-durable-memory-service-architecture.md`
+- `docs/product/epics/2026.35.00-epic-remote-memory-mvp.md`
+- `docs/product/epics/2026.36.00-epic-memory-governance-agent-integration.md`
+- `docs/product/epics/2026.37.00-epic-semantic-memory-and-sync-backends.md`
 
 ### Future Horizon: Built-In Capability And Connector Packs
 
@@ -290,11 +290,11 @@ Source roadmap:
 
 Source epics:
 
-- `docs/product/epics/refinement/2026.38.00-epic-capability-pack-foundation.md`
-- `docs/product/epics/refinement/2026.39.00-epic-built-in-software-team-agent-pack.md`
-- `docs/product/epics/refinement/2026.40.00-epic-connector-pack-platform.md`
-- `docs/product/epics/refinement/2026.41.00-epic-github-connector-pack.md`
-- `docs/product/epics/refinement/2026.42.00-epic-knowledge-work-connector-pack.md`
+- `docs/product/epics/2026.38.00-epic-capability-pack-foundation.md`
+- `docs/product/epics/2026.39.00-epic-built-in-software-team-agent-pack.md`
+- `docs/product/epics/2026.40.00-epic-connector-pack-platform.md`
+- `docs/product/epics/2026.41.00-epic-github-connector-pack.md`
+- `docs/product/epics/2026.42.00-epic-knowledge-work-connector-pack.md`
 
 ### Current Flywheel Priorities
 
