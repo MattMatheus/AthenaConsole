@@ -1,0 +1,24 @@
+{
+  "workflowId": "bundled.github.pr-review-brief.workflow",
+  "connectorFixture": {
+    "liveNetwork": false,
+    "scenarios": [
+      "read-success",
+      "write-blocked",
+      "write-approved",
+      "auth-missing",
+      "scope-missing",
+      "rate-limited"
+    ],
+    "expectedEvents": [
+      "github.external-write.approval"
+    ],
+    "expectedArtifacts": [
+      "approved_write"
+    ]
+  },
+  "inputs": {
+    "repository": "octo-org/widget",
+    "writeScenario": "write-blocked"
+  }
+}

@@ -131,3 +131,8 @@ Engineering work accepted by QA.
 125. `STORY-20260602-connector-external-write-approvals.md`
 126. `STORY-20260602-connector-readiness-diagnostics.md`
 127. `STORY-20260602-connector-mock-fixture-harness.md`
+128. `STORY-20260602-github-read-connector.md`
+129. `STORY-20260602-github-issue-pr-agents.md`
+130. `STORY-20260602-github-release-notes-agent.md`
+131. `STORY-20260602-github-workflow-templates.md`
+132. `STORY-20260602-github-approved-write-actions.md`

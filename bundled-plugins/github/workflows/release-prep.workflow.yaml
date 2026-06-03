@@ -1,0 +1,25 @@
+schemaVersion: 1
+workflow:
+  id: bundled.github.release-prep.workflow
+  name: GitHub Release Prep
+  version: 0.1.0
+  goal: Draft release notes from GitHub PRs, issues, commits, releases, and local release context.
+  inputs:
+    repository:
+      type: string
+      required: true
+    releaseName:
+      type: string
+      required: true
+    localContext:
+      type: markdown
+      required: false
+  tasks:
+    - id: draft-release-notes
+      title: Draft release notes
+      assignedAgentId: bundled.github.release.notes-draft.local
+      assignedAgentVersion: 0.1.0
+      inputs:
+        repository: "{{ inputs.repository }}"
+        releaseName: "{{ inputs.releaseName }}"
+        localContext: "{{ inputs.localContext }}"

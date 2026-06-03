@@ -1,0 +1,21 @@
+schemaVersion: 1
+workflow:
+  id: bundled.github.issue-triage-round.workflow
+  name: GitHub Issue Triage Round
+  version: 0.1.0
+  goal: Produce read-only issue triage suggestions for a repository issue batch.
+  inputs:
+    repository:
+      type: string
+      required: true
+    issueBatch:
+      type: json
+      required: false
+  tasks:
+    - id: triage-issues
+      title: Triage GitHub issues
+      assignedAgentId: bundled.github.issue.triage.local
+      assignedAgentVersion: 0.1.0
+      inputs:
+        repository: "{{ inputs.repository }}"
+        issueBatch: "{{ inputs.issueBatch }}"

@@ -1,0 +1,51 @@
+schemaVersion: 1
+agent:
+  id: bundled.github.pr.summarize.local
+  name: GitHub PR Summary
+  version: 0.1.0
+  description: Summarizes PR metadata, changed files, review state, and notable risks from read-only GitHub PR context.
+  capabilities:
+    - github.pr.summarize
+  inputs:
+    repository:
+      type: string
+      required: true
+      label: Repository
+    pullRequest:
+      type: integer
+      required: true
+      label: Pull request number
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: pr_summary
+        label: PR summary
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/github-runner.mjs
+      - pr-summary
+    cwd: .
+  runtime:
+    preferredBackend: local-process
+    connectorOperations:
+      - pull-request-read
+      - commit-read
+  permissions:
+    network: deny
+    filesystem: scoped
+    credentials: scoped
+  limits:
+    maxRuntimeSeconds: 30
+    maxToolCalls: 0
+    maxRetries: 0
+    maxOutputBytes: 16000
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+    eventHints:
+      - github.pr
+      - github.read

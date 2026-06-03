@@ -1,0 +1,51 @@
+schemaVersion: 1
+agent:
+  id: bundled.github.issue.triage.local
+  name: GitHub Issue Triage
+  version: 0.1.0
+  description: Produces issue priority, routing, and label suggestions from read-only GitHub issue context.
+  capabilities:
+    - github.issue.triage
+  inputs:
+    repository:
+      type: string
+      required: true
+      label: Repository
+    issueBatch:
+      type: json
+      required: false
+      label: Issue batch
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: issue_triage
+        label: Issue triage suggestions
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/github-runner.mjs
+      - issue-triage
+    cwd: .
+  runtime:
+    preferredBackend: local-process
+    connectorOperations:
+      - issue-read
+      - repository-read
+  permissions:
+    network: deny
+    filesystem: scoped
+    credentials: scoped
+  limits:
+    maxRuntimeSeconds: 30
+    maxToolCalls: 0
+    maxRetries: 0
+    maxOutputBytes: 16000
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+    eventHints:
+      - github.issue
+      - github.read

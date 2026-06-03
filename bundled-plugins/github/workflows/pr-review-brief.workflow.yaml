@@ -1,0 +1,34 @@
+schemaVersion: 1
+workflow:
+  id: bundled.github.pr-review-brief.workflow
+  name: GitHub PR Review Brief
+  version: 0.1.0
+  goal: Combine GitHub PR context with local review support into a review-ready brief.
+  inputs:
+    repository:
+      type: string
+      required: true
+    pullRequest:
+      type: integer
+      required: true
+    localContext:
+      type: markdown
+      required: false
+  tasks:
+    - id: summarize-pr
+      title: Summarize GitHub PR context
+      assignedAgentId: bundled.github.pr.summarize.local
+      assignedAgentVersion: 0.1.0
+      inputs:
+        repository: "{{ inputs.repository }}"
+        pullRequest: "{{ inputs.pullRequest }}"
+    - id: review-support
+      title: Draft review support
+      assignedAgentId: bundled.github.pr.review-support.local
+      assignedAgentVersion: 0.1.0
+      dependsOn:
+        - summarize-pr
+      inputs:
+        repository: "{{ inputs.repository }}"
+        pullRequest: "{{ inputs.pullRequest }}"
+        localContext: "{{ inputs.localContext }}"

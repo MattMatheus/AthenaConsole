@@ -28,6 +28,11 @@ No candidate engineering or architecture intake items.
 
 Recently completed:
 
+- `engineering/done/STORY-20260602-github-approved-write-actions.md`
+- `engineering/done/STORY-20260602-github-workflow-templates.md`
+- `engineering/done/STORY-20260602-github-release-notes-agent.md`
+- `engineering/done/STORY-20260602-github-issue-pr-agents.md`
+- `engineering/done/STORY-20260602-github-read-connector.md`
 - `engineering/done/STORY-20260602-connector-mock-fixture-harness.md`
 - `engineering/done/STORY-20260602-connector-readiness-diagnostics.md`
 - `engineering/done/STORY-20260602-connector-external-write-approvals.md`

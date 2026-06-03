@@ -112,9 +112,11 @@ Outcome:
 
 ### 2026.41 GitHub Connector Pack
 
+Status: Complete.
+
 Source epic:
 
-- `docs/product/epics/active/2026.41.00-epic-github-connector-pack.md`
+- `docs/product/epics/completed/2026.41.00-epic-github-connector-pack.md`
 
 Outcome:
 

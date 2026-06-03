@@ -1,0 +1,57 @@
+schemaVersion: 1
+agent:
+  id: bundled.github.release.notes-draft.local
+  name: GitHub Release Notes Draft
+  version: 0.1.0
+  description: Drafts release notes from selected GitHub PRs, issues, commits, releases, and local release context without publishing.
+  capabilities:
+    - github.release.notes-draft
+  inputs:
+    repository:
+      type: string
+      required: true
+      label: Repository
+    releaseName:
+      type: string
+      required: true
+      label: Release name
+    localContext:
+      type: markdown
+      required: false
+      label: Local release context
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: release_notes_draft
+        label: Release notes draft
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/github-runner.mjs
+      - release-notes-draft
+    cwd: .
+  runtime:
+    preferredBackend: local-process
+    connectorOperations:
+      - release-read
+      - pull-request-read
+      - issue-read
+      - commit-read
+  permissions:
+    network: deny
+    filesystem: scoped
+    credentials: scoped
+  limits:
+    maxRuntimeSeconds: 30
+    maxToolCalls: 0
+    maxRetries: 0
+    maxOutputBytes: 18000
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+    eventHints:
+      - github.release
+      - github.read

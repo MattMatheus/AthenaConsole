@@ -4,14 +4,13 @@ Raw engineering work enters here before PM refinement.
 
 ## Candidate Sequence
 
-1. `STORY-20260602-connector-external-write-approvals.md`
-2. `STORY-20260602-connector-readiness-diagnostics.md`
+No candidate engineering items.
 
 ## PM Refinement Notes
 
-- These five intake stories break down Epic 2026.40 Connector Pack Platform.
-- Recommended refinement order starts with connector manifest extensions, then credential binding, then external write approvals, readiness diagnostics, and mock fixture harness.
-- Keep service-specific GitHub, Slack, Notion, Google, Linear, or Jira connector implementations out of these stories; those belong to later epics.
+- These five intake stories break down Epic 2026.41 GitHub Connector Pack.
+- Recommended refinement order starts with the read connector, then issue/PR agents, release notes, workflows, and approved writes.
+- Keep GitHub Actions runner management, project-board automation, organization-wide governance, and unapproved writes out of this epic.
 
 ## Refinement Rule
 

@@ -1,0 +1,30 @@
+schemaVersion: 1
+workflow:
+  id: bundled.github.repo-onboarding.workflow
+  name: GitHub Repo Onboarding
+  version: 0.1.0
+  goal: Combine GitHub repository metadata with local repo orientation for onboarding.
+  inputs:
+    repository:
+      type: string
+      required: true
+    focus:
+      type: markdown
+      required: false
+  tasks:
+    - id: github-context
+      title: Build GitHub repository context
+      assignedAgentId: bundled.github.repo-context.local
+      assignedAgentVersion: 0.1.0
+      inputs:
+        repository: "{{ inputs.repository }}"
+        focus: "{{ inputs.focus }}"
+    - id: local-repo-summary
+      title: Summarize local repository context
+      assignedAgentId: bundled.software-team.repo-summary.local
+      assignedAgentVersion: 0.1.0
+      dependsOn:
+        - github-context
+      inputs:
+        repoPath: "."
+        objective: "{{ inputs.focus }}"

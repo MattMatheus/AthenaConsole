@@ -1,0 +1,22 @@
+{
+  "workflowId": "bundled.github.release-prep.workflow",
+  "connectorFixture": {
+    "liveNetwork": false,
+    "scenarios": [
+      "read-success",
+      "write-blocked",
+      "write-approved",
+      "auth-missing",
+      "scope-missing",
+      "rate-limited"
+    ],
+    "expectedArtifacts": [
+      "release_notes_draft"
+    ]
+  },
+  "inputs": {
+    "repository": "octo-org/widget",
+    "releaseName": "2026.2-fixture",
+    "localContext": "Release includes GitHub connector read workflows and fixture-backed approved-write posture."
+  }
+}

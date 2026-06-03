@@ -1,0 +1,55 @@
+schemaVersion: 1
+agent:
+  id: bundled.github.pr.review-support.local
+  name: GitHub PR Review Support
+  version: 0.1.0
+  description: Produces review findings and suggested comment drafts from read-only PR context without posting comments.
+  capabilities:
+    - github.pr.review-support
+  inputs:
+    repository:
+      type: string
+      required: true
+      label: Repository
+    pullRequest:
+      type: integer
+      required: true
+      label: Pull request number
+    localContext:
+      type: markdown
+      required: false
+      label: Local context
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: pr_review_support
+        label: PR review support
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/github-runner.mjs
+      - pr-review-support
+    cwd: .
+  runtime:
+    preferredBackend: local-process
+    connectorOperations:
+      - pull-request-read
+      - commit-read
+  permissions:
+    network: deny
+    filesystem: scoped
+    credentials: scoped
+  limits:
+    maxRuntimeSeconds: 30
+    maxToolCalls: 0
+    maxRetries: 0
+    maxOutputBytes: 18000
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+    eventHints:
+      - github.pr
+      - github.review-draft

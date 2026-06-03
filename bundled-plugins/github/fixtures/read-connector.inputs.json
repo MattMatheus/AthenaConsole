@@ -1,0 +1,28 @@
+{
+  "workflowId": "bundled.github.repo-onboarding.workflow",
+  "connectorFixture": {
+    "liveNetwork": false,
+    "scenarios": [
+      "read-success",
+      "write-blocked",
+      "write-approved",
+      "auth-missing",
+      "scope-missing",
+      "rate-limited"
+    ],
+    "githubRecords": [
+      "repository",
+      "issues",
+      "pullRequests",
+      "commits",
+      "releases"
+    ],
+    "expectedArtifacts": [
+      "github_repo_context"
+    ]
+  },
+  "inputs": {
+    "repository": "octo-org/widget",
+    "focus": "Understand active PRs, open issues, recent commits, and release posture."
+  }
+}

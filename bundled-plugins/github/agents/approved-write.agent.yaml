@@ -1,0 +1,58 @@
+schemaVersion: 1
+agent:
+  id: bundled.github.approved-write.local
+  name: GitHub Approved Write Fixture
+  version: 0.1.0
+  description: Exercises fixture-backed approved and blocked GitHub write actions without publishing to GitHub.
+  capabilities:
+    - github.write.approved
+  inputs:
+    repository:
+      type: string
+      required: true
+      label: Repository
+    writeScenario:
+      type: enum
+      required: true
+      label: Write scenario
+      enum:
+        - write-blocked
+        - write-approved
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: approved_write
+        label: Approved write fixture
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/github-runner.mjs
+      - approved-write
+    cwd: .
+  runtime:
+    preferredBackend: local-process
+    connectorOperations:
+      - comment-draft-create
+      - label-suggestion-apply
+      - release-draft-create
+  permissions:
+    network: deny
+    filesystem: scoped
+    credentials: scoped
+    approvalRequiredFor:
+      - network-write
+      - credential-access
+  limits:
+    maxRuntimeSeconds: 30
+    maxToolCalls: 0
+    maxRetries: 0
+    maxOutputBytes: 16000
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+    eventHints:
+      - github.external-write
+      - github.approval

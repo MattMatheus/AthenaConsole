@@ -1,0 +1,40 @@
+{
+  "workflowId": "bundled.github.issue-triage-round.workflow",
+  "connectorFixture": {
+    "liveNetwork": false,
+    "scenarios": [
+      "read-success",
+      "write-blocked",
+      "write-approved",
+      "auth-missing",
+      "scope-missing",
+      "rate-limited"
+    ],
+    "expectedArtifacts": [
+      "issue_triage"
+    ]
+  },
+  "inputs": {
+    "repository": "octo-org/widget",
+    "issueBatch": {
+      "issues": [
+        {
+          "number": 41,
+          "title": "Import flow fails on empty repository",
+          "state": "open",
+          "labels": [
+            "bug"
+          ]
+        },
+        {
+          "number": 42,
+          "title": "Document connector token setup",
+          "state": "open",
+          "labels": [
+            "docs"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,195 @@
+schemaVersion: 1
+plugin:
+  id: team-orchestrator.bundled.github
+  name: GitHub Connector Pack
+  version: 0.1.0
+  description: First-party GitHub connector pack for fixture-backed repository, issue, PR, and release workflows.
+  pack:
+    category: connector
+    maturity: experimental
+    credentialRequirements:
+      - connector-account
+    memoryRequirements:
+      - none
+    safety:
+      posture: operator-approved-writes
+      externalWrites: true
+      approvalRequiredFor:
+        - external-write
+      notes: Read workflows use GitHub read scopes; optional write operations are fixture-backed and approval-gated.
+    exampleWorkflows:
+      - path: workflows/pr-review-brief.workflow.yaml
+        id: bundled.github.pr-review-brief.workflow
+        version: 0.1.0
+      - path: workflows/issue-triage-round.workflow.yaml
+        id: bundled.github.issue-triage-round.workflow
+        version: 0.1.0
+      - path: workflows/release-prep.workflow.yaml
+        id: bundled.github.release-prep.workflow
+        version: 0.1.0
+      - path: workflows/repo-onboarding.workflow.yaml
+        id: bundled.github.repo-onboarding.workflow
+        version: 0.1.0
+  connector:
+    service:
+      id: github.com
+      name: GitHub
+      homepage: https://github.com
+      dataResidency: GitHub repository metadata remains remote unless an operator saves artifacts or memory.
+    auth:
+      type: api-token
+      credentialBinding: required
+      instructions: Bind a fine-grained PAT or GitHub App token reference with repository read scopes; do not store token values in manifests or task inputs.
+    scopes:
+      - id: contents:read
+        label: Repository contents read
+        required: true
+        access: read
+        reason: Read repository metadata, commits, release data, and file context.
+      - id: issues:read
+        label: Issues read
+        required: true
+        access: read
+        reason: Read issue lists and issue details for triage.
+      - id: pull_requests:read
+        label: Pull requests read
+        required: true
+        access: read
+        reason: Read PR metadata, changed files, review state, and comments.
+      - id: metadata:read
+        label: Repository metadata read
+        required: true
+        access: read
+        reason: Resolve repository identity, default branch, labels, and collaborators.
+      - id: issues:write
+        label: Issues write
+        required: false
+        access: write
+        reason: Optional approved issue comments or label updates.
+      - id: pull_requests:write
+        label: Pull requests write
+        required: false
+        access: write
+        reason: Optional approved PR comments.
+      - id: releases:write
+        label: Releases write
+        required: false
+        access: write
+        reason: Optional approved release-note draft creation.
+    rateLimits:
+      - id: github-rest-default
+        limit: 5000
+        windowSeconds: 3600
+        appliesTo:
+          - repository-read
+          - issue-read
+          - pull-request-read
+          - commit-read
+          - release-read
+          - comment-draft-create
+          - label-suggestion-apply
+          - release-draft-create
+    retry:
+      maxAttempts: 2
+      backoff: exponential
+    operations:
+      - id: repository-read
+        class: read
+        label: Read repository metadata
+        scopes:
+          - metadata:read
+          - contents:read
+      - id: issue-read
+        class: read
+        label: Read issues
+        scopes:
+          - issues:read
+      - id: pull-request-read
+        class: read
+        label: Read pull requests
+        scopes:
+          - pull_requests:read
+      - id: commit-read
+        class: read
+        label: Read commits
+        scopes:
+          - contents:read
+      - id: release-read
+        class: read
+        label: Read releases
+        scopes:
+          - contents:read
+      - id: comment-draft-create
+        class: external-write
+        label: Create approved issue or PR comment draft
+        scopes:
+          - issues:write
+          - pull_requests:write
+        approvalRequired: true
+      - id: label-suggestion-apply
+        class: external-write
+        label: Apply approved issue labels
+        scopes:
+          - issues:write
+        approvalRequired: true
+      - id: release-draft-create
+        class: external-write
+        label: Create approved release-note draft
+        scopes:
+          - releases:write
+        approvalRequired: true
+  authors:
+    - name: Team Orchestrator
+  agents:
+    - path: agents/repo-context.agent.yaml
+      id: bundled.github.repo-context.local
+      version: 0.1.0
+    - path: agents/issue-triage.agent.yaml
+      id: bundled.github.issue.triage.local
+      version: 0.1.0
+    - path: agents/pr-summary.agent.yaml
+      id: bundled.github.pr.summarize.local
+      version: 0.1.0
+    - path: agents/pr-review-support.agent.yaml
+      id: bundled.github.pr.review-support.local
+      version: 0.1.0
+    - path: agents/release-notes-draft.agent.yaml
+      id: bundled.github.release.notes-draft.local
+      version: 0.1.0
+    - path: agents/approved-write.agent.yaml
+      id: bundled.github.approved-write.local
+      version: 0.1.0
+  workflowTemplates:
+    - path: workflows/pr-review-brief.workflow.yaml
+      id: bundled.github.pr-review-brief.workflow
+      version: 0.1.0
+    - path: workflows/issue-triage-round.workflow.yaml
+      id: bundled.github.issue-triage-round.workflow
+      version: 0.1.0
+    - path: workflows/release-prep.workflow.yaml
+      id: bundled.github.release-prep.workflow
+      version: 0.1.0
+    - path: workflows/repo-onboarding.workflow.yaml
+      id: bundled.github.repo-onboarding.workflow
+      version: 0.1.0
+  docs:
+    readme: docs/README.md
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    manifestSchema: team-orchestrator.manifests.v1
+    runtimeBackends:
+      - local-process
+    platforms:
+      - any
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: scoped
+  ui:
+    icon: github
+    color: "#2f6f88"
+    tags:
+      - bundled
+      - connector
+      - github

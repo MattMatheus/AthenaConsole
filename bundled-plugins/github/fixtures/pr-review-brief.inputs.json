@@ -1,0 +1,23 @@
+{
+  "workflowId": "bundled.github.pr-review-brief.workflow",
+  "connectorFixture": {
+    "liveNetwork": false,
+    "scenarios": [
+      "read-success",
+      "write-blocked",
+      "write-approved",
+      "auth-missing",
+      "scope-missing",
+      "rate-limited"
+    ],
+    "expectedArtifacts": [
+      "pr_summary",
+      "pr_review_support"
+    ]
+  },
+  "inputs": {
+    "repository": "octo-org/widget",
+    "pullRequest": 17,
+    "localContext": "Local tests pass in fixture mode; review data import boundaries."
+  }
+}

@@ -1,0 +1,54 @@
+schemaVersion: 1
+agent:
+  id: bundled.github.repo-context.local
+  name: GitHub Repo Context
+  version: 0.1.0
+  description: Builds a fixture-backed GitHub repository context brief from repository, issue, PR, commit, and release records.
+  capabilities:
+    - github.repo.context
+  inputs:
+    repository:
+      type: string
+      required: true
+      label: Repository
+    focus:
+      type: markdown
+      required: false
+      label: Focus
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: github_repo_context
+        label: GitHub repo context
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/github-runner.mjs
+      - repo-context
+    cwd: .
+  runtime:
+    preferredBackend: local-process
+    connectorOperations:
+      - repository-read
+      - issue-read
+      - pull-request-read
+      - commit-read
+      - release-read
+  permissions:
+    network: deny
+    filesystem: scoped
+    credentials: scoped
+  limits:
+    maxRuntimeSeconds: 30
+    maxToolCalls: 0
+    maxRetries: 0
+    maxOutputBytes: 16000
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+    eventHints:
+      - github.read
+      - github.repo-context
