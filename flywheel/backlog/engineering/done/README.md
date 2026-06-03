@@ -126,3 +126,8 @@ Engineering work accepted by QA.
 120. `STORY-20260602-software-team-release-agents.md`
 121. `STORY-20260602-software-team-workflow-templates.md`
 122. `STORY-20260602-software-team-memory-enhancements.md`
+123. `STORY-20260602-connector-manifest-extensions.md`
+124. `STORY-20260602-connector-credential-binding.md`
+125. `STORY-20260602-connector-external-write-approvals.md`
+126. `STORY-20260602-connector-readiness-diagnostics.md`
+127. `STORY-20260602-connector-mock-fixture-harness.md`

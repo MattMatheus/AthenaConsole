@@ -6,6 +6,8 @@ A capability pack is a normal Team Orchestrator plugin package that groups agent
 
 First-party bundled packs and user-authored local packs use the same manifest model. The bundled example at `bundled-plugins/software-team/` is the canonical fixture for this pattern.
 
+Connector packs are also normal capability packs. The bundled fixture at `bundled-plugins/connector-platform/` shows connector-specific metadata and mock fixture validation without making live service calls.
+
 ## Pack Structure
 
 Use this shape for a pack:
@@ -71,6 +73,45 @@ Console mapping:
 - `safety.posture` and `safety.externalWrites` become safety requirement labels before an operator starts work.
 - `exampleWorkflows` points to workflow templates that demonstrate the pack.
 
+## Connector Metadata
+
+Connector metadata lives under `plugin.connector` when a pack needs external service credentials, scopes, rate limits, or operation classes:
+
+```yaml
+plugin:
+  connector:
+    service:
+      id: fixture.service
+      name: Fixture Service
+    auth:
+      type: api-token
+      credentialBinding: required
+    scopes:
+      - id: fixture:read
+        label: Read fixture records
+        required: true
+        access: read
+    operations:
+      - id: list-records
+        class: read
+        scopes:
+          - fixture:read
+      - id: create-record
+        class: external-write
+        scopes:
+          - fixture:write
+        approvalRequired: true
+```
+
+Connector rules:
+
+- Put connector declarations in the manifest, not task prose.
+- Use credential binding references for secrets; do not place secret values in manifests, fixtures, task inputs, runs, or artifacts.
+- Declare every required scope with a human-readable label and reason.
+- Classify operations as `read` or `external-write`.
+- External-write operations must declare `approvalRequired: true`; unknown connector operations are treated as external writes by the platform helpers.
+- Rate limits should describe local operator expectations and fixture behavior before any service-specific pack makes live API calls.
+
 ## Agents And Workflows
 
 Agents should declare narrow capabilities and explicit limits. Prefer no-provider or mock-provider behavior for examples that are meant to run during local validation.
@@ -105,6 +146,17 @@ Fixtures should be deterministic and local. A workflow fixture can be as small a
 ```
 
 Avoid fixtures that depend on live third-party services unless the pack is specifically validating connector readiness. For provider-backed packs, keep a no-provider fixture for manifest and workflow validation where practical.
+
+Connector fixture JSON should include `connectorFixture.liveNetwork: false` and cover these scenarios before service-specific connector work starts:
+
+- `read-success`
+- `write-blocked`
+- `write-approved`
+- `auth-missing`
+- `scope-missing`
+- `rate-limited`
+
+The bundled pack fixture validator rejects connector fixtures that omit connector fixture metadata or imply live network access.
 
 ## Validation Checklist
 

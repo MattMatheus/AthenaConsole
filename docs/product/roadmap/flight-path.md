@@ -282,7 +282,7 @@ Capability and connector arc source epics:
 
 - `docs/product/epics/completed/2026.38.00-epic-capability-pack-foundation.md`
 - `docs/product/epics/completed/2026.39.00-epic-built-in-software-team-agent-pack.md`
-- `docs/product/epics/active/2026.40.00-epic-connector-pack-platform.md`
+- `docs/product/epics/completed/2026.40.00-epic-connector-pack-platform.md`
 - `docs/product/epics/active/2026.41.00-epic-github-connector-pack.md`
 - `docs/product/epics/active/2026.42.00-epic-knowledge-work-connector-pack.md`
 

@@ -18,6 +18,7 @@ import {
   AgentIndexRepository,
   AppSettingsRepository,
   AppStateMigrationRepository,
+  ConnectorCredentialBindingRepository,
   DirectiveRepository,
   HarnessProfileRepository,
   PluginIndexRepository,
@@ -37,6 +38,7 @@ export interface AppStateDatabase {
   readonly db: Database.Database;
   readonly migrations: AppStateMigrationRepository;
   readonly settings: AppSettingsRepository;
+  readonly connectorCredentialBindings: ConnectorCredentialBindingRepository;
   readonly plugins: PluginIndexRepository;
   readonly agents: AgentIndexRepository;
   readonly workflowTemplates: WorkflowTemplateIndexRepository;
@@ -81,6 +83,7 @@ export function openAppStateDatabase(config: AthenaConfig, options: AppStateData
     db,
     migrations,
     settings: new AppSettingsRepository(db),
+    connectorCredentialBindings: new ConnectorCredentialBindingRepository(db),
     plugins: new PluginIndexRepository(db),
     agents: new AgentIndexRepository(db),
     workflowTemplates: new WorkflowTemplateIndexRepository(db),

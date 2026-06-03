@@ -103,6 +103,15 @@
             },
             "modelProvider": {
               "$ref": "#/definitions/modelProviderRequirement"
+            },
+            "connectorOperations": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[a-zA-Z0-9._:-]+$"
+              },
+              "uniqueItems": true
             }
           }
         },

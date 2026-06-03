@@ -12,6 +12,7 @@ import type {
 import type { AgentCatalogService } from "../interfaces.js";
 import type { AppStateDatabase, AgentIndexRecord, PluginIndexRecord } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
+import { evaluateConnectorReadiness } from "../connectors.js";
 import { evaluateProviderReadiness, normalizeModelProviderRequirement } from "./provider-readiness.js";
 
 interface AgentManifestDocument {
@@ -34,6 +35,7 @@ interface PluginManifestDocument {
     name?: string;
     description?: string;
     pack?: import("../../shared/contracts.js").CapabilityPackMetadata;
+    connector?: import("../../shared/contracts.js").ConnectorMetadata;
     authors?: unknown[];
     docs?: Record<string, unknown>;
     compatibility?: Record<string, unknown>;
@@ -56,7 +58,7 @@ export class LocalAgentCatalogService implements AgentCatalogService {
     return this.withAppState((appState) => {
       const agentsByPlugin = groupAgentsByPlugin(appState.agents.list());
       const plugins = appState.plugins.list().map((plugin) =>
-        mapPluginSummary(plugin, agentsByPlugin.get(pluginKey(plugin.id, plugin.version)) ?? [])
+        mapPluginSummary(plugin, agentsByPlugin.get(pluginKey(plugin.id, plugin.version)) ?? [], appState)
       );
       return {
         plugins,
@@ -97,8 +99,19 @@ export class LocalAgentCatalogService implements AgentCatalogService {
   }
 }
 
-function mapPluginSummary(plugin: PluginIndexRecord, agents: AgentIndexRecord[]): AgentCatalogPluginSummary {
+function mapPluginSummary(plugin: PluginIndexRecord, agents: AgentIndexRecord[], appState: AppStateDatabase): AgentCatalogPluginSummary {
   const manifest = normalizePluginManifest(plugin.manifest);
+  const connectorBinding = manifest.plugin?.connector
+    ? appState.connectorCredentialBindings.get(plugin.id, plugin.version, manifest.plugin.connector.service.id)
+    : undefined;
+  const connectorReadiness = manifest.plugin?.connector
+    ? evaluateConnectorReadiness({
+        pluginId: plugin.id,
+        pluginVersion: plugin.version,
+        connector: manifest.plugin.connector,
+        binding: connectorBinding
+      })
+    : undefined;
   return {
     id: plugin.id,
     version: plugin.version,
@@ -111,6 +124,8 @@ function mapPluginSummary(plugin: PluginIndexRecord, agents: AgentIndexRecord[])
       name: manifest.plugin?.name ?? plugin.id,
       ...(manifest.plugin?.description ? { description: manifest.plugin.description } : {}),
       ...(manifest.plugin?.pack ? { pack: manifest.plugin.pack } : {}),
+      ...(manifest.plugin?.connector ? { connector: manifest.plugin.connector } : {}),
+      ...(connectorReadiness ? { connectorReadiness } : {}),
       ...(manifest.plugin?.authors ? { authors: manifest.plugin.authors } : {}),
       ...(manifest.plugin?.docs ? { docs: manifest.plugin.docs } : {}),
       ...(manifest.plugin?.compatibility ? { compatibility: manifest.plugin.compatibility } : {}),

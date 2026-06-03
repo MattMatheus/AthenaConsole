@@ -1,0 +1,97 @@
+schemaVersion: 1
+plugin:
+  id: team-orchestrator.bundled.connector-platform
+  name: Connector Platform Fixture Pack
+  version: 0.1.0
+  description: First-party connector-platform fixture pack for safe manifest, readiness, approval, and mock validation.
+  pack:
+    category: connector
+    maturity: experimental
+    credentialRequirements:
+      - connector-account
+    memoryRequirements:
+      - none
+    safety:
+      posture: operator-approved-writes
+      externalWrites: true
+      approvalRequiredFor:
+        - external-write
+      notes: Uses mock fixtures only; no live service calls are performed.
+    exampleWorkflows:
+      - path: workflows/mock-connector.workflow.yaml
+        id: bundled.connector-platform.mock.workflow
+        version: 0.1.0
+  connector:
+    service:
+      id: fixture.service
+      name: Fixture Service
+      homepage: https://example.invalid/fixture-service
+      dataResidency: Fixture data only; no remote retention.
+    auth:
+      type: api-token
+      credentialBinding: required
+      instructions: Bind a local secret reference for fixture readiness; do not place token values in manifests.
+    scopes:
+      - id: fixture:read
+        label: Read fixture records
+        required: true
+        access: read
+        reason: Required for mock read operations.
+      - id: fixture:write
+        label: Write fixture records
+        required: true
+        access: write
+        reason: Required for approved mock external writes.
+    rateLimits:
+      - id: fixture-default
+        limit: 60
+        windowSeconds: 60
+        appliesTo:
+          - list-records
+          - create-record
+    retry:
+      maxAttempts: 2
+      backoff: none
+    operations:
+      - id: list-records
+        class: read
+        label: List fixture records
+        scopes:
+          - fixture:read
+      - id: create-record
+        class: external-write
+        label: Create fixture record
+        scopes:
+          - fixture:write
+        approvalRequired: true
+  authors:
+    - name: Team Orchestrator
+  agents:
+    - path: agents/mock-connector.agent.yaml
+      id: bundled.connector-platform.mock.local
+      version: 0.1.0
+  workflowTemplates:
+    - path: workflows/mock-connector.workflow.yaml
+      id: bundled.connector-platform.mock.workflow
+      version: 0.1.0
+  docs:
+    readme: docs/README.md
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    manifestSchema: team-orchestrator.manifests.v1
+    runtimeBackends:
+      - local-process
+    platforms:
+      - any
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: scoped
+  ui:
+    icon: plug
+    color: "#3867a6"
+    tags:
+      - bundled
+      - connector
+      - fixture

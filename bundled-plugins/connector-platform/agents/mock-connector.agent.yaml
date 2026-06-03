@@ -1,0 +1,56 @@
+schemaVersion: 1
+agent:
+  id: bundled.connector-platform.mock.local
+  name: Mock Connector Agent
+  version: 0.1.0
+  description: Deterministic connector-platform fixture agent for mock read and external-write scenarios.
+  capabilities:
+    - connector.fixture.run
+  inputs:
+    scenario:
+      type: enum
+      required: true
+      label: Scenario
+      enum:
+        - read-success
+        - write-blocked
+        - write-approved
+        - auth-missing
+        - scope-missing
+        - rate-limited
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: connector_report
+        label: Connector fixture report
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/mock-connector-runner.mjs
+    cwd: .
+  runtime:
+    preferredBackend: local-process
+    connectorOperations:
+      - list-records
+      - create-record
+  permissions:
+    network: deny
+    filesystem: scoped
+    credentials: scoped
+    approvalRequiredFor:
+      - network-write
+      - credential-access
+  limits:
+    maxRuntimeSeconds: 30
+    maxToolCalls: 0
+    maxRetries: 0
+    maxOutputBytes: 12000
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+    eventHints:
+      - connector.fixture
+      - connector.external-write

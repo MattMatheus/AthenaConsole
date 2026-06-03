@@ -100,9 +100,11 @@ Outcome:
 
 ### 2026.40 Connector Pack Platform
 
+Status: Complete.
+
 Source epic:
 
-- `docs/product/epics/active/2026.40.00-epic-connector-pack-platform.md`
+- `docs/product/epics/completed/2026.40.00-epic-connector-pack-platform.md`
 
 Outcome:
 

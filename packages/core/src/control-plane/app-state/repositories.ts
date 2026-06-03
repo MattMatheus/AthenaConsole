@@ -99,6 +99,18 @@ interface RunTemplateRow {
   created_at: string;
 }
 
+interface ConnectorCredentialBindingRow {
+  plugin_id: string;
+  plugin_version: string;
+  service_id: string;
+  binding_ref: string;
+  display_name: string | null;
+  scopes_json: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export class AppStateMigrationRepository {
   private readonly listVersionsStatement: Database.Statement;
   private readonly listStatement: Database.Statement;
@@ -190,6 +202,118 @@ export class AppSettingsRepository {
     return {
       key: row.key,
       value: JSON.parse(row.value_json) as T,
+      updatedAt: row.updated_at
+    };
+  }
+}
+
+export interface ConnectorCredentialBindingRecord {
+  pluginId: string;
+  pluginVersion: string;
+  serviceId: string;
+  bindingRef: string;
+  displayName?: string;
+  scopes: string[];
+  status: "bound" | "invalid" | "revoked" | string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConnectorCredentialBindingUpsert {
+  pluginId: string;
+  pluginVersion: string;
+  serviceId: string;
+  bindingRef: string;
+  displayName?: string;
+  scopes?: string[];
+  status?: "bound" | "invalid" | "revoked";
+  now?: Date;
+}
+
+export class ConnectorCredentialBindingRepository {
+  private readonly getStatement: Database.Statement;
+  private readonly listStatement: Database.Statement;
+  private readonly upsertStatement: Database.Statement;
+
+  constructor(private readonly db: Database.Database) {
+    this.getStatement = db.prepare(
+      "select plugin_id, plugin_version, service_id, binding_ref, display_name, scopes_json, status, created_at, updated_at from connector_credential_bindings where plugin_id = ? and plugin_version = ? and service_id = ?"
+    );
+    this.listStatement = db.prepare(
+      "select plugin_id, plugin_version, service_id, binding_ref, display_name, scopes_json, status, created_at, updated_at from connector_credential_bindings order by plugin_id asc, plugin_version asc, service_id asc"
+    );
+    this.upsertStatement = db.prepare(`
+      insert into connector_credential_bindings (
+        plugin_id,
+        plugin_version,
+        service_id,
+        binding_ref,
+        display_name,
+        scopes_json,
+        status,
+        created_at,
+        updated_at
+      )
+      values (
+        @pluginId,
+        @pluginVersion,
+        @serviceId,
+        @bindingRef,
+        @displayName,
+        @scopesJson,
+        @status,
+        @createdAt,
+        @updatedAt
+      )
+      on conflict(plugin_id, plugin_version, service_id) do update set
+        binding_ref = excluded.binding_ref,
+        display_name = excluded.display_name,
+        scopes_json = excluded.scopes_json,
+        status = excluded.status,
+        updated_at = excluded.updated_at
+    `);
+  }
+
+  get(pluginId: string, pluginVersion: string, serviceId: string): ConnectorCredentialBindingRecord | undefined {
+    const row = this.getStatement.get(pluginId, pluginVersion, serviceId) as ConnectorCredentialBindingRow | undefined;
+    return row ? this.mapRow(row) : undefined;
+  }
+
+  list(): ConnectorCredentialBindingRecord[] {
+    return this.listStatement.all().map((row) => this.mapRow(row as ConnectorCredentialBindingRow));
+  }
+
+  upsert(input: ConnectorCredentialBindingUpsert): ConnectorCredentialBindingRecord {
+    const existing = this.get(input.pluginId, input.pluginVersion, input.serviceId);
+    const now = (input.now ?? new Date()).toISOString();
+    this.upsertStatement.run({
+      pluginId: input.pluginId,
+      pluginVersion: input.pluginVersion,
+      serviceId: input.serviceId,
+      bindingRef: input.bindingRef,
+      displayName: input.displayName ?? null,
+      scopesJson: JSON.stringify(input.scopes ?? []),
+      status: input.status ?? "bound",
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now
+    });
+    const record = this.get(input.pluginId, input.pluginVersion, input.serviceId);
+    if (!record) {
+      throw new Error(`Failed to load connector credential binding ${input.pluginId}@${input.pluginVersion}.`);
+    }
+    return record;
+  }
+
+  private mapRow(row: ConnectorCredentialBindingRow): ConnectorCredentialBindingRecord {
+    return {
+      pluginId: row.plugin_id,
+      pluginVersion: row.plugin_version,
+      serviceId: row.service_id,
+      bindingRef: row.binding_ref,
+      ...(row.display_name ? { displayName: row.display_name } : {}),
+      scopes: JSON.parse(row.scopes_json) as string[],
+      status: row.status,
+      createdAt: row.created_at,
       updatedAt: row.updated_at
     };
   }

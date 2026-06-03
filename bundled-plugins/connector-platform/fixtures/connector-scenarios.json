@@ -1,0 +1,24 @@
+{
+  "workflowId": "bundled.connector-platform.mock.workflow",
+  "connectorFixture": {
+    "liveNetwork": false,
+    "scenarios": [
+      "read-success",
+      "write-blocked",
+      "write-approved",
+      "auth-missing",
+      "scope-missing",
+      "rate-limited"
+    ],
+    "expectedEvents": [
+      "connector.readiness",
+      "connector.external-write.approval"
+    ],
+    "expectedArtifacts": [
+      "connector-fixture-report"
+    ]
+  },
+  "inputs": {
+    "scenario": "read-success"
+  }
+}

@@ -44,10 +44,70 @@ export interface CapabilityPackMetadata {
   exampleWorkflows?: Array<Record<string, unknown>>;
 }
 
+export type ConnectorReadinessStatus =
+  | "configured"
+  | "missing-credentials"
+  | "missing-scopes"
+  | "rate-limited"
+  | "degraded"
+  | "blocked";
+
+export interface ConnectorMetadata {
+  service: {
+    id: string;
+    name: string;
+    homepage?: string;
+    dataResidency?: string;
+  };
+  auth: {
+    type: "none" | "api-token" | "oauth" | "local-secret";
+    credentialBinding: "none" | "required" | "optional";
+    instructions?: string;
+  };
+  scopes: Array<{
+    id: string;
+    label: string;
+    required: boolean;
+    access: "read" | "write" | "read-write";
+    reason?: string;
+  }>;
+  rateLimits?: Array<{
+    id: string;
+    limit: number;
+    windowSeconds: number;
+    appliesTo?: string[];
+  }>;
+  retry?: {
+    maxAttempts?: number;
+    backoff?: "none" | "linear" | "exponential";
+  };
+  operations: Array<{
+    id: string;
+    class: "read" | "external-write";
+    label?: string;
+    scopes: string[];
+    approvalRequired?: boolean;
+  }>;
+}
+
+export interface ConnectorReadinessSummary {
+  status: ConnectorReadinessStatus;
+  serviceId?: string;
+  serviceName?: string;
+  credentialState: "not-required" | "missing" | "bound" | "invalid";
+  missingScopes: string[];
+  requiredScopes: string[];
+  rateLimitedOperations: string[];
+  reasons: string[];
+  nextStep: string;
+}
+
 export interface AgentCatalogPluginMetadata {
   name: string;
   description?: string;
   pack?: CapabilityPackMetadata;
+  connector?: ConnectorMetadata;
+  connectorReadiness?: ConnectorReadinessSummary;
   authors?: unknown[];
   docs?: Record<string, unknown>;
   compatibility?: Record<string, unknown>;

@@ -31,6 +31,9 @@
         "pack": {
           "$ref": "#/definitions/packMetadata"
         },
+        "connector": {
+          "$ref": "#/definitions/connectorMetadata"
+        },
         "authors": {
           "type": "array",
           "items": {
@@ -252,6 +255,194 @@
             "required": {
               "type": "boolean",
               "default": true
+            }
+          }
+        }
+      ]
+    },
+    "connectorMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["service", "auth", "scopes", "operations"],
+      "properties": {
+        "service": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "name"],
+          "properties": {
+            "id": {
+              "$ref": "#/definitions/namespacedId"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "homepage": {
+              "type": "string",
+              "minLength": 1
+            },
+            "dataResidency": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "auth": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "credentialBinding"],
+          "properties": {
+            "type": {
+              "enum": ["none", "api-token", "oauth", "local-secret"]
+            },
+            "credentialBinding": {
+              "enum": ["none", "required", "optional"]
+            },
+            "instructions": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/connectorScope"
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "rateLimits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/connectorRateLimit"
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "retry": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "maxAttempts": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "backoff": {
+              "enum": ["none", "linear", "exponential"]
+            }
+          }
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/connectorOperation"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      }
+    },
+    "connectorScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "required", "access"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9:._/-]+$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "access": {
+          "enum": ["read", "write", "read-write"]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "connectorRateLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "limit", "windowSeconds"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:-]+$"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "windowSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "appliesTo": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "connectorOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "class", "scopes"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9._:-]+$"
+        },
+        "class": {
+          "enum": ["read", "external-write"]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "approvalRequired": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "class": {
+                "const": "external-write"
+              }
+            }
+          },
+          "then": {
+            "required": ["approvalRequired"],
+            "properties": {
+              "approvalRequired": {
+                "const": true
+              }
             }
           }
         }

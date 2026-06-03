@@ -446,6 +446,25 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
       create index if not exists idx_model_provider_configs_updated
         on model_provider_configs(updated_at desc);
     `
+  },
+  {
+    version: 14,
+    name: "add-connector-credential-bindings",
+    sql: `
+      create table if not exists connector_credential_bindings (
+        plugin_id text not null,
+        plugin_version text not null,
+        service_id text not null,
+        binding_ref text not null,
+        display_name text,
+        scopes_json text not null default '[]',
+        status text not null,
+        created_at text not null,
+        updated_at text not null,
+        primary key (plugin_id, plugin_version, service_id)
+      );
+      create index if not exists idx_connector_credential_bindings_status on connector_credential_bindings(status);
+    `
   }
 ];
 

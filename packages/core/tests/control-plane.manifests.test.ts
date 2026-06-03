@@ -45,6 +45,53 @@ describe("Team Orchestrator manifest schemas", () => {
     expect(result.issues.some((issue) => issue.path.includes("pack"))).toBe(true);
   });
 
+  it("accepts connector metadata on plugin manifests", () => {
+    const result = validateManifestDocument("plugin", buildPluginManifest({ connector: buildConnectorMetadata() }));
+
+    expect(result.issues).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects malformed connector metadata on plugin manifests", () => {
+    const result = validateManifestDocument(
+      "plugin",
+      buildPluginManifest({
+        connector: {
+          ...buildConnectorMetadata(),
+          auth: {
+            type: "password",
+            credentialBinding: "required"
+          }
+        }
+      })
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.some((issue) => issue.path.includes("connector"))).toBe(true);
+  });
+
+  it("rejects external-write connector operations without explicit approval", () => {
+    const connector = buildConnectorMetadata();
+    const result = validateManifestDocument(
+      "plugin",
+      buildPluginManifest({
+        connector: {
+          ...connector,
+          operations: [
+            {
+              id: "create-record",
+              class: "external-write",
+              scopes: ["fixture:write"]
+            }
+          ]
+        }
+      })
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.some((issue) => issue.path.includes("operations"))).toBe(true);
+  });
+
   it("rejects agent manifests without declared capabilities", () => {
     const result = validateManifestDocument("agent", {
       schemaVersion: 1,
@@ -85,6 +132,21 @@ describe("Team Orchestrator manifest schemas", () => {
 
   it("accepts omitted durable-memory permissions as default deny", () => {
     const result = validateManifestDocument("agent", buildAgentManifest());
+
+    expect(result.issues).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts agent connector operation references", () => {
+    const result = validateManifestDocument(
+      "agent",
+      buildAgentManifest({
+        runtime: {
+          preferredBackend: "local-process",
+          connectorOperations: ["list-records", "create-record"]
+        }
+      })
+    );
 
     expect(result.issues).toEqual([]);
     expect(result.ok).toBe(true);
@@ -199,6 +261,7 @@ describe("Team Orchestrator manifest schemas", () => {
 function buildAgentManifest(
   overrides: {
     permissions?: Record<string, unknown>;
+    runtime?: Record<string, unknown>;
   } = {}
 ): Record<string, unknown> {
   return {
@@ -221,6 +284,7 @@ function buildAgentManifest(
         type: "local-command",
         command: "node"
       },
+      ...(overrides.runtime ? { runtime: overrides.runtime } : {}),
       permissions: overrides.permissions ?? {
         network: "deny",
         filesystem: "none"
@@ -236,7 +300,7 @@ function buildAgentManifest(
   };
 }
 
-function buildPluginManifest(overrides: { category?: string } = {}): Record<string, unknown> {
+function buildPluginManifest(overrides: { category?: string; connector?: Record<string, unknown> } = {}): Record<string, unknown> {
   return {
     schemaVersion: 1,
     plugin: {
@@ -262,8 +326,56 @@ function buildPluginManifest(overrides: { category?: string } = {}): Record<stri
           }
         ]
       },
+      ...(overrides.connector ? { connector: overrides.connector } : {}),
       agents: [],
       workflowTemplates: []
     }
+  };
+}
+
+function buildConnectorMetadata(): Record<string, unknown> {
+  return {
+    service: {
+      id: "fixture.service",
+      name: "Fixture Service"
+    },
+    auth: {
+      type: "api-token",
+      credentialBinding: "required"
+    },
+    scopes: [
+      {
+        id: "fixture:read",
+        label: "Read fixture records",
+        required: true,
+        access: "read"
+      },
+      {
+        id: "fixture:write",
+        label: "Write fixture records",
+        required: true,
+        access: "write"
+      }
+    ],
+    rateLimits: [
+      {
+        id: "default",
+        limit: 60,
+        windowSeconds: 60
+      }
+    ],
+    operations: [
+      {
+        id: "list-records",
+        class: "read",
+        scopes: ["fixture:read"]
+      },
+      {
+        id: "create-record",
+        class: "external-write",
+        scopes: ["fixture:write"],
+        approvalRequired: true
+      }
+    ]
   };
 }

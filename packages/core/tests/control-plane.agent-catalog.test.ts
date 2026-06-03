@@ -55,6 +55,12 @@ describe("agent catalog service", () => {
           },
           agentCount: 2
         });
+        expect(plugins.plugins[1]?.metadata.connectorReadiness).toMatchObject({
+          status: "missing-credentials",
+          serviceId: "fixture.service",
+          credentialState: "missing",
+          requiredScopes: ["fixture:read"]
+        });
 
         const agents = await service.listAgents();
         expect(agents.total).toBe(2);
@@ -211,6 +217,31 @@ function seedCatalog(appState: ReturnType<typeof openAppStateDatabase>): void {
         },
         ui: {
           icon: "code"
+        },
+        connector: {
+          service: {
+            id: "fixture.service",
+            name: "Fixture Service"
+          },
+          auth: {
+            type: "api-token",
+            credentialBinding: "required"
+          },
+          scopes: [
+            {
+              id: "fixture:read",
+              label: "Read fixture records",
+              required: true,
+              access: "read"
+            }
+          ],
+          operations: [
+            {
+              id: "list-records",
+              class: "read",
+              scopes: ["fixture:read"]
+            }
+          ]
         }
       }
     },

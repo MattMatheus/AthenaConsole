@@ -1,0 +1,87 @@
+{
+  "cycle_id": "20260602-connector-pack-platform",
+  "generated_at_utc": "2026-06-03T02:54:45Z",
+  "branch": "main",
+  "story_path": "",
+  "actor": "",
+  "stage_trace": [],
+  "diff_inventory": [
+    "A\tbundled-plugins/connector-platform/agents/mock-connector.agent.yaml",
+    "A\tbundled-plugins/connector-platform/docs/README.md",
+    "A\tbundled-plugins/connector-platform/fixtures/connector-scenarios.json",
+    "A\tbundled-plugins/connector-platform/plugin.yaml",
+    "A\tbundled-plugins/connector-platform/scripts/mock-connector-runner.mjs",
+    "A\tbundled-plugins/connector-platform/workflows/mock-connector.workflow.yaml",
+    "A\tdocs/product/epics/completed/2026.40.00-epic-connector-pack-platform.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260602-connector-credential-binding.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260602-connector-external-write-approvals.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260602-connector-manifest-extensions.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260602-connector-mock-fixture-harness.md",
+    "A\tflywheel/backlog/engineering/done/STORY-20260602-connector-readiness-diagnostics.md",
+    "A\tpackages/core/src/control-plane/connectors.ts",
+    "A\tpackages/core/tests/control-plane.connectors.test.ts",
+    "D\tdocs/product/epics/active/2026.40.00-epic-connector-pack-platform.md",
+    "M\tdocs/developer/product-dev-guides/capability-pack-authoring.md",
+    "M\tdocs/product/direction/current-direction.md",
+    "M\tdocs/product/epics/README.md",
+    "M\tdocs/product/roadmap/flight-path.md",
+    "M\tdocs/product/roadmap/future-horizon.md",
+    "M\tflywheel/backlog/README.md",
+    "M\tflywheel/backlog/engineering/done/README.md",
+    "M\tflywheel/backlog/engineering/intake/README.md",
+    "M\tpackages/core/schemas/team-orchestrator/manifests/v1/agent.schema.json",
+    "M\tpackages/core/schemas/team-orchestrator/manifests/v1/plugin.schema.json",
+    "M\tpackages/core/scripts/validate-pack-fixtures.ts",
+    "M\tpackages/core/src/control-plane/app-state/database.ts",
+    "M\tpackages/core/src/control-plane/app-state/migrations.ts",
+    "M\tpackages/core/src/control-plane/app-state/repositories.ts",
+    "M\tpackages/core/src/control-plane/services/agent-catalog.ts",
+    "M\tpackages/core/src/shared/contracts/agent-catalog.ts",
+    "M\tpackages/core/tests/control-plane.agent-catalog.test.ts",
+    "M\tpackages/core/tests/control-plane.manifests.test.ts"
+  ],
+  "objective": {
+    "intended_outcome": "",
+    "scope_boundary": ""
+  },
+  "inputs_and_evidence": {
+    "artifacts_reviewed": [],
+    "tools_used": [],
+    "external_sources": []
+  },
+  "changes_made": {
+    "files_changed": [],
+    "state_transitions": [],
+    "non_file_actions": []
+  },
+  "validation": {
+    "checks_run": [],
+    "results": [],
+    "checks_not_run": []
+  },
+  "workflow_sync_checks": {
+    "entry_docs_updated_if_workflow_changed": false,
+    "prompts_updated_if_stage_behavior_changed": false,
+    "process_docs_updated_if_contracts_or_gates_changed": false,
+    "queue_order_and_state_synchronized": false
+  },
+  "warnings_and_risks": {
+    "unresolved_risks": [],
+    "assumptions_carried": [],
+    "warnings": []
+  },
+  "action_record": {
+    "highest_action_class": "",
+    "approval_required": "",
+    "approval_reference": ""
+  },
+  "next_step": {
+    "recommended_next_state": "",
+    "follow_up_work": [],
+    "durable_promotions": []
+  },
+  "release_impact": {
+    "release_scope": "",
+    "additional_release_actions": []
+  }
+}

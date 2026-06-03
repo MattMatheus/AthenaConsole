@@ -1,0 +1,17 @@
+schemaVersion: 1
+workflow:
+  id: bundled.connector-platform.mock.workflow
+  name: Mock Connector Fixture Workflow
+  version: 0.1.0
+  goal: Exercise connector fixture scenarios without live service calls.
+  inputs:
+    scenario:
+      type: string
+      required: true
+  tasks:
+    - id: run-mock-connector
+      title: Run mock connector scenario
+      assignedAgentId: bundled.connector-platform.mock.local
+      assignedAgentVersion: 0.1.0
+      inputs:
+        scenario: "{{ inputs.scenario }}"

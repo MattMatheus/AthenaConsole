@@ -28,6 +28,11 @@ No candidate engineering or architecture intake items.
 
 Recently completed:
 
+- `engineering/done/STORY-20260602-connector-mock-fixture-harness.md`
+- `engineering/done/STORY-20260602-connector-readiness-diagnostics.md`
+- `engineering/done/STORY-20260602-connector-external-write-approvals.md`
+- `engineering/done/STORY-20260602-connector-credential-binding.md`
+- `engineering/done/STORY-20260602-connector-manifest-extensions.md`
 - `engineering/done/STORY-20260602-software-team-memory-enhancements.md`
 - `engineering/done/STORY-20260602-software-team-workflow-templates.md`
 - `engineering/done/STORY-20260602-software-team-release-agents.md`
