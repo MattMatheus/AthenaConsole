@@ -140,3 +140,4 @@ Engineering work accepted by QA.
 134. `STORY-20260603-capability-led-work-creation.md`
 135. `STORY-20260603-guided-work-preflight.md`
 136. `STORY-20260603-advanced-surface-containment.md`
+137. `STORY-20260603-intent-led-docs-alignment.md`

@@ -1,6 +1,6 @@
 # Getting Started
 
-Use this guide to start Team Orchestrator locally, check readiness, run the built-in demo workflow, and inspect the result.
+Use this guide to start Team Orchestrator locally, open Start Work, run the built-in demo outcome, and inspect the result.
 
 For a fuller explanation of the product model, operator workflows, agent authoring, troubleshooting, and examples, read the [Team Orchestrator User Guide](docs/user-guide/README.md).
 
@@ -88,7 +88,7 @@ Expected readiness shape:
 
 `generatedAt`, paths, and detailed messages vary by machine. If readiness is `degraded`, read each check's `nextStep` field first.
 
-## 4. Open The Console
+## 4. Open The Console And Start Work
 
 Open:
 
@@ -99,14 +99,19 @@ http://127.0.0.1:5173
 Useful first-run pages:
 
 - `http://127.0.0.1:5173/` for readiness-oriented onboarding.
-- `http://127.0.0.1:5173/agents` to confirm the sample plugin and demo agent are indexed.
-- `http://127.0.0.1:5173/workflows` to instantiate and run the first-run demo workflow.
-- `http://127.0.0.1:5173/missions` to inspect the created mission.
+- `http://127.0.0.1:5173/start` to choose an outcome such as the first-run demo, repo summary, code review, release readiness, or test-failure explanation.
+- `http://127.0.0.1:5173/runs` to inspect work history after a task or workflow runs.
+- `http://127.0.0.1:5173/resources` to connect repository context for real repo work.
+- `http://127.0.0.1:5173/agents` to browse capabilities and inspect backing plugin-provided agents.
 - `http://127.0.0.1:5173/workflows/runs/workflow-run-mission-first-run-demo` after the API demo commands below.
 
-## 5. Run The First-Run Demo Workflow
+## 5. Run The First-Run Demo Outcome
 
 The local stack includes a sample plugin at `sample-plugins/first-run-demo`.
+
+In the console, open `http://127.0.0.1:5173/start`, choose **Run the first-run demo**, review the preflight, instantiate the workflow, run it, and then inspect the workflow run. The console still shows the backing workflow template before execution, but you do not need to choose that primitive first.
+
+The API path below is useful for repeatable scripted validation.
 
 Confirm the workflow template is indexed:
 
@@ -225,15 +230,23 @@ For a provider-backed manual smoke, configure a provider in Settings, run a mode
 
 ## 6. Move From Demo To Real Repo Work
 
-The first-run demo proves that plugins, agents, workflow templates, task runs, events, and artifact metadata are working locally. Real repository work follows the same operator loop, but uses your repo as run context and plugin-backed agents that know how to operate on that repo.
+The first-run demo proves that the local work loop is functioning. Real repository work follows the same operator path: pick an outcome, select or connect repository context, review preflight, run the work, then inspect history and artifacts.
 
 Use this path:
 
 1. Choose the local repository you want Team Orchestrator to operate on.
 2. If you use `docker-compose.local.yml`, expose that repo with `ATHENA_REPO_HOST_PATH` and use `ATHENA_REPO_CONTAINER_PATH` or `/workspace/target-repo` inside task or workflow inputs.
-3. Add plugin packages that provide the agents or workflow templates you need through `ATHENA_PLUGIN_PATHS` or `ATHENA_SYSTEM_PLUGIN_PATHS`.
-4. Open `http://127.0.0.1:5173/resources` for repo wiring guidance and `http://127.0.0.1:5173/agents` to confirm agents are loaded.
-5. Start real work from `http://127.0.0.1:5173/tasks` for one agent and one objective, or `http://127.0.0.1:5173/workflows` for a plugin-provided workflow template.
+3. Open `http://127.0.0.1:5173/resources` to register or inspect repository context.
+4. Open `http://127.0.0.1:5173/start` and choose a capability such as **Summarize a repository**, **Review code changes**, **Check release readiness**, or **Explain a test failure**.
+5. Review the selected backing agent or workflow, repository context, provider state, safety mode, and required inputs in preflight.
+6. Save/run the work, then open `http://127.0.0.1:5173/runs` to inspect results.
+
+Advanced users and authors can still open direct primitive surfaces:
+
+- `http://127.0.0.1:5173/tasks`
+- `http://127.0.0.1:5173/workflows`
+- `http://127.0.0.1:5173/missions`
+- `http://127.0.0.1:5173/run-templates`
 
 Team Orchestrator does not save repository records or create agents in the console today. The workspace owns app state and plugin discovery; the target repo is supplied through configuration or run inputs when work starts.
 

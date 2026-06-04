@@ -2,9 +2,9 @@
 
 # Team Orchestrator User Guide
 
-Team Orchestrator is a local-first console for running formal agents as inspectable work. Use it when you want agent work to be more durable than a chat transcript: agents have manifests, tasks have inputs, runs have status and events, and outputs leave artifacts you can inspect later.
+Team Orchestrator is a local-first console for running agent work from clear outcomes and then inspecting what happened. Use it when you want more durability and reviewability than a chat transcript: you choose a capability, review preflight, run the work, and inspect history, events, outputs, and artifacts later.
 
-This guide is written for motivated users who want to learn the system without reading source code. It explains the mental model first, then walks through the supported workflows.
+This guide is written for motivated users who want to learn the system without reading source code. It starts with the operator path, then explains the product model underneath it.
 
 ## Who This Is For
 
@@ -21,19 +21,54 @@ If you only want the shortest startup path, use [Getting Started](../../GETTING_
 
 Team Orchestrator gives you a web console and local API for:
 
-- loading agents from local plugin packages,
-- creating tasks and missions,
-- instantiating workflow templates,
+- choosing outcome-oriented capabilities from Start Work,
+- connecting repositories, providers, and other resources,
+- reviewing preflight before execution,
 - running work through local, container, or API backends,
 - inspecting run status, events, outputs, and artifacts,
-- configuring model providers and repository context,
+- browsing the backing agents, tasks, missions, workflow templates, and run templates when needed,
 - keeping risky actions bounded by permissions, approvals, and limits.
 
 The product is local-first. The default path runs on your machine or a trusted local server. Hosted, multi-tenant cloud operation is outside the current core scope.
 
-## The Mental Model
+## Operator Surfaces
 
-The product becomes much easier once the nouns are clear.
+The primary console surfaces are organized around the path a user takes:
+
+- **Start Work**: choose what you want done, such as running the demo, summarizing a repo, reviewing code, checking release readiness, or explaining a test failure.
+- **Work History**: inspect runs, outputs, artifacts, and status after work starts.
+- **Capabilities**: browse plugin-backed agents and templates that power Start Work.
+- **Resources**: connect or inspect repository context and other inputs work can use.
+- **Review**: inspect memory/review-oriented state and other proposal surfaces as they mature.
+
+Lower-level surfaces remain available under **Advanced Work**:
+
+- **Tasks** for one agent and one unit of work.
+- **Workflow Templates** for repeatable multi-step recipes.
+- **Missions** for grouped work.
+- **Schedules** for repeated work.
+- **Run Templates** for advanced presets.
+
+Admin and diagnostic surfaces remain under **Admin**.
+
+## Start With An Outcome
+
+Use **Start Work** when you want Team Orchestrator to do something useful without first deciding whether the underlying primitive is a task, workflow, mission, or run template.
+
+When you choose a capability, the console shows:
+
+- the selected outcome,
+- the backing agent or workflow,
+- repository context,
+- provider readiness,
+- safety mode,
+- required inputs.
+
+This preflight is the point where you confirm what will run before saving, instantiating, or executing work.
+
+## Product Model Reference
+
+You do not need these nouns before your first run, but they explain what Start Work is using underneath.
 
 ### Plugins
 
@@ -41,7 +76,7 @@ A plugin is a folder on disk that packages product resources. A plugin can conta
 
 The plugin manifest is `plugin.yaml`. It gives the plugin an id, version, display name, compatibility information, permissions, and pointers to the agents or workflows inside it.
 
-Plugins are discovered from configured local paths. In the default local setup, checked-in sample plugins are available immediately. Generated agents usually land under `.athena/plugins/`, which is already in the default local plugin search path.
+Plugins are discovered from configured local paths. In the default local setup, checked-in sample plugins and bundled packs are available immediately. Generated agents usually land under `.athena/plugins/`, which is already in the default local plugin search path.
 
 ### Agents
 
@@ -55,25 +90,25 @@ An agent is a formal executable unit. It is not just a prompt. Its manifest decl
 - execution limits,
 - provider requirements when a model is needed.
 
-The console shows agents in the catalog, but agents are authored as plugin files. That is intentional: the console is for operating and inspecting work, while plugin files remain the source of truth for agent behavior.
+The console presents agents as capabilities for operators, but agents are authored as plugin files. That is intentional: the console is for operating and inspecting work, while plugin files remain the source of truth for agent behavior.
 
 ### Tasks
 
 A task is one unit of work assigned to one compatible agent. A task has structured inputs that should match the agent manifest. When you run a task, Team Orchestrator creates a task run.
 
-Use a task when you know the specific agent and objective you want to run.
+Start Work can create task-backed work for you. Use the direct Tasks surface when you already know the specific agent and objective you want to run.
 
 ### Missions
 
 A mission groups related tasks under a shared goal. Missions are useful when one piece of work has multiple steps or multiple agents.
 
-The first mission experience is human-directed. Workflow templates provide the repeatable path when a plugin already knows the task sequence.
+Workflow templates usually create missions for you. The direct Missions surface is mainly for inspection and advanced operation.
 
 ### Workflow Templates
 
 A workflow template is a reusable plan supplied by a plugin. It can instantiate a mission and a workflow DAG run. The workflow run tracks dependency-aware steps, progress, status, and linked task runs.
 
-Use a workflow template when you want a known repeatable sequence, such as the built-in first-run demo.
+Start Work can choose workflow-backed capabilities for you. Use the direct Workflow Templates surface when you want to browse or instantiate a known recipe.
 
 ### Runs
 
@@ -173,7 +208,15 @@ Healthy output includes `ok: true`. Readiness can be `ready` or `degraded`. A de
 
 The first-run demo proves the system without external model credentials. It uses `sample-plugins/first-run-demo` and the default mock provider.
 
-The demo teaches the core loop:
+In the console:
+
+1. Open **Start Work**.
+2. Choose **Run the first-run demo**.
+3. Review preflight.
+4. Instantiate and run the workflow.
+5. Open the workflow run or Work History to inspect status, outputs, and artifacts.
+
+The demo teaches the implementation loop too:
 
 1. Find a workflow template from a plugin.
 2. Instantiate it into a mission and workflow run.
@@ -272,7 +315,7 @@ Useful pages:
 - `/resources` helps explain repository wiring.
 - `/settings` configures providers and related local settings.
 
-When something does not appear, check readiness first, then check plugin validation diagnostics in the Agents page.
+When something does not appear, check readiness first, then check plugin validation diagnostics in the Capabilities page.
 
 ## Run The Product Smoke
 
