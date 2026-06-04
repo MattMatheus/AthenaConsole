@@ -22,11 +22,17 @@ function optionalString(value: unknown): string | undefined {
 }
 
 function providerKind(value: unknown): ModelProviderKind {
-  return value === "openai-compatible" ? "openai-compatible" : "openai-compatible";
+  if (value === "openai-compatible") {
+    return value;
+  }
+  throw new Error("Model provider kind is invalid.");
 }
 
 function secretKind(value: unknown): ModelProviderSecretReferenceKind {
-  return value === "local-file" ? "local-file" : "env";
+  if (value === "env" || value === "local-file") {
+    return value;
+  }
+  throw new Error("Model provider secret kind is invalid.");
 }
 
 function secretStatus(value: unknown): ModelProviderSecretStatus {
@@ -36,7 +42,7 @@ function secretStatus(value: unknown): ModelProviderSecretStatus {
   return "invalid";
 }
 
-function parseProvider(value: unknown): ModelProviderConfig {
+export function parseModelProvider(value: unknown): ModelProviderConfig {
   if (!isRecord(value) || typeof value.id !== "string" || typeof value.name !== "string") {
     throw new Error("Model provider payload is invalid.");
   }
@@ -84,7 +90,7 @@ export async function fetchModelProviders(): Promise<ModelProviderConfigListResu
     throw new Error("Model provider list payload is invalid.");
   }
   return {
-    providers: payload.providers.map(parseProvider),
+    providers: payload.providers.map(parseModelProvider),
     total: typeof payload.total === "number" ? payload.total : payload.providers.length,
   };
 }
@@ -92,14 +98,14 @@ export async function fetchModelProviders(): Promise<ModelProviderConfigListResu
 export async function createModelProvider(
   request: ModelProviderConfigCreateRequest,
 ): Promise<ModelProviderConfig> {
-  return parseProvider(await apiClient.post<unknown>("/v1/model-providers", request));
+  return parseModelProvider(await apiClient.post<unknown>("/v1/model-providers", request));
 }
 
 export async function updateModelProvider(
   id: string,
   request: ModelProviderConfigUpdateRequest,
 ): Promise<ModelProviderConfig> {
-  return parseProvider(await apiClient.put<unknown>(`/v1/model-providers/${encodeURIComponent(id)}`, request));
+  return parseModelProvider(await apiClient.put<unknown>(`/v1/model-providers/${encodeURIComponent(id)}`, request));
 }
 
 export async function deleteModelProvider(id: string): Promise<ModelProviderConfigDeleteResult> {
