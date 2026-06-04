@@ -139,3 +139,4 @@ Engineering work accepted by QA.
 133. `STORY-20260603-start-work-entry-point.md`
 134. `STORY-20260603-capability-led-work-creation.md`
 135. `STORY-20260603-guided-work-preflight.md`
+136. `STORY-20260603-advanced-surface-containment.md`
