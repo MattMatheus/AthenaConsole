@@ -49,6 +49,45 @@
   background: var(--color-surface-elevated);
 }
 
+.preflightPanel {
+  border: 1px solid #cbdff7;
+  border-radius: 8px;
+  background: #f7fbff;
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.preflightGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.preflightItem {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fff;
+  padding: var(--space-3);
+}
+
+.preflightTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.preflightValue {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
 .guidancePanel {
   padding: var(--space-3);
   display: flex;
@@ -473,6 +512,10 @@
     grid-template-columns: minmax(17rem, 22rem) minmax(0, 1fr);
   }
 
+  .preflightGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .layout > aside {
     grid-column: 1 / -1;
   }
@@ -490,5 +533,9 @@
   .guidancePanel {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .preflightGrid {
+    grid-template-columns: 1fr;
   }
 }

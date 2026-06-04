@@ -25,6 +25,7 @@ import {
   useTasksQuery,
   useTaskWorkbenchMetadataQuery,
   validateTaskForm,
+  type TaskInputField,
   type TaskInputValues,
   type TaskWorkbenchRunMode,
   type TaskWorkbenchTask,
@@ -67,6 +68,18 @@ function providerReadinessClass(readiness: ProviderReadiness): string {
     return styles.badgeWarning ?? "";
   }
   return styles.badge ?? "";
+}
+
+function hasInputValue(field: TaskInputField, values: TaskInputValues, repoContextAvailable: boolean): boolean {
+  if (field.type === "repo") {
+    return repoContextAvailable || Boolean(values[field.key]);
+  }
+  const value = values[field.key];
+  return typeof value === "boolean" ? true : String(value ?? "").trim().length > 0;
+}
+
+function missingRequiredInputCount(fields: TaskInputField[], values: TaskInputValues, repoContextAvailable: boolean): number {
+  return fields.filter((field) => field.required && !hasInputValue(field, values, repoContextAvailable)).length;
 }
 
 function taskStatusClass(status: TaskWorkbenchTaskStatus): string {
@@ -150,6 +163,7 @@ export function TaskCreatePage() {
   const runModes = metadataQuery.data?.runModes?.length ? metadataQuery.data.runModes : DEFAULT_RUN_MODES;
   const selectedRunMode = runModes.includes(runMode) ? runMode : metadataQuery.data?.defaultRunMode ?? "read-only";
   const isCapabilityFlow = Boolean(agentIdParam);
+  const missingInputs = missingRequiredInputCount(inputFields, inputValues, Boolean(selectedRepository));
 
   useEffect(() => {
     if (selectedAgentKey && !agentsQuery.isLoading && !compatibleAgents.some((agent) => agentKey(agent) === selectedAgentKey)) {
@@ -290,6 +304,47 @@ export function TaskCreatePage() {
           <p className={styles.mono}>{agentIdParam}{agentVersionParam ? `@${agentVersionParam}` : ""}</p>
         </section>
       ) : null}
+
+      <section className={styles.preflightPanel} aria-label="Work preflight">
+        <div className={styles.sectionHeader}>
+          <div>
+            <p className={styles.panelMeta}>Preflight</p>
+            <p className={styles.panelTitle}>Review before saving</p>
+          </div>
+          <span className={styles.badge}>Task</span>
+        </div>
+        <div className={styles.preflightGrid}>
+          <PreflightItem
+            label="Backing agent"
+            value={selectedAgent ? selectedAgent.name : agentIdParam ? "Resolving selected agent" : "Choose an agent"}
+            tone={selectedAgent ? "ok" : "warn"}
+          />
+          <PreflightItem
+            label="Repository"
+            value={selectedRepository ? selectedRepository.name : "No repo selected"}
+            tone={selectedRepository ? "ok" : "warn"}
+            detail={repoReadinessMessage || selectedRepository?.workspacePath}
+          />
+          <PreflightItem
+            label="Provider"
+            value={selectedAgent?.providerReadiness.status ?? "No agent selected"}
+            tone={providerReadinessBlocking ? "warn" : "ok"}
+            detail={selectedAgent?.providerReadiness.message}
+          />
+          <PreflightItem
+            label="Safety"
+            value={runModeLabel(selectedRunMode)}
+            tone={selectedRunMode === "approved-write" ? "warn" : "ok"}
+            detail={runModeSafetySummary(selectedRunMode)}
+          />
+          <PreflightItem
+            label="Required inputs"
+            value={missingInputs > 0 ? `${missingInputs} missing` : "Ready"}
+            tone={missingInputs > 0 ? "warn" : "ok"}
+            detail={`${inputFields.filter((field) => field.required).length} required fields`}
+          />
+        </div>
+      </section>
 
       {error instanceof Error ? (
         <div className={styles.state}>
@@ -805,9 +860,42 @@ function runModeDescription(mode: TaskWorkbenchRunMode): string {
   return "Write/apply mode is unavailable until approval handling exists.";
 }
 
+function runModeSafetySummary(mode: TaskWorkbenchRunMode): string {
+  if (mode === "read-only") {
+    return "No automatic file mutations.";
+  }
+  if (mode === "propose-changes") {
+    return "Outputs proposals for review.";
+  }
+  return "Requires explicit approval support.";
+}
+
 function taskRunMode(inputs: unknown): string {
   if (typeof inputs === "object" && inputs !== null && !Array.isArray(inputs) && typeof (inputs as { runMode?: unknown }).runMode === "string") {
     return (inputs as { runMode: string }).runMode;
   }
   return "read-only";
+}
+
+function PreflightItem({
+  detail,
+  label,
+  tone,
+  value,
+}: {
+  detail?: string | undefined;
+  label: string;
+  tone: "ok" | "warn";
+  value: string;
+}) {
+  return (
+    <article className={styles.preflightItem}>
+      <div className={styles.preflightTop}>
+        <span className={styles.panelMeta}>{label}</span>
+        <span className={tone === "ok" ? styles.badgeSuccess : styles.badgeWarning}>{tone === "ok" ? "ok" : "check"}</span>
+      </div>
+      <p className={styles.preflightValue}>{value}</p>
+      {detail ? <p className={styles.description}>{detail}</p> : null}
+    </article>
+  );
 }

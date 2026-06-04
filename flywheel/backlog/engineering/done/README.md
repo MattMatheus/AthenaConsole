@@ -138,3 +138,4 @@ Engineering work accepted by QA.
 132. `STORY-20260602-github-approved-write-actions.md`
 133. `STORY-20260603-start-work-entry-point.md`
 134. `STORY-20260603-capability-led-work-creation.md`
+135. `STORY-20260603-guided-work-preflight.md`

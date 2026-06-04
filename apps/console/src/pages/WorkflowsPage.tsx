@@ -110,6 +110,18 @@ function inputMeta(fields: TaskInputField[]): string {
   return required > 0 ? `${fields.length} inputs, ${required} required` : `${fields.length} inputs`;
 }
 
+function hasInputValue(field: TaskInputField, values: TaskInputValues, repoContextAvailable: boolean): boolean {
+  if (field.type === "repo") {
+    return repoContextAvailable || Boolean(values[field.key]);
+  }
+  const value = values[field.key];
+  return typeof value === "boolean" ? true : String(value ?? "").trim().length > 0;
+}
+
+function missingRequiredInputCount(fields: TaskInputField[], values: TaskInputValues, repoContextAvailable: boolean): number {
+  return fields.filter((field) => field.required && !hasInputValue(field, values, repoContextAvailable)).length;
+}
+
 function templateKey(template: WorkflowTemplateSummary): string {
   return `${template.id}@${template.version}:${template.plugin.id}@${template.plugin.version}`;
 }
@@ -208,6 +220,7 @@ export function WorkflowsPage() {
   const unavailableCount = templates.length - availableCount;
   const packCategories = useMemo(() => uniquePackCategories(templates), [templates]);
   const isCapabilityFlow = Boolean(templateIdParam);
+  const missingInputs = missingRequiredInputCount(inputFields, inputValues, Boolean(selectedRepository));
 
   useEffect(() => {
     if (!selectedTemplate && selectedTemplateKey) {
@@ -306,6 +319,47 @@ export function WorkflowsPage() {
           </button>
         </section>
       ) : null}
+
+      <section className={styles.preflightPanel} aria-label="Work preflight">
+        <div className={styles.sectionHeader}>
+          <div>
+            <p className={styles.panelMeta}>Preflight</p>
+            <p className={styles.panelTitle}>Review before instantiating</p>
+          </div>
+          <span className={styles.badge}>Workflow</span>
+        </div>
+        <div className={styles.preflightGrid}>
+          <PreflightItem
+            label="Backing workflow"
+            value={selectedTemplate ? selectedTemplate.name : templateIdParam ? "Resolving selected workflow" : "Choose a workflow"}
+            tone={selectedTemplate ? "ok" : "warn"}
+          />
+          <PreflightItem
+            label="Repository"
+            value={selectedRepository ? selectedRepository.name : "No repo selected"}
+            tone={selectedRepository ? "ok" : "warn"}
+            detail={repoReadinessMessage || selectedRepository?.workspacePath}
+          />
+          <PreflightItem
+            label="Provider"
+            value={selectedTemplate?.providerReadiness.status ?? "No workflow selected"}
+            tone={providerReadinessBlocking ? "warn" : "ok"}
+            detail={selectedTemplate?.providerReadiness.message}
+          />
+          <PreflightItem
+            label="Safety"
+            value={runModeLabel(runMode)}
+            tone={runMode === "approved-write" ? "warn" : "ok"}
+            detail={runModeSafetySummary(runMode)}
+          />
+          <PreflightItem
+            label="Required inputs"
+            value={missingInputs > 0 ? `${missingInputs} missing` : "Ready"}
+            tone={missingInputs > 0 ? "warn" : "ok"}
+            detail={`${inputFields.filter((field) => field.required).length} required fields`}
+          />
+        </div>
+      </section>
 
       {!isCapabilityFlow ? (
       <div className={styles.summaryGrid}>
@@ -799,11 +853,44 @@ function runModeDescription(mode: TaskWorkbenchRunMode): string {
   return "Write/apply mode is unavailable until approval handling exists.";
 }
 
+function runModeSafetySummary(mode: TaskWorkbenchRunMode): string {
+  if (mode === "read-only") {
+    return "No automatic file mutations.";
+  }
+  if (mode === "propose-changes") {
+    return "Outputs proposals for review.";
+  }
+  return "Requires explicit approval support.";
+}
+
 function taskRunMode(inputs: unknown): string {
   if (typeof inputs === "object" && inputs !== null && !Array.isArray(inputs) && typeof (inputs as { runMode?: unknown }).runMode === "string") {
     return (inputs as { runMode: string }).runMode;
   }
   return "read-only";
+}
+
+function PreflightItem({
+  detail,
+  label,
+  tone,
+  value,
+}: {
+  detail?: string | undefined;
+  label: string;
+  tone: "ok" | "warn";
+  value: string;
+}) {
+  return (
+    <article className={styles.preflightItem}>
+      <div className={styles.preflightTop}>
+        <span className={styles.panelMeta}>{label}</span>
+        <span className={tone === "ok" ? styles.badgeSuccess : styles.badgeWarning}>{tone === "ok" ? "ok" : "check"}</span>
+      </div>
+      <p className={styles.preflightValue}>{value}</p>
+      {detail ? <p className={styles.description}>{detail}</p> : null}
+    </article>
+  );
 }
 
 function renderInputField(
