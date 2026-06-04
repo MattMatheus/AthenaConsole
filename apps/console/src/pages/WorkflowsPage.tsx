@@ -141,6 +141,7 @@ function runReadinessClass(status: "ready" | "ready-with-warnings" | "blocked" |
 export function WorkflowsPage() {
   const [searchParams] = useSearchParams();
   const templateIdParam = searchParams.get("templateId")?.trim() ?? "";
+  const capabilityParam = searchParams.get("capability")?.trim() ?? "";
   const initialSearch = searchParams.get("q")?.trim() ?? "";
   const [search, setSearch] = useState(initialSearch);
   const [availability, setAvailability] = useState<AvailabilityFilter>("all");
@@ -153,6 +154,7 @@ export function WorkflowsPage() {
   const [useRawInputs, setUseRawInputs] = useState(false);
   const [rawInputJson, setRawInputJson] = useState("{}");
   const [hasAttemptedInstantiate, setHasAttemptedInstantiate] = useState(false);
+  const [showCatalog, setShowCatalog] = useState(!templateIdParam);
   const templatesQuery = useWorkflowTemplatesQuery({ includeUnavailable: true });
   const repositoriesQuery = useConnectedRepositoriesQuery();
   const instantiateMutation = useInstantiateWorkflowTemplateMutation();
@@ -205,6 +207,7 @@ export function WorkflowsPage() {
   const availableCount = templates.filter((template) => template.available).length;
   const unavailableCount = templates.length - availableCount;
   const packCategories = useMemo(() => uniquePackCategories(templates), [templates]);
+  const isCapabilityFlow = Boolean(templateIdParam);
 
   useEffect(() => {
     if (!selectedTemplate && selectedTemplateKey) {
@@ -289,6 +292,22 @@ export function WorkflowsPage() {
         </Link>
       </GuidanceNote>
 
+      {isCapabilityFlow ? (
+        <section className={styles.guidancePanel}>
+          <div>
+            <p className={styles.panelMeta}>Selected capability</p>
+            <p className={styles.panelTitle}>{capabilityParam || selectedTemplate?.name || templateIdParam}</p>
+            <p className={styles.description}>
+              Team Orchestrator selected the backing workflow for this outcome. Review the template, repository context, run mode, and inputs before instantiating it.
+            </p>
+          </div>
+          <button type="button" className={styles.secondaryButton} onClick={() => setShowCatalog((current) => !current)}>
+            {showCatalog ? "Hide catalog" : "Browse other workflows"}
+          </button>
+        </section>
+      ) : null}
+
+      {!isCapabilityFlow ? (
       <div className={styles.summaryGrid}>
         <div className={styles.metric}>
           <span className={styles.metricLabel}>Templates</span>
@@ -307,7 +326,9 @@ export function WorkflowsPage() {
           <span className={styles.metricValue}>{visibleTemplates.length}</span>
         </div>
       </div>
+      ) : null}
 
+      {showCatalog ? (
       <div className={styles.filters}>
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Search</span>
@@ -350,6 +371,7 @@ export function WorkflowsPage() {
           </select>
         </label>
       </div>
+      ) : null}
 
       {templatesQuery.isLoading || repositoriesQuery.isLoading ? (
         <div className={styles.state}>
@@ -378,7 +400,8 @@ export function WorkflowsPage() {
       ) : null}
 
       {!templatesQuery.isLoading && !repositoriesQuery.isLoading && !templatesQuery.error && !repositoriesQuery.error && templates.length > 0 ? (
-        <div className={styles.layout}>
+        <div className={showCatalog ? styles.layout : styles.layoutFocused}>
+          {showCatalog ? (
           <section className={styles.panel}>
             <div className={styles.panelHeader}>
               <div>
@@ -430,6 +453,7 @@ export function WorkflowsPage() {
               </div>
             )}
           </section>
+          ) : null}
 
           <form
             className={styles.panel}

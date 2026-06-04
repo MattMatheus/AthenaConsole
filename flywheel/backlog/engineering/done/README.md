@@ -137,3 +137,4 @@ Engineering work accepted by QA.
 131. `STORY-20260602-github-workflow-templates.md`
 132. `STORY-20260602-github-approved-write-actions.md`
 133. `STORY-20260603-start-work-entry-point.md`
+134. `STORY-20260603-capability-led-work-creation.md`

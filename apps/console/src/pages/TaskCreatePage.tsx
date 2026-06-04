@@ -89,6 +89,7 @@ export function TaskCreatePage() {
   const missionIdFilter = searchParams.get("missionId")?.trim() ?? "";
   const agentIdParam = searchParams.get("agentId")?.trim() ?? "";
   const agentVersionParam = searchParams.get("version")?.trim() ?? "";
+  const capabilityParam = searchParams.get("capability")?.trim() ?? "";
   const agentsQuery = useAgentCatalogAgentsQuery();
   const metadataQuery = useTaskWorkbenchMetadataQuery();
   const repositoriesQuery = useConnectedRepositoriesQuery();
@@ -148,6 +149,7 @@ export function TaskCreatePage() {
   const visibleTasks = listedTasks.slice(0, 12);
   const runModes = metadataQuery.data?.runModes?.length ? metadataQuery.data.runModes : DEFAULT_RUN_MODES;
   const selectedRunMode = runModes.includes(runMode) ? runMode : metadataQuery.data?.defaultRunMode ?? "read-only";
+  const isCapabilityFlow = Boolean(agentIdParam);
 
   useEffect(() => {
     if (selectedAgentKey && !agentsQuery.isLoading && !compatibleAgents.some((agent) => agentKey(agent) === selectedAgentKey)) {
@@ -277,7 +279,16 @@ export function TaskCreatePage() {
         </p>
       </GuidanceNote>
       {agentIdParam ? (
-        <p className={styles.mono}>Requested agent: {agentIdParam}{agentVersionParam ? `@${agentVersionParam}` : ""}</p>
+        <section className={styles.guidancePanel}>
+          <div>
+            <p className={styles.panelMeta}>Selected capability</p>
+            <p className={styles.panelTitle}>{capabilityParam || selectedAgent?.name || agentIdParam}</p>
+            <p className={styles.description}>
+              Team Orchestrator selected the backing agent for this outcome. Review the agent, repository context, run mode, and inputs before saving the task.
+            </p>
+          </div>
+          <p className={styles.mono}>{agentIdParam}{agentVersionParam ? `@${agentVersionParam}` : ""}</p>
+        </section>
       ) : null}
 
       {error instanceof Error ? (
@@ -296,6 +307,7 @@ export function TaskCreatePage() {
 
       {!isLoading && !error ? (
         <>
+        {!isCapabilityFlow ? (
         <section className={styles.panelSection}>
           <div className={styles.sectionHeader}>
             <div>
@@ -340,6 +352,7 @@ export function TaskCreatePage() {
             </div>
           ) : null}
         </section>
+        ) : null}
 
         <div className={styles.layout}>
           <form
@@ -349,6 +362,7 @@ export function TaskCreatePage() {
               saveTask("draft");
             }}
           >
+            {!isCapabilityFlow ? (
             <section className={styles.panelSection}>
               <div className={styles.sectionHeader}>
                 <div>
@@ -377,6 +391,7 @@ export function TaskCreatePage() {
                 />
               </label>
             </section>
+            ) : null}
 
             <section className={styles.panelSection}>
               <div className={styles.sectionHeader}>
