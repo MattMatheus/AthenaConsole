@@ -22,12 +22,17 @@ No ready engineering or architecture work.
 
 Candidate work that needs PM refinement before activation:
 
-No candidate engineering or architecture intake items.
+- `engineering/intake/STORY-20260603-advanced-surface-containment.md`
+- `engineering/intake/STORY-20260603-capability-led-work-creation.md`
+- `engineering/intake/STORY-20260603-guided-work-preflight.md`
+- `engineering/intake/STORY-20260603-intent-led-docs-alignment.md`
 
 ## Done
 
 Recently completed:
 
+- `engineering/done/STORY-20260603-start-work-entry-point.md`
+- `architecture/done/ARCH-20260603-product-intuition-ia.md`
 - `engineering/done/STORY-20260602-github-approved-write-actions.md`
 - `engineering/done/STORY-20260602-github-workflow-templates.md`
 - `engineering/done/STORY-20260602-github-release-notes-agent.md`

@@ -1,5 +1,6 @@
-import { CheckCircle2, CircleAlert, FolderGit2, RefreshCw, Route, Workflow } from "lucide-react";
+import { CheckCircle2, CircleAlert, FolderGit2, RefreshCw, Sparkles, Workflow } from "lucide-react";
 import { Link } from "react-router-dom";
+import { START_WORK_PATH } from "../app/routeModel";
 import { OperationsDashboard } from "../features/operations";
 import {
   checksForLane,
@@ -29,8 +30,8 @@ export function DashboardPage() {
           <Link to="/workflows" className={styles.secondaryCta}>
             <Workflow size={16} /> Workflows
           </Link>
-          <Link to="/tasks" className={styles.primaryCta}>
-            <Route size={16} /> New Task
+          <Link to={START_WORK_PATH} className={styles.primaryCta}>
+            <Sparkles size={16} /> Start Work
           </Link>
         </div>
       </div>
@@ -38,13 +39,13 @@ export function DashboardPage() {
       <section className={styles.createWorkPanel}>
         <div>
           <p className={styles.key}>Create Work</p>
-          <h2 className={styles.onboardingTitle}>Choose the right primitive</h2>
+          <h2 className={styles.onboardingTitle}>Start from an outcome</h2>
         </div>
         <div className={styles.createWorkGrid}>
-          <WorkEntry to="/tasks" title="Task" body="One agent, one concrete unit of work." />
-          <WorkEntry to="/workflows" title="Workflow" body="A plugin template that creates coordinated tasks." />
-          <WorkEntry to="/schedules" title="Schedule" body="Repeat a ready task or workflow over time." />
-          <WorkEntry to="/run-templates" title="Run preset" body="Advanced directive preset for repeatable local runs." />
+          <WorkEntry to={START_WORK_PATH} title="Run the demo" body="Prove the local loop with the first-run workflow." />
+          <WorkEntry to={`${START_WORK_PATH}#repo`} title="Use a repo" body="Pick repository work such as summary, review, or release readiness." />
+          <WorkEntry to={`${START_WORK_PATH}#github`} title="Use GitHub" body="Start issue, PR, and release workflows from the bundled connector pack." />
+          <WorkEntry to="/runs" title="Inspect work" body="Review runs, outputs, and artifacts after work starts." />
         </div>
       </section>
       <section className={styles.onboardingPanel}>

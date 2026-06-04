@@ -1,6 +1,6 @@
 import { CheckCircle2, Play, RefreshCw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { GuidanceNote } from "../components";
 import type { CapabilityPackMetadata, ProviderReadiness } from "../features/agent-catalog";
 import {
@@ -139,7 +139,10 @@ function runReadinessClass(status: "ready" | "ready-with-warnings" | "blocked" |
 }
 
 export function WorkflowsPage() {
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const templateIdParam = searchParams.get("templateId")?.trim() ?? "";
+  const initialSearch = searchParams.get("q")?.trim() ?? "";
+  const [search, setSearch] = useState(initialSearch);
   const [availability, setAvailability] = useState<AvailabilityFilter>("all");
   const [source, setSource] = useState<SourceFilter>("all");
   const [pack, setPack] = useState("all");
@@ -176,8 +179,11 @@ export function WorkflowsPage() {
     [availability, pack, search, source, templates],
   );
   const selectedTemplate = useMemo(
-    () => templates.find((template) => templateKey(template) === selectedTemplateKey) ?? visibleTemplates[0],
-    [selectedTemplateKey, templates, visibleTemplates],
+    () =>
+      templates.find((template) => templateKey(template) === selectedTemplateKey) ??
+      templates.find((template) => template.id === templateIdParam) ??
+      visibleTemplates[0],
+    [selectedTemplateKey, templateIdParam, templates, visibleTemplates],
   );
   const selectedRepository = repositories.find((repository) => repository.id === selectedRepositoryId);
   const repoReadinessMessage = connectedRepositoryReadinessMessage(selectedRepository);

@@ -14,6 +14,7 @@ import {
   Settings,
   ShieldCheck,
   SlidersHorizontal,
+  Sparkles,
   SquareStack,
   Target,
   Workflow,
@@ -40,6 +41,7 @@ const navSections: NavSection[] = [
     label: "Operate",
     items: [
       { path: "/", label: "Dashboard", match: /^\/$/, icon: LayoutDashboard },
+      { path: "/start", label: "Start Work", match: /^\/start/, icon: Sparkles },
       { path: "/agents", label: "Agents", match: /^\/agents/, icon: Bot },
       { path: "/workflows", label: "Workflows", match: /^\/workflows/, icon: Workflow },
       { path: "/missions", label: "Missions", match: /^\/missions/, icon: Target },

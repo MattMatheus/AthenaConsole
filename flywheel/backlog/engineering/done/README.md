@@ -136,3 +136,4 @@ Engineering work accepted by QA.
 130. `STORY-20260602-github-release-notes-agent.md`
 131. `STORY-20260602-github-workflow-templates.md`
 132. `STORY-20260602-github-approved-write-actions.md`
+133. `STORY-20260603-start-work-entry-point.md`

@@ -122,11 +122,23 @@ Outcome:
 
 - Provide first-party GitHub agents and workflows for issue triage, PR summarization, PR review support, release-note drafting, and repository onboarding.
 
-### 2026.42 Knowledge Work Connector Pack
+### 2026.42 Product Intuition And Start-Work Flow
 
 Source epic:
 
-- `docs/product/epics/active/2026.42.00-epic-knowledge-work-connector-pack.md`
+- `docs/product/epics/active/2026.42.00-epic-product-intuition-and-start-work-flow.md`
+
+Outcome:
+
+- Refocus the console around user intent, outcomes, capabilities, work history, resources, and review before adding more connector surface area.
+
+### 2026.43 Knowledge Work Connector Pack
+
+Status: Deferred until product-intuition repair is complete.
+
+Source epic:
+
+- `docs/product/epics/active/2026.43.00-epic-knowledge-work-connector-pack.md`
 
 Outcome:
 
@@ -143,7 +155,8 @@ Recommended sequence:
 5. Ship 2026.39 before service connectors so new users get value without third-party credentials.
 6. Build 2026.40 before GitHub or knowledge-work connector packs.
 7. Use 2026.41 as the first service-specific connector proving ground.
-8. Let 2026.42 select its first service by user value, auth complexity, and safety risk.
+8. Complete 2026.42 before adding more connector surface area, so new capabilities enter an intuitive product shell.
+9. Let 2026.43 select its first service by user value, auth complexity, and safety risk.
 
 ## Non-Goals
 
@@ -160,3 +173,4 @@ Recommended sequence:
 - What is the first remote storage backend: Postgres, object storage plus index, Chroma server, AthenaMemory, or another service?
 - Should first-party capability packs ship enabled by default, suggested during onboarding, or installed from a local bundled catalog?
 - Which connector should follow GitHub if only one knowledge-work service can be built first?
+- Which platform nouns should remain primary operator concepts, and which should become advanced implementation detail?

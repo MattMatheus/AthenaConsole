@@ -15,7 +15,8 @@
 
 ## Active Epics
 
-- 2026.42 — Knowledge Work Connector Pack
+- 2026.42 — Product Intuition And Start-Work Flow
+- 2026.43 — Knowledge Work Connector Pack (deferred)
 
 ## Recently Completed Epics
 

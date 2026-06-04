@@ -14,6 +14,7 @@ import { RunTemplatesPage } from "../pages/RunTemplatesPage";
 import { SchedulesPage } from "../pages/SchedulesPage";
 import { RunHistoryPage } from "../pages/SessionsPage";
 import { SettingsPage } from "../pages/SettingsPage";
+import { StartWorkPage } from "../pages/StartWorkPage";
 import { TaskCreatePage } from "../pages/TaskCreatePage";
 import { TaskRunDetailPage } from "../pages/TaskRunDetailPage";
 import { WorkflowRunDetailPage } from "../pages/WorkflowRunDetailPage";
@@ -28,6 +29,10 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: <DashboardPage />,
+      },
+      {
+        path: "start",
+        element: <StartWorkPage />,
       },
       {
         path: "agents",

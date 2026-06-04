@@ -14,3 +14,4 @@ Architecture work accepted by review.
 9. `ARCH-20260602-memory-local-cache-boundary.md`
 10. `ARCH-20260602-memory-remote-backend-recommendation.md`
 11. `ARCH-20260602-semantic-memory-backend-strategy.md`
+12. `ARCH-20260603-product-intuition-ia.md`
