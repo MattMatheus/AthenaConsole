@@ -592,6 +592,84 @@ describe("control-plane authorization wrappers", () => {
     }
   });
 
+  it("filters and denies task workbench access by workspace scope for admin, operator, and viewer roles", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-authz-workspace-"));
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_AUTH_ENABLED=true\nATHENA_AUTHZ_MODE=enforce", "utf8");
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableTaskAgent(appState);
+      } finally {
+        appState.close();
+      }
+      const services = createLocalControlPlaneServices({ config });
+      const scopedAlpha: ScopeSet = {
+        global: false,
+        agents: [],
+        sessionIds: [],
+        runIds: [],
+        workspaces: ["workspace-alpha"]
+      };
+
+      await expect(
+        withAuthScope("Operator", scopedAlpha, () =>
+          services.taskWorkbenchService.create({
+            id: "task-workspace-alpha",
+            title: "Alpha task",
+            status: "ready",
+            assignedAgentId: "software.authz.local"
+          })
+        )
+      ).resolves.toMatchObject({
+        id: "task-workspace-alpha",
+        workspaceId: "workspace-alpha"
+      });
+      await withAuthScope("Admin", globalScope(), () =>
+        services.taskWorkbenchService.create({
+          id: "task-workspace-beta",
+          title: "Beta task",
+          status: "ready",
+          assignedAgentId: "software.authz.local",
+          workspaceId: "workspace-beta"
+        })
+      );
+
+      await expect(withAuthScope("Viewer", scopedAlpha, () => services.taskWorkbenchService.list())).resolves.toMatchObject({
+        tasks: [expect.objectContaining({ id: "task-workspace-alpha", workspaceId: "workspace-alpha" })],
+        total: 1
+      });
+      await expect(
+        withAuthScope("Viewer", scopedAlpha, () => services.taskWorkbenchService.list({ workspaceId: "workspace-beta" }))
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withAuthScope("Admin", scopedAlpha, () => services.taskWorkbenchService.get("task-workspace-beta"))
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withAuthScope("Operator", scopedAlpha, () =>
+          services.taskWorkbenchService.create({
+            id: "task-workspace-denied",
+            title: "Denied task",
+            workspaceId: "workspace-beta"
+          })
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withAuthScope("Operator", scopedAlpha, () => services.taskWorkbenchService.runTask("task-workspace-beta"))
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("supports observe and soft-enforce rollout modes", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-authz-rollout-"));
     let observeServices: ControlPlaneServices | undefined;
@@ -708,7 +786,8 @@ function defaultScopeForRole(role: AthenaRbacRole): ScopeSet {
     global: role === "Admin",
     agents: [],
     sessionIds: [],
-    runIds: []
+    runIds: [],
+    workspaces: []
   };
 }
 
@@ -717,7 +796,8 @@ function globalScope(): ScopeSet {
     global: true,
     agents: [],
     sessionIds: [],
-    runIds: []
+    runIds: [],
+    workspaces: []
   };
 }
 

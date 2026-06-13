@@ -435,9 +435,26 @@ process.stdin.on("end", () => {
         });
         const service = new LocalTaskWorkbenchService(config, { appState });
 
-        await service.runTask("task-provider-usage", { runId: "run-provider-usage" });
+        const run = await service.runTask("task-provider-usage", { runId: "run-provider-usage" });
         const bundle = await service.exportRunEvidenceBundle("run-provider-usage");
 
+        expect(run.usage).toMatchObject({
+          provider: "fixture-openai",
+          providerId: "fixture-openai",
+          providerKind: "openai-compatible",
+          model: "gpt-fixture",
+          inputTokens: 12,
+          outputTokens: 8,
+          totalTokens: 20,
+          costUsd: 0.01
+        });
+        expect(appState.usageLedger.getByRunId("run-provider-usage")).toMatchObject({
+          runId: "run-provider-usage",
+          provider: "fixture-openai",
+          providerId: "fixture-openai",
+          model: "gpt-fixture",
+          totalTokens: 20
+        });
         expect(bundle.manifest.run.provider).toEqual({
           providerId: "fixture-openai",
           providerKind: "openai-compatible",

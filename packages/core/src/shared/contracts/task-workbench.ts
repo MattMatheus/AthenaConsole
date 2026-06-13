@@ -38,6 +38,7 @@ export interface TaskWorkbenchTask {
   assignedAgentVersion?: string;
   inputs: unknown;
   dependsOn: string[];
+  workspaceId: string;
   missionId?: string;
   sourceRunId?: string;
   provenance?: unknown;
@@ -73,6 +74,7 @@ export interface TaskWorkbenchTaskListQuery {
   status?: TaskWorkbenchTaskStatus;
   missionId?: string;
   includeArchived?: boolean;
+  workspaceId?: string;
 }
 
 export interface TaskWorkbenchTaskListResult {
@@ -91,6 +93,7 @@ export interface TaskWorkbenchTaskCreateRequest {
   assignedAgentVersion?: string;
   inputs?: unknown;
   dependsOn?: string[];
+  workspaceId?: string;
   missionId?: string;
   sourceRunId?: string;
   provenance?: unknown;
@@ -106,6 +109,7 @@ export interface TaskWorkbenchTaskUpdateRequest {
   assignedAgentVersion?: string;
   inputs?: unknown;
   dependsOn?: string[];
+  workspaceId?: string;
   missionId?: string;
   sourceRunId?: string;
   provenance?: unknown;
@@ -143,10 +147,23 @@ export interface TaskWorkbenchTaskRunSummary {
   updatedAt: string;
 }
 
+export interface TaskWorkbenchRunUsageSummary {
+  provider?: string;
+  providerId?: string;
+  providerKind?: string;
+  model?: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  costUsd?: number;
+  recordedAt: string;
+}
+
 export interface TaskWorkbenchTaskRun {
   id: string;
   targetType: "task";
   targetId: string;
+  workspaceId: string;
   status: TaskWorkbenchRunStatus;
   backend?: string;
   agentId?: string;
@@ -158,6 +175,7 @@ export interface TaskWorkbenchTaskRun {
   safetyStop?: unknown;
   verificationStatus?: TaskWorkbenchVerificationStatus;
   verificationFailures?: VerificationPolicyFailure[];
+  usage?: TaskWorkbenchRunUsageSummary;
   createdAt: string;
   updatedAt: string;
 }

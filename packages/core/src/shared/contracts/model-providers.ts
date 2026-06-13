@@ -22,6 +22,7 @@ export interface ModelProviderConfig {
   secret: ModelProviderSecretMetadata;
   status: ModelProviderSecretStatus;
   statusMessage?: string;
+  workspaceId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -38,6 +39,7 @@ export interface ModelProviderConfigCreateRequest {
   baseUrl?: string;
   defaultModel: string;
   secret: ModelProviderSecretReference;
+  workspaceId?: string;
 }
 
 export interface ModelProviderConfigUpdateRequest {

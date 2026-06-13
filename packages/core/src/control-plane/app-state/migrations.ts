@@ -575,6 +575,121 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
       create index if not exists idx_eval_results_run_status
         on eval_results(eval_run_id, status);
     `
+  },
+  {
+    version: 18,
+    name: "add-usage-ledger",
+    sql: `
+      create table if not exists usage_ledger (
+        id text primary key,
+        run_id text not null,
+        target_type text,
+        target_id text,
+        task_id text,
+        agent_id text,
+        agent_version text,
+        provider text,
+        provider_id text,
+        provider_kind text,
+        model text,
+        user_id text,
+        workspace_id text,
+        input_tokens integer not null default 0,
+        output_tokens integer not null default 0,
+        total_tokens integer not null default 0,
+        cost_usd real,
+        provider_usage_json text,
+        source text not null,
+        recorded_at text not null,
+        created_at text not null,
+        updated_at text not null,
+        unique(run_id),
+        foreign key (run_id) references runs(id) on delete cascade,
+        foreign key (task_id) references tasks(id) on delete set null
+      );
+
+      create index if not exists idx_usage_ledger_recorded_at
+        on usage_ledger(recorded_at);
+      create index if not exists idx_usage_ledger_agent
+        on usage_ledger(agent_id, agent_version);
+      create index if not exists idx_usage_ledger_provider
+        on usage_ledger(provider, provider_id);
+      create index if not exists idx_usage_ledger_model
+        on usage_ledger(model);
+      create index if not exists idx_usage_ledger_user_workspace
+        on usage_ledger(user_id, workspace_id);
+    `
+  },
+  {
+    version: 19,
+    name: "add-agent-lifecycle-status",
+    sql: `
+      alter table agent_index add column lifecycle_status text not null default 'approved';
+      create index if not exists idx_agent_index_lifecycle_status
+        on agent_index(lifecycle_status);
+    `
+  },
+  {
+    version: 20,
+    name: "add-default-workspace",
+    sql: `
+      create table if not exists workspaces (
+        id text primary key,
+        name text not null,
+        slug text not null unique,
+        created_at text not null,
+        updated_at text not null
+      );
+
+      insert into workspaces (id, name, slug, created_at, updated_at)
+      values ('default', 'Default Workspace', 'default', '1970-01-01T00:00:00.000Z', '1970-01-01T00:00:00.000Z')
+      on conflict(id) do nothing;
+
+      alter table missions add column workspace_id text not null default 'default';
+      alter table tasks add column workspace_id text not null default 'default';
+      alter table runs add column workspace_id text not null default 'default';
+      alter table run_events add column workspace_id text not null default 'default';
+      alter table artifact_metadata add column workspace_id text not null default 'default';
+      alter table schedules add column workspace_id text not null default 'default';
+      alter table schedule_run_history add column workspace_id text not null default 'default';
+      alter table connected_repositories add column workspace_id text not null default 'default';
+      alter table model_provider_configs add column workspace_id text not null default 'default';
+      alter table connector_credential_bindings add column workspace_id text not null default 'default';
+      alter table eval_suites add column workspace_id text not null default 'default';
+      alter table eval_runs add column workspace_id text not null default 'default';
+      alter table eval_results add column workspace_id text not null default 'default';
+
+      update usage_ledger set workspace_id = 'default' where workspace_id is null or workspace_id = '';
+
+      create index if not exists idx_missions_workspace
+        on missions(workspace_id);
+      create index if not exists idx_tasks_workspace
+        on tasks(workspace_id);
+      create index if not exists idx_runs_workspace
+        on runs(workspace_id);
+      create index if not exists idx_run_events_workspace
+        on run_events(workspace_id);
+      create index if not exists idx_artifact_metadata_workspace
+        on artifact_metadata(workspace_id);
+      create index if not exists idx_schedules_workspace
+        on schedules(workspace_id);
+      create index if not exists idx_schedule_run_history_workspace
+        on schedule_run_history(workspace_id);
+      create index if not exists idx_connected_repositories_workspace
+        on connected_repositories(workspace_id);
+      create index if not exists idx_model_provider_configs_workspace
+        on model_provider_configs(workspace_id);
+      create index if not exists idx_connector_credential_bindings_workspace
+        on connector_credential_bindings(workspace_id);
+      create index if not exists idx_eval_suites_workspace
+        on eval_suites(workspace_id);
+      create index if not exists idx_eval_runs_workspace
+        on eval_runs(workspace_id);
+      create index if not exists idx_eval_results_workspace
+        on eval_results(workspace_id);
+      create index if not exists idx_usage_ledger_workspace
+        on usage_ledger(workspace_id);
+    `
   }
 ];
 

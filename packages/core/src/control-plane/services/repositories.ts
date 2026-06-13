@@ -74,6 +74,7 @@ export class LocalConnectedRepositoryService implements ConnectedRepositoryServi
           ...(request.hostPath ? { hostPath: request.hostPath } : {}),
           remoteUrl: request.remoteUrl ?? inspected.remoteUrl,
           ...(request.defaultBranch ? { defaultBranch: request.defaultBranch } : {}),
+          ...(request.workspaceId ? { workspaceId: request.workspaceId } : {}),
           status: inspected.status,
           dirtyState: inspected.dirtyState,
           ...(inspected.statusMessage ? { statusMessage: inspected.statusMessage } : {})
@@ -109,6 +110,7 @@ export class LocalConnectedRepositoryService implements ConnectedRepositoryServi
             workspacePath,
             remoteUrl: request.remoteUrl,
             ...(request.defaultBranch ? { defaultBranch: request.defaultBranch } : {}),
+            ...(request.workspaceId ? { workspaceId: request.workspaceId } : {}),
             status: "error",
             dirtyState: "unknown",
             statusMessage
@@ -128,6 +130,7 @@ export class LocalConnectedRepositoryService implements ConnectedRepositoryServi
           workspacePath,
           remoteUrl: request.remoteUrl,
           ...(request.defaultBranch ? { defaultBranch: request.defaultBranch } : {}),
+          ...(request.workspaceId ? { workspaceId: request.workspaceId } : {}),
           status: inspected.status,
           dirtyState: inspected.dirtyState,
           ...(inspected.statusMessage ? { statusMessage: inspected.statusMessage } : {})
@@ -360,6 +363,7 @@ function mapRepositoryRecord(record: ConnectedRepositoryRecord): ConnectedReposi
     ...(record.defaultBranch ? { defaultBranch: record.defaultBranch } : {}),
     ...(record.currentBranch ? { currentBranch: record.currentBranch } : {}),
     ...(record.headCommit ? { headCommit: record.headCommit } : {}),
+    workspaceId: record.workspaceId,
     dirtyState: record.dirtyState,
     status: record.status,
     ...(record.statusMessage ? { statusMessage: record.statusMessage } : {}),

@@ -694,6 +694,9 @@ export function TaskCreatePage() {
                   <p className={styles.mono}>{selectedAgent.id}@{selectedAgent.version}</p>
                   <p className={styles.description}>{selectedAgent.metadata.description ?? "No description declared."}</p>
                   <div className={styles.badgeRow}>
+                    <span className={selectedAgent.available ? styles.badgeSuccess : styles.badgeWarning}>
+                      lifecycle {selectedAgent.status}
+                    </span>
                     <span className={providerReadinessClass(selectedAgent.providerReadiness)}>
                       provider {selectedAgent.providerReadiness.status}
                     </span>

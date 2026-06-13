@@ -26,6 +26,7 @@ interface TaskRow {
   source_run_id: string | null;
   provenance_json: string | null;
   created_by: string | null;
+  workspace_id: string;
   created_at: string;
   updated_at: string;
   archived_at: string | null;
@@ -45,6 +46,7 @@ export interface TaskRecord {
   sourceRunId?: string;
   provenance?: unknown;
   createdBy?: string;
+  workspaceId: string;
   createdAt: string;
   updatedAt: string;
   archivedAt?: string;
@@ -64,6 +66,7 @@ export interface CreateTaskInput {
   sourceRunId?: string;
   provenance?: unknown;
   createdBy?: string;
+  workspaceId?: string;
   now?: Date;
 }
 
@@ -80,6 +83,7 @@ export interface UpdateTaskInput {
   sourceRunId?: string;
   provenance?: unknown;
   createdBy?: string;
+  workspaceId?: string;
   now?: Date;
 }
 
@@ -87,6 +91,7 @@ export interface ListTasksOptions {
   includeArchived?: boolean;
   status?: TaskStatus;
   missionId?: string;
+  workspaceId?: string;
   limit?: number;
 }
 
@@ -118,6 +123,7 @@ export class TaskRepository {
         source_run_id,
         provenance_json,
         created_by,
+        workspace_id,
         created_at,
         updated_at,
         archived_at
@@ -136,6 +142,7 @@ export class TaskRepository {
         @sourceRunId,
         @provenanceJson,
         @createdBy,
+        @workspaceId,
         @createdAt,
         @updatedAt,
         @archivedAt
@@ -155,6 +162,7 @@ export class TaskRepository {
         source_run_id = @sourceRunId,
         provenance_json = @provenanceJson,
         created_by = @createdBy,
+        workspace_id = @workspaceId,
         updated_at = @updatedAt,
         archived_at = @archivedAt
       where id = @id
@@ -179,6 +187,7 @@ export class TaskRepository {
       sourceRunId: input.sourceRunId ?? null,
       provenanceJson: input.provenance === undefined ? null : JSON.stringify(input.provenance),
       createdBy: input.createdBy ?? null,
+      workspaceId: input.workspaceId ?? "default",
       createdAt: now,
       updatedAt: now,
       archivedAt: status === "archived" ? now : null
@@ -220,6 +229,10 @@ export class TaskRepository {
       clauses.push("mission_id = @missionId");
       params.missionId = options.missionId;
     }
+    if (options.workspaceId) {
+      clauses.push("workspace_id = @workspaceId");
+      params.workspaceId = options.workspaceId;
+    }
     const where = clauses.length > 0 ? `where ${clauses.join(" and ")}` : "";
     return this.db
       .prepare(taskSelectSql(`${where} order by updated_at desc, created_at desc limit @limit`))
@@ -247,6 +260,7 @@ export class TaskRepository {
       sourceRunId: input.sourceRunId ?? existing.sourceRunId ?? null,
       provenanceJson: input.provenance === undefined ? jsonOrNull(existing.provenance) : JSON.stringify(input.provenance),
       createdBy: input.createdBy ?? existing.createdBy ?? null,
+      workspaceId: input.workspaceId ?? existing.workspaceId,
       updatedAt,
       archivedAt: status === "archived" ? existing.archivedAt ?? updatedAt : existing.archivedAt ?? null
     });
@@ -265,7 +279,7 @@ function assertTaskReadyAssignment(status: TaskStatus, assignedAgentId: string |
 }
 
 function taskSelectSql(suffix: string): string {
-  return `select id, title, description, status, capability_requirements_json, assigned_agent_id, assigned_agent_version, inputs_json, depends_on_json, mission_id, source_run_id, provenance_json, created_by, created_at, updated_at, archived_at from tasks ${suffix}`;
+  return `select id, title, description, status, capability_requirements_json, assigned_agent_id, assigned_agent_version, inputs_json, depends_on_json, mission_id, source_run_id, provenance_json, created_by, workspace_id, created_at, updated_at, archived_at from tasks ${suffix}`;
 }
 
 function mapTaskRow(row: TaskRow): TaskRecord {
@@ -283,6 +297,7 @@ function mapTaskRow(row: TaskRow): TaskRecord {
     ...(row.source_run_id ? { sourceRunId: row.source_run_id } : {}),
     ...(row.provenance_json ? { provenance: JSON.parse(row.provenance_json) as unknown } : {}),
     ...(row.created_by ? { createdBy: row.created_by } : {}),
+    workspaceId: row.workspace_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     ...(row.archived_at ? { archivedAt: row.archived_at } : {})

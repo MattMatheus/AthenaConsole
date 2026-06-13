@@ -189,12 +189,18 @@ function outcomeReadiness(
       : undefined;
   const providerReadiness = target?.providerReadiness as ProviderReadiness | undefined;
   const providerReady = providerReadiness ? !isProviderReadinessBlocking(providerReadiness) : outcome.target.kind === "link";
+  const agentTarget = outcome.target.kind === "agent" ? (target as AgentCatalogAgentSummary | undefined) : undefined;
+  const targetAvailable = agentTarget ? agentTarget.available : Boolean(target);
+  const lifecycleBlocked = Boolean(agentTarget && !agentTarget.available);
   return {
-    blockedReasons: startWorkBlockedReasons(outcome, {
-      backingReady: outcome.target.kind === "link" || Boolean(target),
-      repositoryReady,
-      providerReady,
-    }),
+    blockedReasons: [
+      ...startWorkBlockedReasons(outcome, {
+        backingReady: outcome.target.kind === "link" || targetAvailable,
+        repositoryReady,
+        providerReady,
+      }),
+      ...(lifecycleBlocked && agentTarget ? [`Agent lifecycle is ${agentTarget.status}.`] : []),
+    ],
   };
 }
 

@@ -1,4 +1,5 @@
 export type AgentCatalogPluginSourceScope = "workspace" | "system";
+export type AgentCatalogAgentStatus = "draft" | "verified" | "approved" | "certified" | "deprecated";
 export type ProviderReadinessStatus = "configured" | "missing" | "invalid" | "untested";
 export type ConnectorReadinessStatus =
   | "configured"
@@ -123,7 +124,7 @@ export type AgentCatalogAgentSummary = {
     pack?: CapabilityPackMetadata;
   };
   capabilities: string[];
-  status: string;
+  status: AgentCatalogAgentStatus;
   available: boolean;
   providerReadiness: ProviderReadiness;
   certification: {
@@ -135,6 +136,13 @@ export type AgentCatalogAgentSummary = {
     evalResultIds: string[];
     expectedArtifactUris: string[];
     actualArtifactUris: string[];
+    securityOwner?: string;
+    ownershipRecord?: string;
+    evidenceLinks: Array<{
+      kind: string;
+      uri: string;
+      label?: string;
+    }>;
     reasons: string[];
     message: string;
   };

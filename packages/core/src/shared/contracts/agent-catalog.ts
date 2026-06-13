@@ -1,7 +1,7 @@
 export type AgentCatalogPluginSourceType = "local" | "system" | string;
 export type AgentCatalogPluginSourceScope = "workspace" | "system";
 export type AgentCatalogPluginStatus = "loaded" | "invalid" | string;
-export type AgentCatalogAgentStatus = "loaded" | string;
+export type AgentCatalogAgentStatus = "draft" | "verified" | "approved" | "certified" | "deprecated";
 
 export interface AgentCatalogProviderRequirement {
   required: boolean;
@@ -205,6 +205,12 @@ export interface AgentCatalogAgentMetadata {
   ui?: Record<string, unknown>;
 }
 
+export interface AgentCatalogCertificationEvidenceLink {
+  kind: "eval-run" | "eval-result" | "security-owner" | "ownership-record" | string;
+  uri: string;
+  label?: string;
+}
+
 export interface AgentCatalogCertification {
   status: "certified" | "blocked" | "not-required";
   required: boolean;
@@ -214,6 +220,9 @@ export interface AgentCatalogCertification {
   evalResultIds: string[];
   expectedArtifactUris: string[];
   actualArtifactUris: string[];
+  securityOwner?: string;
+  ownershipRecord?: string;
+  evidenceLinks: AgentCatalogCertificationEvidenceLink[];
   reasons: string[];
   message: string;
 }

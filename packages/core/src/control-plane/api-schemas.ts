@@ -335,6 +335,21 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
         type: "array",
         items: { type: "string", minLength: 1 }
       },
+      securityOwner: { type: "string", minLength: 1 },
+      ownershipRecord: { type: "string", minLength: 1 },
+      evidenceLinks: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            kind: { type: "string", minLength: 1 },
+            uri: { type: "string", minLength: 1 },
+            label: { type: "string", minLength: 1 }
+          },
+          required: ["kind", "uri"]
+        }
+      },
       reasons: {
         type: "array",
         items: { type: "string", minLength: 1 }
@@ -348,6 +363,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       "evalResultIds",
       "expectedArtifactUris",
       "actualArtifactUris",
+      "evidenceLinks",
       "reasons",
       "message"
     ]
@@ -584,7 +600,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
             version: { type: "string", minLength: 1 },
             path: { type: "string", minLength: 1 },
             enabled: { type: "boolean" },
-            status: { type: "string", minLength: 1 },
+            status: { type: "string", enum: ["draft", "verified", "approved", "certified", "deprecated"] },
             sourceType: { type: "string", minLength: 1 },
             sourceScope: { type: "string", enum: ["workspace", "system"] },
             metadata: {
@@ -715,6 +731,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       defaultBranch: { type: "string" },
       currentBranch: { type: "string" },
       headCommit: { type: "string" },
+      workspaceId: STRING_SCHEMA,
       dirtyState: CONNECTED_REPOSITORY_DIRTY_STATE_SCHEMA,
       status: CONNECTED_REPOSITORY_STATUS_SCHEMA,
       statusMessage: { type: "string" },
@@ -722,7 +739,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       createdAt: { type: "string", format: "date-time" },
       updatedAt: { type: "string", format: "date-time" }
     },
-    required: ["id", "name", "sourceType", "workspacePath", "dirtyState", "status", "createdAt", "updatedAt"]
+    required: ["id", "name", "sourceType", "workspacePath", "workspaceId", "dirtyState", "status", "createdAt", "updatedAt"]
   },
   ConnectedRepositoryListResult: {
     type: "object",
@@ -783,10 +800,11 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       secret: { $ref: "#/components/schemas/ModelProviderSecretMetadata" },
       status: MODEL_PROVIDER_SECRET_STATUS_SCHEMA,
       statusMessage: { type: "string" },
+      workspaceId: STRING_SCHEMA,
       createdAt: { type: "string", format: "date-time" },
       updatedAt: { type: "string", format: "date-time" }
     },
-    required: ["id", "name", "providerKind", "baseUrl", "defaultModel", "secret", "status", "createdAt", "updatedAt"]
+    required: ["id", "name", "providerKind", "baseUrl", "defaultModel", "secret", "status", "workspaceId", "createdAt", "updatedAt"]
   },
   ModelProviderConfigListResult: {
     type: "object",
@@ -998,6 +1016,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
         type: "array",
         items: { type: "string", minLength: 1 }
       },
+      workspaceId: STRING_SCHEMA,
       missionId: { type: "string", minLength: 1 },
       sourceRunId: { type: "string", minLength: 1 },
       provenance: JSON_VALUE_SCHEMA,
@@ -1008,7 +1027,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       runReadiness: { $ref: "#/components/schemas/TaskWorkbenchRunReadiness" },
       latestRun: { $ref: "#/components/schemas/TaskWorkbenchTaskRunSummary" }
     },
-    required: ["id", "title", "description", "status", "capabilityRequirements", "inputs", "dependsOn", "createdAt", "updatedAt"]
+    required: ["id", "title", "description", "status", "capabilityRequirements", "inputs", "dependsOn", "workspaceId", "createdAt", "updatedAt"]
   },
   TaskWorkbenchRunReadinessCheck: {
     type: "object",
@@ -1052,6 +1071,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
         properties: {
           status: TASK_STATUS_SCHEMA,
           missionId: { type: "string", minLength: 1 },
+          workspaceId: { type: "string", minLength: 1 },
           includeArchived: { type: "boolean" }
         }
       }
@@ -1243,6 +1263,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       id: { type: "string", minLength: 1 },
       targetType: { type: "string", enum: ["task"] },
       targetId: { type: "string", minLength: 1 },
+      workspaceId: STRING_SCHEMA,
       status: {
         type: "string",
         enum: ["queued", "validating", "running", "waiting-for-approval", "completed", "failed", "cancelled", "stopped-by-limit"]
@@ -1255,10 +1276,27 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       output: JSON_VALUE_SCHEMA,
       failure: JSON_VALUE_SCHEMA,
       safetyStop: JSON_VALUE_SCHEMA,
+      usage: { $ref: "#/components/schemas/TaskWorkbenchRunUsageSummary" },
       createdAt: { type: "string", format: "date-time" },
       updatedAt: { type: "string", format: "date-time" }
     },
-    required: ["id", "targetType", "targetId", "status", "createdAt", "updatedAt"]
+    required: ["id", "targetType", "targetId", "workspaceId", "status", "createdAt", "updatedAt"]
+  },
+  TaskWorkbenchRunUsageSummary: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      provider: { type: "string", minLength: 1 },
+      providerId: { type: "string", minLength: 1 },
+      providerKind: { type: "string", minLength: 1 },
+      model: { type: "string", minLength: 1 },
+      inputTokens: { type: "integer", minimum: 0 },
+      outputTokens: { type: "integer", minimum: 0 },
+      totalTokens: { type: "integer", minimum: 0 },
+      costUsd: { type: "number", minimum: 0 },
+      recordedAt: { type: "string", format: "date-time" }
+    },
+    required: ["inputTokens", "outputTokens", "totalTokens", "recordedAt"]
   },
   TaskWorkbenchRunEvent: {
     type: "object",
@@ -2028,7 +2066,8 @@ function taskMutationRequestSchema(required: string[] = []): ApiSchema {
       missionId: { type: "string", minLength: 1 },
       sourceRunId: { type: "string", minLength: 1 },
       provenance: JSON_VALUE_SCHEMA,
-      createdBy: { type: "string", minLength: 1 }
+      createdBy: { type: "string", minLength: 1 },
+      workspaceId: { type: "string", minLength: 1 }
     },
     required
   };
@@ -2078,7 +2117,8 @@ function connectedRepositoryCreateRequestSchema(): ApiSchema {
       workspacePath: STRING_SCHEMA,
       hostPath: { type: "string", minLength: 1 },
       remoteUrl: { type: "string", minLength: 1 },
-      defaultBranch: { type: "string", minLength: 1 }
+      defaultBranch: { type: "string", minLength: 1 },
+      workspaceId: { type: "string", minLength: 1 }
     },
     required: ["name", "sourceType"]
   };
@@ -2106,7 +2146,8 @@ function modelProviderCreateRequestSchema(): ApiSchema {
       providerKind: MODEL_PROVIDER_KIND_SCHEMA,
       baseUrl: { type: "string", minLength: 1 },
       defaultModel: STRING_SCHEMA,
-      secret: modelProviderSecretReferenceSchema()
+      secret: modelProviderSecretReferenceSchema(),
+      workspaceId: { type: "string", minLength: 1 }
     },
     required: ["name", "providerKind", "defaultModel", "secret"]
   };
@@ -2596,6 +2637,7 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       properties: {
         status: TASK_STATUS_SCHEMA,
         missionId: { type: "string" },
+        workspaceId: { type: "string" },
         includeArchived: { type: "string" }
       }
     },

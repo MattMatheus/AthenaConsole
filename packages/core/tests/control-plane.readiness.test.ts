@@ -490,6 +490,7 @@ function modelProviderConfigService(input: {
             configured: provider.status === "configured"
           },
           status: provider.status,
+          workspaceId: "default",
           createdAt: new Date(0).toISOString(),
           updatedAt: new Date(0).toISOString()
         }))

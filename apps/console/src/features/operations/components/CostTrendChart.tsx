@@ -19,6 +19,7 @@ export function CostTrendChart({ costSummary }: CostTrendChartProps) {
   const outputPercent = Math.round(outputRatio * 100);
   const offset = 100 - inputPercent;
   const hasAzureBillingSource = (costSummary?.providerBreakdown ?? []).some((row) => row.provider === "azure-billing");
+  const dailyTrend = costSummary?.dailyTrend ?? [];
 
   return (
     <Card className={styles.card ?? ""}>
@@ -64,6 +65,31 @@ export function CostTrendChart({ costSummary }: CostTrendChartProps) {
           </p>
           {hasAzureBillingSource ? <p className={styles.monthTotal ?? ""}>Usage source: Azure Billing API</p> : null}
         </div>
+      </div>
+      <div className={styles.trendBlock ?? ""}>
+        <h3 className={styles.subhead ?? ""}>Daily usage trend</h3>
+        {dailyTrend.length === 0 ? (
+          <p className={styles.empty ?? ""}>No ledger usage trend recorded for this month.</p>
+        ) : (
+          <table className={styles.trendTable ?? ""}>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Estimate</th>
+                <th>Tokens</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dailyTrend.slice(-7).map((row) => (
+                <tr key={row.date}>
+                  <td>{row.date}</td>
+                  <td>{usdFormatter.format(row.estimatedSpendUsd)}</td>
+                  <td>{row.totalTokens}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </Card>
   );

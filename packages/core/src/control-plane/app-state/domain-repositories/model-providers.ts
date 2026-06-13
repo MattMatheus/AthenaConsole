@@ -14,6 +14,7 @@ interface ModelProviderConfigRow {
   secret_ref_json: string;
   status: ModelProviderSecretStatus;
   status_message: string | null;
+  workspace_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -27,6 +28,7 @@ export interface ModelProviderConfigRecord {
   secretRef: ModelProviderSecretReference;
   status: ModelProviderSecretStatus;
   statusMessage?: string;
+  workspaceId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -40,6 +42,7 @@ export interface CreateModelProviderConfigInput {
   secretRef: ModelProviderSecretReference;
   status?: ModelProviderSecretStatus;
   statusMessage?: string;
+  workspaceId?: string;
   now?: Date;
 }
 
@@ -51,7 +54,12 @@ export interface UpdateModelProviderConfigInput {
   secretRef?: ModelProviderSecretReference;
   status?: ModelProviderSecretStatus;
   statusMessage?: string;
+  workspaceId?: string;
   now?: Date;
+}
+
+export interface ListModelProviderConfigOptions {
+  workspaceId?: string;
 }
 
 export class ModelProviderConfigRepository {
@@ -74,6 +82,7 @@ export class ModelProviderConfigRepository {
         secret_ref_json,
         status,
         status_message,
+        workspace_id,
         created_at,
         updated_at
       )
@@ -86,6 +95,7 @@ export class ModelProviderConfigRepository {
         @secretRefJson,
         @status,
         @statusMessage,
+        @workspaceId,
         @createdAt,
         @updatedAt
       )
@@ -99,6 +109,7 @@ export class ModelProviderConfigRepository {
         secret_ref_json = @secretRefJson,
         status = @status,
         status_message = @statusMessage,
+        workspace_id = @workspaceId,
         updated_at = @updatedAt
       where id = @id
     `);
@@ -116,6 +127,7 @@ export class ModelProviderConfigRepository {
       secretRefJson: JSON.stringify(input.secretRef),
       status: input.status ?? "missing",
       statusMessage: input.statusMessage ?? null,
+      workspaceId: input.workspaceId ?? "default",
       createdAt: now,
       updatedAt: now
     });
@@ -135,8 +147,11 @@ export class ModelProviderConfigRepository {
     return provider;
   }
 
-  list(): ModelProviderConfigRecord[] {
-    return this.listStatement.all().map((row) => mapModelProviderConfigRow(row as ModelProviderConfigRow));
+  list(options: ListModelProviderConfigOptions = {}): ModelProviderConfigRecord[] {
+    return this.listStatement
+      .all()
+      .map((row) => mapModelProviderConfigRow(row as ModelProviderConfigRow))
+      .filter((row) => (options.workspaceId ? row.workspaceId === options.workspaceId : true));
   }
 
   update(id: string, input: UpdateModelProviderConfigInput): ModelProviderConfigRecord | undefined {
@@ -154,6 +169,7 @@ export class ModelProviderConfigRepository {
       secretRefJson: JSON.stringify(secretRef),
       status: input.status ?? existing.status,
       statusMessage: input.statusMessage ?? existing.statusMessage ?? null,
+      workspaceId: input.workspaceId ?? existing.workspaceId,
       updatedAt: (input.now ?? new Date()).toISOString()
     });
     return this.require(id);
@@ -166,7 +182,7 @@ export class ModelProviderConfigRepository {
 }
 
 function modelProviderConfigSelectSql(suffix: string): string {
-  return `select id, name, provider_kind, base_url, default_model, secret_ref_json, status, status_message, created_at, updated_at from model_provider_configs ${suffix}`;
+  return `select id, name, provider_kind, base_url, default_model, secret_ref_json, status, status_message, workspace_id, created_at, updated_at from model_provider_configs ${suffix}`;
 }
 
 function mapModelProviderConfigRow(row: ModelProviderConfigRow): ModelProviderConfigRecord {
@@ -179,6 +195,7 @@ function mapModelProviderConfigRow(row: ModelProviderConfigRow): ModelProviderCo
     secretRef: JSON.parse(row.secret_ref_json) as ModelProviderSecretReference,
     status: row.status,
     ...(row.status_message ? { statusMessage: row.status_message } : {}),
+    workspaceId: row.workspace_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };

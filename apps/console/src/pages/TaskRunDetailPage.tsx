@@ -40,6 +40,14 @@ function formatDate(value: string | undefined): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
+const usdFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 6,
+});
+
+const tokenFormatter = new Intl.NumberFormat("en-US");
+
 function statusClass(status: TaskWorkbenchRunStatus): string {
   const tone = runStatusTone(status);
   if (tone === "success") {
@@ -460,6 +468,14 @@ export function TaskRunDetailPage() {
                   <div>
                     <dt>Usage</dt>
                     <dd>{modelOutput?.usage !== undefined ? formatUnknown(modelOutput.usage) : "not recorded"}</dd>
+                  </div>
+                  <div>
+                    <dt>Ledger cost</dt>
+                    <dd>{detail.run.usage?.costUsd !== undefined ? usdFormatter.format(detail.run.usage.costUsd) : "not recorded"}</dd>
+                  </div>
+                  <div>
+                    <dt>Ledger tokens</dt>
+                    <dd>{detail.run.usage ? tokenFormatter.format(detail.run.usage.totalTokens) : "not recorded"}</dd>
                   </div>
                 </dl>
               </div>

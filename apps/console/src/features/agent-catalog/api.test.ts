@@ -21,7 +21,7 @@ describe("agent catalog api", () => {
                   version: "0.1.0",
                   path: "/tmp/plugin",
                   enabled: true,
-                  status: "loaded",
+                  status: "certified",
                   sourceType: "local",
                   sourceScope: "workspace",
                   metadata: {
@@ -91,7 +91,7 @@ describe("agent catalog api", () => {
                     status: "loaded"
                   },
                   capabilities: ["repo.summary"],
-                  status: "loaded",
+                  status: "certified",
                   available: true,
                   providerReadiness: {
                     status: "untested",
@@ -108,6 +108,15 @@ describe("agent catalog api", () => {
                     evalResultIds: ["eval-result-1"],
                     expectedArtifactUris: ["fixture://expected.md"],
                     actualArtifactUris: ["memory://actual.md"],
+                    securityOwner: "security@example.test",
+                    ownershipRecord: "docs://ownership/certified-agent.md",
+                    evidenceLinks: [
+                      {
+                        kind: "security-owner",
+                        uri: "owner:security@example.test",
+                        label: "Security"
+                      }
+                    ],
                     reasons: [],
                     message: "Certified.",
                     secret: "do-not-carry"
@@ -136,6 +145,15 @@ describe("agent catalog api", () => {
       evalResultIds: ["eval-result-1"],
       expectedArtifactUris: ["fixture://expected.md"],
       actualArtifactUris: ["memory://actual.md"],
+      securityOwner: "security@example.test",
+      ownershipRecord: "docs://ownership/certified-agent.md",
+      evidenceLinks: [
+        {
+          kind: "security-owner",
+          uri: "owner:security@example.test",
+          label: "Security"
+        }
+      ],
       reasons: [],
       message: "Certified."
     });

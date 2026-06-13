@@ -20,6 +20,7 @@ import type {
   IdentityService,
   LspService,
   MemoryService,
+  ConnectedRepositoryService,
   PolicyService,
   RunService,
   ScheduleService,
@@ -82,6 +83,12 @@ interface AuthorizationRequirement {
     | "modelProviders.test"
     | "modelProviders.update"
     | "policy.put"
+    | "repositories.create"
+    | "repositories.delete"
+    | "repositories.get"
+    | "repositories.inspect"
+    | "repositories.inspectPath"
+    | "repositories.list"
     | "runs.cancel"
     | "runs.create"
     | "runs.cancelByRunId"
@@ -112,6 +119,7 @@ interface AuthorizationRequirement {
   agentName?: string;
   sessionId?: string;
   runId?: string;
+  workspaceId?: string;
 }
 
 type AuthorizationDenyReason = "ROLE_MISSING" | "SCOPED_ACCESS_VIOLATION";
@@ -162,7 +170,10 @@ export class ServiceAuthorizer {
 
   private evaluateDenied(
     requirement: AuthorizationRequirement,
-    context: { role: AthenaRbacRole; scope: { global: boolean; agents: string[]; sessionIds: string[]; runIds: string[] } }
+    context: {
+      role: AthenaRbacRole;
+      scope: { global: boolean; agents: string[]; sessionIds: string[]; runIds: string[]; workspaces?: string[] };
+    }
   ): { denyReason: AuthorizationDenyReason; denyDetail?: string } | undefined {
     if (!requirement.requiredRoles.includes(context.role)) {
       return {
@@ -220,6 +231,7 @@ export class ServiceAuthorizer {
     agentName?: string;
     sessionId?: string;
     runId?: string;
+    workspaceId?: string;
   }): Promise<void> {
     try {
       await this.eventService.emit({
@@ -238,7 +250,8 @@ export class ServiceAuthorizer {
                 ...(requirement.denyDetail ? { denyDetail: requirement.denyDetail } : {})
               }
             : {}),
-          ...(requirement.agentName ? { agentName: requirement.agentName } : {})
+          ...(requirement.agentName ? { agentName: requirement.agentName } : {}),
+          ...(requirement.workspaceId ? { workspaceId: requirement.workspaceId } : {})
         }
       });
     } catch {
@@ -251,6 +264,7 @@ export class ServiceAuthorizer {
     agents: string[];
     sessionIds: string[];
     runIds: string[];
+    workspaces?: string[];
   }): string | undefined {
     if (scope.global) {
       return undefined;
@@ -280,6 +294,16 @@ export class ServiceAuthorizer {
       }
       if (!scope.runIds.includes(requirement.runId)) {
         return `run '${requirement.runId}' is outside allowed scope.`;
+      }
+    }
+    const workspaceScoped = isWorkspaceScopedOperation(requirement.operation);
+    const workspaces = scope.workspaces ?? [];
+    if (workspaceScoped && workspaces.length > 0) {
+      if (!requirement.workspaceId) {
+        return "workspaceId is required for this scoped operation.";
+      }
+      if (!workspaces.includes(requirement.workspaceId)) {
+        return `workspace '${requirement.workspaceId}' is outside allowed scope.`;
       }
     }
     return undefined;
@@ -623,51 +647,142 @@ export class AuthorizedModelProviderConfigService implements ModelProviderConfig
       operation: "modelProviders.list",
       requiredRoles: ["Admin"]
     });
-    return this.delegate.list();
+    const listed = await this.delegate.list();
+    const providers = filterByWorkspaceScope(listed.providers);
+    return {
+      ...listed,
+      providers,
+      total: providers.length
+    };
   }
 
   async get(id: string) {
+    const provider = await this.delegate.get(id);
     await this.authorizer.assertAllowed({
       operation: "modelProviders.get",
-      requiredRoles: ["Admin"]
+      requiredRoles: ["Admin"],
+      workspaceId: provider.workspaceId
     });
-    return this.delegate.get(id);
+    return provider;
   }
 
   async create(request: Parameters<ModelProviderConfigService["create"]>[0]) {
+    const workspaceId = resolveMutationWorkspaceId(request.workspaceId);
     await this.authorizer.assertAllowed({
       operation: "modelProviders.create",
-      requiredRoles: ["Admin"]
+      requiredRoles: ["Admin"],
+      ...(workspaceId ? { workspaceId } : {})
     });
-    return this.delegate.create(request);
+    return this.delegate.create({
+      ...request,
+      ...(workspaceId ? { workspaceId } : {})
+    });
   }
 
   async update(id: string, request: Parameters<ModelProviderConfigService["update"]>[1]) {
+    const provider = await this.delegate.get(id);
     await this.authorizer.assertAllowed({
       operation: "modelProviders.update",
-      requiredRoles: ["Admin"]
+      requiredRoles: ["Admin"],
+      workspaceId: provider.workspaceId
     });
     return this.delegate.update(id, request);
   }
 
   async delete(id: string) {
+    const provider = await this.delegate.get(id);
     await this.authorizer.assertAllowed({
       operation: "modelProviders.delete",
-      requiredRoles: ["Admin"]
+      requiredRoles: ["Admin"],
+      workspaceId: provider.workspaceId
     });
     return this.delegate.delete(id);
   }
 
   async test(id: string) {
+    const provider = await this.delegate.get(id);
     await this.authorizer.assertAllowed({
       operation: "modelProviders.test",
-      requiredRoles: ["Admin"]
+      requiredRoles: ["Admin"],
+      workspaceId: provider.workspaceId
     });
     return this.delegate.test(id);
   }
 
   resolveRuntimeConfig(id: string) {
     return this.delegate.resolveRuntimeConfig(id);
+  }
+}
+
+export class AuthorizedConnectedRepositoryService implements ConnectedRepositoryService {
+  constructor(
+    private readonly delegate: ConnectedRepositoryService,
+    private readonly authorizer: ServiceAuthorizer
+  ) {}
+
+  async list() {
+    await this.authorizer.assertAllowed({
+      operation: "repositories.list",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    const listed = await this.delegate.list();
+    const repositories = filterByWorkspaceScope(listed.repositories);
+    return {
+      ...listed,
+      repositories,
+      total: repositories.length
+    };
+  }
+
+  async get(id: string) {
+    const repository = await this.delegate.get(id);
+    await this.authorizer.assertAllowed({
+      operation: "repositories.get",
+      requiredRoles: ["Viewer", "Operator", "Admin"],
+      workspaceId: repository.workspaceId
+    });
+    return repository;
+  }
+
+  async create(request: Parameters<ConnectedRepositoryService["create"]>[0]) {
+    const workspaceId = resolveMutationWorkspaceId(request.workspaceId);
+    await this.authorizer.assertAllowed({
+      operation: "repositories.create",
+      requiredRoles: ["Operator", "Admin"],
+      ...(workspaceId ? { workspaceId } : {})
+    });
+    return this.delegate.create({
+      ...request,
+      ...(workspaceId ? { workspaceId } : {})
+    });
+  }
+
+  async delete(id: string) {
+    const repository = await this.delegate.get(id);
+    await this.authorizer.assertAllowed({
+      operation: "repositories.delete",
+      requiredRoles: ["Operator", "Admin"],
+      workspaceId: repository.workspaceId
+    });
+    return this.delegate.delete(id);
+  }
+
+  async inspect(id: string) {
+    const repository = await this.delegate.get(id);
+    await this.authorizer.assertAllowed({
+      operation: "repositories.inspect",
+      requiredRoles: ["Operator", "Admin"],
+      workspaceId: repository.workspaceId
+    });
+    return this.delegate.inspect(id);
+  }
+
+  async inspectPath(workspacePath: string) {
+    await this.authorizer.assertAllowed({
+      operation: "repositories.inspectPath",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.inspectPath(workspacePath);
   }
 }
 
@@ -690,64 +805,94 @@ export class AuthorizedTaskWorkbenchService implements TaskWorkbenchService {
       operation: "taskWorkbench.list",
       requiredRoles: ["Viewer", "Operator", "Admin"]
     });
-    return this.delegate.list(query);
+    const workspaceId = resolveListWorkspaceId(query?.workspaceId);
+    const listed = await this.delegate.list({
+      ...query,
+      ...(workspaceId ? { workspaceId } : {})
+    });
+    if (workspaceId) {
+      return listed;
+    }
+    const tasks = filterByWorkspaceScope(listed.tasks);
+    return {
+      ...listed,
+      tasks,
+      total: tasks.length
+    };
   }
 
   async get(id: string) {
+    const task = await this.delegate.get(id);
     await this.authorizer.assertAllowed({
       operation: "taskWorkbench.get",
-      requiredRoles: ["Viewer", "Operator", "Admin"]
+      requiredRoles: ["Viewer", "Operator", "Admin"],
+      workspaceId: task.workspaceId
     });
-    return this.delegate.get(id);
+    return task;
   }
 
   async create(request: Parameters<TaskWorkbenchService["create"]>[0]) {
+    const workspaceId = resolveMutationWorkspaceId(request.workspaceId);
     await this.authorizer.assertAllowed({
       operation: "taskWorkbench.create",
-      requiredRoles: ["Operator", "Admin"]
+      requiredRoles: ["Operator", "Admin"],
+      ...(workspaceId ? { workspaceId } : {})
     });
-    return this.delegate.create(request);
+    return this.delegate.create({
+      ...request,
+      ...(workspaceId ? { workspaceId } : {})
+    });
   }
 
   async update(id: string, request: Parameters<TaskWorkbenchService["update"]>[1]) {
+    const task = await this.delegate.get(id);
     await this.authorizer.assertAllowed({
       operation: "taskWorkbench.update",
-      requiredRoles: ["Operator", "Admin"]
+      requiredRoles: ["Operator", "Admin"],
+      workspaceId: task.workspaceId
     });
     return this.delegate.update(id, request);
   }
 
   async getRun(runId: string) {
+    const detail = await this.delegate.getRun(runId);
     await this.authorizer.assertAllowed({
       operation: "taskWorkbench.run.read",
       requiredRoles: ["Viewer", "Operator", "Admin"],
-      runId
+      runId,
+      workspaceId: detail.run.workspaceId
     });
-    return this.delegate.getRun(runId);
+    return detail;
   }
 
   async exportRunEvidenceBundle(runId: string, request?: Parameters<TaskWorkbenchService["exportRunEvidenceBundle"]>[1]) {
+    const detail = await this.delegate.getRun(runId);
     await this.authorizer.assertAllowed({
       operation: "taskWorkbench.runEvidenceBundle.export",
       requiredRoles: ["Viewer", "Operator", "Admin"],
-      runId
+      runId,
+      workspaceId: detail.run.workspaceId
     });
     return this.delegate.exportRunEvidenceBundle(runId, request);
   }
 
   async getRunArtifact(runId: string, artifactId: string) {
+    const detail = await this.delegate.getRun(runId);
     await this.authorizer.assertAllowed({
       operation: "taskWorkbench.runArtifact.read",
       requiredRoles: ["Viewer", "Operator", "Admin"],
-      runId
+      runId,
+      workspaceId: detail.run.workspaceId
     });
     return this.delegate.getRunArtifact(runId, artifactId);
   }
 
   async getRunReadiness(id: string) {
+    const task = await this.delegate.get(id);
     await this.authorizer.assertAllowed({
       operation: "taskWorkbench.runReadiness",
-      requiredRoles: ["Viewer", "Operator", "Admin"]
+      requiredRoles: ["Viewer", "Operator", "Admin"],
+      workspaceId: task.workspaceId
     });
     return this.delegate.getRunReadiness(id);
   }
@@ -757,16 +902,19 @@ export class AuthorizedTaskWorkbenchService implements TaskWorkbenchService {
     await this.authorizer.assertAllowed({
       operation: "taskWorkbench.runTask",
       requiredRoles: ["Operator", "Admin"],
+      workspaceId: task.workspaceId,
       ...(task.assignedAgentId ? { agentName: task.assignedAgentId } : {})
     });
     return this.delegate.runTask(id, request);
   }
 
   async cancelRun(runId: string, request?: Parameters<TaskWorkbenchService["cancelRun"]>[1]) {
+    const detail = await this.delegate.getRun(runId);
     await this.authorizer.assertAllowed({
       operation: "taskWorkbench.cancelRun",
       requiredRoles: ["Operator", "Admin"],
-      runId
+      runId,
+      workspaceId: detail.run.workspaceId
     });
     return this.delegate.cancelRun(runId, request);
   }
@@ -1172,6 +1320,75 @@ function isRunScopedOperation(operation: AuthorizationRequirement["operation"]):
   return operation === "runs.cancelByRunId";
 }
 
+function isWorkspaceScopedOperation(operation: AuthorizationRequirement["operation"]): boolean {
+  return (
+    operation === "modelProviders.create" ||
+    operation === "modelProviders.delete" ||
+    operation === "modelProviders.get" ||
+    operation === "modelProviders.test" ||
+    operation === "modelProviders.update" ||
+    operation === "repositories.create" ||
+    operation === "repositories.delete" ||
+    operation === "repositories.get" ||
+    operation === "repositories.inspect" ||
+    operation === "taskWorkbench.cancelRun" ||
+    operation === "taskWorkbench.create" ||
+    operation === "taskWorkbench.get" ||
+    operation === "taskWorkbench.runArtifact.read" ||
+    operation === "taskWorkbench.runEvidenceBundle.export" ||
+    operation === "taskWorkbench.runReadiness" ||
+    operation === "taskWorkbench.run.read" ||
+    operation === "taskWorkbench.runTask" ||
+    operation === "taskWorkbench.update"
+  );
+}
+
+function resolveListWorkspaceId(requested?: string): string | undefined {
+  const allowed = workspaceScopeIds();
+  if (requested && allowed && !allowed.includes(requested)) {
+    throw new AthenaError("AUTHZ_DENIED", `Forbidden: workspace '${requested}' is outside allowed scope.`);
+  }
+  if (requested) {
+    return requested;
+  }
+  if (allowed?.length === 1) {
+    return allowed[0];
+  }
+  return undefined;
+}
+
+function resolveMutationWorkspaceId(requested?: string): string | undefined {
+  const allowed = workspaceScopeIds();
+  if (!allowed) {
+    return requested;
+  }
+  if (requested) {
+    return requested;
+  }
+  if (allowed.length === 1) {
+    return allowed[0];
+  }
+  throw new AthenaError("AUTHZ_DENIED", "Forbidden: workspaceId is required for this scoped operation.");
+}
+
+function filterByWorkspaceScope<T extends { workspaceId: string }>(items: T[]): T[] {
+  const allowed = workspaceScopeIds();
+  if (!allowed) {
+    return items;
+  }
+  const allowedSet = new Set(allowed);
+  return items.filter((item) => allowedSet.has(item.workspaceId));
+}
+
+function workspaceScopeIds(): string[] | undefined {
+  const context = getRequestAuthContext();
+  if (!context || context.scope.global) {
+    return undefined;
+  }
+  const workspaces = context.scope.workspaces ?? [];
+  return workspaces.length > 0 ? workspaces : undefined;
+}
+
 function resolveAgentName(metadata: Record<string, string> | undefined): string | undefined {
   if (!metadata) {
     return undefined;
@@ -1192,6 +1409,10 @@ function isSoftEnforceProtectedOperation(operation: AuthorizationRequirement["op
     operation === "modelProviders.list" ||
     operation === "modelProviders.test" ||
     operation === "modelProviders.update" ||
+    operation === "repositories.create" ||
+    operation === "repositories.delete" ||
+    operation === "repositories.inspect" ||
+    operation === "repositories.inspectPath" ||
     operation === "taskWorkbench.cancelRun" ||
     operation === "taskWorkbench.create" ||
     operation === "taskWorkbench.runTask" ||

@@ -32,6 +32,7 @@ import {
   AuthorizedLspService,
   AuthorizedMemoryService,
   AuthorizedModelProviderConfigService,
+  AuthorizedConnectedRepositoryService,
   AuthorizedIdentityService,
   AuthorizedPolicyService,
   AuthorizedRunService,
@@ -325,7 +326,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
       new LocalTaskWorkbenchService(options.config, { durableMemoryService, eventService }),
       authorizer
     ),
-    connectedRepositoryService: new LocalConnectedRepositoryService(options.config),
+    connectedRepositoryService: new AuthorizedConnectedRepositoryService(new LocalConnectedRepositoryService(options.config), authorizer),
     modelProviderConfigService: authorizedModelProviderConfigService,
     shutdown: async () => {
       if (hasShutdown(eventService)) {

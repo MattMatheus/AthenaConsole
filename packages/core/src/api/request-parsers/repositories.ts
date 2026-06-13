@@ -13,6 +13,7 @@ export function parseConnectedRepositoryCreateRequest(body: Record<string, unkno
   const hostPath = optionalString(body, "hostPath", "repositories.create");
   const remoteUrl = optionalString(body, "remoteUrl", "repositories.create");
   const defaultBranch = optionalString(body, "defaultBranch", "repositories.create");
+  const workspaceId = optionalString(body, "workspaceId", "repositories.create");
   if (sourceType === "existing-path" && !workspacePath) {
     throw new AthenaError("CONFIG_ERROR", "repositories.create.workspacePath is required for existing-path repositories.");
   }
@@ -26,7 +27,8 @@ export function parseConnectedRepositoryCreateRequest(body: Record<string, unkno
     ...(workspacePath ? { workspacePath } : {}),
     ...(hostPath ? { hostPath } : {}),
     ...(remoteUrl ? { remoteUrl } : {}),
-    ...(defaultBranch ? { defaultBranch } : {})
+    ...(defaultBranch ? { defaultBranch } : {}),
+    ...(workspaceId ? { workspaceId } : {})
   };
 }
 

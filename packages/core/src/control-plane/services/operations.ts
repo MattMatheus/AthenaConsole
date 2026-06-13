@@ -13,6 +13,8 @@ import type {
 import type { AthenaConfig } from "../../shared/config.js";
 import type { ExecutionBackend, SandboxExecutionBackend } from "../backends.js";
 import { computeOperationsHealthMetrics, type IOperationsMetricsProvider } from "../backends/operations-metrics-provider.js";
+import { openAppStateDatabase } from "../app-state/index.js";
+import type { AppStateDatabase, UsageLedgerRecord } from "../app-state/index.js";
 import type { CapabilityService, EventService, OperationsService, RunService } from "../interfaces.js";
 import type { StateStore } from "../state-store.js";
 
@@ -30,6 +32,8 @@ const RECENT_FAILURE_EVENT_TYPES = [
 const PROVIDER_COST_SETTINGS_SCHEMA_VERSION = 1;
 const DEFAULT_COST_SETTINGS_FILE = "provider-cost-settings.json";
 const DEFAULT_COST_SETTINGS_LOCK_FILE = "provider-cost-settings.lock";
+
+type CostTotals = { spend: number; input: number; output: number; total: number };
 
 export interface OperationsExternalCostProvider {
   provider: string;
@@ -251,36 +255,63 @@ export class LocalOperationsService implements OperationsService {
     const settings = await this.getOperationsProviderCostSettings();
     const pricingByProvider = new Map(settings.providers.map((row) => [row.provider, row]));
 
-    const agentTotals = new Map<string, { spend: number; input: number; output: number; total: number }>();
-    const providerTotals = new Map<string, { spend: number; input: number; output: number; total: number }>();
-    let cursor: string | undefined;
-    do {
-      const page = await this.eventService.list({
-        ...(cursor ? { cursor } : {}),
-        limit: 500,
-        createdAfter: window.windowStart,
-        createdBefore: window.windowEnd,
-        types: [...OPERATIONS_COST_EVENT_TYPES]
-      });
-      for (const event of page.events) {
-        const payload = toObject(event.payload);
-        const provider = readString(payload.provider) ?? "unknown";
-        const agentName =
-          readString(payload.agentName) ??
-          readString(payload.agentName) ??
-          readString(payload.agentName) ??
-          "unattributed";
-        const usage = normalizeUsage(toObject(payload.usage));
+    const agentTotals = new Map<string, CostTotals>();
+    const providerTotals = new Map<string, CostTotals>();
+    const modelTotals = new Map<string, CostTotals>();
+    const userTotals = new Map<string, CostTotals>();
+    const workspaceTotals = new Map<string, CostTotals>();
+    const dailyTotals = new Map<string, CostTotals>();
+    const ledgerRows = this.listUsageLedgerRows(window);
+    if (ledgerRows.length > 0) {
+      for (const row of ledgerRows) {
+        const provider = row.provider ?? "unknown";
+        const usage = {
+          inputTokens: row.inputTokens,
+          outputTokens: row.outputTokens,
+          totalTokens: row.totalTokens
+        };
         if (usage.totalTokens <= 0) {
           continue;
         }
-        const pricing = pricingByProvider.get(provider);
-        const spend = estimateUsageSpendUsd(usage.inputTokens, usage.outputTokens, pricing);
-        accumulateCost(agentTotals, agentName, usage, spend);
+        const spend = row.costUsd ?? estimateUsageSpendUsd(row.inputTokens, row.outputTokens, pricingByProvider.get(provider));
+        accumulateCost(agentTotals, row.agentId ?? "unattributed", usage, spend);
         accumulateCost(providerTotals, provider, usage, spend);
+        accumulateCost(modelTotals, `${provider}\u0000${row.model ?? "unknown"}`, usage, spend);
+        accumulateCost(userTotals, row.userId ?? "unknown", usage, spend);
+        accumulateCost(workspaceTotals, row.workspaceId ?? "default", usage, spend);
+        accumulateCost(dailyTotals, row.recordedAt.slice(0, 10), usage, spend);
       }
-      cursor = page.nextCursor;
-    } while (cursor);
+    } else {
+      let cursor: string | undefined;
+      do {
+        const page = await this.eventService.list({
+          ...(cursor ? { cursor } : {}),
+          limit: 500,
+          createdAfter: window.windowStart,
+          createdBefore: window.windowEnd,
+          types: [...OPERATIONS_COST_EVENT_TYPES]
+        });
+        for (const event of page.events) {
+          const payload = toObject(event.payload);
+          const provider = readString(payload.provider) ?? "unknown";
+          const agentName = readString(payload.agentName) ?? readString(payload.agentId) ?? "unattributed";
+          const model = readString(payload.model) ?? "unknown";
+          const usage = normalizeUsage(toObject(payload.usage));
+          if (usage.totalTokens <= 0) {
+            continue;
+          }
+          const pricing = pricingByProvider.get(provider);
+          const spend = readNumber(payload.costUsd) ?? estimateUsageSpendUsd(usage.inputTokens, usage.outputTokens, pricing);
+          accumulateCost(agentTotals, agentName, usage, spend);
+          accumulateCost(providerTotals, provider, usage, spend);
+          accumulateCost(modelTotals, `${provider}\u0000${model}`, usage, spend);
+          accumulateCost(userTotals, readString(payload.userId) ?? "unknown", usage, spend);
+          accumulateCost(workspaceTotals, readString(payload.workspaceId) ?? "default", usage, spend);
+          accumulateCost(dailyTotals, event.createdAt.slice(0, 10), usage, spend);
+        }
+        cursor = page.nextCursor;
+      } while (cursor);
+    }
 
     const tokenMix = deriveTokenMix([...agentTotals.values()]);
     const localProviderBreakdown = [...providerTotals.entries()]
@@ -339,8 +370,64 @@ export class LocalOperationsService implements OperationsService {
         }))
         .sort((left, right) => right.estimatedSpendUsd - left.estimatedSpendUsd),
       providerBreakdown,
+      modelBreakdown: [...modelTotals.entries()]
+        .map(([key, totals]) => {
+          const [provider = "unknown", model = "unknown"] = key.split("\u0000");
+          return {
+            provider,
+            model,
+            estimatedSpendUsd: roundTo6(totals.spend),
+            inputTokens: totals.input,
+            outputTokens: totals.output,
+            totalTokens: totals.total
+          };
+        })
+        .sort((left, right) => right.estimatedSpendUsd - left.estimatedSpendUsd),
+      userBreakdown: [...userTotals.entries()]
+        .map(([userId, totals]) => ({
+          userId,
+          estimatedSpendUsd: roundTo6(totals.spend),
+          inputTokens: totals.input,
+          outputTokens: totals.output,
+          totalTokens: totals.total
+        }))
+        .sort((left, right) => right.estimatedSpendUsd - left.estimatedSpendUsd),
+      workspaceBreakdown: [...workspaceTotals.entries()]
+        .map(([workspaceId, totals]) => ({
+          workspaceId,
+          estimatedSpendUsd: roundTo6(totals.spend),
+          inputTokens: totals.input,
+          outputTokens: totals.output,
+          totalTokens: totals.total
+        }))
+        .sort((left, right) => right.estimatedSpendUsd - left.estimatedSpendUsd),
+      dailyTrend: [...dailyTotals.entries()]
+        .map(([date, totals]) => ({
+          date,
+          estimatedSpendUsd: roundTo6(totals.spend),
+          inputTokens: totals.input,
+          outputTokens: totals.output,
+          totalTokens: totals.total
+        }))
+        .sort((left, right) => left.date.localeCompare(right.date)),
       tokenMix
     };
+  }
+
+  private listUsageLedgerRows(window: { windowStart: string; windowEnd: string }): UsageLedgerRecord[] {
+    let appState: AppStateDatabase | undefined;
+    try {
+      appState = openAppStateDatabase(this.config);
+      return appState.usageLedger.list({
+        windowStart: window.windowStart,
+        windowEnd: window.windowEnd,
+        limit: 1000
+      });
+    } catch {
+      return [];
+    } finally {
+      appState?.close();
+    }
   }
 
   private async withProviderCostSettingsLock<T>(operation: () => Promise<T>): Promise<T> {
@@ -462,6 +549,10 @@ function cloneOperationsSummary(summary: OperationsSummary): OperationsSummary {
             ...summary.costSummary,
             agentBreakdown: summary.costSummary.agentBreakdown.map((row) => ({ ...row })),
             providerBreakdown: summary.costSummary.providerBreakdown.map((row) => ({ ...row })),
+            modelBreakdown: summary.costSummary.modelBreakdown.map((row) => ({ ...row })),
+            userBreakdown: summary.costSummary.userBreakdown.map((row) => ({ ...row })),
+            workspaceBreakdown: summary.costSummary.workspaceBreakdown.map((row) => ({ ...row })),
+            dailyTrend: summary.costSummary.dailyTrend.map((row) => ({ ...row })),
             tokenMix: {
               ...summary.costSummary.tokenMix
             }
@@ -645,6 +736,56 @@ function formatCostSummaryCsv(summary: OperationsCostSummary): string {
     ]);
   }
   rows.push([]);
+
+  rows.push(["provider", "model", "estimatedSpendUsd", "inputTokens", "outputTokens", "totalTokens"]);
+  for (const row of summary.modelBreakdown) {
+    rows.push([
+      row.provider,
+      row.model,
+      row.estimatedSpendUsd.toFixed(6),
+      String(row.inputTokens),
+      String(row.outputTokens),
+      String(row.totalTokens)
+    ]);
+  }
+  rows.push([]);
+
+  rows.push(["userId", "estimatedSpendUsd", "inputTokens", "outputTokens", "totalTokens"]);
+  for (const row of summary.userBreakdown) {
+    rows.push([
+      row.userId,
+      row.estimatedSpendUsd.toFixed(6),
+      String(row.inputTokens),
+      String(row.outputTokens),
+      String(row.totalTokens)
+    ]);
+  }
+  rows.push([]);
+
+  rows.push(["workspaceId", "estimatedSpendUsd", "inputTokens", "outputTokens", "totalTokens"]);
+  for (const row of summary.workspaceBreakdown) {
+    rows.push([
+      row.workspaceId,
+      row.estimatedSpendUsd.toFixed(6),
+      String(row.inputTokens),
+      String(row.outputTokens),
+      String(row.totalTokens)
+    ]);
+  }
+  rows.push([]);
+
+  rows.push(["date", "estimatedSpendUsd", "inputTokens", "outputTokens", "totalTokens"]);
+  for (const row of summary.dailyTrend) {
+    rows.push([
+      row.date,
+      row.estimatedSpendUsd.toFixed(6),
+      String(row.inputTokens),
+      String(row.outputTokens),
+      String(row.totalTokens)
+    ]);
+  }
+  rows.push([]);
+
   rows.push(["tokenMix", "inputTokens", "outputTokens", "totalTokens", "inputRatio", "outputRatio"]);
   rows.push([
     "totals",

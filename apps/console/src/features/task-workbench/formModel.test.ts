@@ -231,7 +231,7 @@ function agent(id: string, available: boolean, capabilities: string[]): AgentCat
       status: "loaded",
     },
     capabilities,
-    status: "loaded",
+    status: "approved",
     available,
     providerReadiness: {
       status: "untested",
@@ -246,6 +246,7 @@ function agent(id: string, available: boolean, capabilities: string[]): AgentCat
       evalResultIds: [],
       expectedArtifactUris: [],
       actualArtifactUris: [],
+      evidenceLinks: [],
       reasons: [],
       message: "Certification gate is not required for this agent.",
     },

@@ -31,6 +31,14 @@ interface AppSettingRow {
   updated_at: string;
 }
 
+interface WorkspaceRow {
+  id: string;
+  name: string;
+  slug: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface PluginIndexRow {
   id: string;
   version: string;
@@ -53,6 +61,7 @@ interface AgentIndexRow {
   capabilities_json: string;
   manifest_json: string;
   status: string;
+  lifecycle_status: AgentLifecycleStatus;
   created_at: string;
   updated_at: string;
 }
@@ -107,6 +116,7 @@ interface ConnectorCredentialBindingRow {
   display_name: string | null;
   scopes_json: string;
   status: string;
+  workspace_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -207,6 +217,43 @@ export class AppSettingsRepository {
   }
 }
 
+export interface WorkspaceRecord {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export class WorkspaceRepository {
+  private readonly getStatement: Database.Statement;
+  private readonly listStatement: Database.Statement;
+
+  constructor(private readonly db: Database.Database) {
+    this.getStatement = db.prepare("select id, name, slug, created_at, updated_at from workspaces where id = ?");
+    this.listStatement = db.prepare("select id, name, slug, created_at, updated_at from workspaces order by name asc, id asc");
+  }
+
+  get(id: string): WorkspaceRecord | undefined {
+    const row = this.getStatement.get(id) as WorkspaceRow | undefined;
+    return row ? mapWorkspaceRow(row) : undefined;
+  }
+
+  list(): WorkspaceRecord[] {
+    return this.listStatement.all().map((row) => mapWorkspaceRow(row as WorkspaceRow));
+  }
+}
+
+function mapWorkspaceRow(row: WorkspaceRow): WorkspaceRecord {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
 export interface ConnectorCredentialBindingRecord {
   pluginId: string;
   pluginVersion: string;
@@ -215,6 +262,7 @@ export interface ConnectorCredentialBindingRecord {
   displayName?: string;
   scopes: string[];
   status: "bound" | "invalid" | "revoked" | string;
+  workspaceId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -227,6 +275,7 @@ export interface ConnectorCredentialBindingUpsert {
   displayName?: string;
   scopes?: string[];
   status?: "bound" | "invalid" | "revoked";
+  workspaceId?: string;
   now?: Date;
 }
 
@@ -237,10 +286,10 @@ export class ConnectorCredentialBindingRepository {
 
   constructor(private readonly db: Database.Database) {
     this.getStatement = db.prepare(
-      "select plugin_id, plugin_version, service_id, binding_ref, display_name, scopes_json, status, created_at, updated_at from connector_credential_bindings where plugin_id = ? and plugin_version = ? and service_id = ?"
+      "select plugin_id, plugin_version, service_id, binding_ref, display_name, scopes_json, status, workspace_id, created_at, updated_at from connector_credential_bindings where plugin_id = ? and plugin_version = ? and service_id = ?"
     );
     this.listStatement = db.prepare(
-      "select plugin_id, plugin_version, service_id, binding_ref, display_name, scopes_json, status, created_at, updated_at from connector_credential_bindings order by plugin_id asc, plugin_version asc, service_id asc"
+      "select plugin_id, plugin_version, service_id, binding_ref, display_name, scopes_json, status, workspace_id, created_at, updated_at from connector_credential_bindings order by plugin_id asc, plugin_version asc, service_id asc"
     );
     this.upsertStatement = db.prepare(`
       insert into connector_credential_bindings (
@@ -251,6 +300,7 @@ export class ConnectorCredentialBindingRepository {
         display_name,
         scopes_json,
         status,
+        workspace_id,
         created_at,
         updated_at
       )
@@ -262,6 +312,7 @@ export class ConnectorCredentialBindingRepository {
         @displayName,
         @scopesJson,
         @status,
+        @workspaceId,
         @createdAt,
         @updatedAt
       )
@@ -270,6 +321,7 @@ export class ConnectorCredentialBindingRepository {
         display_name = excluded.display_name,
         scopes_json = excluded.scopes_json,
         status = excluded.status,
+        workspace_id = excluded.workspace_id,
         updated_at = excluded.updated_at
     `);
   }
@@ -279,8 +331,11 @@ export class ConnectorCredentialBindingRepository {
     return row ? this.mapRow(row) : undefined;
   }
 
-  list(): ConnectorCredentialBindingRecord[] {
-    return this.listStatement.all().map((row) => this.mapRow(row as ConnectorCredentialBindingRow));
+  list(options: { workspaceId?: string } = {}): ConnectorCredentialBindingRecord[] {
+    return this.listStatement
+      .all()
+      .map((row) => this.mapRow(row as ConnectorCredentialBindingRow))
+      .filter((row) => (options.workspaceId ? row.workspaceId === options.workspaceId : true));
   }
 
   upsert(input: ConnectorCredentialBindingUpsert): ConnectorCredentialBindingRecord {
@@ -294,6 +349,7 @@ export class ConnectorCredentialBindingRepository {
       displayName: input.displayName ?? null,
       scopesJson: JSON.stringify(input.scopes ?? []),
       status: input.status ?? "bound",
+      workspaceId: input.workspaceId ?? existing?.workspaceId ?? "default",
       createdAt: existing?.createdAt ?? now,
       updatedAt: now
     });
@@ -313,6 +369,7 @@ export class ConnectorCredentialBindingRepository {
       ...(row.display_name ? { displayName: row.display_name } : {}),
       scopes: JSON.parse(row.scopes_json) as string[],
       status: row.status,
+      workspaceId: row.workspace_id,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
@@ -465,9 +522,12 @@ export interface AgentIndexRecord {
   capabilities: string[];
   manifest: unknown;
   status: string;
+  lifecycleStatus: AgentLifecycleStatus;
   createdAt: string;
   updatedAt: string;
 }
+
+export type AgentLifecycleStatus = "draft" | "verified" | "approved" | "certified" | "deprecated";
 
 export interface AgentIndexUpsert {
   id: string;
@@ -478,6 +538,7 @@ export interface AgentIndexUpsert {
   capabilities: string[];
   manifest: unknown;
   status: "loaded" | "invalid";
+  lifecycleStatus?: AgentLifecycleStatus;
   now?: Date;
 }
 
@@ -490,10 +551,10 @@ export class AgentIndexRepository {
 
   constructor(private readonly db: Database.Database) {
     this.listStatement = db.prepare(
-      "select id, version, plugin_id, plugin_version, name, capabilities_json, manifest_json, status, created_at, updated_at from agent_index order by id asc, version asc"
+      "select id, version, plugin_id, plugin_version, name, capabilities_json, manifest_json, status, lifecycle_status, created_at, updated_at from agent_index order by id asc, version asc"
     );
     this.listForPluginStatement = db.prepare(
-      "select id, version, plugin_id, plugin_version, name, capabilities_json, manifest_json, status, created_at, updated_at from agent_index where plugin_id = ? and plugin_version = ? order by id asc, version asc"
+      "select id, version, plugin_id, plugin_version, name, capabilities_json, manifest_json, status, lifecycle_status, created_at, updated_at from agent_index where plugin_id = ? and plugin_version = ? order by id asc, version asc"
     );
     this.upsertStatement = db.prepare(`
       insert into agent_index (
@@ -505,6 +566,7 @@ export class AgentIndexRepository {
         capabilities_json,
         manifest_json,
         status,
+        lifecycle_status,
         created_at,
         updated_at
       )
@@ -517,6 +579,7 @@ export class AgentIndexRepository {
         @capabilitiesJson,
         @manifestJson,
         @status,
+        @lifecycleStatus,
         @createdAt,
         @updatedAt
       )
@@ -527,6 +590,7 @@ export class AgentIndexRepository {
         capabilities_json = excluded.capabilities_json,
         manifest_json = excluded.manifest_json,
         status = excluded.status,
+        lifecycle_status = excluded.lifecycle_status,
         updated_at = excluded.updated_at
     `);
     this.deleteStatement = db.prepare("delete from agent_index where id = ? and version = ?");
@@ -555,6 +619,7 @@ export class AgentIndexRepository {
       capabilitiesJson: JSON.stringify(input.capabilities),
       manifestJson: JSON.stringify(input.manifest),
       status: input.status,
+      lifecycleStatus: input.lifecycleStatus ?? existing?.lifecycleStatus ?? "approved",
       createdAt: existing?.createdAt ?? now,
       updatedAt: now
     });
@@ -578,6 +643,7 @@ export class AgentIndexRepository {
       capabilities: JSON.parse(row.capabilities_json) as string[],
       manifest: JSON.parse(row.manifest_json) as unknown,
       status: row.status,
+      lifecycleStatus: row.lifecycle_status,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };

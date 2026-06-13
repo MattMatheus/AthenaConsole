@@ -71,6 +71,45 @@ describe("durable memory server storage", () => {
     expect(storage.getRecord("memory-1")).toEqual(record);
   });
 
+  it("derives storage workspace ids from namespaces for records, proposals, and snapshots", () => {
+    const db = new Database(":memory:");
+    const storage = new SqliteDurableMemoryServerStorage(db);
+    storage.writeRecord({
+      id: "memory-workspace",
+      namespace: repositoryNamespace,
+      provenance,
+      memoryType: "repo-convention",
+      body: "Workspace-scoped record.",
+      now: new Date("2026-06-02T16:10:00.000Z")
+    });
+    storage.createProposal({
+      id: "proposal-workspace",
+      targetNamespace: repositoryNamespace,
+      provenance,
+      memoryType: "repo-convention",
+      proposedBody: "Workspace-scoped proposal.",
+      reason: "capture convention",
+      now: new Date("2026-06-02T16:11:00.000Z")
+    });
+    storage.createSnapshot({
+      id: "snapshot-workspace",
+      namespace: repositoryNamespace,
+      provenance,
+      reason: "workspace backup",
+      now: new Date("2026-06-02T16:12:00.000Z")
+    });
+
+    expect(db.prepare("select workspace_id from durable_memory_records where id = ?").get("memory-workspace")).toEqual({
+      workspace_id: "workspace-1"
+    });
+    expect(db.prepare("select target_workspace_id from durable_memory_proposals where id = ?").get("proposal-workspace")).toEqual({
+      target_workspace_id: "workspace-1"
+    });
+    expect(db.prepare("select workspace_id from durable_memory_snapshots where id = ?").get("snapshot-workspace")).toEqual({
+      workspace_id: "workspace-1"
+    });
+  });
+
   it("persists embedding lifecycle metadata independently from record status", () => {
     const storage = createStorage();
     const indexed = storage.writeRecord({

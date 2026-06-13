@@ -206,7 +206,8 @@ describe("api identity extraction middleware", () => {
           global: true,
           agents: [],
           sessionIds: [],
-          runIds: []
+          runIds: [],
+          workspaces: []
         }
       });
     } finally {
@@ -315,7 +316,8 @@ describe("api identity extraction middleware", () => {
           "x-athena-identity": "scoped-op",
           "x-athena-scope-agents": "alpha,beta",
           "x-athena-scope-sessions": "s-1, s-2",
-          "x-athena-scope-runs": "r-1"
+          "x-athena-scope-runs": "r-1",
+          "x-athena-scope-workspaces": "workspace-alpha, workspace-beta"
         }
       });
       expect(response.status).toBe(200);
@@ -326,7 +328,8 @@ describe("api identity extraction middleware", () => {
           global: false,
           agents: ["alpha", "beta"],
           sessionIds: ["s-1", "s-2"],
-          runIds: ["r-1"]
+          runIds: ["r-1"],
+          workspaces: ["workspace-alpha", "workspace-beta"]
         }
       });
     } finally {

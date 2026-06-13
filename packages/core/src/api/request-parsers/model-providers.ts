@@ -12,13 +12,15 @@ export function parseModelProviderConfigCreateRequest(body: unknown): ModelProvi
   const row = parseJsonObject(body, "modelProviders.create");
   const id = optionalString(row, "id", "modelProviders.create");
   const baseUrl = optionalString(row, "baseUrl", "modelProviders.create");
+  const workspaceId = optionalString(row, "workspaceId", "modelProviders.create");
   return {
     ...(id ? { id } : {}),
     name: requireString(row, "name", "modelProviders.create"),
     providerKind: parseProviderKind(row.providerKind, "modelProviders.create.providerKind"),
     ...(baseUrl ? { baseUrl } : {}),
     defaultModel: requireString(row, "defaultModel", "modelProviders.create"),
-    secret: parseSecretReference(row.secret, "modelProviders.create.secret")
+    secret: parseSecretReference(row.secret, "modelProviders.create.secret"),
+    ...(workspaceId ? { workspaceId } : {})
   };
 }
 

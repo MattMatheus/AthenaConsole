@@ -31,6 +31,7 @@ interface RunRow {
   safety_stop_json: string | null;
   verification_status: RunVerificationStatus | null;
   verification_failures_json: string | null;
+  workspace_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -48,6 +49,7 @@ interface RunEventRow {
   payload_json: string;
   parent_event_id: string | null;
   trace_id: string | null;
+  workspace_id: string;
 }
 
 interface ArtifactMetadataRow {
@@ -63,6 +65,7 @@ interface ArtifactMetadataRow {
   hash: string | null;
   metadata_json: string;
   schema_validation_json: string | null;
+  workspace_id: string;
   created_at: string;
 }
 
@@ -81,6 +84,7 @@ export interface RunRecord {
   safetyStop?: unknown;
   verificationStatus?: RunVerificationStatus;
   verificationFailures?: VerificationPolicyFailure[];
+  workspaceId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -100,6 +104,7 @@ export interface CreateRunInput {
   safetyStop?: unknown;
   verificationStatus?: RunVerificationStatus;
   verificationFailures?: VerificationPolicyFailure[];
+  workspaceId?: string;
   now?: Date;
 }
 
@@ -115,6 +120,7 @@ export interface UpdateRunInput {
   safetyStop?: unknown;
   verificationStatus?: RunVerificationStatus;
   verificationFailures?: VerificationPolicyFailure[];
+  workspaceId?: string;
   now?: Date;
 }
 
@@ -122,6 +128,7 @@ export interface ListRunsOptions {
   targetType?: RunTargetType;
   targetId?: string;
   status?: RunStatus;
+  workspaceId?: string;
   limit?: number;
 }
 
@@ -148,6 +155,7 @@ export class RunRepository {
         safety_stop_json,
         verification_status,
         verification_failures_json,
+        workspace_id,
         created_at,
         updated_at
       )
@@ -166,6 +174,7 @@ export class RunRepository {
         @safetyStopJson,
         @verificationStatus,
         @verificationFailuresJson,
+        @workspaceId,
         @createdAt,
         @updatedAt
       )
@@ -183,6 +192,7 @@ export class RunRepository {
         safety_stop_json = @safetyStopJson,
         verification_status = @verificationStatus,
         verification_failures_json = @verificationFailuresJson,
+        workspace_id = @workspaceId,
         updated_at = @updatedAt
       where id = @id
     `);
@@ -205,6 +215,7 @@ export class RunRepository {
       safetyStopJson: jsonOrNull(input.safetyStop),
       verificationStatus: input.verificationStatus ?? null,
       verificationFailuresJson: jsonOrNull(input.verificationFailures),
+      workspaceId: input.workspaceId ?? "default",
       createdAt: now,
       updatedAt: now
     });
@@ -241,6 +252,10 @@ export class RunRepository {
       clauses.push("status = @status");
       params.status = options.status;
     }
+    if (options.workspaceId) {
+      clauses.push("workspace_id = @workspaceId");
+      params.workspaceId = options.workspaceId;
+    }
     const where = clauses.length > 0 ? `where ${clauses.join(" and ")}` : "";
     return this.db
       .prepare(runSelectSql(`${where} order by created_at desc limit @limit`))
@@ -265,6 +280,7 @@ export class RunRepository {
       verificationStatus: input.verificationStatus ?? existing.verificationStatus ?? null,
       verificationFailuresJson:
         input.verificationFailures === undefined ? jsonOrNull(existing.verificationFailures) : jsonOrNull(input.verificationFailures),
+      workspaceId: input.workspaceId ?? existing.workspaceId,
       updatedAt
     });
     return this.require(id);
@@ -284,6 +300,7 @@ export interface RunEventRecord {
   payload: unknown;
   parentEventId?: string;
   traceId?: string;
+  workspaceId: string;
 }
 
 export interface AppendRunEventInput {
@@ -299,6 +316,7 @@ export interface AppendRunEventInput {
   payload?: unknown;
   parentEventId?: string;
   traceId?: string;
+  workspaceId?: string;
 }
 
 export class RunEventRepository {
@@ -319,7 +337,8 @@ export class RunEventRepository {
         message,
         payload_json,
         parent_event_id,
-        trace_id
+        trace_id,
+        workspace_id
       )
       values (
         @id,
@@ -333,11 +352,12 @@ export class RunEventRepository {
         @message,
         @payloadJson,
         @parentEventId,
-        @traceId
+        @traceId,
+        @workspaceId
       )
     `);
     this.listForRunStatement = db.prepare(
-      "select id, run_id, task_id, mission_id, agent_id, type, level, timestamp, message, payload_json, parent_event_id, trace_id from run_events where run_id = ? order by timestamp asc, rowid asc"
+      "select id, run_id, task_id, mission_id, agent_id, type, level, timestamp, message, payload_json, parent_event_id, trace_id, workspace_id from run_events where run_id = ? order by timestamp asc, rowid asc"
     );
   }
 
@@ -355,7 +375,8 @@ export class RunEventRepository {
       message: input.message ?? "",
       payloadJson: JSON.stringify(input.payload ?? {}),
       parentEventId: input.parentEventId ?? null,
-      traceId: input.traceId ?? null
+      traceId: input.traceId ?? null,
+      workspaceId: input.workspaceId ?? "default"
     });
     return {
       id: input.id,
@@ -369,7 +390,8 @@ export class RunEventRepository {
       message: input.message ?? "",
       payload: input.payload ?? {},
       ...(input.parentEventId ? { parentEventId: input.parentEventId } : {}),
-      ...(input.traceId ? { traceId: input.traceId } : {})
+      ...(input.traceId ? { traceId: input.traceId } : {}),
+      workspaceId: input.workspaceId ?? "default"
     };
   }
 
@@ -391,6 +413,7 @@ export interface ArtifactMetadataRecord {
   hash?: string;
   metadata: unknown;
   schemaValidation?: unknown;
+  workspaceId: string;
   createdAt: string;
 }
 
@@ -407,6 +430,7 @@ export interface CreateArtifactMetadataInput {
   hash?: string;
   metadata?: unknown;
   schemaValidation?: unknown;
+  workspaceId?: string;
   createdAt?: string;
 }
 
@@ -429,6 +453,7 @@ export class ArtifactMetadataRepository {
         hash,
         metadata_json,
         schema_validation_json,
+        workspace_id,
         created_at
       )
       values (
@@ -444,11 +469,12 @@ export class ArtifactMetadataRepository {
         @hash,
         @metadataJson,
         @schemaValidationJson,
+        @workspaceId,
         @createdAt
       )
     `);
     this.listForRunStatement = db.prepare(
-      "select id, run_id, task_id, agent_id, label, kind, format, storage_uri, size_bytes, hash, metadata_json, schema_validation_json, created_at from artifact_metadata where run_id = ? order by created_at asc, rowid asc"
+      "select id, run_id, task_id, agent_id, label, kind, format, storage_uri, size_bytes, hash, metadata_json, schema_validation_json, workspace_id, created_at from artifact_metadata where run_id = ? order by created_at asc, rowid asc"
     );
   }
 
@@ -467,6 +493,7 @@ export class ArtifactMetadataRepository {
       hash: input.hash ?? null,
       metadataJson: JSON.stringify(input.metadata ?? {}),
       schemaValidationJson: jsonOrNull(input.schemaValidation),
+      workspaceId: input.workspaceId ?? "default",
       createdAt
     });
     return {
@@ -482,6 +509,7 @@ export class ArtifactMetadataRepository {
       ...(input.hash ? { hash: input.hash } : {}),
       metadata: input.metadata ?? {},
       ...(input.schemaValidation !== undefined ? { schemaValidation: input.schemaValidation } : {}),
+      workspaceId: input.workspaceId ?? "default",
       createdAt
     };
   }
@@ -492,7 +520,7 @@ export class ArtifactMetadataRepository {
 }
 
 function runSelectSql(suffix: string): string {
-  return `select id, target_type, target_id, status, backend, agent_id, agent_version, started_at, ended_at, output_json, failure_json, safety_stop_json, verification_status, verification_failures_json, created_at, updated_at from runs ${suffix}`;
+  return `select id, target_type, target_id, status, backend, agent_id, agent_version, started_at, ended_at, output_json, failure_json, safety_stop_json, verification_status, verification_failures_json, workspace_id, created_at, updated_at from runs ${suffix}`;
 }
 
 function mapRunRow(row: RunRow): RunRecord {
@@ -513,6 +541,7 @@ function mapRunRow(row: RunRow): RunRecord {
     ...(row.verification_failures_json
       ? { verificationFailures: JSON.parse(row.verification_failures_json) as VerificationPolicyFailure[] }
       : {}),
+    workspaceId: row.workspace_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -531,7 +560,8 @@ function mapRunEventRow(row: RunEventRow): RunEventRecord {
     message: row.message,
     payload: JSON.parse(row.payload_json) as unknown,
     ...(row.parent_event_id ? { parentEventId: row.parent_event_id } : {}),
-    ...(row.trace_id ? { traceId: row.trace_id } : {})
+    ...(row.trace_id ? { traceId: row.trace_id } : {}),
+    workspaceId: row.workspace_id
   };
 }
 
@@ -549,6 +579,7 @@ function mapArtifactMetadataRow(row: ArtifactMetadataRow): ArtifactMetadataRecor
     ...(row.hash ? { hash: row.hash } : {}),
     metadata: JSON.parse(row.metadata_json) as unknown,
     ...(row.schema_validation_json ? { schemaValidation: JSON.parse(row.schema_validation_json) as unknown } : {}),
+    workspaceId: row.workspace_id,
     createdAt: row.created_at
   };
 }

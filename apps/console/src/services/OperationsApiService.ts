@@ -10,19 +10,24 @@ export type OperationsCostByAgent = {
   totalTokens: number;
 };
 
+export type OperationsCostTotals = {
+  estimatedSpendUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+};
+
 export type OperationsCostSummary = {
   month: string;
   windowStart: string;
   windowEnd: string;
   totalEstimatedSpendUsd: number;
   agentBreakdown: OperationsCostByAgent[];
-  providerBreakdown: Array<{
-    provider: string;
-    estimatedSpendUsd: number;
-    inputTokens: number;
-    outputTokens: number;
-    totalTokens: number;
-  }>;
+  providerBreakdown: Array<OperationsCostTotals & { provider: string }>;
+  modelBreakdown: Array<OperationsCostTotals & { provider: string; model: string }>;
+  userBreakdown: Array<OperationsCostTotals & { userId: string }>;
+  workspaceBreakdown: Array<OperationsCostTotals & { workspaceId: string }>;
+  dailyTrend: Array<OperationsCostTotals & { date: string }>;
   tokenMix: {
     inputTokens: number;
     outputTokens: number;
@@ -109,6 +114,12 @@ function toOperationsSummary(payload: unknown): OperationsSummary {
     outputTokens: toNumber(row.outputTokens),
     totalTokens: toNumber(row.totalTokens)
   }));
+  const parseTotals = (row: RecordValue): OperationsCostTotals => ({
+    estimatedSpendUsd: toNumber(row.estimatedSpendUsd),
+    inputTokens: toNumber(row.inputTokens),
+    outputTokens: toNumber(row.outputTokens),
+    totalTokens: toNumber(row.totalTokens)
+  });
 
   return {
     total: toNumber(record.total),
@@ -167,11 +178,42 @@ function toOperationsSummary(payload: unknown): OperationsSummary {
                   .filter(isRecord)
                   .map((row) => ({
                     provider: typeof row.provider === "string" ? row.provider : "unknown",
-                    estimatedSpendUsd: toNumber(row.estimatedSpendUsd),
-                    inputTokens: toNumber(row.inputTokens),
-                    outputTokens: toNumber(row.outputTokens),
-                    totalTokens: toNumber(row.totalTokens)
+                    ...parseTotals(row)
                   }))
+              : [],
+            modelBreakdown: Array.isArray(costSummaryRecord.modelBreakdown)
+              ? costSummaryRecord.modelBreakdown
+                  .filter(isRecord)
+                  .map((row) => ({
+                    provider: typeof row.provider === "string" ? row.provider : "unknown",
+                    model: typeof row.model === "string" ? row.model : "unknown",
+                    ...parseTotals(row)
+                  }))
+              : [],
+            userBreakdown: Array.isArray(costSummaryRecord.userBreakdown)
+              ? costSummaryRecord.userBreakdown
+                  .filter(isRecord)
+                  .map((row) => ({
+                    userId: typeof row.userId === "string" ? row.userId : "unknown",
+                    ...parseTotals(row)
+                  }))
+              : [],
+            workspaceBreakdown: Array.isArray(costSummaryRecord.workspaceBreakdown)
+              ? costSummaryRecord.workspaceBreakdown
+                  .filter(isRecord)
+                  .map((row) => ({
+                    workspaceId: typeof row.workspaceId === "string" ? row.workspaceId : "default",
+                    ...parseTotals(row)
+                  }))
+              : [],
+            dailyTrend: Array.isArray(costSummaryRecord.dailyTrend)
+              ? costSummaryRecord.dailyTrend
+                  .filter(isRecord)
+                  .map((row) => ({
+                    date: typeof row.date === "string" ? row.date : "",
+                    ...parseTotals(row)
+                  }))
+                  .filter((row) => row.date.length > 0)
               : [],
             tokenMix: {
               inputTokens: toNumber(tokenMixRecord?.inputTokens),

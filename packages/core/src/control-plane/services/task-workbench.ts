@@ -34,6 +34,7 @@ import type {
   TaskWorkbenchTaskListResult,
   TaskWorkbenchTaskRun,
   TaskWorkbenchTaskRunSummary,
+  TaskWorkbenchRunUsageSummary,
   TaskWorkbenchTaskRunCancelRequest,
   TaskWorkbenchTaskRunCancelResult,
   TaskWorkbenchTaskRunDetail,
@@ -373,6 +374,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
           ...(request.assignedAgentVersion !== undefined ? { assignedAgentVersion: request.assignedAgentVersion } : {}),
           inputs: normalizeTaskInputsWithRunMode(request.inputs),
           ...(request.dependsOn !== undefined ? { dependsOn: request.dependsOn } : {}),
+          ...(request.workspaceId !== undefined ? { workspaceId: request.workspaceId } : {}),
           ...(request.missionId !== undefined ? { missionId: request.missionId } : {}),
           ...(request.sourceRunId !== undefined ? { sourceRunId: request.sourceRunId } : {}),
           ...(request.provenance !== undefined ? { provenance: request.provenance } : {}),
@@ -417,7 +419,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       }
       const task = appState.tasks.get(run.targetId);
       return {
-        run: mapRunRecord(run),
+        run: mapRunRecord(run, appState),
         ...(task ? { task: mapTaskRecord(task, appState) } : {}),
         events: appState.runEvents.listForRun(run.id).map(mapRunEventRecord),
         artifacts: appState.artifacts.listForRun(run.id).map(mapArtifactMetadataRecord)
@@ -593,7 +595,8 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         backend: execution.backend,
         agentId: agent.id,
         agentVersion: agent.version,
-        startedAt
+        startedAt,
+        workspaceId: task.workspaceId
       });
       appState.tasks.update(task.id, { status: "running" });
       startLinkedWorkflowDagStep(appState, task);
@@ -745,6 +748,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
               kind: artifact.kind,
               format: artifact.format,
               storageUri: artifact.storageUri,
+              workspaceId: task.workspaceId,
               ...(artifact.sizeBytes !== undefined ? { sizeBytes: artifact.sizeBytes } : {}),
               ...(artifact.hash ? { hash: artifact.hash } : {}),
               ...(artifact.metadata !== undefined ? { metadata: artifact.metadata } : {}),
@@ -771,13 +775,14 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
           ...(envelope.verificationStatus ? { verificationStatus: envelope.verificationStatus } : {}),
           ...(envelope.verificationFailures ? { verificationFailures: envelope.verificationFailures } : {})
         });
+        recordTaskRunUsage(appState, run, task, agent.id, modelProvider, envelope.output);
         appendRunEvent(appState, run.id, task, agent.id, "run.completed", `${backendLabel(command.backend)} task run completed.`, {
           artifactCount: envelope.artifacts.length
         });
         completeLinkedWorkflowDagStep(appState, task, run, envelope.output, {
           artifactCount: envelope.artifacts.length
         });
-        return mapRunRecord(run);
+        return mapRunRecord(run, appState);
       }
       appState.tasks.update(task.id, { status: "failed" });
       run = appState.runs.update(run.id, {
@@ -920,6 +925,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
           kind: artifact.kind,
           format: artifact.format,
           storageUri: artifact.storageUri,
+          workspaceId: task.workspaceId,
           ...(artifact.sizeBytes !== undefined ? { sizeBytes: artifact.sizeBytes } : {}),
           ...(artifact.hash ? { hash: artifact.hash } : {}),
           ...(artifact.metadata !== undefined ? { metadata: artifact.metadata } : {}),
@@ -946,13 +952,14 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       ...(envelope.verificationStatus ? { verificationStatus: envelope.verificationStatus } : {}),
       ...(envelope.verificationFailures ? { verificationFailures: envelope.verificationFailures } : {})
     });
+    recordTaskRunUsage(appState, run, task, agent.id, undefined, envelope.output);
     appendRunEvent(appState, run.id, task, agent.id, "run.completed", "HTTP/API task run completed.", {
       artifactCount: envelope.artifacts.length
     });
     completeLinkedWorkflowDagStep(appState, task, run, envelope.output, {
       artifactCount: envelope.artifacts.length
     });
-    return mapRunRecord(run);
+    return mapRunRecord(run, appState);
   }
 
   async cancelRun(runId: string, request: TaskWorkbenchTaskRunCancelRequest = {}): Promise<TaskWorkbenchTaskRunCancelResult> {
@@ -2039,8 +2046,107 @@ function appendRunEvent(
     type,
     level,
     message,
-    payload
+    payload,
+    workspaceId: task.workspaceId
   });
+}
+
+function recordTaskRunUsage(
+  appState: AppStateDatabase,
+  run: RunRecord,
+  task: TaskRecord,
+  agentId: string,
+  modelProvider: ModelProviderRuntimeConfig | undefined,
+  output: unknown
+): void {
+  const outputRecord = isRecord(output) ? output : {};
+  const outputUsage = toUsageRecord(outputRecord.usage);
+  const usageEvent = [...appState.runEvents.listForRun(run.id)]
+    .reverse()
+    .find((event) => event.type === "run.usage" || event.type === "agent.run.usage" || event.type === "agent.usage");
+  const eventPayload = usageEvent ? (isRecord(usageEvent.payload) ? usageEvent.payload : {}) : {};
+  const eventUsage = toUsageRecord(eventPayload.usage) ?? toUsageRecord(eventPayload);
+  const usage = outputUsage ?? eventUsage;
+  if (!usage || usage.totalTokens <= 0) {
+    return;
+  }
+  const provider = readString(outputRecord.provider) ?? readString(eventPayload.provider) ?? modelProvider?.providerKind;
+  const providerId = readString(outputRecord.providerId) ?? readString(eventPayload.providerId) ?? modelProvider?.id;
+  const providerKind = readString(outputRecord.providerKind) ?? readString(eventPayload.providerKind) ?? modelProvider?.providerKind;
+  const model = readString(outputRecord.model) ?? readString(eventPayload.model) ?? modelProvider?.defaultModel;
+  const authContext = getRequestAuthContext();
+  const workspaceId =
+    readString(outputRecord.workspaceId) ?? readString(eventPayload.workspaceId) ?? readString(toRecord(task.inputs).workspaceId) ?? task.workspaceId;
+  const record = appState.usageLedger.upsert({
+    runId: run.id,
+    targetType: run.targetType,
+    targetId: run.targetId,
+    taskId: task.id,
+    agentId,
+    ...(run.agentVersion ? { agentVersion: run.agentVersion } : {}),
+    ...(provider ? { provider } : {}),
+    ...(providerId ? { providerId } : {}),
+    ...(providerKind ? { providerKind } : {}),
+    ...(model ? { model } : {}),
+    userId: readString(outputRecord.userId) ?? readString(eventPayload.userId) ?? authContext?.subject ?? "system",
+    workspaceId,
+    inputTokens: usage.inputTokens,
+    outputTokens: usage.outputTokens,
+    totalTokens: usage.totalTokens,
+    ...(usage.costUsd !== undefined ? { costUsd: usage.costUsd } : {}),
+    providerUsage: outputUsage ? outputRecord.usage : eventPayload.usage,
+    source: outputUsage ? "run-output" : "run-event",
+    recordedAt: run.endedAt ?? new Date().toISOString()
+  });
+  if (!usageEvent) {
+    appendRunEvent(appState, run.id, task, agentId, "run.usage", "Task run usage recorded.", {
+      ...(record.provider ? { provider: record.provider } : {}),
+      ...(record.providerId ? { providerId: record.providerId } : {}),
+      ...(record.providerKind ? { providerKind: record.providerKind } : {}),
+      ...(record.model ? { model: record.model } : {}),
+      ...(record.userId ? { userId: record.userId } : {}),
+      ...(record.workspaceId ? { workspaceId: record.workspaceId } : {}),
+      usage: {
+        inputTokens: record.inputTokens,
+        outputTokens: record.outputTokens,
+        totalTokens: record.totalTokens,
+        ...(record.costUsd !== undefined ? { costUsd: record.costUsd } : {})
+      }
+    });
+  }
+}
+
+function toUsageRecord(value: unknown): { inputTokens: number; outputTokens: number; totalTokens: number; costUsd?: number } | undefined {
+  const record = isRecord(value) ? value : {};
+  const inputRaw =
+    readNumber(record.inputTokens) ??
+    readNumber(record.promptTokens) ??
+    readNumber(record.input_tokens) ??
+    readNumber(record.prompt_tokens);
+  const outputRaw =
+    readNumber(record.outputTokens) ??
+    readNumber(record.completionTokens) ??
+    readNumber(record.output_tokens) ??
+    readNumber(record.completion_tokens);
+  const totalRaw = readNumber(record.totalTokens) ?? readNumber(record.total_tokens);
+  const inputTokens = Math.max(0, Math.floor(inputRaw ?? 0));
+  const outputTokens = Math.max(0, Math.floor(outputRaw ?? 0));
+  const resolvedTotal = Math.max(0, Math.floor(totalRaw ?? inputTokens + outputTokens));
+  const totalTokens = Math.max(resolvedTotal, inputTokens + outputTokens);
+  if (totalTokens <= 0) {
+    return undefined;
+  }
+  const costUsd = readNumber(record.costUsd) ?? readNumber(record.estimatedCostUsd) ?? readNumber(record.cost_usd);
+  return {
+    inputTokens,
+    outputTokens,
+    totalTokens,
+    ...(costUsd !== undefined && Number.isFinite(costUsd) ? { costUsd: Math.max(0, costUsd) } : {})
+  };
+}
+
+function toRecord(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {};
 }
 
 function createRunEventSidecarPath(config: AthenaConfig, runId: string): string {
@@ -2994,6 +3100,7 @@ function mapTaskRecord(record: TaskRecord, appState?: AppStateDatabase): TaskWor
     ...(record.assignedAgentVersion ? { assignedAgentVersion: record.assignedAgentVersion } : {}),
     inputs: record.inputs,
     dependsOn: record.dependsOn,
+    workspaceId: record.workspaceId,
     ...(record.missionId ? { missionId: record.missionId } : {}),
     ...(record.sourceRunId ? { sourceRunId: record.sourceRunId } : {}),
     ...(record.provenance !== undefined ? { provenance: record.provenance } : {}),
@@ -3020,11 +3127,13 @@ function mapRunSummaryRecord(record: RunRecord): TaskWorkbenchTaskRunSummary {
   };
 }
 
-function mapRunRecord(record: RunRecord): TaskWorkbenchTaskRun {
+function mapRunRecord(record: RunRecord, appState?: AppStateDatabase): TaskWorkbenchTaskRun {
+  const usage = appState?.usageLedger.getByRunId(record.id);
   return {
     id: record.id,
     targetType: "task",
     targetId: record.targetId,
+    workspaceId: record.workspaceId,
     status: record.status,
     ...(record.backend ? { backend: record.backend } : {}),
     ...(record.agentId ? { agentId: record.agentId } : {}),
@@ -3036,8 +3145,33 @@ function mapRunRecord(record: RunRecord): TaskWorkbenchTaskRun {
     ...(record.safetyStop !== undefined ? { safetyStop: record.safetyStop } : {}),
     ...(record.verificationStatus ? { verificationStatus: record.verificationStatus } : {}),
     ...(record.verificationFailures ? { verificationFailures: record.verificationFailures } : {}),
+    ...(usage ? { usage: mapRunUsageSummary(usage) } : {}),
     createdAt: record.createdAt,
     updatedAt: record.updatedAt
+  };
+}
+
+function mapRunUsageSummary(record: {
+  provider?: string;
+  providerId?: string;
+  providerKind?: string;
+  model?: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  costUsd?: number;
+  recordedAt: string;
+}): TaskWorkbenchRunUsageSummary {
+  return {
+    ...(record.provider ? { provider: record.provider } : {}),
+    ...(record.providerId ? { providerId: record.providerId } : {}),
+    ...(record.providerKind ? { providerKind: record.providerKind } : {}),
+    ...(record.model ? { model: record.model } : {}),
+    inputTokens: record.inputTokens,
+    outputTokens: record.outputTokens,
+    totalTokens: record.totalTokens,
+    ...(record.costUsd !== undefined ? { costUsd: record.costUsd } : {}),
+    recordedAt: record.recordedAt
   };
 }
 

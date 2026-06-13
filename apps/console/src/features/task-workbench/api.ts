@@ -86,6 +86,33 @@ function parseVerificationFailure(value: unknown): TaskWorkbenchVerificationFail
   };
 }
 
+function toNumber(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return fallback;
+}
+
+function parseRunUsage(value: RecordValue): NonNullable<TaskWorkbenchTaskRun["usage"]> {
+  return {
+    ...(typeof value.provider === "string" ? { provider: value.provider } : {}),
+    ...(typeof value.providerId === "string" ? { providerId: value.providerId } : {}),
+    ...(typeof value.providerKind === "string" ? { providerKind: value.providerKind } : {}),
+    ...(typeof value.model === "string" ? { model: value.model } : {}),
+    inputTokens: toNumber(value.inputTokens),
+    outputTokens: toNumber(value.outputTokens),
+    totalTokens: toNumber(value.totalTokens),
+    ...(value.costUsd !== undefined ? { costUsd: toNumber(value.costUsd) } : {}),
+    recordedAt: typeof value.recordedAt === "string" ? value.recordedAt : new Date(0).toISOString(),
+  };
+}
+
 function parseTask(value: unknown): TaskWorkbenchTask {
   if (!isRecord(value) || typeof value.id !== "string" || typeof value.title !== "string") {
     throw new Error("Task payload is invalid.");
@@ -165,6 +192,7 @@ function parseRun(value: unknown): TaskWorkbenchTaskRun {
             .filter((failure): failure is TaskWorkbenchVerificationFailure => failure !== undefined),
         }
       : {}),
+    ...(isRecord(value.usage) ? { usage: parseRunUsage(value.usage) } : {}),
     createdAt: typeof value.createdAt === "string" ? value.createdAt : new Date(0).toISOString(),
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : new Date(0).toISOString(),
   };

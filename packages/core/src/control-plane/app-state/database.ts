@@ -13,7 +13,8 @@ import {
   ConnectedRepositoryRepository,
   ModelProviderConfigRepository,
   WorkerHeartbeatRepository,
-  EvalRepository
+  EvalRepository,
+  UsageLedgerRepository
 } from "./domain-repositories.js";
 import { ensureAppStateMigrationTable, runAppStateMigrations } from "./migrations.js";
 import {
@@ -25,6 +26,7 @@ import {
   HarnessProfileRepository,
   PluginIndexRepository,
   RunTemplateRepository,
+  WorkspaceRepository,
   WorkflowTemplateIndexRepository
 } from "./repositories.js";
 import { WorkflowDagRunRepository } from "./workflow-state-repository.js";
@@ -40,6 +42,7 @@ export interface AppStateDatabase {
   readonly db: Database.Database;
   readonly migrations: AppStateMigrationRepository;
   readonly settings: AppSettingsRepository;
+  readonly workspaces: WorkspaceRepository;
   readonly connectorCredentialBindings: ConnectorCredentialBindingRepository;
   readonly plugins: PluginIndexRepository;
   readonly agents: AgentIndexRepository;
@@ -53,6 +56,7 @@ export interface AppStateDatabase {
   readonly modelProviderConfigs: ModelProviderConfigRepository;
   readonly workerHeartbeats: WorkerHeartbeatRepository;
   readonly evals: EvalRepository;
+  readonly usageLedger: UsageLedgerRepository;
   readonly missions: MissionRepository;
   readonly runs: RunRepository;
   readonly schedules: ScheduleRepository;
@@ -87,6 +91,7 @@ export function openAppStateDatabase(config: AthenaConfig, options: AppStateData
     db,
     migrations,
     settings: new AppSettingsRepository(db),
+    workspaces: new WorkspaceRepository(db),
     connectorCredentialBindings: new ConnectorCredentialBindingRepository(db),
     plugins: new PluginIndexRepository(db),
     agents: new AgentIndexRepository(db),
@@ -100,6 +105,7 @@ export function openAppStateDatabase(config: AthenaConfig, options: AppStateData
     modelProviderConfigs: new ModelProviderConfigRepository(db),
     workerHeartbeats: new WorkerHeartbeatRepository(db),
     evals: new EvalRepository(db),
+    usageLedger: new UsageLedgerRepository(db),
     missions: new MissionRepository(db),
     runs: new RunRepository(db),
     schedules: new ScheduleRepository(db),

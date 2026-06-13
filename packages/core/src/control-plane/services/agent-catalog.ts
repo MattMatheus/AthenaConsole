@@ -32,6 +32,11 @@ interface AgentManifestDocument {
     observability?: Record<string, unknown>;
     compatibility?: Record<string, unknown>;
     ui?: Record<string, unknown>;
+    certification?: {
+      securityOwner?: string;
+      ownershipRecord?: string;
+      evidenceLinks?: Array<Record<string, unknown>>;
+    };
   };
 }
 
@@ -207,6 +212,8 @@ function mapAgentSummary(
   const pluginManifest = normalizePluginManifest(plugin.manifest);
   const agentManifest = normalizeAgentManifest(agent.manifest);
   const providerRequirement = normalizeModelProviderRequirement(agentManifest.agent?.runtime?.modelProvider);
+  const certification = evaluateAgentCertification(agent, plugin, pluginManifest, agentManifest, appState);
+  const lifecycleStatus = resolveAgentLifecycleStatus(agent, certification);
   return {
     id: agent.id,
     version: agent.version,
@@ -222,10 +229,10 @@ function mapAgentSummary(
       ...(pluginManifest.plugin?.pack ? { pack: pluginManifest.plugin.pack } : {})
     },
     capabilities: agent.capabilities,
-    status: agent.status,
-    available: plugin.enabled && plugin.status === "loaded" && agent.status === "loaded",
+    status: lifecycleStatus,
+    available: isAgentAvailable(plugin, agent, lifecycleStatus, certification),
     providerReadiness: evaluateProviderReadiness(providerRequirement ? [providerRequirement] : [], providers),
-    certification: evaluateAgentCertification(agent, plugin, pluginManifest, appState),
+    certification,
     metadata: mapAgentMetadata(agentManifest),
     validationErrors: [],
     createdAt: agent.createdAt,
@@ -237,9 +244,11 @@ function evaluateAgentCertification(
   agent: AgentIndexRecord,
   plugin: PluginIndexRecord,
   pluginManifest: PluginManifestDocument,
+  agentManifest: AgentManifestDocument,
   appState: AppStateDatabase
 ): AgentCatalogCertification {
   const declaredMaturity = pluginManifest.plugin?.pack?.maturity;
+  const declaredEvidence = normalizeCertificationEvidence(agentManifest);
   const required = isFirstPartyPlugin(plugin) && declaredMaturity === "certified";
   if (!required) {
     return {
@@ -250,13 +259,15 @@ function evaluateAgentCertification(
       evalResultIds: [],
       expectedArtifactUris: [],
       actualArtifactUris: [],
+      ...declaredEvidence,
       reasons: [],
       message: "Certification gate is not required for this agent."
     };
   }
 
   const candidate = findPassingCertificationRun(appState, agent);
-  if (candidate) {
+  const evidenceReasons = certificationEvidenceBlockReasons(declaredEvidence);
+  if (candidate && evidenceReasons.length === 0) {
     return {
       status: "certified",
       required: true,
@@ -266,8 +277,14 @@ function evaluateAgentCertification(
       evalResultIds: candidate.results.map((result) => result.id),
       expectedArtifactUris: candidate.results.map((result) => result.expectedArtifactUri!).filter(Boolean),
       actualArtifactUris: candidate.results.map((result) => result.actualArtifactUri!).filter(Boolean),
+      ...declaredEvidence,
+      evidenceLinks: [
+        ...declaredEvidence.evidenceLinks,
+        { kind: "eval-run", uri: `eval-run:${candidate.run.id}`, label: candidate.run.id },
+        ...candidate.results.map((result) => ({ kind: "eval-result", uri: `eval-result:${result.id}`, label: result.caseId }))
+      ],
       reasons: [],
-      message: "Certified by passing eval results with expected and actual artifact links."
+      message: "Certified by passing eval results with expected and actual artifact links plus security and ownership evidence."
     };
   }
 
@@ -279,9 +296,39 @@ function evaluateAgentCertification(
     evalResultIds: [],
     expectedArtifactUris: [],
     actualArtifactUris: [],
-    reasons: certificationBlockReasons(appState, agent),
-    message: "Declared certified maturity is blocked until a completed passing eval run records expected and actual artifact links."
+    ...declaredEvidence,
+    reasons: [...certificationBlockReasons(appState, agent), ...evidenceReasons],
+    message:
+      "Declared certified maturity is blocked until a completed passing eval run records artifact links and security/ownership evidence."
   };
+}
+
+function resolveAgentLifecycleStatus(agent: AgentIndexRecord, certification: AgentCatalogCertification): AgentCatalogAgentSummary["status"] {
+  if (agent.lifecycleStatus === "certified" && certification.status !== "certified") {
+    return "approved";
+  }
+  if (certification.status === "certified") {
+    return "certified";
+  }
+  return agent.lifecycleStatus;
+}
+
+function isAgentAvailable(
+  plugin: PluginIndexRecord,
+  agent: AgentIndexRecord,
+  lifecycleStatus: AgentCatalogAgentSummary["status"],
+  certification: AgentCatalogCertification
+): boolean {
+  if (!plugin.enabled || plugin.status !== "loaded" || agent.status !== "loaded") {
+    return false;
+  }
+  if (lifecycleStatus === "draft" || lifecycleStatus === "deprecated") {
+    return false;
+  }
+  if (certification.required && certification.status !== "certified") {
+    return false;
+  }
+  return true;
 }
 
 function findPassingCertificationRun(
@@ -334,6 +381,61 @@ function certificationBlockReasons(appState: AppStateDatabase, agent: AgentIndex
     return ["failing-eval-results"];
   }
   return ["missing-eval-artifact-links"];
+}
+
+function normalizeCertificationEvidence(agentManifest: AgentManifestDocument): {
+  securityOwner?: string;
+  ownershipRecord?: string;
+  evidenceLinks: AgentCatalogCertification["evidenceLinks"];
+} {
+  const certification = agentManifest.agent?.certification;
+  const securityOwner = readNonEmptyString(certification?.securityOwner);
+  const ownershipRecord = readNonEmptyString(certification?.ownershipRecord);
+  const evidenceLinks = Array.isArray(certification?.evidenceLinks)
+    ? certification.evidenceLinks
+        .map((link) => {
+          const kind = readNonEmptyString(link.kind);
+          const uri = readNonEmptyString(link.uri);
+          if (!kind || !uri) {
+            return undefined;
+          }
+          const label = readNonEmptyString(link.label);
+          return {
+            kind,
+            uri,
+            ...(label ? { label } : {})
+          };
+        })
+        .filter((link): link is AgentCatalogCertification["evidenceLinks"][number] => link !== undefined)
+    : [];
+  return {
+    ...(securityOwner ? { securityOwner } : {}),
+    ...(ownershipRecord ? { ownershipRecord } : {}),
+    evidenceLinks: [
+      ...evidenceLinks,
+      ...(securityOwner ? [{ kind: "security-owner", uri: `owner:${securityOwner}`, label: securityOwner }] : []),
+      ...(ownershipRecord ? [{ kind: "ownership-record", uri: ownershipRecord, label: "Ownership record" }] : [])
+    ]
+  };
+}
+
+function certificationEvidenceBlockReasons(evidence: {
+  securityOwner?: string;
+  ownershipRecord?: string;
+  evidenceLinks: AgentCatalogCertification["evidenceLinks"];
+}): string[] {
+  const reasons: string[] = [];
+  if (!evidence.securityOwner) {
+    reasons.push("missing-security-owner");
+  }
+  if (!evidence.ownershipRecord) {
+    reasons.push("missing-ownership-record");
+  }
+  return reasons;
+}
+
+function readNonEmptyString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
 }
 
 function isFirstPartyPlugin(plugin: PluginIndexRecord): boolean {

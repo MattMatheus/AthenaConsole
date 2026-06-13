@@ -23,6 +23,7 @@ describe("evidence bundle contracts", () => {
             id: "run-1",
             targetType: "task",
             targetId: "task-1",
+            workspaceId: "default",
             status: "completed",
             output: { summary: "Done" },
             createdAt: "2026-06-13T00:00:00.000Z",

@@ -24,6 +24,39 @@ export interface OperationsCostByProvider {
   totalTokens: number;
 }
 
+export interface OperationsCostByModel {
+  provider: string;
+  model: string;
+  estimatedSpendUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}
+
+export interface OperationsCostByUser {
+  userId: string;
+  estimatedSpendUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}
+
+export interface OperationsCostByWorkspace {
+  workspaceId: string;
+  estimatedSpendUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}
+
+export interface OperationsUsageTrendPoint {
+  date: string;
+  estimatedSpendUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}
+
 export interface OperationsTokenMix {
   inputTokens: number;
   outputTokens: number;
@@ -39,6 +72,10 @@ export interface OperationsCostSummary {
   totalEstimatedSpendUsd: number;
   agentBreakdown: OperationsCostByAgent[];
   providerBreakdown: OperationsCostByProvider[];
+  modelBreakdown: OperationsCostByModel[];
+  userBreakdown: OperationsCostByUser[];
+  workspaceBreakdown: OperationsCostByWorkspace[];
+  dailyTrend: OperationsUsageTrendPoint[];
   tokenMix: OperationsTokenMix;
 }
 

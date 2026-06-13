@@ -83,6 +83,7 @@ interface DurableMemoryRecordRow {
   id: string;
   namespace_scope: string;
   namespace_id: string;
+  workspace_id: string;
   namespace_json: string;
   namespace_ancestors_json: string;
   provenance_json: string;
@@ -105,6 +106,7 @@ interface DurableMemoryProposalRow {
   id: string;
   target_namespace_scope: string;
   target_namespace_id: string;
+  target_workspace_id: string;
   target_namespace_json: string;
   target_namespace_ancestors_json: string;
   provenance_json: string;
@@ -123,6 +125,7 @@ interface DurableMemorySnapshotRow {
   id: string;
   namespace_scope: string;
   namespace_id: string;
+  workspace_id: string;
   namespace_json: string;
   namespace_ancestors_json: string;
   provenance_json: string;
@@ -138,6 +141,7 @@ export function ensureDurableMemoryServerStorageSchema(db: Database.Database): v
       id text primary key,
       namespace_scope text not null,
       namespace_id text not null,
+      workspace_id text not null default 'default',
       namespace_json text not null,
       namespace_ancestors_json text not null default '[]',
       provenance_json text not null,
@@ -166,6 +170,7 @@ export function ensureDurableMemoryServerStorageSchema(db: Database.Database): v
       id text primary key,
       target_namespace_scope text not null,
       target_namespace_id text not null,
+      target_workspace_id text not null default 'default',
       target_namespace_json text not null,
       target_namespace_ancestors_json text not null default '[]',
       provenance_json text not null,
@@ -187,6 +192,7 @@ export function ensureDurableMemoryServerStorageSchema(db: Database.Database): v
       id text primary key,
       namespace_scope text not null,
       namespace_id text not null,
+      workspace_id text not null default 'default',
       namespace_json text not null,
       namespace_ancestors_json text not null default '[]',
       provenance_json text not null,
@@ -201,6 +207,17 @@ export function ensureDurableMemoryServerStorageSchema(db: Database.Database): v
   `);
   ensureColumn(db, "durable_memory_records", "embedding_json", "text");
   ensureColumn(db, "durable_memory_proposals", "evidence", "text");
+  ensureColumn(db, "durable_memory_records", "workspace_id", "text not null default 'default'");
+  ensureColumn(db, "durable_memory_proposals", "target_workspace_id", "text not null default 'default'");
+  ensureColumn(db, "durable_memory_snapshots", "workspace_id", "text not null default 'default'");
+  db.exec(`
+    create index if not exists durable_memory_records_workspace_idx
+      on durable_memory_records(workspace_id, status, updated_at);
+    create index if not exists durable_memory_proposals_workspace_idx
+      on durable_memory_proposals(target_workspace_id, status, created_at);
+    create index if not exists durable_memory_snapshots_workspace_idx
+      on durable_memory_snapshots(workspace_id, created_at);
+  `);
 }
 
 export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStorage {
@@ -225,6 +242,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
         id,
         namespace_scope,
         namespace_id,
+        workspace_id,
         namespace_json,
         namespace_ancestors_json,
         provenance_json,
@@ -246,6 +264,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
         @id,
         @namespaceScope,
         @namespaceId,
+        @workspaceId,
         @namespaceJson,
         @namespaceAncestorsJson,
         @provenanceJson,
@@ -288,6 +307,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
         id,
         target_namespace_scope,
         target_namespace_id,
+        target_workspace_id,
         target_namespace_json,
         target_namespace_ancestors_json,
         provenance_json,
@@ -305,6 +325,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
         @id,
         @targetNamespaceScope,
         @targetNamespaceId,
+        @targetWorkspaceId,
         @targetNamespaceJson,
         @targetNamespaceAncestorsJson,
         @provenanceJson,
@@ -333,6 +354,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
         id,
         namespace_scope,
         namespace_id,
+        workspace_id,
         namespace_json,
         namespace_ancestors_json,
         provenance_json,
@@ -345,6 +367,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
         @id,
         @namespaceScope,
         @namespaceId,
+        @workspaceId,
         @namespaceJson,
         @namespaceAncestorsJson,
         @provenanceJson,
@@ -372,6 +395,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
       id: input.id,
       namespaceScope: input.namespace.scope,
       namespaceId: input.namespace.id,
+      workspaceId: namespaceParts.workspaceId,
       namespaceJson: JSON.stringify(input.namespace),
       namespaceAncestorsJson: JSON.stringify(namespaceParts.ancestorKeys),
       provenanceJson: JSON.stringify(input.provenance),
@@ -516,6 +540,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
       id: request.id,
       targetNamespaceScope: request.targetNamespace.scope,
       targetNamespaceId: request.targetNamespace.id,
+      targetWorkspaceId: namespaceParts.workspaceId,
       targetNamespaceJson: JSON.stringify(request.targetNamespace),
       targetNamespaceAncestorsJson: JSON.stringify(namespaceParts.ancestorKeys),
       provenanceJson: JSON.stringify(request.provenance),
@@ -573,6 +598,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
       id: request.id,
       namespaceScope: request.namespace.scope,
       namespaceId: request.namespace.id,
+      workspaceId: namespaceParts.workspaceId,
       namespaceJson: JSON.stringify(request.namespace),
       namespaceAncestorsJson: JSON.stringify(namespaceParts.ancestorKeys),
       provenanceJson: JSON.stringify(request.provenance),
@@ -661,7 +687,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
 
 function recordSelectSql(suffix: string): string {
   return `
-    select id, namespace_scope, namespace_id, namespace_json, namespace_ancestors_json, provenance_json, source_kind,
+    select id, namespace_scope, namespace_id, workspace_id, namespace_json, namespace_ancestors_json, provenance_json, source_kind,
       memory_type, body, summary, sensitivity, status, provider_json, embedding_json, revision, created_at, updated_at, archived_at, deleted_at
     from durable_memory_records ${suffix}
   `;
@@ -669,7 +695,7 @@ function recordSelectSql(suffix: string): string {
 
 function proposalSelectSql(suffix: string): string {
   return `
-    select id, target_namespace_scope, target_namespace_id, target_namespace_json, target_namespace_ancestors_json,
+    select id, target_namespace_scope, target_namespace_id, target_workspace_id, target_namespace_json, target_namespace_ancestors_json,
       provenance_json, source_kind, memory_type, proposed_body, reason, evidence, status, created_at, reviewed_at, reviewed_by
     from durable_memory_proposals ${suffix}
   `;
@@ -677,7 +703,7 @@ function proposalSelectSql(suffix: string): string {
 
 function snapshotSelectSql(suffix: string): string {
   return `
-    select id, namespace_scope, namespace_id, namespace_json, namespace_ancestors_json, provenance_json, source_kind,
+    select id, namespace_scope, namespace_id, workspace_id, namespace_json, namespace_ancestors_json, provenance_json, source_kind,
       record_ids_json, reason, created_at
     from durable_memory_snapshots ${suffix}
   `;
@@ -870,14 +896,18 @@ function namespaceKey(namespace: DurableMemoryNamespaceRef): string {
   return `${namespace.scope}:${namespace.id}`;
 }
 
-function toNamespaceStorageParts(namespace: DurableMemoryNamespaceRef): { ancestorKeys: string[] } {
+function toNamespaceStorageParts(namespace: DurableMemoryNamespaceRef): { ancestorKeys: string[]; workspaceId: string } {
   const ancestorKeys: string[] = [];
+  let workspaceId = namespace.scope === "workspace" ? namespace.id : "default";
   let parent = namespace.parent;
   while (parent) {
     ancestorKeys.push(namespaceKey(parent));
+    if (workspaceId === "default" && parent.scope === "workspace") {
+      workspaceId = parent.id;
+    }
     parent = parent.parent;
   }
-  return { ancestorKeys };
+  return { ancestorKeys, workspaceId };
 }
 
 function clampLimit(limit: number | undefined): number {

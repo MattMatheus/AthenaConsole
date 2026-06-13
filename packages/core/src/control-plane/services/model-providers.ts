@@ -63,6 +63,7 @@ export class LocalModelProviderConfigService implements ModelProviderConfigServi
           baseUrl: request.baseUrl ?? DEFAULT_OPENAI_COMPATIBLE_BASE_URL,
           defaultModel: request.defaultModel,
           secretRef: request.secret,
+          ...(request.workspaceId ? { workspaceId: request.workspaceId } : {}),
           status: status.status,
           statusMessage: status.message
         });
@@ -198,6 +199,7 @@ export class LocalModelProviderConfigService implements ModelProviderConfigServi
       secret: secretMetadata(record.secretRef, configured),
       status: record.status,
       ...(record.statusMessage ? { statusMessage: record.statusMessage } : {}),
+      workspaceId: record.workspaceId,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt
     };

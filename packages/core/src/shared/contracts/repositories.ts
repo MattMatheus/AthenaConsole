@@ -12,6 +12,7 @@ export interface ConnectedRepository {
   defaultBranch?: string;
   currentBranch?: string;
   headCommit?: string;
+  workspaceId: string;
   dirtyState: ConnectedRepositoryDirtyState;
   status: ConnectedRepositoryStatus;
   statusMessage?: string;
@@ -33,6 +34,7 @@ export interface ConnectedRepositoryCreateRequest {
   hostPath?: string;
   remoteUrl?: string;
   defaultBranch?: string;
+  workspaceId?: string;
 }
 
 export interface ConnectedRepositoryInspection {

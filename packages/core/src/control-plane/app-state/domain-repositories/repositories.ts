@@ -18,6 +18,7 @@ interface ConnectedRepositoryRow {
   status: ConnectedRepositoryRecordStatus;
   status_message: string | null;
   last_inspected_at: string | null;
+  workspace_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -36,6 +37,7 @@ export interface ConnectedRepositoryRecord {
   status: ConnectedRepositoryRecordStatus;
   statusMessage?: string;
   lastInspectedAt?: string;
+  workspaceId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -51,6 +53,7 @@ export interface CreateConnectedRepositoryInput {
   status?: ConnectedRepositoryRecordStatus;
   dirtyState?: ConnectedRepositoryRecordDirtyState;
   statusMessage?: string;
+  workspaceId?: string;
   now?: Date;
 }
 
@@ -67,7 +70,12 @@ export interface UpdateConnectedRepositoryInput {
   status?: ConnectedRepositoryRecordStatus;
   statusMessage?: string;
   lastInspectedAt?: string;
+  workspaceId?: string;
   now?: Date;
+}
+
+export interface ListConnectedRepositoriesOptions {
+  workspaceId?: string;
 }
 
 export class ConnectedRepositoryRepository {
@@ -95,6 +103,7 @@ export class ConnectedRepositoryRepository {
         status,
         status_message,
         last_inspected_at,
+        workspace_id,
         created_at,
         updated_at
       )
@@ -112,6 +121,7 @@ export class ConnectedRepositoryRepository {
         @status,
         @statusMessage,
         @lastInspectedAt,
+        @workspaceId,
         @createdAt,
         @updatedAt
       )
@@ -130,6 +140,7 @@ export class ConnectedRepositoryRepository {
         status = @status,
         status_message = @statusMessage,
         last_inspected_at = @lastInspectedAt,
+        workspace_id = @workspaceId,
         updated_at = @updatedAt
       where id = @id
     `);
@@ -152,6 +163,7 @@ export class ConnectedRepositoryRepository {
       status: input.status ?? "invalid",
       statusMessage: input.statusMessage ?? null,
       lastInspectedAt: null,
+      workspaceId: input.workspaceId ?? "default",
       createdAt: now,
       updatedAt: now
     });
@@ -171,8 +183,11 @@ export class ConnectedRepositoryRepository {
     return repository;
   }
 
-  list(): ConnectedRepositoryRecord[] {
-    return this.listStatement.all().map((row) => mapConnectedRepositoryRow(row as ConnectedRepositoryRow));
+  list(options: ListConnectedRepositoriesOptions = {}): ConnectedRepositoryRecord[] {
+    return this.listStatement
+      .all()
+      .map((row) => mapConnectedRepositoryRow(row as ConnectedRepositoryRow))
+      .filter((row) => (options.workspaceId ? row.workspaceId === options.workspaceId : true));
   }
 
   update(id: string, input: UpdateConnectedRepositoryInput): ConnectedRepositoryRecord | undefined {
@@ -194,6 +209,7 @@ export class ConnectedRepositoryRepository {
       status: input.status ?? existing.status,
       statusMessage: input.statusMessage ?? existing.statusMessage ?? null,
       lastInspectedAt: input.lastInspectedAt ?? existing.lastInspectedAt ?? null,
+      workspaceId: input.workspaceId ?? existing.workspaceId,
       updatedAt: (input.now ?? new Date()).toISOString()
     });
     return this.require(id);
@@ -206,7 +222,7 @@ export class ConnectedRepositoryRepository {
 }
 
 function connectedRepositorySelectSql(suffix: string): string {
-  return `select id, name, source_type, workspace_path, host_path, remote_url, default_branch, current_branch, head_commit, dirty_state, status, status_message, last_inspected_at, created_at, updated_at from connected_repositories ${suffix}`;
+  return `select id, name, source_type, workspace_path, host_path, remote_url, default_branch, current_branch, head_commit, dirty_state, status, status_message, last_inspected_at, workspace_id, created_at, updated_at from connected_repositories ${suffix}`;
 }
 
 function mapConnectedRepositoryRow(row: ConnectedRepositoryRow): ConnectedRepositoryRecord {
@@ -224,6 +240,7 @@ function mapConnectedRepositoryRow(row: ConnectedRepositoryRow): ConnectedReposi
     status: row.status,
     ...(row.status_message ? { statusMessage: row.status_message } : {}),
     ...(row.last_inspected_at ? { lastInspectedAt: row.last_inspected_at } : {}),
+    workspaceId: row.workspace_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };

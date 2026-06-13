@@ -68,6 +68,7 @@ describe("agent catalog service", () => {
           id: "software.fix.local",
           name: "Software Fixer",
           capabilities: ["code.modify", "text.summarize"],
+          status: "approved",
           available: true,
           providerReadiness: {
             status: "missing",
@@ -125,6 +126,64 @@ describe("agent catalog service", () => {
         const noMatch = await service.listAgents({ capabilities: ["code.modify", "audio.transcribe"] });
         expect(noMatch.agents).toEqual([]);
         expect(noMatch.total).toBe(0);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("preserves explicit lifecycle status and keeps draft agents unavailable", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-agent-catalog-lifecycle-"));
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        seedCatalog(appState);
+        appState.agents.upsert({
+          id: "software.fix.local",
+          version: "1.0.0",
+          pluginId: "team-orchestrator.test.software",
+          pluginVersion: "0.1.0",
+          name: "Software Fixer",
+          capabilities: ["code.modify"],
+          status: "loaded",
+          lifecycleStatus: "draft",
+          manifest: {
+            agent: {
+              implementation: {
+                type: "local-command",
+                command: "npm"
+              }
+            }
+          }
+        });
+        appState.agents.upsert({
+          id: "software.fix.local",
+          version: "1.0.0",
+          pluginId: "team-orchestrator.test.software",
+          pluginVersion: "0.1.0",
+          name: "Software Fixer",
+          capabilities: ["code.modify"],
+          status: "loaded",
+          manifest: {
+            agent: {
+              implementation: {
+                type: "local-command",
+                command: "npm"
+              }
+            }
+          }
+        });
+
+        const service = new LocalAgentCatalogService(config, { appState });
+        const agents = await service.listAgents({ capabilities: ["code.modify"] });
+        expect(agents.agents[0]).toMatchObject({
+          id: "software.fix.local",
+          status: "draft",
+          available: false
+        });
       } finally {
         appState.close();
       }
@@ -251,8 +310,11 @@ describe("agent catalog service", () => {
           evalResultIds: ["eval-certification-passed-result"],
           expectedArtifactUris: ["fixture://expected.md"],
           actualArtifactUris: ["memory://actual.md"],
+          securityOwner: "security@example.test",
+          ownershipRecord: "docs://ownership/bundled.certified.agent.md",
           reasons: []
         });
+        expect(agents.agents[0]?.status).toBe("certified");
       } finally {
         appState.close();
       }
@@ -381,6 +443,10 @@ function seedCatalog(appState: ReturnType<typeof openAppStateDatabase>): void {
     status: "loaded",
     manifest: {
       agent: {
+        certification: {
+          securityOwner: "security@example.test",
+          ownershipRecord: "docs://ownership/bundled.certified.agent.md"
+        },
         implementation: {
           type: "local-command",
           command: "npm"
@@ -424,6 +490,10 @@ function seedCertifiedCatalog(appState: ReturnType<typeof openAppStateDatabase>)
     status: "loaded",
     manifest: {
       agent: {
+        certification: {
+          securityOwner: "security@example.test",
+          ownershipRecord: "docs://ownership/bundled.certified.agent.md"
+        },
         implementation: {
           type: "local-command",
           command: "node"

@@ -121,10 +121,10 @@ function uniquePackCategories(plugins: AgentCatalogPluginSummary[]): string[] {
 }
 
 function statusBadgeClass(status: string, available = true): string {
-  if (!available || status === "invalid") {
+  if (!available || status === "invalid" || status === "deprecated") {
     return styles.badgeDanger ?? "";
   }
-  if (status === "loaded") {
+  if (status === "loaded" || status === "verified" || status === "approved" || status === "certified") {
     return styles.badgeSuccess ?? "";
   }
   return styles.badgeWarning ?? "";

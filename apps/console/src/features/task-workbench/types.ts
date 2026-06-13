@@ -102,6 +102,18 @@ export type TaskWorkbenchTaskRunSummary = {
   updatedAt: string;
 };
 
+export type TaskWorkbenchRunUsageSummary = {
+  provider?: string;
+  providerId?: string;
+  providerKind?: string;
+  model?: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  costUsd?: number;
+  recordedAt: string;
+};
+
 export type TaskWorkbenchTaskRun = {
   id: string;
   targetType: "task";
@@ -117,6 +129,7 @@ export type TaskWorkbenchTaskRun = {
   safetyStop?: unknown;
   verificationStatus?: TaskWorkbenchVerificationStatus;
   verificationFailures?: TaskWorkbenchVerificationFailure[];
+  usage?: TaskWorkbenchRunUsageSummary;
   createdAt: string;
   updatedAt: string;
 };

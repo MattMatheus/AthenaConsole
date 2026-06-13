@@ -2,6 +2,7 @@ import { apiClient } from "../../services";
 import type {
   AgentCatalogAgentListQuery,
   AgentCatalogAgentListResult,
+  AgentCatalogAgentStatus,
   AgentCatalogAgentSummary,
   CapabilityPackOutcome,
   CapabilityPackMetadata,
@@ -21,6 +22,12 @@ function isRecord(value: unknown): value is RecordValue {
 
 function toSourceScope(value: unknown): AgentCatalogPluginSourceScope {
   return value === "system" ? "system" : "workspace";
+}
+
+function toAgentStatus(value: unknown): AgentCatalogAgentStatus {
+  return value === "draft" || value === "verified" || value === "approved" || value === "certified" || value === "deprecated"
+    ? value
+    : "draft";
 }
 
 function toStringArray(value: unknown): string[] {
@@ -196,7 +203,7 @@ function parsePlugin(value: unknown): AgentCatalogPluginSummary | undefined {
     version: value.version,
     path: typeof value.path === "string" ? value.path : "",
     enabled: Boolean(value.enabled),
-    status: typeof value.status === "string" ? value.status : "unknown",
+    status: toAgentStatus(value.status),
     sourceType: typeof value.sourceType === "string" ? value.sourceType : "local",
     sourceScope: toSourceScope(value.sourceScope),
     metadata: {
@@ -247,7 +254,7 @@ function parseAgent(value: unknown): AgentCatalogAgentSummary | undefined {
       ...(pack ? { pack } : {}),
     },
     capabilities: toStringArray(value.capabilities),
-    status: typeof value.status === "string" ? value.status : "unknown",
+    status: toAgentStatus(value.status),
     available: Boolean(value.available),
     providerReadiness: parseProviderReadiness(value.providerReadiness),
     certification: parseCertification(value.certification),
@@ -275,6 +282,16 @@ function parseCertification(value: unknown): AgentCatalogAgentSummary["certifica
   const record = isRecord(value) ? value : {};
   const status =
     record.status === "certified" || record.status === "blocked" || record.status === "not-required" ? record.status : "not-required";
+  const evidenceLinks = Array.isArray(record.evidenceLinks)
+    ? record.evidenceLinks
+        .filter(isRecord)
+        .map((link) => ({
+          kind: typeof link.kind === "string" ? link.kind : "",
+          uri: typeof link.uri === "string" ? link.uri : "",
+          ...(typeof link.label === "string" ? { label: link.label } : {}),
+        }))
+        .filter((link) => link.kind.length > 0 && link.uri.length > 0)
+    : [];
   return {
     status,
     required: Boolean(record.required),
@@ -284,6 +301,9 @@ function parseCertification(value: unknown): AgentCatalogAgentSummary["certifica
     evalResultIds: toStringArray(record.evalResultIds),
     expectedArtifactUris: toStringArray(record.expectedArtifactUris),
     actualArtifactUris: toStringArray(record.actualArtifactUris),
+    ...(typeof record.securityOwner === "string" ? { securityOwner: record.securityOwner } : {}),
+    ...(typeof record.ownershipRecord === "string" ? { ownershipRecord: record.ownershipRecord } : {}),
+    evidenceLinks,
     reasons: toStringArray(record.reasons),
     message: typeof record.message === "string" ? record.message : "",
   };

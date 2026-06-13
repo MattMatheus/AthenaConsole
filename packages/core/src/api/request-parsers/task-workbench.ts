@@ -14,6 +14,7 @@ import { optionalString, requireString } from "../validation.js";
 export function parseTaskWorkbenchListQuery(requestUrl: URL): TaskWorkbenchTaskListQuery {
   const status = parseOptionalTaskStatus(requestUrl.searchParams.get("status"), "tasks.list.status");
   const missionId = requestUrl.searchParams.get("missionId")?.trim();
+  const workspaceId = requestUrl.searchParams.get("workspaceId")?.trim();
   const includeArchived = parseOptionalBooleanQuery(
     requestUrl.searchParams.get("includeArchived"),
     "tasks.list.includeArchived"
@@ -21,6 +22,7 @@ export function parseTaskWorkbenchListQuery(requestUrl: URL): TaskWorkbenchTaskL
   return {
     ...(status ? { status } : {}),
     ...(missionId ? { missionId } : {}),
+    ...(workspaceId ? { workspaceId } : {}),
     ...(includeArchived !== undefined ? { includeArchived } : {})
   };
 }
@@ -74,6 +76,7 @@ function parseTaskWorkbenchMutationFields(
   const missionId = optionalString(body, "missionId", context);
   const sourceRunId = optionalString(body, "sourceRunId", context);
   const createdBy = optionalString(body, "createdBy", context);
+  const workspaceId = optionalString(body, "workspaceId", context);
   return {
     ...(title ? { title } : {}),
     ...(description ? { description } : {}),
@@ -84,6 +87,7 @@ function parseTaskWorkbenchMutationFields(
     ...(dependsOn ? { dependsOn } : {}),
     ...(missionId ? { missionId } : {}),
     ...(sourceRunId ? { sourceRunId } : {}),
+    ...(workspaceId ? { workspaceId } : {}),
     ...(body.provenance !== undefined ? { provenance: body.provenance } : {}),
     ...(createdBy ? { createdBy } : {})
   };

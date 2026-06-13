@@ -9,6 +9,7 @@ export interface ScopeSet {
   agents: string[];
   sessionIds: string[];
   runIds: string[];
+  workspaces?: string[];
 }
 
 export interface RequestAuthContext {
@@ -47,7 +48,8 @@ class ConfigIdentityRoleResolver implements IdentityRoleResolver {
         global: role === "Admin",
         agents: [],
         sessionIds: [],
-        runIds: []
+        runIds: [],
+        workspaces: []
       }
     };
   }

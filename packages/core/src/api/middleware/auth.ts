@@ -78,12 +78,14 @@ function parseScopeHeaders(headers: IncomingMessage["headers"], adminGlobal: boo
   const agents = parseScopeList(headers["x-athena-scope-agents"]);
   const sessionIds = parseScopeList(headers["x-athena-scope-sessions"]);
   const runIds = parseScopeList(headers["x-athena-scope-runs"]);
+  const workspaces = parseScopeList(headers["x-athena-scope-workspaces"]);
   const globalHeader = parseScopeGlobal(headers["x-athena-scope-global"]);
   return {
     global: adminGlobal || globalHeader,
     agents,
     sessionIds,
-    runIds
+    runIds,
+    workspaces
   };
 }
 
