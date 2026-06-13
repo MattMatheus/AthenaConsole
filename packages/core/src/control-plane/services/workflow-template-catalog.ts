@@ -3,6 +3,7 @@ import { AthenaError } from "../../runtime/errors.js";
 import type { AthenaConfig } from "../../shared/config.js";
 import type {
   MissionWorkbenchMission,
+  ProviderReadiness,
   TaskWorkbenchTask,
   WorkflowTemplateCatalogListQuery,
   WorkflowTemplateCatalogListResult,
@@ -15,6 +16,7 @@ import type { TaskWorkbenchRunMode } from "../../shared/contracts.js";
 import { DEFAULT_TASK_WORKBENCH_RUN_MODE, TASK_WORKBENCH_RUN_MODES } from "../../shared/contracts.js";
 import type { AppStateDatabase, PluginIndexRecord, WorkflowTemplateIndexRecord } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
+import { evaluateConnectorReadiness, type ConnectorMetadata, type ConnectorReadinessReport } from "../connectors.js";
 import type { WorkflowTemplateCatalogService } from "../interfaces.js";
 import { parseWorkflowTemplateDag } from "../workflow-template-dag.js";
 import { LocalTaskWorkbenchService } from "./task-workbench.js";
@@ -30,6 +32,7 @@ interface PluginManifestDocument {
   plugin?: {
     name?: string;
     pack?: import("../../shared/contracts.js").CapabilityPackMetadata;
+    connector?: ConnectorMetadata;
   };
 }
 
@@ -62,6 +65,15 @@ interface WorkflowTaskTemplate {
   assignedAgentVersion?: string;
   inputs?: unknown;
   dependsOn?: unknown;
+  retryPolicy?: unknown;
+}
+
+interface RetryPolicy {
+  maxAttempts: number;
+  backoff: "none" | "fixed" | "linear" | "exponential";
+  retryableFailurePhases: Array<"runtime-start" | "execution" | "provider" | "verification" | "artifact-export" | "connector-rate-limit">;
+  idempotency: "read-only" | "idempotent" | "non-idempotent";
+  externalWriteRetry: "forbid" | "require-approval" | "allow";
 }
 
 export interface LocalWorkflowTemplateCatalogServiceOptions {
@@ -108,6 +120,7 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
         throw new AthenaError("CONFIG_ERROR", `Workflow template manifest is missing workflow: ${id}`);
       }
       const inputValues = resolveWorkflowInputs(workflow.inputs ?? {}, request.inputs ?? {});
+      assertWorkflowPreflightReady(plugin, workflow, appState, inputValues);
       const missionId = request.missionId ?? `mission-${randomUUID()}`;
       const taskIdPrefix = request.taskIdPrefix ?? missionId;
       const taskTemplates = normalizeTaskTemplates(workflow.tasks);
@@ -184,7 +197,8 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
             pluginVersion: template.pluginVersion,
             templateTaskId: taskTemplate.id,
             workflowDagRunId: workflowDagRun.run.id,
-            workflowDagStepId: taskTemplate.id
+            workflowDagStepId: taskTemplate.id,
+            ...(taskTemplate.retryPolicy ? { retryPolicy: taskTemplate.retryPolicy } : {})
           },
           ...(request.createdBy ? { createdBy: request.createdBy } : {})
         });
@@ -243,6 +257,7 @@ interface NormalizedTaskTemplate {
   assignedAgentVersion?: string;
   inputs?: unknown;
   dependsOn?: unknown;
+  retryPolicy?: RetryPolicy;
 }
 
 function resolveTemplate(
@@ -286,10 +301,59 @@ function normalizeTaskTemplates(tasks: WorkflowTaskTemplate[] | undefined): Norm
       ...(typeof task.assignedAgentId === "string" ? { assignedAgentId: task.assignedAgentId } : {}),
       ...(typeof task.assignedAgentVersion === "string" ? { assignedAgentVersion: task.assignedAgentVersion } : {}),
       ...(task.inputs !== undefined ? { inputs: task.inputs } : {}),
-      ...(task.dependsOn !== undefined ? { dependsOn: task.dependsOn } : {})
+      ...(task.dependsOn !== undefined ? { dependsOn: task.dependsOn } : {}),
+      ...(task.retryPolicy !== undefined ? { retryPolicy: normalizeRetryPolicy(task.retryPolicy, `workflow.tasks.${index}.retryPolicy`) } : {})
     };
   });
   return normalized;
+}
+
+function normalizeRetryPolicy(value: unknown, path: string): RetryPolicy {
+  if (!isRecord(value)) {
+    throw new AthenaError("CONFIG_ERROR", `${path} must be an object.`);
+  }
+  return {
+    maxAttempts: normalizeIntegerInRange(value.maxAttempts, `${path}.maxAttempts`, 1, 10),
+    backoff: normalizeEnum(value.backoff, `${path}.backoff`, ["none", "fixed", "linear", "exponential"]),
+    retryableFailurePhases: normalizeRetryableFailurePhases(value.retryableFailurePhases, `${path}.retryableFailurePhases`),
+    idempotency: normalizeEnum(value.idempotency, `${path}.idempotency`, ["read-only", "idempotent", "non-idempotent"]),
+    externalWriteRetry: normalizeEnum(value.externalWriteRetry, `${path}.externalWriteRetry`, [
+      "forbid",
+      "require-approval",
+      "allow"
+    ])
+  };
+}
+
+function normalizeRetryableFailurePhases(value: unknown, path: string): RetryPolicy["retryableFailurePhases"] {
+  const phases = normalizeStringArray(value, path);
+  if (phases.length === 0) {
+    throw new AthenaError("CONFIG_ERROR", `${path} must include at least one phase.`);
+  }
+  return phases.map((phase) =>
+    normalizeEnum(phase, `${path}.${phase}`, [
+      "runtime-start",
+      "execution",
+      "provider",
+      "verification",
+      "artifact-export",
+      "connector-rate-limit"
+    ])
+  );
+}
+
+function normalizeIntegerInRange(value: unknown, path: string, min: number, max: number): number {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < min || value > max) {
+    throw new AthenaError("CONFIG_ERROR", `${path} must be an integer between ${min} and ${max}.`);
+  }
+  return value;
+}
+
+function normalizeEnum<T extends string>(value: unknown, path: string, allowed: readonly T[]): T {
+  if (typeof value !== "string" || !allowed.includes(value as T)) {
+    throw new AthenaError("CONFIG_ERROR", `${path} must be one of: ${allowed.join(", ")}.`);
+  }
+  return value as T;
 }
 
 function applyWorkflowRunModeToTaskInputs(taskInputs: unknown, inputValues: Record<string, unknown>): unknown {
@@ -304,6 +368,185 @@ function applyWorkflowRunModeToTaskInputs(taskInputs: unknown, inputValues: Reco
     ...taskInputs,
     runMode
   };
+}
+
+function assertWorkflowPreflightReady(
+  plugin: PluginIndexRecord,
+  workflow: WorkflowTemplateManifestDocument["workflow"],
+  appState: AppStateDatabase,
+  inputValues: Record<string, unknown>
+): void {
+  const checks: Array<{
+    id: string;
+    category: "provider" | "permissions" | "connector";
+    status: "ok" | "blocked";
+    label: string;
+    message: string;
+    nextStep: string;
+  }> = [];
+  const providerReadiness = evaluateWorkflowProviderReadiness(workflow, appState);
+  const providerBlocked = isProviderReadinessBlocking(providerReadiness);
+  checks.push({
+    id: "model-provider",
+    category: "provider",
+    status: providerBlocked ? "blocked" : "ok",
+    label: "Model Provider",
+    message: providerReadiness.message,
+    nextStep: providerBlocked ? "Configure a valid model provider before instantiating this workflow." : "No action needed."
+  });
+
+  const connectorCheck = evaluateWorkflowConnectorPreflight(plugin, workflow, appState);
+  if (connectorCheck) {
+    checks.push(connectorCheck);
+  }
+
+  const runMode = inputValues.runMode;
+  if (runMode !== undefined && !isTaskWorkbenchRunMode(runMode)) {
+    checks.push({
+      id: "run-mode",
+      category: "permissions",
+      status: "blocked",
+      label: "Run Mode",
+      message: `Unsupported run mode: ${String(runMode)}.`,
+      nextStep: `Use one of: ${TASK_WORKBENCH_RUN_MODES.join(", ")}.`
+    });
+  } else if (runMode === "approved-write") {
+    checks.push({
+      id: "run-mode",
+      category: "permissions",
+      status: "blocked",
+      label: "Run Mode",
+      message: "Approved write mode is not available until approval implementation exists.",
+      nextStep: "Use read-only or propose-changes mode. Proposed changes must be returned as artifacts."
+    });
+  } else {
+    checks.push({
+      id: "run-mode",
+      category: "permissions",
+      status: "ok",
+      label: "Run Mode",
+      message: "Workflow run mode is supported.",
+      nextStep: "No action needed."
+    });
+  }
+
+  const blocked = checks.filter((check) => check.status === "blocked");
+  if (blocked.length === 0) {
+    return;
+  }
+  throw new AthenaError(
+    "CONFIG_ERROR",
+    `Workflow preflight blocked: ${blocked.map((check) => check.message).join(" ")}`,
+    false,
+    undefined,
+    {
+      kind: "workflow-template-readiness",
+      readiness: {
+        status: "blocked",
+        ready: false,
+        summary: `Workflow preflight blocked: ${blocked.map((check) => check.message).join(" ")}`,
+        checks
+      }
+    }
+  );
+}
+
+function evaluateWorkflowConnectorPreflight(
+  plugin: PluginIndexRecord,
+  workflow: WorkflowTemplateManifestDocument["workflow"],
+  appState: AppStateDatabase
+):
+  | {
+      id: string;
+      category: "connector";
+      status: "ok" | "blocked";
+      label: string;
+      message: string;
+      nextStep: string;
+      details: {
+        serviceId?: string;
+        status: ConnectorReadinessReport["status"];
+        credentialState: ConnectorReadinessReport["credentialState"];
+        missingScopes: string[];
+        rateLimitedOperations: string[];
+        fixtureSafe: boolean;
+      };
+    }
+  | undefined {
+  const pluginManifest = normalizePluginManifest(plugin.manifest);
+  const connector = pluginManifest.plugin?.connector;
+  if (!connector || !workflowUsesConnector(workflow, appState)) {
+    return undefined;
+  }
+
+  const fixtureSafe = isFixtureSafeConnectorWorkflow(workflow, appState);
+  const binding = appState.connectorCredentialBindings.get(plugin.id, plugin.version, connector.service.id);
+  const readiness = evaluateConnectorReadiness({
+    pluginId: plugin.id,
+    pluginVersion: plugin.version,
+    connector,
+    binding,
+    grantedScopes: connector.readiness?.grantedScopes,
+    rateLimitedOperationIds: connector.readiness?.rateLimitedOperationIds,
+    degraded: connector.readiness?.degraded,
+    blockedReasons: connector.readiness?.blockedReasons
+  });
+  const blocked = !fixtureSafe && readiness.status !== "configured";
+  return {
+    id: "connector-readiness",
+    category: "connector",
+    status: blocked ? "blocked" : "ok",
+    label: "Connector Readiness",
+    message: blocked
+      ? `Connector ${readiness.serviceName ?? readiness.serviceId ?? connector.service.id} is not ready: ${readiness.status}.`
+      : fixtureSafe
+        ? "Connector workflow is fixture-safe and does not perform live service calls."
+        : "Connector is ready for live workflow instantiation.",
+    nextStep: blocked ? readiness.nextStep : "No action needed.",
+    details: {
+      serviceId: connector.service.id,
+      status: readiness.status,
+      credentialState: readiness.credentialState,
+      missingScopes: readiness.missingScopes,
+      rateLimitedOperations: readiness.rateLimitedOperations,
+      fixtureSafe
+    }
+  };
+}
+
+function workflowUsesConnector(
+  workflow: WorkflowTemplateManifestDocument["workflow"],
+  appState: AppStateDatabase
+): boolean {
+  const agents = appState.agents.list();
+  return (
+    workflow?.tasks?.some((task) => {
+      const agent = findAssignedAgent(agents, task);
+      if (!agent) {
+        return false;
+      }
+      const manifest = normalizeAgentManifest(agent.manifest);
+      return normalizeOptionalStringArray(manifest.agent?.runtime?.connectorOperations).length > 0;
+    }) ?? false
+  );
+}
+
+function isFixtureSafeConnectorWorkflow(
+  workflow: WorkflowTemplateManifestDocument["workflow"],
+  appState: AppStateDatabase
+): boolean {
+  const agents = appState.agents.list();
+  const connectorAgents =
+    workflow?.tasks
+      ?.map((task) => findAssignedAgent(agents, task))
+      .filter((agent): agent is NonNullable<ReturnType<typeof findAssignedAgent>> => agent !== undefined)
+      .filter((agent) => normalizeOptionalStringArray(normalizeAgentManifest(agent.manifest).agent?.runtime?.connectorOperations).length > 0) ??
+    [];
+  return connectorAgents.length > 0 && connectorAgents.every((agent) => normalizeAgentManifest(agent.manifest).agent?.permissions?.network === "deny");
+}
+
+function isProviderReadinessBlocking(readiness: ProviderReadiness): boolean {
+  return readiness.required && (readiness.status === "missing" || readiness.status === "invalid");
 }
 
 function isTaskWorkbenchRunMode(value: unknown): value is TaskWorkbenchRunMode {
@@ -500,8 +743,12 @@ function findAssignedAgent(
   );
 }
 
-function normalizeAgentManifest(manifest: unknown): { agent?: { runtime?: Record<string, unknown> } } {
-  return isRecord(manifest) ? (manifest as { agent?: { runtime?: Record<string, unknown> } }) : {};
+function normalizeAgentManifest(manifest: unknown): { agent?: { runtime?: Record<string, unknown>; permissions?: Record<string, unknown> } } {
+  return isRecord(manifest) ? (manifest as { agent?: { runtime?: Record<string, unknown>; permissions?: Record<string, unknown> } }) : {};
+}
+
+function normalizeOptionalStringArray(value: unknown): string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string") ? value : [];
 }
 
 function pluginKey(id: string, version: string): string {

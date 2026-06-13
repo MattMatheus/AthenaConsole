@@ -1,0 +1,38 @@
+schemaVersion: 1
+workflow:
+  id: bundled.jira.issue-context-review.workflow
+  name: Jira Issue Context Review
+  version: 0.1.0
+  goal: Combine Jira issue context with local software-team review support.
+  inputs:
+    site:
+      type: string
+      required: false
+    issueKey:
+      type: string
+      required: true
+    repository:
+      type: string
+      required: false
+    focus:
+      type: markdown
+      required: false
+  tasks:
+    - id: read-jira-issue
+      title: Read Jira issue context
+      assignedAgentId: bundled.jira.issue-context.local
+      assignedAgentVersion: 0.1.0
+      inputs:
+        site: "{{ site }}"
+        issueKey: "{{ issueKey }}"
+        repository: "{{ repository }}"
+        focus: "{{ focus }}"
+    - id: review-issue-context
+      title: Draft software-team review notes
+      assignedAgentId: bundled.software-team.code-review.local
+      assignedAgentVersion: 0.1.0
+      dependsOn:
+        - read-jira-issue
+      inputs:
+        objective: "Review implementation risk and next steps for Jira issue {{ issueKey }}."
+        evidence: "Jira issue {{ issueKey }} from {{ site }}. Repository: {{ repository }}. Focus: {{ focus }}"

@@ -7,12 +7,16 @@ services:
     build:
       context: .
       dockerfile: packages/core/infrastructure/docker/control-plane.prod.Dockerfile
+      additional_contexts:
+        athena_agent: ../AthenaAgent
     environment:
       ATHENA_DEV_API_HOST: 0.0.0.0
       ATHENA_DEV_API_PORT: 8787
+      ATHENA_AGENT_REPO: /opt/athena-agent-src
+      ATHENA_AGENT_PYTHON: /opt/athena-agent-venv/bin/python
       ATHENA_AUTH_ENABLED: "true"
       ATHENA_AUTH_API_TOKEN: ${ATHENA_AUTH_API_TOKEN:?Set ATHENA_AUTH_API_TOKEN in server.env}
-      ATHENA_AUTH_IDENTITY_ROLE_MAP: console:Admin,healthcheck:Viewer,*:Viewer
+      ATHENA_AUTH_IDENTITY_ROLE_MAP: console:Admin,operator:Operator,healthcheck:Viewer,*:Viewer
       ATHENA_AUTHZ_MODE: enforce
       ATHENA_AUTHZ_DEFAULT_DECISION: deny
       ATHENA_WORKSPACE_ROOT: /athena/workspace

@@ -4,6 +4,14 @@
     "repositoryPath": ".",
     "objective": "Understand the repository structure and documentation readiness.",
     "evidence": "Repository includes apps, packages, docs, sample plugins, and bundled plugins.",
-    "memoryContext": "Prior repository convention: prefer focused validation commands and cite local evidence."
+    "memoryContext": "Prior repository convention: prefer focused validation commands and cite local evidence.",
+    "memoryContextRequest": {
+      "namespace": {
+        "scope": "repository",
+        "id": "demo"
+      },
+      "query": "repository conventions",
+      "limit": 3
+    }
   }
 }

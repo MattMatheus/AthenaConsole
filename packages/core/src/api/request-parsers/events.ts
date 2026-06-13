@@ -3,6 +3,20 @@ import { parseCursorPageQuery } from "./pagination.js";
 import { parseOptionalIsoDateTime } from "./helpers.js";
 import type { GovernanceAuditChangeCategory } from "../../shared/contracts.js";
 
+const GOVERNANCE_AUDIT_CATEGORIES = new Set<GovernanceAuditChangeCategory>([
+  "policy",
+  "rbac-role",
+  "identity-assignment",
+  "identity",
+  "provider",
+  "secret-reference",
+  "task-workflow",
+  "connector",
+  "artifact",
+  "memory",
+  "evidence"
+]);
+
 export function parseEventsListQuery(requestUrl: URL): {
   cursor?: string;
   limit: number;
@@ -39,20 +53,28 @@ export function parseGovernanceAuditHistoryQuery(requestUrl: URL): {
   cursor?: string;
   limit: number;
   actor?: string;
+  subject?: string;
   categories?: GovernanceAuditChangeCategory[];
+  resourceId?: string;
+  workspaceId?: string;
+  runId?: string;
   createdAfter?: string;
   createdBefore?: string;
 } {
   const page = parseCursorPageQuery(requestUrl);
   const actor = requestUrl.searchParams.get("actor")?.trim();
-  const categoriesRaw = requestUrl.searchParams.get("categories");
+  const subject = requestUrl.searchParams.get("subject")?.trim();
+  const resourceId = requestUrl.searchParams.get("resourceId")?.trim() ?? requestUrl.searchParams.get("resource")?.trim();
+  const workspaceId = requestUrl.searchParams.get("workspaceId")?.trim() ?? requestUrl.searchParams.get("workspace")?.trim();
+  const runId = requestUrl.searchParams.get("runId")?.trim() ?? requestUrl.searchParams.get("run")?.trim();
+  const categoriesRaw = [requestUrl.searchParams.get("categories"), requestUrl.searchParams.get("category")]
+    .filter((item): item is string => typeof item === "string")
+    .join(",");
   const categories = categoriesRaw
     ? categoriesRaw
         .split(",")
         .map((item) => item.trim())
-        .filter((item): item is GovernanceAuditChangeCategory =>
-          item === "policy" || item === "rbac-role" || item === "identity-assignment"
-        )
+        .filter((item): item is GovernanceAuditChangeCategory => GOVERNANCE_AUDIT_CATEGORIES.has(item as GovernanceAuditChangeCategory))
     : undefined;
   const createdAfter = parseOptionalIsoDateTime(
     requestUrl.searchParams.get("createdAfter"),
@@ -66,7 +88,11 @@ export function parseGovernanceAuditHistoryQuery(requestUrl: URL): {
   return {
     ...page,
     ...(actor ? { actor } : {}),
+    ...(subject ? { subject } : {}),
     ...(categories && categories.length > 0 ? { categories } : {}),
+    ...(resourceId ? { resourceId } : {}),
+    ...(workspaceId ? { workspaceId } : {}),
+    ...(runId ? { runId } : {}),
     ...(createdAfter ? { createdAfter } : {}),
     ...(createdBefore ? { createdBefore } : {})
   };

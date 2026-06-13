@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import { createApiServer } from "../src/api/server.js";
+import { openAppStateDatabase } from "../src/control-plane/app-state/index.js";
+import { LocalEventService } from "../src/control-plane/services/event-dlq.js";
 import { createLocalControlPlaneServices } from "../src/control-plane/services.js";
 import { runCli } from "../src/cli/index.js";
 import { loadConfig } from "../src/shared/config.js";
@@ -48,6 +50,79 @@ describe("CLI", () => {
       const parsed = JSON.parse(out) as { sessionId: string; status: string };
       expect(parsed.sessionId).toBe("s1");
       expect(parsed.status).toBe("not-running");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("exports task-run evidence bundles from the CLI", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-cli-task-run-bundle-"));
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        appState.tasks.create({
+          id: "task-cli-bundle",
+          title: "CLI bundle task",
+          status: "completed",
+          assignedAgentId: "agent.cli",
+          inputs: {
+            apiToken: "sk-cli-secret"
+          }
+        });
+        appState.runs.create({
+          id: "cli-run-1",
+          targetType: "task",
+          targetId: "task-cli-bundle",
+          status: "completed",
+          backend: "local-process",
+          agentId: "agent.cli",
+          output: { ok: true }
+        });
+        appState.runEvents.append({
+          id: "event-cli-run-completed",
+          runId: "cli-run-1",
+          taskId: "task-cli-bundle",
+          agentId: "agent.cli",
+          type: "run.completed",
+          level: "info",
+          message: "Run completed.",
+          payload: {}
+        });
+      } finally {
+        appState.close();
+      }
+
+      const out = await runCli(["task-run", "evidence-bundle", "--run", "cli-run-1"], { cwd: dir });
+      const parsed = JSON.parse(out) as {
+        manifest: {
+          schemaVersion: string;
+          bundleId: string;
+          run: { task?: { inputs?: Record<string, unknown> } };
+          redaction: { redactedFields: string[] };
+        };
+        events: Array<{ event: { type: string } }>;
+      };
+
+      expect(parsed.manifest.schemaVersion).toBe("team-orchestrator.evidence-bundle.v1");
+      expect(parsed.manifest.bundleId).toBe("evidence-bundle-cli-run-1");
+      expect(parsed.manifest.run.task?.inputs?.apiToken).toBe("[redacted]");
+      expect(parsed.manifest.redaction.redactedFields).toContain("manifest.run.task.inputs.apiToken");
+      expect(parsed.events.map((event) => event.event.type)).toContain("run.completed");
+      expect(out).not.toContain("sk-cli-secret");
+      const auditEvents = await new LocalEventService(config).list({ types: ["evidence-bundle.exported"], limit: 5 });
+      expect(auditEvents.events).toEqual([
+        expect.objectContaining({
+          type: "evidence-bundle.exported",
+          runId: "cli-run-1",
+          taskId: "task-cli-bundle",
+          payload: expect.objectContaining({
+            bundleId: "evidence-bundle-cli-run-1",
+            destinationKind: "cli-stdout"
+          })
+        })
+      ]);
+      expect(JSON.stringify(auditEvents.events[0])).not.toContain("sk-cli-secret");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

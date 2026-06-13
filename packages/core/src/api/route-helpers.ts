@@ -26,7 +26,7 @@ export function writeSuccess(res: ServerResponse, operationId: string, status: n
 export function writeError(
   res: ServerResponse,
   status: number,
-  error: { code?: string; error?: string; message?: string; retryable?: boolean; traceId?: string }
+  error: { code?: string; error?: string; message?: string; retryable?: boolean; traceId?: string; details?: unknown }
 ): void {
   const body = JSON.stringify(
     {
@@ -35,6 +35,7 @@ export function writeError(
         code: error.code ?? "UNKNOWN_ERROR",
         message: error.message ?? error.error ?? "Unknown error",
         retryable: error.retryable ?? false,
+        ...(error.details !== undefined ? { details: error.details } : {}),
         ...(error.traceId ? { traceId: error.traceId } : {})
       }
     },

@@ -1,0 +1,257 @@
+.page {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.pageHeader,
+.panelHeader,
+.rowTop,
+.recoveryBand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.pageTitle,
+.panelTitle,
+.stateTitle,
+.itemTitle {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.pageTitle {
+  color: var(--color-brand-900);
+  font-size: var(--font-size-500);
+}
+
+.description {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-200);
+  line-height: 1.5;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.metric,
+.panel,
+.state,
+.recoveryBand {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-elevated);
+}
+
+.metric {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+}
+
+.metricDanger {
+  border-color: color-mix(in srgb, var(--color-error) 38%, var(--color-border));
+}
+
+.metricLabel,
+.panelMeta {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-200);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.metricValue {
+  color: var(--color-brand-900);
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.panelHeader {
+  min-height: 3rem;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.queueList,
+.workerList {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.queueItem,
+.workerRow {
+  display: grid;
+  gap: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fff;
+  padding: var(--space-3);
+}
+
+.itemTitle {
+  font-size: var(--font-size-300);
+}
+
+.workerId {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.workerRow .metaGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.metaGrid div {
+  min-width: 0;
+}
+
+.metaGrid dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-200);
+  font-weight: 700;
+}
+
+.metaGrid dd {
+  margin: 0.2rem 0 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  font-size: var(--font-size-200);
+}
+
+.badgeMuted,
+.badgeRunning,
+.badgeWarning,
+.badgeDanger,
+.badgeSuccess {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.55rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: var(--font-size-200);
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.badgeMuted {
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+}
+
+.badgeRunning {
+  background: color-mix(in srgb, var(--color-brand-500) 14%, #fff);
+  color: var(--color-brand-900);
+}
+
+.badgeWarning {
+  background: color-mix(in srgb, var(--color-warning) 22%, #fff);
+  color: #7a4d00;
+}
+
+.badgeDanger {
+  background: color-mix(in srgb, var(--color-error) 12%, #fff);
+  color: var(--color-error);
+}
+
+.badgeSuccess {
+  background: color-mix(in srgb, var(--color-success) 14%, #fff);
+  color: var(--color-success);
+}
+
+.reason {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-200);
+  font-weight: 700;
+}
+
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--color-brand-900);
+  cursor: pointer;
+}
+
+.inlineLink {
+  color: var(--color-brand-700);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.inlineLink:hover {
+  text-decoration: underline;
+}
+
+.state {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.recoveryBand {
+  justify-content: flex-start;
+  padding: var(--space-3);
+}
+
+.recoveryBand > div {
+  min-width: 0;
+  flex: 1;
+}
+
+@media (max-width: 960px) {
+  .summaryGrid,
+  .layout,
+  .metaGrid,
+  .workerRow .metaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pageHeader,
+  .rowTop,
+  .recoveryBand {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

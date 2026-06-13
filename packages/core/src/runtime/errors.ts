@@ -4,13 +4,17 @@ export class AthenaError extends Error {
   readonly code: AthenaErrorCode;
   readonly retryable: boolean;
   readonly causeError?: unknown;
+  readonly details?: unknown;
 
-  constructor(code: AthenaErrorCode, message: string, retryable = false, causeError?: unknown) {
+  constructor(code: AthenaErrorCode, message: string, retryable = false, causeError?: unknown, details?: unknown) {
     super(message);
     this.name = "AthenaError";
     this.code = code;
     this.retryable = retryable;
     this.causeError = causeError;
+    if (details !== undefined) {
+      this.details = details;
+    }
   }
 }
 

@@ -1,0 +1,17 @@
+{
+  "id": "software-team.repo-summary.golden",
+  "mode": "repo-summary",
+  "agentId": "bundled.software-team.repo-summary.local",
+  "agentVersion": "0.1.0",
+  "promptTemplateHash": "sha256:software-team-repo-summary-golden-v1",
+  "inputs": {
+    "repositoryPath": "/workspace/AthenaConsole",
+    "objective": "Summarize the repository for a new operator before they begin implementation work.",
+    "evidence": "Package layout includes apps/console, packages/core, bundled-plugins, and docs.",
+    "memoryContext": "Prefer concise operational guidance and cite generated artifacts rather than raw secrets."
+  },
+  "expected": {
+    "summary": "Repository summary prepared for /workspace/AthenaConsole.",
+    "markdown": "# Repository Summary\n\nRepository summary prepared for /workspace/AthenaConsole.\n\n## Repository shape\nSummarize the repository for a new operator before they begin implementation work.\n\n## Notable evidence\nPackage layout includes apps/console, packages/core, bundled-plugins, and docs.\n\n## Suggested next inspection\nPrefer concise operational guidance and cite generated artifacts rather than raw secrets.\n\n## Safety\nThis bundled runner is deterministic, local, and does not perform external writes.\n\n## Memory\nOperator-supplied memory context was included as reviewable local evidence.\n"
+  }
+}

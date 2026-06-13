@@ -21,6 +21,14 @@ podman compose --env-file server.env -f docker-compose.server.yml up --build -d
 
 The default bind address is `127.0.0.1`, so the console is available on the server at `http://127.0.0.1:5173`. Set `ATHENA_SERVER_BIND_ADDRESS=0.0.0.0` only when the server is protected by LAN firewall or VPN controls you operate.
 
+The API image also packages AthenaAgent from the sibling `../AthenaAgent` source tree through the `athena_agent` Docker build context. Keep both repositories checked out under the same parent directory before building the server profile:
+
+```text
+Repos/
+  AthenaConsole/
+  AthenaAgent/
+```
+
 ## Persistent Paths
 
 The compose profile uses host-owned paths so backups and permissions are explicit:
@@ -39,6 +47,8 @@ Use absolute host paths on a real server. The checked-in example uses `/srv/team
 ## Secrets
 
 The compose file requires `ATHENA_AUTH_API_TOKEN` and `ATHENA_CONSOLE_PASSWORD`, but it does not contain their values. Keep them in your untracked `server.env` or in your server's secret manager.
+
+The local-server profile uses `ATHENA_AUTH_API_TOKEN` plus the trusted `x-athena-identity` header. That header is a pilot identity assertion for a trusted console, service, or reverse proxy. Do not expose the API to untrusted clients that can choose arbitrary `x-athena-identity` values. If you put a proxy in front of the API, strip any inbound identity header from clients and inject only the identity values the proxy has authenticated. The checked-in server profile represents `console:Admin`, `operator:Operator`, `healthcheck:Viewer`, and `*:Viewer`.
 
 For model provider keys, prefer local-file secret references in the console using files under `/run/secrets/athena`. For example, if the host file is:
 
@@ -85,6 +95,43 @@ Readiness uses operator-visible statuses for fallback behavior: `remote-current`
 Managed repository clones are written under `/athena/workspace/repos/managed`, backed by `ATHENA_SERVER_REPOS_PATH`. Existing-path repositories should use container paths that are mounted into the API container. If an agent or task needs the same path from a Docker-backed sandbox, keep `ATHENA_SANDBOX_WORKSPACE_HOST_PATH` aligned with the host path that backs `/athena/workspace`.
 
 Plugin search uses both `/athena/plugins` and the built-in sample plugins in the image. Drop custom plugin directories into `ATHENA_SERVER_PLUGINS_PATH`, then recreate the API container or restart the stack so startup indexing sees them.
+
+## AthenaAgent Runtime
+
+The server API container carries a Python 3.11+ virtual environment at `/opt/athena-agent-venv` and an installed AthenaAgent source tree at `/opt/athena-agent-src`. The bundled software-team `athena-agent.repo-summary` agent uses those paths through:
+
+```bash
+ATHENA_AGENT_REPO=/opt/athena-agent-src
+ATHENA_AGENT_PYTHON=/opt/athena-agent-venv/bin/python
+```
+
+After the stack is healthy, verify the packaged runner without using a developer shell on the host:
+
+```bash
+docker compose --env-file server.env -f docker-compose.server.yml exec api \
+  /opt/athena-agent-venv/bin/python -c "import athena_agent.console_runner; print('athena-agent-runtime-ok')"
+```
+
+Then confirm the Console catalog sees the model-backed agent:
+
+```bash
+curl "${ATHENA_SERVER_URL:-http://127.0.0.1:8787}/api/v1/agent-catalog/agents?capabilities=repo.summary" \
+  -H "authorization: Bearer ${ATHENA_AUTH_API_TOKEN}" \
+  -H "x-athena-identity: console"
+```
+
+Before a model provider is configured, `athena-agent.repo-summary` should be present but blocked by provider readiness. After adding a provider in Settings with a secret under `/run/secrets/athena`, run an AthenaAgent-backed repository summary task from the console. This proves provider egress from inside the API container because the request is made by the packaged runtime, not the host shell.
+
+To prove restart durability, note the completed task run id, restart the stack, and fetch the same run again:
+
+```bash
+docker compose --env-file server.env -f docker-compose.server.yml restart api console
+curl "${ATHENA_SERVER_URL:-http://127.0.0.1:8787}/api/v1/task-runs/<run-id>" \
+  -H "authorization: Bearer ${ATHENA_AUTH_API_TOKEN}" \
+  -H "x-athena-identity: console"
+```
+
+The run status, events, artifact metadata, and artifact preview should still be available because app state and run artifacts live under the host-owned `ATHENA_SERVER_STATE_PATH` and `ATHENA_SERVER_ARTIFACTS_PATH` mounts.
 
 ## Stop
 

@@ -30,6 +30,25 @@ plugin:
       - path: workflows/repo-onboarding.workflow.yaml
         id: bundled.github.repo-onboarding.workflow
         version: 0.1.0
+    outcomes:
+      - id: github-pr
+        title: Prepare a GitHub PR brief
+        description: Use the GitHub connector pack when credentials and fixture context are ready.
+        target:
+          kind: workflow
+          id: bundled.github.pr-review-brief.workflow
+          version: 0.1.0
+        contextRequirements:
+          - connector-account
+          - repository
+        expectedArtifacts:
+          - label: Pull request brief
+            format: markdown
+        executionMode: connector-backed
+        ui:
+          icon: github
+          badge: Connector
+          order: 50
   connector:
     service:
       id: github.com

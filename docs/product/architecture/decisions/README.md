@@ -36,6 +36,7 @@ This directory is the primary long-term record for product decision history.
 - [ADR 0022: Durable Memory Local Cache Boundary](0022-durable-memory-local-cache-boundary.md) - Accepted
 - [ADR 0023: Durable Memory Remote Backend Recommendation](0023-durable-memory-remote-backend-recommendation.md) - Accepted
 - [ADR 0024: Semantic Memory Retrieval And Sync Strategy](0024-semantic-memory-retrieval-and-sync-strategy.md) - Accepted
+- [ADR 0026: Formal Agent Manifest Convention For The Agentic Workbench Pilot](0026-formal-agent-manifest-convention.md) - Accepted
 
 ## Archived Records
 

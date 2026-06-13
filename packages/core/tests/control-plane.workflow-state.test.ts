@@ -81,19 +81,42 @@ describe("workflow DAG state store", () => {
         });
 
         service.startStep("workflow-run-research", "summarize");
-        const failed = service.failStep("workflow-run-research", "summarize", { message: "model timeout" });
+        const failed = service.failStep("workflow-run-research", "summarize", {
+          message: "model timeout",
+          logs: ["request timed out after 30000ms"],
+          artifacts: [{ id: "artifact-timeout-log", kind: "log" }]
+        });
         expect(failed.run).toMatchObject({
           status: "failed",
           failure: {
             stepId: "summarize",
-            detail: { message: "model timeout" }
+            detail: {
+              message: "model timeout",
+              logs: ["request timed out after 30000ms"],
+              artifacts: [{ id: "artifact-timeout-log", kind: "log" }]
+            }
           }
         });
         expect(failed.steps.find((step) => step.stepId === "summarize")).toMatchObject({
           status: "failed",
           attempt: 1,
-          failure: { message: "model timeout" }
+          failure: {
+            message: "model timeout",
+            logs: ["request timed out after 30000ms"],
+            artifacts: [{ id: "artifact-timeout-log", kind: "log" }]
+          }
         });
+        expect(failed.attempts.filter((attempt) => attempt.stepId === "summarize")).toEqual([
+          expect.objectContaining({
+            attempt: 1,
+            status: "failed",
+            failure: {
+              message: "model timeout",
+              logs: ["request timed out after 30000ms"],
+              artifacts: [{ id: "artifact-timeout-log", kind: "log" }]
+            }
+          })
+        ]);
 
         const resumable = service.resumeFromFirstFailedStep("workflow-run-research");
         expect(resumable.run.status).toBe("pending");
@@ -108,6 +131,39 @@ describe("workflow DAG state store", () => {
           ready: false,
           blockingStepIds: ["summarize"]
         });
+
+        service.startStep("workflow-run-research", "summarize");
+        const completed = service.completeStep("workflow-run-research", "summarize", {
+          summary: "retry succeeded",
+          artifacts: [{ id: "artifact-summary", kind: "report" }]
+        });
+        expect(completed.steps.find((step) => step.stepId === "summarize")).toMatchObject({
+          status: "completed",
+          attempt: 2,
+          output: {
+            summary: "retry succeeded",
+            artifacts: [{ id: "artifact-summary", kind: "report" }]
+          }
+        });
+        expect(completed.attempts.filter((attempt) => attempt.stepId === "summarize")).toEqual([
+          expect.objectContaining({
+            attempt: 1,
+            status: "failed",
+            failure: {
+              message: "model timeout",
+              logs: ["request timed out after 30000ms"],
+              artifacts: [{ id: "artifact-timeout-log", kind: "log" }]
+            }
+          }),
+          expect.objectContaining({
+            attempt: 2,
+            status: "completed",
+            output: {
+              summary: "retry succeeded",
+              artifacts: [{ id: "artifact-summary", kind: "report" }]
+            }
+          })
+        ]);
       } finally {
         appState.close();
       }

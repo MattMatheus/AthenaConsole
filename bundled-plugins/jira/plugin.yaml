@@ -1,0 +1,115 @@
+schemaVersion: 1
+plugin:
+  id: team-orchestrator.bundled.jira
+  name: Jira Connector Pack
+  version: 0.1.0
+  description: First-party Jira issue-tracker connector pack for fixture-backed issue context workflows.
+  pack:
+    category: connector
+    maturity: experimental
+    credentialRequirements:
+      - connector-account
+    memoryRequirements:
+      - none
+    safety:
+      posture: read-only
+      externalWrites: false
+      notes: V1 reads fixture-backed Jira issue context only; no comments, transitions, or live writes are performed.
+    exampleWorkflows:
+      - path: workflows/issue-context-review.workflow.yaml
+        id: bundled.jira.issue-context-review.workflow
+        version: 0.1.0
+    outcomes:
+      - id: jira-issue-context-review
+        title: Review Jira issue context
+        description: Combine Jira issue fixture context with a software-team review helper.
+        target:
+          kind: workflow
+          id: bundled.jira.issue-context-review.workflow
+          version: 0.1.0
+        contextRequirements:
+          - connector-account
+          - repository
+        expectedArtifacts:
+          - label: Jira issue context
+            format: markdown
+          - label: Review support notes
+            format: markdown
+        executionMode: connector-backed
+        ui:
+          icon: ticket
+          badge: Connector
+          order: 60
+  connector:
+    service:
+      id: jira.atlassian.com
+      name: Jira
+      homepage: https://www.atlassian.com/software/jira
+      dataResidency: Fixture data only in bundled pack tests; live Jira data remains remote unless saved as artifacts.
+    auth:
+      type: api-token
+      credentialBinding: required
+      instructions: Bind a Jira API token or OAuth credential reference with read-only issue scopes; do not store token values in manifests or tasks.
+    scopes:
+      - id: read:jira-work
+        label: Read Jira work items
+        required: true
+        access: read
+        reason: Read issue summary, description, status, labels, and linked issue metadata.
+      - id: read:jira-user
+        label: Read Jira user metadata
+        required: false
+        access: read
+        reason: Resolve reporter and assignee display names when available.
+    rateLimits:
+      - id: jira-rest-default
+        limit: 500
+        windowSeconds: 60
+        appliesTo:
+          - issue-read
+          - issue-search
+    retry:
+      maxAttempts: 2
+      backoff: exponential
+    operations:
+      - id: issue-read
+        class: read
+        label: Read Jira issue
+        scopes:
+          - read:jira-work
+      - id: issue-search
+        class: read
+        label: Search Jira issues
+        scopes:
+          - read:jira-work
+  authors:
+    - name: Team Orchestrator
+  agents:
+    - path: agents/issue-context.agent.yaml
+      id: bundled.jira.issue-context.local
+      version: 0.1.0
+  workflowTemplates:
+    - path: workflows/issue-context-review.workflow.yaml
+      id: bundled.jira.issue-context-review.workflow
+      version: 0.1.0
+  docs:
+    readme: docs/README.md
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    manifestSchema: team-orchestrator.manifests.v1
+    runtimeBackends:
+      - local-process
+    platforms:
+      - any
+  permissions:
+    network: deny
+    filesystem: scoped
+    shell: allow
+    credentials: scoped
+  ui:
+    icon: ticket
+    color: "#3455db"
+    tags:
+      - bundled
+      - connector
+      - jira

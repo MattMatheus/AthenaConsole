@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
 
-export type WorkflowDagRunStatus = "pending" | "running" | "completed" | "failed" | "resumable";
-export type WorkflowDagStepStatus = "pending" | "running" | "completed" | "failed" | "skipped";
+export type WorkflowDagRunStatus = "pending" | "running" | "completed" | "failed" | "resumable" | "cancelled";
+export type WorkflowDagStepStatus = "pending" | "running" | "completed" | "failed" | "skipped" | "cancelled";
+export type WorkflowDagStepAttemptStatus = "running" | "completed" | "failed" | "cancelled";
 export type WorkflowDagRunEventLevel = "info" | "warning" | "error";
 
 interface WorkflowDagRunRow {
@@ -47,6 +48,18 @@ interface WorkflowDagRunEventRow {
   timestamp: string;
 }
 
+interface WorkflowDagRunStepAttemptRow {
+  run_id: string;
+  step_id: string;
+  attempt: number;
+  status: WorkflowDagStepAttemptStatus;
+  started_at: string;
+  finished_at: string | null;
+  failure_json: string | null;
+  output_json: string | null;
+  updated_at: string;
+}
+
 export interface WorkflowDagRunRecord {
   id: string;
   workflowTemplateId: string;
@@ -78,6 +91,18 @@ export interface WorkflowDagStepRecord {
   updatedAt: string;
 }
 
+export interface WorkflowDagStepAttemptRecord {
+  runId: string;
+  stepId: string;
+  attempt: number;
+  status: WorkflowDagStepAttemptStatus;
+  startedAt: string;
+  finishedAt?: string;
+  failure?: unknown;
+  output?: unknown;
+  updatedAt: string;
+}
+
 export interface WorkflowDagRunEventRecord {
   id: string;
   runId: string;
@@ -92,6 +117,7 @@ export interface WorkflowDagRunEventRecord {
 export interface WorkflowDagRunSnapshot {
   run: WorkflowDagRunRecord;
   steps: WorkflowDagStepRecord[];
+  attempts: WorkflowDagStepAttemptRecord[];
   events: WorkflowDagRunEventRecord[];
 }
 
@@ -131,6 +157,25 @@ export interface UpdateWorkflowDagStepInput {
   now?: Date;
 }
 
+export interface StartWorkflowDagStepAttemptInput {
+  runId: string;
+  stepId: string;
+  attempt: number;
+  startedAt: string;
+  now?: Date;
+}
+
+export interface FinishWorkflowDagStepAttemptInput {
+  runId: string;
+  stepId: string;
+  attempt: number;
+  status: Exclude<WorkflowDagStepAttemptStatus, "running">;
+  finishedAt: string;
+  failure?: unknown;
+  output?: unknown;
+  now?: Date;
+}
+
 export class WorkflowDagRunRepository {
   private readonly getRunStatement: Database.Statement;
   private readonly listRunsForTemplateStatement: Database.Statement;
@@ -139,6 +184,9 @@ export class WorkflowDagRunRepository {
   private readonly insertStepStatement: Database.Statement;
   private readonly updateStepStatement: Database.Statement;
   private readonly listStepsStatement: Database.Statement;
+  private readonly insertAttemptStatement: Database.Statement;
+  private readonly updateAttemptStatement: Database.Statement;
+  private readonly listAttemptsStatement: Database.Statement;
   private readonly insertEventStatement: Database.Statement;
   private readonly listEventsStatement: Database.Statement;
 
@@ -233,6 +281,49 @@ export class WorkflowDagRunRepository {
     `);
     this.listStepsStatement = db.prepare(
       "select run_id, step_id, status, attempt, ready, dependencies_json, blocking_step_ids_json, started_at, finished_at, failure_json, output_json, updated_at from workflow_dag_run_steps where run_id = ? order by rowid asc"
+    );
+    this.insertAttemptStatement = db.prepare(`
+      insert into workflow_dag_run_step_attempts (
+        run_id,
+        step_id,
+        attempt,
+        status,
+        started_at,
+        finished_at,
+        failure_json,
+        output_json,
+        updated_at
+      )
+      values (
+        @runId,
+        @stepId,
+        @attempt,
+        @status,
+        @startedAt,
+        @finishedAt,
+        @failureJson,
+        @outputJson,
+        @updatedAt
+      )
+      on conflict (run_id, step_id, attempt) do update set
+        status = excluded.status,
+        started_at = excluded.started_at,
+        finished_at = excluded.finished_at,
+        failure_json = excluded.failure_json,
+        output_json = excluded.output_json,
+        updated_at = excluded.updated_at
+    `);
+    this.updateAttemptStatement = db.prepare(`
+      update workflow_dag_run_step_attempts set
+        status = @status,
+        finished_at = @finishedAt,
+        failure_json = @failureJson,
+        output_json = @outputJson,
+        updated_at = @updatedAt
+      where run_id = @runId and step_id = @stepId and attempt = @attempt
+    `);
+    this.listAttemptsStatement = db.prepare(
+      "select run_id, step_id, attempt, status, started_at, finished_at, failure_json, output_json, updated_at from workflow_dag_run_step_attempts where run_id = ? order by step_id asc, attempt asc"
     );
     this.insertEventStatement = db.prepare(`
       insert into workflow_dag_run_events (
@@ -332,6 +423,7 @@ export class WorkflowDagRunRepository {
     return {
       run,
       steps: this.listSteps(id),
+      attempts: this.listAttempts(id),
       events: this.listEvents(id)
     };
   }
@@ -374,6 +466,10 @@ export class WorkflowDagRunRepository {
     return this.listEventsStatement.all(runId).map((row) => mapWorkflowDagRunEventRow(row as WorkflowDagRunEventRow));
   }
 
+  listAttempts(runId: string): WorkflowDagStepAttemptRecord[] {
+    return this.listAttemptsStatement.all(runId).map((row) => mapWorkflowDagStepAttemptRow(row as WorkflowDagRunStepAttemptRow));
+  }
+
   updateRun(id: string, input: UpdateWorkflowDagRunInput): WorkflowDagRunRecord {
     const existing = this.require(id);
     const updatedAt = (input.now ?? new Date()).toISOString();
@@ -407,6 +503,44 @@ export class WorkflowDagRunRepository {
     return this.requireStep(runId, stepId);
   }
 
+  startAttempt(input: StartWorkflowDagStepAttemptInput): WorkflowDagStepAttemptRecord {
+    const updatedAt = (input.now ?? new Date()).toISOString();
+    this.insertAttemptStatement.run({
+      runId: input.runId,
+      stepId: input.stepId,
+      attempt: input.attempt,
+      status: "running",
+      startedAt: input.startedAt,
+      finishedAt: null,
+      failureJson: null,
+      outputJson: null,
+      updatedAt
+    });
+    return this.requireAttempt(input.runId, input.stepId, input.attempt);
+  }
+
+  finishAttempt(input: FinishWorkflowDagStepAttemptInput): WorkflowDagStepAttemptRecord {
+    const updatedAt = (input.now ?? new Date()).toISOString();
+    const params = {
+      runId: input.runId,
+      stepId: input.stepId,
+      attempt: input.attempt,
+      status: input.status,
+      finishedAt: input.finishedAt,
+      failureJson: jsonOrNull(input.failure),
+      outputJson: jsonOrNull(input.output),
+      updatedAt
+    };
+    const result = this.updateAttemptStatement.run(params);
+    if (result.changes === 0) {
+      this.insertAttemptStatement.run({
+        ...params,
+        startedAt: input.finishedAt
+      });
+    }
+    return this.requireAttempt(input.runId, input.stepId, input.attempt);
+  }
+
   appendEvent(input: {
     id?: string;
     runId: string;
@@ -437,6 +571,14 @@ export class WorkflowDagRunRepository {
       throw new Error(`Workflow DAG step not found: ${runId}/${stepId}`);
     }
     return step;
+  }
+
+  private requireAttempt(runId: string, stepId: string, attempt: number): WorkflowDagStepAttemptRecord {
+    const record = this.listAttempts(runId).find((candidate) => candidate.stepId === stepId && candidate.attempt === attempt);
+    if (!record) {
+      throw new Error(`Workflow DAG step attempt not found: ${runId}/${stepId}/${attempt}`);
+    }
+    return record;
   }
 
   private appendEventInternal(input: WorkflowDagRunEventRecord): void {
@@ -485,6 +627,20 @@ function mapWorkflowDagStepRow(row: WorkflowDagRunStepRow): WorkflowDagStepRecor
     dependencies: JSON.parse(row.dependencies_json) as string[],
     blockingStepIds: JSON.parse(row.blocking_step_ids_json) as string[],
     ...(row.started_at ? { startedAt: row.started_at } : {}),
+    ...(row.finished_at ? { finishedAt: row.finished_at } : {}),
+    ...(row.failure_json ? { failure: JSON.parse(row.failure_json) as unknown } : {}),
+    ...(row.output_json ? { output: JSON.parse(row.output_json) as unknown } : {}),
+    updatedAt: row.updated_at
+  };
+}
+
+function mapWorkflowDagStepAttemptRow(row: WorkflowDagRunStepAttemptRow): WorkflowDagStepAttemptRecord {
+  return {
+    runId: row.run_id,
+    stepId: row.step_id,
+    attempt: row.attempt,
+    status: row.status,
+    startedAt: row.started_at,
     ...(row.finished_at ? { finishedAt: row.finished_at } : {}),
     ...(row.failure_json ? { failure: JSON.parse(row.failure_json) as unknown } : {}),
     ...(row.output_json ? { output: JSON.parse(row.output_json) as unknown } : {}),

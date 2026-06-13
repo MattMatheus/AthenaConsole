@@ -1,0 +1,95 @@
+schemaVersion: 1
+agent:
+  id: athena-agent.test-failure-triage
+  name: AthenaAgent Test Failure Triage
+  version: 0.1.0
+  description: Uses AthenaAgent to triage supplied test failure logs with repository context.
+  capabilities:
+    - test.failure.triage
+    - test.failure.explain
+    - repo.inspect
+    - artifacts.produce
+  inputs:
+    repo:
+      type: object
+      required: true
+      description: Console repository object with a local workspace path.
+    testLog:
+      type: markdown
+      required: true
+      description: Test output, stack trace, or CI failure log to triage.
+    objective:
+      type: markdown
+      required: false
+      description: Operator goal for the triage.
+    evidence:
+      type: markdown
+      required: false
+      description: Additional local evidence or recent change notes.
+    memoryContext:
+      type: markdown
+      required: false
+      description: Optional operator-approved debugging preferences.
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: testFailureTriage
+        label: Test failure triage
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/athena-agent-console-runner.mjs
+  runtime:
+    preferredBackend: local-process
+    workingDirectory: .
+    modelProvider:
+      required: true
+      providerKind: openai-compatible
+      label: OpenAI-compatible model provider
+  permissions:
+    network: allow
+    filesystem: scoped
+    shell: deny
+    credentials: scoped
+    durableMemory:
+      read:
+        namespaces:
+          - software-team/*
+          - repository/*
+        maxSensitivity: internal
+        reason: Read operator-approved debugging preferences and repository conventions.
+      propose:
+        namespaces:
+          - software-team/*
+          - repository/*
+        maxSensitivity: internal
+        reason: Propose recurring test-triage guidance for operator approval.
+  limits:
+    maxRuntimeSeconds: 120
+    maxToolCalls: 40
+    maxOutputBytes: 12000
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+    strictResultEnvelope: true
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    pluginApi: team-orchestrator.manifests.v1
+    frameworks:
+      - AthenaAgent
+  ui:
+    icon: flask-conical
+    color: "#4f6f52"
+    tags:
+      - bundled
+      - athena-agent
+      - software-team
+    inputOrder:
+      - repo
+      - testLog
+      - objective
+      - evidence
+      - memoryContext

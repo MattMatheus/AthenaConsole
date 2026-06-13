@@ -1,4 +1,15 @@
-export type GovernanceAuditChangeCategory = "policy" | "rbac-role" | "identity-assignment";
+export type GovernanceAuditChangeCategory =
+  | "policy"
+  | "rbac-role"
+  | "identity-assignment"
+  | "identity"
+  | "provider"
+  | "secret-reference"
+  | "task-workflow"
+  | "connector"
+  | "artifact"
+  | "memory"
+  | "evidence";
 
 export interface GovernanceAuditDiffField {
   key: string;
@@ -28,7 +39,11 @@ export interface GovernanceAuditHistoryQuery {
   cursor?: string;
   limit?: number;
   actor?: string;
+  subject?: string;
   categories?: GovernanceAuditChangeCategory[];
+  resourceId?: string;
+  workspaceId?: string;
+  runId?: string;
   createdAfter?: string;
   createdBefore?: string;
 }

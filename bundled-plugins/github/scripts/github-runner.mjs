@@ -7,7 +7,7 @@ for await (const chunk of process.stdin) {
 }
 
 const envelope = chunks.length > 0 ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : {};
-const inputs = envelope.inputs ?? {};
+const inputs = isRecord(envelope.task?.inputs) ? envelope.task.inputs : isRecord(envelope.inputs) ? envelope.inputs : {};
 const repository = inputs.repository ?? "octo-org/widget";
 const fixture = githubFixture(repository);
 
@@ -181,4 +181,8 @@ function githubFixture(repository) {
     ],
     releases: [{ tag: "v2026.2-fixture", name: "2026.2 Fixture" }]
   };
+}
+
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }

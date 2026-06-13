@@ -135,6 +135,7 @@ export interface DurableMemoryProposal {
   memoryType: string;
   proposedBody: string;
   reason: string;
+  evidence?: string;
   status: DurableMemoryProposalStatus;
   createdAt: string;
   reviewedAt?: string;
@@ -223,6 +224,7 @@ export interface DurableMemoryProposalCreateRequest {
   memoryType: string;
   proposedBody: string;
   reason: string;
+  evidence?: string;
 }
 
 export interface DurableMemoryProposalReviewRequest {

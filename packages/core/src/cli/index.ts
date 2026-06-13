@@ -5,6 +5,7 @@ import { runCancelCli } from "./commands/cancel.js";
 import { runMemoryCli } from "./commands/memory.js";
 import { runRunCli } from "./commands/run.js";
 import { runScheduleCli } from "./commands/schedule.js";
+import { runTaskRunCli } from "./commands/task-run.js";
 import { runWorkCli } from "./commands/work.js";
 import { parseArgs } from "./helpers/args.js";
 import { usage } from "./helpers/usage.js";
@@ -40,6 +41,9 @@ export async function runCli(argv: string[], options: CliOptions = {}): Promise<
     }
     if (parsed.command === "agent") {
       return runAgentCli(argv.slice(1), options);
+    }
+    if (parsed.command === "task-run") {
+      return runTaskRunCli(argv.slice(1), options);
     }
     throw new Error(`Unknown command '${parsed.command}'.\n${usage()}`);
   }

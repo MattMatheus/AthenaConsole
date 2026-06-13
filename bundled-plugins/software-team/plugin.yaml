@@ -3,19 +3,20 @@ plugin:
   id: team-orchestrator.bundled.software-team
   name: Software Team Pack
   version: 0.1.0
-  description: First-party bundled capability pack for local software-team repository work.
+  description: First-party bundled capability pack for local and AthenaAgent-powered software-team repository work.
   pack:
     category: software-team
     maturity: preview
     credentialRequirements:
       - none
+      - model-provider
     memoryRequirements:
       - read
       - propose
     safety:
       posture: read-only
       externalWrites: false
-      notes: Uses deterministic local fixtures and does not modify external systems.
+      notes: Deterministic bundled agents require no provider credentials; athena-agent.* agents are model-backed, AthenaAgent-powered, and require a configured OpenAI-compatible provider.
     exampleWorkflows:
       - path: workflows/release-readiness.workflow.yaml
         id: bundled.software-team.release-readiness.workflow
@@ -32,11 +33,93 @@ plugin:
       - path: workflows/ci-failure-triage.workflow.yaml
         id: bundled.software-team.ci-failure-triage.workflow
         version: 0.1.0
+    outcomes:
+      - id: repo-summary
+        title: Summarize a repository
+        description: Use the bundled software-team pack to describe structure, risks, and next steps.
+        target:
+          kind: agent
+          id: bundled.software-team.repo-summary.local
+          version: 0.1.0
+        contextRequirements:
+          - repository
+        expectedArtifacts:
+          - label: Repository summary
+            format: markdown
+        executionMode: deterministic
+        ui:
+          icon: folder-search
+          badge: Repo context
+          order: 10
+      - id: code-review
+        title: Review code changes
+        description: Start a focused code review task using an existing local repository.
+        target:
+          kind: agent
+          id: bundled.software-team.code-review.local
+          version: 0.1.0
+        contextRequirements:
+          - repository
+        expectedArtifacts:
+          - label: Code review brief
+            format: markdown
+        executionMode: deterministic
+        ui:
+          icon: search-check
+          badge: Read-only
+          order: 20
+      - id: release-readiness
+        title: Check release readiness
+        description: Run the bundled release workflow to collect readiness notes and evidence.
+        target:
+          kind: workflow
+          id: bundled.software-team.release-readiness.workflow
+          version: 0.1.0
+        contextRequirements:
+          - release-evidence
+          - repository
+        expectedArtifacts:
+          - label: Release notes
+            format: markdown
+          - label: Readiness review
+            format: markdown
+        executionMode: deterministic
+        ui:
+          icon: clipboard-check
+          badge: Workflow
+          order: 30
+      - id: test-failure
+        title: Explain a test failure
+        description: Create a task that turns failure output into a concise debugging brief.
+        target:
+          kind: agent
+          id: bundled.software-team.test-failure-explain.local
+          version: 0.1.0
+        contextRequirements:
+          - failure-output
+          - repository
+        expectedArtifacts:
+          - label: Failure triage brief
+            format: markdown
+        executionMode: deterministic
+        ui:
+          icon: list-checks-alt
+          badge: Local analysis
+          order: 40
   authors:
     - name: Team Orchestrator
   agents:
     - path: agents/repo-summary.agent.yaml
       id: bundled.software-team.repo-summary.local
+      version: 0.1.0
+    - path: agents/athena-agent-repo-summary.agent.yaml
+      id: athena-agent.repo-summary
+      version: 0.1.0
+    - path: agents/athena-agent-pr-diff-review.agent.yaml
+      id: athena-agent.pr-diff-review
+      version: 0.1.0
+    - path: agents/athena-agent-test-failure-triage.agent.yaml
+      id: athena-agent.test-failure-triage
       version: 0.1.0
     - path: agents/docs-audit.agent.yaml
       id: bundled.software-team.docs-audit.local

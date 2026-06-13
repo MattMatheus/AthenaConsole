@@ -42,6 +42,30 @@ export interface CapabilityPackMetadata {
     notes?: string;
   };
   exampleWorkflows?: Array<Record<string, unknown>>;
+  outcomes?: CapabilityPackOutcome[];
+}
+
+export interface CapabilityPackOutcome {
+  id: string;
+  title: string;
+  description: string;
+  target: {
+    kind: "agent" | "workflow" | "link";
+    id: string;
+    version?: string;
+    href?: string;
+  };
+  contextRequirements: string[];
+  expectedArtifacts: Array<{
+    label: string;
+    format: "markdown" | "json" | "text" | "csv" | string;
+  }>;
+  executionMode: "deterministic" | "model-backed" | "connector-backed" | string;
+  ui?: {
+    icon?: string;
+    badge?: string;
+    order?: number;
+  };
 }
 
 export type ConnectorReadinessStatus =
@@ -81,6 +105,7 @@ export interface ConnectorMetadata {
     maxAttempts?: number;
     backoff?: "none" | "linear" | "exponential";
   };
+  readiness?: ConnectorReadinessDiagnostics;
   operations: Array<{
     id: string;
     class: "read" | "external-write";
@@ -100,6 +125,32 @@ export interface ConnectorReadinessSummary {
   rateLimitedOperations: string[];
   reasons: string[];
   nextStep: string;
+}
+
+export interface ConnectorReadinessDiagnostics {
+  grantedScopes?: string[];
+  rateLimitedOperationIds?: string[];
+  degraded?: boolean;
+  blockedReasons?: string[];
+}
+
+export interface AgentCatalogConnectorReadinessEntry {
+  plugin: {
+    id: string;
+    version: string;
+    name: string;
+    enabled: boolean;
+    status: AgentCatalogPluginStatus;
+    sourceType: AgentCatalogPluginSourceType;
+    sourceScope: AgentCatalogPluginSourceScope;
+  };
+  connector: ConnectorMetadata;
+  readiness: ConnectorReadinessSummary;
+}
+
+export interface AgentCatalogConnectorReadinessListResult {
+  connectors: AgentCatalogConnectorReadinessEntry[];
+  total: number;
 }
 
 export interface AgentCatalogPluginMetadata {
@@ -154,6 +205,19 @@ export interface AgentCatalogAgentMetadata {
   ui?: Record<string, unknown>;
 }
 
+export interface AgentCatalogCertification {
+  status: "certified" | "blocked" | "not-required";
+  required: boolean;
+  declaredMaturity?: string;
+  effectiveMaturity: string;
+  evalRunId?: string;
+  evalResultIds: string[];
+  expectedArtifactUris: string[];
+  actualArtifactUris: string[];
+  reasons: string[];
+  message: string;
+}
+
 export interface AgentCatalogAgentSummary {
   id: string;
   version: string;
@@ -163,6 +227,7 @@ export interface AgentCatalogAgentSummary {
   status: AgentCatalogAgentStatus;
   available: boolean;
   providerReadiness: AgentCatalogProviderReadiness;
+  certification: AgentCatalogCertification;
   metadata: AgentCatalogAgentMetadata;
   validationErrors: AgentCatalogValidationIssue[];
   createdAt: string;

@@ -48,6 +48,8 @@ describe("api server", () => {
     expect(resolveApiRouteFamily("GET", `/api/v1/${removedTelemetryAlias}/summary`)).toBeUndefined();
     expect(resolveApiRouteFamily("GET", "/api/v1/rbac/roles")).toBe("identity-rbac");
     expect(resolveApiRouteFamily("GET", "/api/v1/governance/audit-trail")).toBe("identity-rbac");
+    expect(resolveApiRouteFamily("GET", "/api/v1/governance/audit-trail/export.jsonl")).toBe("identity-rbac");
+    expect(resolveApiRouteFamily("GET", "/api/v1/governance/audit-trail/export.csv")).toBe("identity-rbac");
     expect(resolveApiRouteFamily("GET", "/api/v1/rejections")).toBe("operations-events-policy");
     expect(resolveApiRouteFamily("GET", "/api/v1/policy/rejections")).toBe("operations-events-policy");
     expect(resolveApiRouteFamily("POST", "/api/v1/failed-work/msg-1/retry")).toBe("failed-work");
@@ -56,6 +58,7 @@ describe("api server", () => {
     expect(resolveApiRouteFamily("POST", "/api/v1/agents/run")).toBeUndefined();
     expect(resolveApiRouteFamily("GET", "/api/v1/agent-catalog/plugins")).toBe("agent-catalog");
     expect(resolveApiRouteFamily("GET", "/api/v1/agent-catalog/agents")).toBe("agent-catalog");
+    expect(resolveApiRouteFamily("GET", "/api/v1/agent-catalog/connectors/readiness")).toBe("agent-catalog");
     expect(resolveApiRouteFamily("GET", "/api/v1/tasks/metadata")).toBe("tasks");
     expect(resolveApiRouteFamily("GET", "/api/v1/tasks")).toBe("tasks");
     expect(resolveApiRouteFamily("POST", "/api/v1/tasks")).toBe("tasks");
@@ -390,6 +393,76 @@ describe("api server", () => {
           }
         ]
       });
+    } finally {
+      await server.stop();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("serves connector readiness statuses from fixture-safe pack metadata", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-server-connector-readiness-"));
+    const config = loadConfig(dir);
+    const appState = openAppStateDatabase(config);
+    try {
+      seedConnectorReadinessCatalog(appState);
+    } finally {
+      appState.close();
+    }
+
+    const server = createApiServer({
+      config,
+      host: "127.0.0.1",
+      port: 0
+    });
+    let bound: { host: string; port: number };
+    try {
+      bound = await server.start();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      rmSync(dir, { recursive: true, force: true });
+      if (message.includes("EPERM")) {
+        return;
+      }
+      throw error;
+    }
+    const base = `http://${bound.host}:${bound.port}`;
+
+    try {
+      const response = await fetch(`${base}/api/v1/agent-catalog/connectors/readiness`);
+      expect(response.status).toBe(200);
+      const envelope = (await response.json()) as {
+        ok: boolean;
+        data: {
+          total: number;
+          connectors: Array<{
+            plugin: { id: string };
+            readiness: {
+              status: string;
+              credentialState: string;
+              missingScopes: string[];
+              rateLimitedOperations: string[];
+              reasons: string[];
+            };
+          }>;
+        };
+      };
+      expect(envelope.ok).toBe(true);
+      expect(envelope.data.total).toBe(6);
+      expect(Object.fromEntries(envelope.data.connectors.map((entry) => [entry.plugin.id, entry.readiness.status]))).toEqual({
+        "team-orchestrator.test.connector.blocked": "blocked",
+        "team-orchestrator.test.connector.configured": "configured",
+        "team-orchestrator.test.connector.degraded": "degraded",
+        "team-orchestrator.test.connector.missing-credentials": "missing-credentials",
+        "team-orchestrator.test.connector.missing-scopes": "missing-scopes",
+        "team-orchestrator.test.connector.rate-limited": "rate-limited"
+      });
+      expect(
+        envelope.data.connectors.find((entry) => entry.plugin.id.endsWith(".rate-limited"))?.readiness.rateLimitedOperations
+      ).toEqual(["create-record"]);
+      expect(envelope.data.connectors.find((entry) => entry.plugin.id.endsWith(".missing-scopes"))?.readiness.missingScopes).toEqual([
+        "fixture:write"
+      ]);
+      expect(JSON.stringify(envelope.data)).not.toContain("local-file:/run/secrets/athena");
     } finally {
       await server.stop();
       rmSync(dir, { recursive: true, force: true });
@@ -2257,6 +2330,48 @@ describe("api server", () => {
       expect(rolesEnvelope.ok).toBe(true);
       expect(rolesEnvelope.data.items.some((item) => item.name === "Admin")).toBe(true);
 
+      const viewerSimulationResponse = await fetch(`${base}/api/v1/rbac/simulate?role=Viewer`, {
+        headers: {
+          "x-athena-identity": "bootstrap-admin"
+        }
+      });
+      expect(viewerSimulationResponse.status).toBe(200);
+      const viewerSimulationEnvelope = (await viewerSimulationResponse.json()) as {
+        ok: boolean;
+        data: { role: string; operations: Array<{ id: string; allowed: boolean }> };
+      };
+      expect(viewerSimulationEnvelope.ok).toBe(true);
+      expect(viewerSimulationEnvelope.data.role).toBe("Viewer");
+      expect(viewerSimulationEnvelope.data.operations).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: "provider-config", allowed: false }),
+          expect.objectContaining({ id: "task-execution", allowed: false }),
+          expect.objectContaining({ id: "memory-approval", allowed: false }),
+          expect.objectContaining({ id: "policy-change", allowed: false }),
+          expect.objectContaining({ id: "audit-export", allowed: false })
+        ])
+      );
+
+      const adminSimulationResponse = await fetch(`${base}/api/v1/rbac/simulate?role=Admin`, {
+        headers: {
+          "x-athena-identity": "bootstrap-admin"
+        }
+      });
+      expect(adminSimulationResponse.status).toBe(200);
+      const adminSimulationEnvelope = (await adminSimulationResponse.json()) as {
+        ok: boolean;
+        data: { role: string; operations: Array<{ id: string; allowed: boolean }> };
+      };
+      expect(adminSimulationEnvelope.data.role).toBe("Admin");
+      expect(adminSimulationEnvelope.data.operations.every((operation) => operation.allowed)).toBe(true);
+
+      const forbiddenSimulationResponse = await fetch(`${base}/api/v1/rbac/simulate?role=Admin`, {
+        headers: {
+          "x-athena-identity": "viewer-user"
+        }
+      });
+      expect(forbiddenSimulationResponse.status).toBe(403);
+
       const assignResponse = await fetch(`${base}/api/v1/rbac/assignments/service-token-acme`, {
         method: "PUT",
         headers: {
@@ -2355,6 +2470,91 @@ describe("api server", () => {
       expect(auditTrailEnvelope.data.items.some((row) => row.category === "identity-assignment")).toBe(true);
       expect(auditTrailEnvelope.data.items.some((row) => row.action === "rbac.assignment.upserted")).toBe(true);
       expect(auditTrailEnvelope.data.items.some((row) => row.actor.subject === "bootstrap-admin")).toBe(true);
+
+      const filteredAuditTrailResponse = await fetch(
+        `${base}/api/v1/governance/audit-trail?category=identity-assignment&subject=service-token-acme&resourceId=service-token-acme&limit=20`,
+        {
+          headers: {
+            "x-athena-identity": "bootstrap-admin"
+          }
+        }
+      );
+      expect(filteredAuditTrailResponse.status).toBe(200);
+      const filteredAuditTrailEnvelope = (await filteredAuditTrailResponse.json()) as {
+        ok: boolean;
+        data: { items: Array<{ category: string; action: string; summary: string }> };
+      };
+      expect(filteredAuditTrailEnvelope.ok).toBe(true);
+      expect(filteredAuditTrailEnvelope.data.items.length).toBeGreaterThanOrEqual(1);
+      expect(filteredAuditTrailEnvelope.data.items.every((row) => row.category === "identity-assignment")).toBe(true);
+      expect(filteredAuditTrailEnvelope.data.items.some((row) => row.summary.includes("service-token-acme"))).toBe(true);
+
+      const auditJsonlExportResponse = await fetch(
+        `${base}/api/v1/governance/audit-trail/export.jsonl?category=identity-assignment&subject=service-token-acme&resourceId=service-token-acme&limit=20`,
+        {
+          headers: {
+            "x-athena-identity": "bootstrap-admin"
+          }
+        }
+      );
+      expect(auditJsonlExportResponse.status).toBe(200);
+      expect(auditJsonlExportResponse.headers.get("content-type")).toContain("application/x-ndjson");
+      const auditJsonlExport = await auditJsonlExportResponse.text();
+      const auditJsonlRows = auditJsonlExport
+        .trim()
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .map((line) => JSON.parse(line) as { category: string; summary: string });
+      expect(auditJsonlRows.length).toBeGreaterThanOrEqual(1);
+      expect(auditJsonlRows.every((row) => row.category === "identity-assignment")).toBe(true);
+
+      const auditCsvExportResponse = await fetch(
+        `${base}/api/v1/governance/audit-trail/export.csv?category=identity-assignment&subject=service-token-acme&resourceId=service-token-acme&limit=20`,
+        {
+          headers: {
+            "x-athena-identity": "bootstrap-admin"
+          }
+        }
+      );
+      expect(auditCsvExportResponse.status).toBe(200);
+      expect(auditCsvExportResponse.headers.get("content-type")).toContain("text/csv");
+      const auditCsvExport = await auditCsvExportResponse.text();
+      expect(auditCsvExport.split(/\r?\n/)[0]).toBe(
+        "id,eventId,category,action,timestamp,actorSubject,actorRole,summary,reason,diffsJson"
+      );
+      expect(auditCsvExport).toContain("identity-assignment");
+      expect(auditCsvExport).toContain("service-token-acme");
+
+      const auditExportEventsResponse = await fetch(`${base}/api/v1/events?types=governance.audit.exported&limit=5`, {
+        headers: {
+          "x-athena-identity": "bootstrap-admin"
+        }
+      });
+      expect(auditExportEventsResponse.status).toBe(200);
+      const auditExportEventsEnvelope = (await auditExportEventsResponse.json()) as {
+        ok: boolean;
+        data: { events: Array<{ type: string; payload?: { format?: string; itemCount?: number; filters?: Record<string, unknown> } }> };
+      };
+      expect(auditExportEventsEnvelope.data.events).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: "governance.audit.exported",
+            payload: expect.objectContaining({
+              format: "jsonl",
+              filters: expect.objectContaining({
+                subject: "service-token-acme",
+                resourceId: "service-token-acme"
+              })
+            })
+          }),
+          expect.objectContaining({
+            type: "governance.audit.exported",
+            payload: expect.objectContaining({
+              format: "csv"
+            })
+          })
+        ])
+      );
 
       const flowResponse = await fetch(`${base}/api/v1/work/flows/trace-not-found?limit=20`, {
         headers: {
@@ -2933,4 +3133,91 @@ function parseTranscriptSseData(data: string): { id: string; role: string; conte
   } catch {
     return undefined;
   }
+}
+
+function seedConnectorReadinessCatalog(appState: ReturnType<typeof openAppStateDatabase>): void {
+  const scenarios = [
+    { id: "configured", bindingScopes: ["fixture:read", "fixture:write"] },
+    { id: "missing-credentials" },
+    { id: "missing-scopes", bindingScopes: ["fixture:read"] },
+    { id: "rate-limited", bindingScopes: ["fixture:read", "fixture:write"], readiness: { rateLimitedOperationIds: ["create-record"] } },
+    { id: "degraded", bindingScopes: ["fixture:read", "fixture:write"], readiness: { degraded: true } },
+    {
+      id: "blocked",
+      bindingScopes: ["fixture:read", "fixture:write"],
+      readiness: { blockedReasons: ["Fixture connector blocked by local policy."] }
+    }
+  ];
+
+  for (const scenario of scenarios) {
+    const pluginId = `team-orchestrator.test.connector.${scenario.id}`;
+    appState.plugins.upsert({
+      id: pluginId,
+      version: "0.1.0",
+      path: `/tmp/${pluginId}`,
+      enabled: true,
+      status: "loaded",
+      sourceType: "local",
+      manifest: {
+        plugin: {
+          name: `Connector ${scenario.id}`,
+          connector: connectorManifest(scenario.readiness)
+        }
+      },
+      validationErrors: []
+    });
+    if (scenario.bindingScopes) {
+      appState.connectorCredentialBindings.upsert({
+        pluginId,
+        pluginVersion: "0.1.0",
+        serviceId: "fixture.service",
+        bindingRef: `local-file:/run/secrets/athena/${scenario.id}-token`,
+        displayName: `${scenario.id} token`,
+        scopes: scenario.bindingScopes,
+        status: "bound",
+        now: new Date("2026-06-12T00:00:00.000Z")
+      });
+    }
+  }
+}
+
+function connectorManifest(readiness?: Record<string, unknown>): Record<string, unknown> {
+  return {
+    service: {
+      id: "fixture.service",
+      name: "Fixture Service"
+    },
+    auth: {
+      type: "api-token",
+      credentialBinding: "required"
+    },
+    scopes: [
+      {
+        id: "fixture:read",
+        label: "Read fixture records",
+        required: true,
+        access: "read"
+      },
+      {
+        id: "fixture:write",
+        label: "Write fixture records",
+        required: true,
+        access: "write"
+      }
+    ],
+    ...(readiness ? { readiness } : {}),
+    operations: [
+      {
+        id: "list-records",
+        class: "read",
+        scopes: ["fixture:read"]
+      },
+      {
+        id: "create-record",
+        class: "external-write",
+        scopes: ["fixture:write"],
+        approvalRequired: true
+      }
+    ]
+  };
 }

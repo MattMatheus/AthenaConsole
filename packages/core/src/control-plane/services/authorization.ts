@@ -24,6 +24,9 @@ import type {
   RunService,
   ScheduleService,
   SessionService,
+  ModelProviderConfigService,
+  TaskWorkbenchService,
+  WorkflowQueueStatusService,
   WorkflowStatusService,
   WorkService
 } from "../interfaces.js";
@@ -72,6 +75,12 @@ interface AuthorizationRequirement {
     | "lsp.symbols"
     | "memory.get"
     | "memory.search"
+    | "modelProviders.create"
+    | "modelProviders.delete"
+    | "modelProviders.get"
+    | "modelProviders.list"
+    | "modelProviders.test"
+    | "modelProviders.update"
     | "policy.put"
     | "runs.cancel"
     | "runs.create"
@@ -83,6 +92,18 @@ interface AuthorizationRequirement {
     | "sessions.list"
     | "sessions.search"
     | "sessions.transcript"
+    | "taskWorkbench.cancelRun"
+    | "taskWorkbench.create"
+    | "taskWorkbench.get"
+    | "taskWorkbench.list"
+    | "taskWorkbench.metadata"
+    | "taskWorkbench.runEvidenceBundle.export"
+    | "taskWorkbench.runArtifact.read"
+    | "taskWorkbench.runReadiness"
+    | "taskWorkbench.run.read"
+    | "taskWorkbench.runTask"
+    | "taskWorkbench.update"
+    | "workflowQueue.status"
     | "workflowRun.status"
     | "work.drain"
     | "work.enqueue"
@@ -519,6 +540,21 @@ export class AuthorizedWorkflowStatusService implements WorkflowStatusService {
   }
 }
 
+export class AuthorizedWorkflowQueueStatusService implements WorkflowQueueStatusService {
+  constructor(
+    private readonly delegate: WorkflowQueueStatusService,
+    private readonly authorizer: ServiceAuthorizer
+  ) {}
+
+  async getStatus(query?: Parameters<WorkflowQueueStatusService["getStatus"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "workflowQueue.status",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.getStatus(query);
+  }
+}
+
 export class AuthorizedWorkService implements WorkService {
   constructor(
     private readonly delegate: WorkService,
@@ -573,6 +609,166 @@ export class AuthorizedMemoryService implements MemoryService {
       requiredRoles: ["Viewer", "Operator", "Admin"]
     });
     return this.delegate.get(request);
+  }
+}
+
+export class AuthorizedModelProviderConfigService implements ModelProviderConfigService {
+  constructor(
+    private readonly delegate: ModelProviderConfigService,
+    private readonly authorizer: ServiceAuthorizer
+  ) {}
+
+  async list() {
+    await this.authorizer.assertAllowed({
+      operation: "modelProviders.list",
+      requiredRoles: ["Admin"]
+    });
+    return this.delegate.list();
+  }
+
+  async get(id: string) {
+    await this.authorizer.assertAllowed({
+      operation: "modelProviders.get",
+      requiredRoles: ["Admin"]
+    });
+    return this.delegate.get(id);
+  }
+
+  async create(request: Parameters<ModelProviderConfigService["create"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "modelProviders.create",
+      requiredRoles: ["Admin"]
+    });
+    return this.delegate.create(request);
+  }
+
+  async update(id: string, request: Parameters<ModelProviderConfigService["update"]>[1]) {
+    await this.authorizer.assertAllowed({
+      operation: "modelProviders.update",
+      requiredRoles: ["Admin"]
+    });
+    return this.delegate.update(id, request);
+  }
+
+  async delete(id: string) {
+    await this.authorizer.assertAllowed({
+      operation: "modelProviders.delete",
+      requiredRoles: ["Admin"]
+    });
+    return this.delegate.delete(id);
+  }
+
+  async test(id: string) {
+    await this.authorizer.assertAllowed({
+      operation: "modelProviders.test",
+      requiredRoles: ["Admin"]
+    });
+    return this.delegate.test(id);
+  }
+
+  resolveRuntimeConfig(id: string) {
+    return this.delegate.resolveRuntimeConfig(id);
+  }
+}
+
+export class AuthorizedTaskWorkbenchService implements TaskWorkbenchService {
+  constructor(
+    private readonly delegate: TaskWorkbenchService,
+    private readonly authorizer: ServiceAuthorizer
+  ) {}
+
+  async metadata() {
+    await this.authorizer.assertAllowed({
+      operation: "taskWorkbench.metadata",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.metadata();
+  }
+
+  async list(query?: Parameters<TaskWorkbenchService["list"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "taskWorkbench.list",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.list(query);
+  }
+
+  async get(id: string) {
+    await this.authorizer.assertAllowed({
+      operation: "taskWorkbench.get",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.get(id);
+  }
+
+  async create(request: Parameters<TaskWorkbenchService["create"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "taskWorkbench.create",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.create(request);
+  }
+
+  async update(id: string, request: Parameters<TaskWorkbenchService["update"]>[1]) {
+    await this.authorizer.assertAllowed({
+      operation: "taskWorkbench.update",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.update(id, request);
+  }
+
+  async getRun(runId: string) {
+    await this.authorizer.assertAllowed({
+      operation: "taskWorkbench.run.read",
+      requiredRoles: ["Viewer", "Operator", "Admin"],
+      runId
+    });
+    return this.delegate.getRun(runId);
+  }
+
+  async exportRunEvidenceBundle(runId: string, request?: Parameters<TaskWorkbenchService["exportRunEvidenceBundle"]>[1]) {
+    await this.authorizer.assertAllowed({
+      operation: "taskWorkbench.runEvidenceBundle.export",
+      requiredRoles: ["Viewer", "Operator", "Admin"],
+      runId
+    });
+    return this.delegate.exportRunEvidenceBundle(runId, request);
+  }
+
+  async getRunArtifact(runId: string, artifactId: string) {
+    await this.authorizer.assertAllowed({
+      operation: "taskWorkbench.runArtifact.read",
+      requiredRoles: ["Viewer", "Operator", "Admin"],
+      runId
+    });
+    return this.delegate.getRunArtifact(runId, artifactId);
+  }
+
+  async getRunReadiness(id: string) {
+    await this.authorizer.assertAllowed({
+      operation: "taskWorkbench.runReadiness",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.getRunReadiness(id);
+  }
+
+  async runTask(id: string, request?: Parameters<TaskWorkbenchService["runTask"]>[1]) {
+    const task = await this.delegate.get(id);
+    await this.authorizer.assertAllowed({
+      operation: "taskWorkbench.runTask",
+      requiredRoles: ["Operator", "Admin"],
+      ...(task.assignedAgentId ? { agentName: task.assignedAgentId } : {})
+    });
+    return this.delegate.runTask(id, request);
+  }
+
+  async cancelRun(runId: string, request?: Parameters<TaskWorkbenchService["cancelRun"]>[1]) {
+    await this.authorizer.assertAllowed({
+      operation: "taskWorkbench.cancelRun",
+      requiredRoles: ["Operator", "Admin"],
+      runId
+    });
+    return this.delegate.cancelRun(runId, request);
   }
 }
 
@@ -814,6 +1010,22 @@ export class AuthorizedGovernanceAuditService implements GovernanceAuditService 
     });
     return this.delegate.list(query);
   }
+
+  async exportJsonl(query?: Parameters<GovernanceAuditService["exportJsonl"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "governance.audit.list",
+      requiredRoles: ["Admin"]
+    });
+    return this.delegate.exportJsonl(query);
+  }
+
+  async exportCsv(query?: Parameters<GovernanceAuditService["exportCsv"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "governance.audit.list",
+      requiredRoles: ["Admin"]
+    });
+    return this.delegate.exportCsv(query);
+  }
 }
 
 export class AuthorizedFailedWorkService implements FailedWorkService {
@@ -972,6 +1184,18 @@ function resolveAgentName(metadata: Record<string, string> | undefined): string 
 function isSoftEnforceProtectedOperation(operation: AuthorizationRequirement["operation"]): boolean {
   return (
     operation === "policy.put" ||
+    operation === "durableMemory.proposal.approve" ||
+    operation === "durableMemory.proposal.reject" ||
+    operation === "modelProviders.create" ||
+    operation === "modelProviders.delete" ||
+    operation === "modelProviders.get" ||
+    operation === "modelProviders.list" ||
+    operation === "modelProviders.test" ||
+    operation === "modelProviders.update" ||
+    operation === "taskWorkbench.cancelRun" ||
+    operation === "taskWorkbench.create" ||
+    operation === "taskWorkbench.runTask" ||
+    operation === "taskWorkbench.update" ||
     operation === "runs.cancel" ||
     operation === "runs.cancelByRunId" ||
     operation === "a2aObservability.alertHistory.list" ||

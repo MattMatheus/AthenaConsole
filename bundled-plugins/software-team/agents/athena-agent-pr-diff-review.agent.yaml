@@ -1,0 +1,95 @@
+schemaVersion: 1
+agent:
+  id: athena-agent.pr-diff-review
+  name: AthenaAgent PR Diff Review
+  version: 0.1.0
+  description: Uses AthenaAgent to review a supplied pull request or local diff with repository context.
+  capabilities:
+    - code.review
+    - diff.review
+    - repo.inspect
+    - artifacts.produce
+  inputs:
+    repo:
+      type: object
+      required: true
+      description: Console repository object with a local workspace path.
+    diff:
+      type: markdown
+      required: true
+      description: Pull request or local diff to review.
+    objective:
+      type: markdown
+      required: false
+      description: Operator goal or review focus.
+    evidence:
+      type: markdown
+      required: false
+      description: Additional local evidence, CI notes, or reviewer context.
+    memoryContext:
+      type: markdown
+      required: false
+      description: Optional operator-approved review preferences.
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: prDiffReview
+        label: PR diff review
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/athena-agent-console-runner.mjs
+  runtime:
+    preferredBackend: local-process
+    workingDirectory: .
+    modelProvider:
+      required: true
+      providerKind: openai-compatible
+      label: OpenAI-compatible model provider
+  permissions:
+    network: allow
+    filesystem: scoped
+    shell: deny
+    credentials: scoped
+    durableMemory:
+      read:
+        namespaces:
+          - software-team/*
+          - repository/*
+        maxSensitivity: internal
+        reason: Read operator-approved review preferences and repository conventions.
+      propose:
+        namespaces:
+          - software-team/*
+          - repository/*
+        maxSensitivity: internal
+        reason: Propose recurring review guidance for operator approval.
+  limits:
+    maxRuntimeSeconds: 120
+    maxToolCalls: 40
+    maxOutputBytes: 12000
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+    strictResultEnvelope: true
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    pluginApi: team-orchestrator.manifests.v1
+    frameworks:
+      - AthenaAgent
+  ui:
+    icon: scan-search
+    color: "#4f6f52"
+    tags:
+      - bundled
+      - athena-agent
+      - software-team
+    inputOrder:
+      - repo
+      - diff
+      - objective
+      - evidence
+      - memoryContext

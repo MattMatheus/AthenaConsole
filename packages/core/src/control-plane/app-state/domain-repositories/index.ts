@@ -4,3 +4,5 @@ export * from "./schedules.js";
 export * from "./runs.js";
 export * from "./repositories.js";
 export * from "./model-providers.js";
+export * from "./workers.js";
+export * from "./evals.js";

@@ -8,6 +8,7 @@ import {
   type AgentCatalogValidationIssue,
   type AgentCatalogAgentSummary,
   type CapabilityPackMetadata,
+  type ConnectorReadiness,
   type AgentCatalogPluginSourceScope,
   type AgentCatalogPluginSummary,
   type ProviderReadiness,
@@ -58,6 +59,23 @@ function providerReadinessLabel(readiness: ProviderReadiness): string {
     return "No provider required";
   }
   return readiness.providerName ?? readiness.providerId ?? readiness.providerKind ?? readiness.status;
+}
+
+function connectorReadinessClass(readiness: ConnectorReadiness): string {
+  if (readiness.status === "configured") {
+    return styles.badgeSuccess ?? "";
+  }
+  if (readiness.status === "blocked" || readiness.credentialState === "invalid") {
+    return styles.badgeDanger ?? "";
+  }
+  return styles.badgeWarning ?? "";
+}
+
+function connectorIssueCount(plugins: AgentCatalogPluginSummary[]): number {
+  return plugins.filter((plugin) => {
+    const readiness = plugin.metadata.connectorReadiness;
+    return readiness && readiness.status !== "configured";
+  }).length;
 }
 
 function matchesSearch(agent: AgentCatalogAgentSummary, search: string): boolean {
@@ -170,6 +188,45 @@ function renderPluginValidation(plugin: AgentCatalogPluginSummary): JSX.Element 
   );
 }
 
+function renderConnectorReadiness(plugin: AgentCatalogPluginSummary): JSX.Element | null {
+  const readiness = plugin.metadata.connectorReadiness;
+  if (!readiness) {
+    return null;
+  }
+  const serviceLabel = readiness.serviceName ?? readiness.serviceId ?? "Connector";
+  return (
+    <div className={styles.connectorReadiness}>
+      <div className={styles.rowBetween}>
+        <div>
+          <p className={styles.connectorTitle}>{serviceLabel}</p>
+          <p className={styles.agentSecondary}>Credential {readiness.credentialState}</p>
+        </div>
+        <span className={connectorReadinessClass(readiness)}>{readiness.status}</span>
+      </div>
+      <div className={styles.connectorGrid}>
+        <div>
+          <span className={styles.connectorLabel}>Required scopes</span>
+          <span className={styles.connectorValue}>{readiness.requiredScopes.length > 0 ? readiness.requiredScopes.join(", ") : "None"}</span>
+        </div>
+        <div>
+          <span className={styles.connectorLabel}>Missing scopes</span>
+          <span className={readiness.missingScopes.length > 0 ? styles.connectorValueWarning : styles.connectorValue}>
+            {readiness.missingScopes.length > 0 ? readiness.missingScopes.join(", ") : "None"}
+          </span>
+        </div>
+        <div>
+          <span className={styles.connectorLabel}>Rate limits</span>
+          <span className={readiness.rateLimitedOperations.length > 0 ? styles.connectorValueWarning : styles.connectorValue}>
+            {readiness.rateLimitedOperations.length > 0 ? readiness.rateLimitedOperations.join(", ") : "Clear"}
+          </span>
+        </div>
+      </div>
+      {readiness.reasons.length > 0 ? <p className={styles.connectorReason}>{readiness.reasons[0]}</p> : null}
+      <p className={styles.connectorNextStep}>{readiness.nextStep}</p>
+    </div>
+  );
+}
+
 export function AgentCatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const capability = searchParams.get("capability") ?? "";
@@ -211,6 +268,7 @@ export function AgentCatalogPage() {
   const workspacePlugins = plugins.filter((plugin) => plugin.sourceScope === "workspace").length;
   const systemPlugins = plugins.filter((plugin) => plugin.sourceScope === "system").length;
   const validationIssues = countValidationIssues(plugins);
+  const connectorIssues = connectorIssueCount(plugins);
   const duplicateIdIssues = countDuplicateIdIssues(plugins);
   const packCategories = useMemo(() => uniquePackCategories(plugins), [plugins]);
 
@@ -305,6 +363,10 @@ export function AgentCatalogPage() {
           <span className={styles.metricValue}>
             {allAgents.filter((agent) => agent.providerReadiness.status === "missing" || agent.providerReadiness.status === "invalid").length}
           </span>
+        </div>
+        <div className={styles.metric}>
+          <span className={styles.metricLabel}>Connector Issues</span>
+          <span className={styles.metricValue}>{connectorIssues}</span>
         </div>
       </div>
 
@@ -437,6 +499,7 @@ export function AgentCatalogPage() {
                       ))}
                     </div>
                   ) : null}
+                  {renderConnectorReadiness(plugin)}
                   {renderPluginValidation(plugin)}
                 </li>
               ))}

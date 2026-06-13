@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import { createApiServer } from "../src/api/server.js";
+import { openAppStateDatabase } from "../src/control-plane/app-state/index.js";
 import { getRequestAuthContext } from "../src/control-plane/auth.js";
 import { createLocalControlPlaneServices } from "../src/control-plane/services.js";
 import { loadConfig } from "../src/shared/config.js";
@@ -386,6 +387,136 @@ describe("api identity extraction middleware", () => {
       expect(payload.error.code).toBe("AUTHZ_DENIED");
       expect(payload.error.message).toContain("policy.put");
       expect(payload.error.retryable).toBe(false);
+    } finally {
+      if (started) {
+        await server.stop();
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns 403 for denied roles on provider config and task execution while allowing run inspection", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-auth-pilot-"));
+    writeFileSync(
+      join(dir, ".env"),
+      [
+        "ATHENA_AUTH_ENABLED=true",
+        "ATHENA_AUTHZ_MODE=enforce",
+        "ATHENA_AUTH_IDENTITY_ROLE_MAP=viewer-user:Viewer,operator-user:Operator,admin-user:Admin"
+      ].join("\n"),
+      "utf8"
+    );
+    const config = loadConfig(dir);
+    const services = createLocalControlPlaneServices({ config });
+    const appState = openAppStateDatabase(config);
+    try {
+      appState.plugins.upsert({
+        id: "team-orchestrator.test.api-authz",
+        version: "0.1.0",
+        path: "/tmp/team-orchestrator-api-authz-plugin",
+        enabled: true,
+        status: "loaded",
+        sourceType: "local",
+        manifest: {},
+        validationErrors: []
+      });
+      appState.agents.upsert({
+        id: "software.api-authz.local",
+        version: "1.0.0",
+        pluginId: "team-orchestrator.test.api-authz",
+        pluginVersion: "0.1.0",
+        name: "API Authz Runner",
+        capabilities: ["test.run"],
+        status: "loaded",
+        manifest: {
+          agent: {
+            implementation: {
+              type: "local-command",
+              command: "/bin/echo",
+              args: ['{"summary":"ok","output":{"markdown":"api authorized run completed"}}']
+            },
+            runtime: {
+              preferredBackend: "local-process",
+              workingDirectory: "."
+            }
+          }
+        }
+      });
+      appState.tasks.create({
+        id: "task-api-authz",
+        title: "API authz task",
+        status: "ready",
+        assignedAgentId: "software.api-authz.local"
+      });
+    } finally {
+      appState.close();
+    }
+
+    const server = createApiServer({ config, services, host: "127.0.0.1", port: 0 });
+    let bound: { host: string; port: number } | undefined;
+    let started = false;
+    try {
+      try {
+        bound = await server.start();
+        started = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("EPERM")) {
+          return;
+        }
+        throw error;
+      }
+      if (!bound) {
+        throw new Error("Server failed to bind");
+      }
+      const base = `http://${bound.host}:${bound.port}`;
+
+      const viewerProvider = await fetch(`${base}/api/v1/model-providers`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-athena-identity": "viewer-user"
+        },
+        body: JSON.stringify({
+          id: "provider-viewer-denied",
+          name: "Denied",
+          providerKind: "openai-compatible",
+          defaultModel: "gpt-test",
+          secret: { kind: "env", name: "OPENAI_API_KEY" }
+        })
+      });
+      expect(viewerProvider.status).toBe(403);
+
+      const viewerRun = await fetch(`${base}/api/v1/tasks/task-api-authz/run`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-athena-identity": "viewer-user"
+        },
+        body: JSON.stringify({ runId: "run-api-viewer-denied" })
+      });
+      expect(viewerRun.status).toBe(403);
+
+      const operatorRun = await fetch(`${base}/api/v1/tasks/task-api-authz/run`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-athena-identity": "operator-user"
+        },
+        body: JSON.stringify({ runId: "run-api-operator" })
+      });
+      expect(operatorRun.status).toBe(200);
+
+      const viewerInspect = await fetch(`${base}/api/v1/task-runs/run-api-operator`, {
+        headers: {
+          "x-athena-identity": "viewer-user"
+        }
+      });
+      expect(viewerInspect.status).toBe(200);
+      const inspectPayload = (await viewerInspect.json()) as { data: { run: { id: string; status: string } } };
+      expect(inspectPayload.data.run).toMatchObject({
+        id: "run-api-operator"
+      });
     } finally {
       if (started) {
         await server.stop();

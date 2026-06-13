@@ -20,6 +20,6 @@ workflow:
       assignedAgentId: bundled.github.release.notes-draft.local
       assignedAgentVersion: 0.1.0
       inputs:
-        repository: "{{ inputs.repository }}"
-        releaseName: "{{ inputs.releaseName }}"
-        localContext: "{{ inputs.localContext }}"
+        repository: "{{ repository }}"
+        releaseName: "{{ releaseName }}"
+        localContext: "{{ localContext }}"

@@ -465,6 +465,116 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
       );
       create index if not exists idx_connector_credential_bindings_status on connector_credential_bindings(status);
     `
+  },
+  {
+    version: 15,
+    name: "add-workflow-dag-step-attempt-history",
+    sql: `
+      create table if not exists workflow_dag_run_step_attempts (
+        run_id text not null,
+        step_id text not null,
+        attempt integer not null,
+        status text not null,
+        started_at text not null,
+        finished_at text,
+        failure_json text,
+        output_json text,
+        updated_at text not null,
+        primary key (run_id, step_id, attempt),
+        foreign key (run_id, step_id) references workflow_dag_run_steps(run_id, step_id) on delete cascade
+      );
+
+      create index if not exists idx_workflow_dag_run_step_attempts_run_step
+        on workflow_dag_run_step_attempts(run_id, step_id, attempt);
+    `
+  },
+  {
+    version: 16,
+    name: "add-worker-heartbeats",
+    sql: `
+      create table if not exists worker_heartbeats (
+        worker_id text primary key,
+        identity_json text not null default '{}',
+        active_run_id text,
+        active_session_id text,
+        capacity integer not null default 1,
+        version text not null default 'unknown',
+        metadata_json text,
+        last_heartbeat_at text not null,
+        expires_at text not null,
+        created_at text not null,
+        updated_at text not null
+      );
+
+      create index if not exists idx_worker_heartbeats_expires_at
+        on worker_heartbeats(expires_at);
+      create index if not exists idx_worker_heartbeats_active_run
+        on worker_heartbeats(active_run_id);
+    `
+  },
+  {
+    version: 17,
+    name: "add-eval-suite-run-results",
+    sql: `
+      create table if not exists eval_suites (
+        id text primary key,
+        name text not null,
+        description text not null default '',
+        status text not null,
+        metadata_json text not null default '{}',
+        created_at text not null,
+        updated_at text not null
+      );
+
+      create table if not exists eval_runs (
+        id text primary key,
+        suite_id text not null,
+        source_run_id text,
+        agent_id text not null,
+        agent_version text not null,
+        provider_id text,
+        provider_kind text,
+        model text,
+        prompt_template_id text,
+        prompt_template_version text,
+        prompt_template_hash text not null,
+        status text not null,
+        started_at text,
+        finished_at text,
+        failure_json text,
+        metadata_json text not null default '{}',
+        created_at text not null,
+        updated_at text not null,
+        foreign key (suite_id) references eval_suites(id) on delete cascade
+      );
+
+      create table if not exists eval_results (
+        id text primary key,
+        eval_run_id text not null,
+        case_id text not null,
+        status text not null,
+        score real,
+        expected_artifact_uri text,
+        actual_artifact_uri text,
+        failure_json text,
+        metrics_json text not null default '{}',
+        metadata_json text not null default '{}',
+        created_at text not null,
+        unique (eval_run_id, case_id),
+        foreign key (eval_run_id) references eval_runs(id) on delete cascade
+      );
+
+      create index if not exists idx_eval_suites_status
+        on eval_suites(status);
+      create index if not exists idx_eval_runs_suite_status
+        on eval_runs(suite_id, status);
+      create index if not exists idx_eval_runs_agent
+        on eval_runs(agent_id, agent_version);
+      create index if not exists idx_eval_runs_source_run
+        on eval_runs(source_run_id);
+      create index if not exists idx_eval_results_run_status
+        on eval_results(eval_run_id, status);
+    `
   }
 ];
 

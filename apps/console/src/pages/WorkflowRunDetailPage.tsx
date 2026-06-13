@@ -56,6 +56,7 @@ function nodeSort(left: WorkflowRunStatusNode, right: WorkflowRunStatusNode): nu
     pending: 2,
     completed: 3,
     skipped: 4,
+    cancelled: 5,
   };
   return order[left.status] - order[right.status];
 }

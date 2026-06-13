@@ -1,0 +1,105 @@
+schemaVersion: 1
+agent:
+  id: athena-agent.repo-summary
+  name: AthenaAgent Repository Summary
+  version: 0.1.0
+  description: Uses AthenaAgent to inspect a local repository and produce a concise markdown summary artifact.
+  capabilities:
+    - repo.summary
+    - repo.inspect
+    - artifacts.produce
+  inputs:
+    repo:
+      type: object
+      required: true
+      description: Console repository object with a local workspace path.
+    objective:
+      type: markdown
+      required: false
+      description: Operator goal for the summary.
+    focus:
+      type: markdown
+      required: false
+      description: Optional areas, files, or questions to emphasize.
+    runMode:
+      type: enum
+      required: false
+      enum:
+        - read-only
+        - propose-changes
+    memoryContext:
+      type: markdown
+      required: false
+      description: Optional operator-approved memory context.
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: repoSummary
+        label: Repository summary
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/athena-agent-console-runner.mjs
+  runtime:
+    preferredBackend: local-process
+    workingDirectory: .
+    modelProvider:
+      required: true
+      providerKind: openai-compatible
+      label: OpenAI-compatible model provider
+  permissions:
+    network: allow
+    filesystem: scoped
+    shell: deny
+    credentials: scoped
+    durableMemory:
+      read:
+        namespaces:
+          - software-team/*
+          - repository/*
+        maxSensitivity: internal
+        reason: Read operator-approved repository conventions and prior context when configured.
+      propose:
+        namespaces:
+          - software-team/*
+          - repository/*
+        maxSensitivity: internal
+        reason: Propose reusable repository summary observations for review.
+  limits:
+    maxRuntimeSeconds: 120
+    maxToolCalls: 40
+    maxOutputBytes: 12000
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+    strictResultEnvelope: true
+    eventHints:
+      - run.started
+      - model.request
+      - tool.started
+      - tool.completed
+      - memory.read
+      - artifact.created
+      - run.completed
+      - run.failed
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    pluginApi: team-orchestrator.manifests.v1
+    frameworks:
+      - AthenaAgent
+  ui:
+    icon: folder-search
+    color: "#4f6f52"
+    tags:
+      - bundled
+      - athena-agent
+      - software-team
+    inputOrder:
+      - repo
+      - objective
+      - focus
+      - runMode
+      - memoryContext

@@ -20,8 +20,8 @@ workflow:
       assignedAgentId: bundled.github.pr.summarize.local
       assignedAgentVersion: 0.1.0
       inputs:
-        repository: "{{ inputs.repository }}"
-        pullRequest: "{{ inputs.pullRequest }}"
+        repository: "{{ repository }}"
+        pullRequest: "{{ pullRequest }}"
     - id: review-support
       title: Draft review support
       assignedAgentId: bundled.github.pr.review-support.local
@@ -29,6 +29,6 @@ workflow:
       dependsOn:
         - summarize-pr
       inputs:
-        repository: "{{ inputs.repository }}"
-        pullRequest: "{{ inputs.pullRequest }}"
-        localContext: "{{ inputs.localContext }}"
+        repository: "{{ repository }}"
+        pullRequest: "{{ pullRequest }}"
+        localContext: "{{ localContext }}"

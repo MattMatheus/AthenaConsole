@@ -624,13 +624,27 @@ describe("api request parsers", () => {
 
   it("parses governance audit history query filters", () => {
     const requestUrl = new URL(
-      "http://localhost/api/v1/governance/audit-trail?cursor=abc&limit=20&actor=bootstrap-admin&categories=policy,identity-assignment&createdAfter=2026-02-16T00:00:00.000Z"
+      "http://localhost/api/v1/governance/audit-trail?cursor=abc&limit=20&actor=bootstrap-admin&subject=operator&category=connector&categories=policy,identity-assignment,provider,secret-reference,task-workflow,artifact,memory,evidence&resourceId=bundle-1&workspaceId=workspace-1&runId=run-1&createdAfter=2026-02-16T00:00:00.000Z"
     );
     expect(parseGovernanceAuditHistoryQuery(requestUrl)).toEqual({
       cursor: "abc",
       limit: 20,
       actor: "bootstrap-admin",
-      categories: ["policy", "identity-assignment"],
+      subject: "operator",
+      categories: [
+        "policy",
+        "identity-assignment",
+        "provider",
+        "secret-reference",
+        "task-workflow",
+        "artifact",
+        "memory",
+        "evidence",
+        "connector"
+      ],
+      resourceId: "bundle-1",
+      workspaceId: "workspace-1",
+      runId: "run-1",
       createdAfter: "2026-02-16T00:00:00.000Z"
     });
 

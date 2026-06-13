@@ -5,6 +5,9 @@ import type {
   WorkflowRunGraphRunStatus,
   WorkflowRunGraphStatus,
   WorkflowRunGraphStepStatus,
+  WorkflowQueueStatus,
+  WorkflowQueueStatusItem,
+  WorkflowQueueStatusWorker,
   WorkflowRunStatusEdge,
   WorkflowRunStatusEvent,
   WorkflowRunStatusNode,
@@ -24,11 +27,13 @@ function stringArray(value: unknown): string[] {
 }
 
 function runStatus(value: unknown): WorkflowRunGraphRunStatus {
-  return value === "running" || value === "completed" || value === "failed" || value === "resumable" ? value : "pending";
+  return value === "running" || value === "completed" || value === "failed" || value === "resumable" || value === "cancelled"
+    ? value
+    : "pending";
 }
 
 function stepStatus(value: unknown): WorkflowRunGraphStepStatus {
-  return value === "running" || value === "completed" || value === "failed" || value === "skipped" ? value : "pending";
+  return value === "running" || value === "completed" || value === "failed" || value === "skipped" || value === "cancelled" ? value : "pending";
 }
 
 function eventLevel(value: unknown): WorkflowRunGraphEventLevel {
@@ -202,4 +207,73 @@ export function parseWorkflowRunExecuteResult(payload: unknown): WorkflowRunExec
 
 export async function executeWorkflowRun(runId: string): Promise<WorkflowRunExecuteResult> {
   return parseWorkflowRunExecuteResult(await apiClient.post<unknown>(`/v1/workflow-runs/${encodeURIComponent(runId)}/execute`));
+}
+
+function queueState(value: unknown): WorkflowQueueStatusItem["state"] {
+  return value === "running" || value === "retryable" || value === "stuck" ? value : "pending";
+}
+
+function parseQueueWorker(value: unknown): WorkflowQueueStatusWorker | undefined {
+  if (!isRecord(value) || typeof value.workerId !== "string") {
+    return undefined;
+  }
+  return {
+    workerId: value.workerId,
+    status: value.status === "expired" ? "expired" : "active",
+    ...(typeof value.activeRunId === "string" ? { activeRunId: value.activeRunId } : {}),
+    ...(typeof value.activeSessionId === "string" ? { activeSessionId: value.activeSessionId } : {}),
+    capacity: numberValue(value.capacity, 1),
+    version: typeof value.version === "string" ? value.version : "unknown",
+    lastHeartbeatAt: typeof value.lastHeartbeatAt === "string" ? value.lastHeartbeatAt : new Date(0).toISOString(),
+    expiresAt: typeof value.expiresAt === "string" ? value.expiresAt : new Date(0).toISOString(),
+  };
+}
+
+function parseQueueItem(value: unknown): WorkflowQueueStatusItem | undefined {
+  if (!isRecord(value) || typeof value.id !== "string" || typeof value.workflowRunId !== "string" || typeof value.stepId !== "string") {
+    return undefined;
+  }
+  const timestamps = isRecord(value.timestamps) ? value.timestamps : {};
+  return {
+    id: value.id,
+    state: queueState(value.state),
+    workflowRunId: value.workflowRunId,
+    workflowTemplateId: typeof value.workflowTemplateId === "string" ? value.workflowTemplateId : "unknown",
+    stepId: value.stepId,
+    ...(typeof value.taskId === "string" ? { taskId: value.taskId } : {}),
+    ...(typeof value.taskRunId === "string" ? { taskRunId: value.taskRunId } : {}),
+    ...(typeof value.workerId === "string" ? { workerId: value.workerId } : {}),
+    ...(typeof value.reason === "string" ? { reason: value.reason } : {}),
+    attempt: numberValue(value.attempt),
+    ...(typeof value.maxAttempts === "number" ? { maxAttempts: value.maxAttempts } : {}),
+    ready: Boolean(value.ready),
+    timestamps: {
+      updatedAt: typeof timestamps.updatedAt === "string" ? timestamps.updatedAt : new Date(0).toISOString(),
+      ...(typeof timestamps.startedAt === "string" ? { startedAt: timestamps.startedAt } : {}),
+      ...(typeof timestamps.finishedAt === "string" ? { finishedAt: timestamps.finishedAt } : {}),
+    },
+  };
+}
+
+export function parseWorkflowQueueStatus(payload: unknown): WorkflowQueueStatus {
+  const record = isRecord(payload) ? payload : {};
+  const summary = isRecord(record.summary) ? record.summary : {};
+  return {
+    generatedAt: typeof record.generatedAt === "string" ? record.generatedAt : new Date(0).toISOString(),
+    staleWorkerCutoffAt: typeof record.staleWorkerCutoffAt === "string" ? record.staleWorkerCutoffAt : new Date(0).toISOString(),
+    summary: {
+      pending: numberValue(summary.pending),
+      running: numberValue(summary.running),
+      retryable: numberValue(summary.retryable),
+      stuck: numberValue(summary.stuck),
+      workersActive: numberValue(summary.workersActive),
+      workersExpired: numberValue(summary.workersExpired),
+    },
+    items: Array.isArray(record.items) ? record.items.map(parseQueueItem).filter((item): item is WorkflowQueueStatusItem => Boolean(item)) : [],
+    workers: Array.isArray(record.workers) ? record.workers.map(parseQueueWorker).filter((worker): worker is WorkflowQueueStatusWorker => Boolean(worker)) : [],
+  };
+}
+
+export async function fetchWorkflowQueueStatus(): Promise<WorkflowQueueStatus> {
+  return parseWorkflowQueueStatus(await apiClient.get<unknown>("/v1/workflow-queue/status"));
 }

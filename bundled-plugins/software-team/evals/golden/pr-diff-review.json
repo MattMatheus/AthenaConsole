@@ -1,0 +1,18 @@
+{
+  "id": "software-team.pr-diff-review.golden",
+  "mode": "code-review",
+  "agentId": "bundled.software-team.code-review.local",
+  "agentVersion": "0.1.0",
+  "promptTemplateHash": "sha256:software-team-pr-diff-review-golden-v1",
+  "inputs": {
+    "repositoryPath": "/workspace/AthenaConsole",
+    "diff": "diff --git a/example.ts b/example.ts\n+export const enabled = true;",
+    "objective": "Review the supplied diff for correctness, regression risk, and missing tests.",
+    "evidence": "The change toggles a feature flag used by the console.",
+    "memoryContext": "Prefer concise review comments with direct file references."
+  },
+  "expected": {
+    "summary": "Code review support notes prepared from supplied diff evidence.",
+    "markdown": "# Code Review Notes\n\nCode review support notes prepared from supplied diff evidence.\n\n## Change summary\nReview the supplied diff for correctness, regression risk, and missing tests.\n\n## Review focus\nThe change toggles a feature flag used by the console.\n\n## Risks to verify\ndiff --git a/example.ts b/example.ts\n+export const enabled = true;\n\n## Safety\nThis bundled runner is deterministic, local, and does not perform external writes.\n\n## Memory\nOperator-supplied memory context was included as reviewable local evidence.\n"
+  }
+}

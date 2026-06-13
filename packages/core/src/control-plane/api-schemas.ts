@@ -314,6 +314,44 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
     },
     required: ["status", "required", "requirements", "message"]
   },
+  AgentCatalogCertification: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      status: { type: "string", enum: ["certified", "blocked", "not-required"] },
+      required: { type: "boolean" },
+      declaredMaturity: { type: "string" },
+      effectiveMaturity: { type: "string" },
+      evalRunId: { type: "string" },
+      evalResultIds: {
+        type: "array",
+        items: { type: "string", minLength: 1 }
+      },
+      expectedArtifactUris: {
+        type: "array",
+        items: { type: "string", minLength: 1 }
+      },
+      actualArtifactUris: {
+        type: "array",
+        items: { type: "string", minLength: 1 }
+      },
+      reasons: {
+        type: "array",
+        items: { type: "string", minLength: 1 }
+      },
+      message: STRING_SCHEMA
+    },
+    required: [
+      "status",
+      "required",
+      "effectiveMaturity",
+      "evalResultIds",
+      "expectedArtifactUris",
+      "actualArtifactUris",
+      "reasons",
+      "message"
+    ]
+  },
   AgentCatalogValidationIssue: {
     type: "object",
     additionalProperties: false,
@@ -325,6 +363,174 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
       resourceType: { type: "string", enum: ["plugin", "agent", "unknown"] }
     },
     required: ["path", "message", "resourceType"]
+  },
+  ConnectorReadinessSummary: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      status: {
+        type: "string",
+        enum: ["configured", "missing-credentials", "missing-scopes", "rate-limited", "degraded", "blocked"]
+      },
+      serviceId: { type: "string" },
+      serviceName: { type: "string" },
+      credentialState: {
+        type: "string",
+        enum: ["not-required", "missing", "bound", "invalid"]
+      },
+      missingScopes: {
+        type: "array",
+        items: { type: "string" }
+      },
+      requiredScopes: {
+        type: "array",
+        items: { type: "string" }
+      },
+      rateLimitedOperations: {
+        type: "array",
+        items: { type: "string" }
+      },
+      reasons: {
+        type: "array",
+        items: { type: "string" }
+      },
+      nextStep: STRING_SCHEMA
+    },
+    required: [
+      "status",
+      "credentialState",
+      "missingScopes",
+      "requiredScopes",
+      "rateLimitedOperations",
+      "reasons",
+      "nextStep"
+    ]
+  },
+  ConnectorMetadata: {
+    type: "object",
+    additionalProperties: true,
+    properties: {
+      service: {
+        type: "object",
+        additionalProperties: true,
+        properties: {
+          id: { type: "string", minLength: 1 },
+          name: { type: "string", minLength: 1 },
+          homepage: { type: "string" },
+          dataResidency: { type: "string" }
+        },
+        required: ["id", "name"]
+      },
+      auth: {
+        type: "object",
+        additionalProperties: true,
+        properties: {
+          type: {
+            type: "string",
+            enum: ["none", "api-token", "oauth", "local-secret"]
+          },
+          credentialBinding: {
+            type: "string",
+            enum: ["none", "required", "optional"]
+          },
+          instructions: { type: "string" }
+        },
+        required: ["type", "credentialBinding"]
+      },
+      scopes: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: true,
+          properties: {
+            id: { type: "string", minLength: 1 },
+            label: { type: "string", minLength: 1 },
+            required: { type: "boolean" },
+            access: {
+              type: "string",
+              enum: ["read", "write", "read-write"]
+            },
+            reason: { type: "string" }
+          },
+          required: ["id", "label", "required", "access"]
+        }
+      },
+      operations: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: true,
+          properties: {
+            id: { type: "string", minLength: 1 },
+            class: {
+              type: "string",
+              enum: ["read", "external-write"]
+            },
+            label: { type: "string" },
+            scopes: {
+              type: "array",
+              items: { type: "string" }
+            },
+            approvalRequired: { type: "boolean" }
+          },
+          required: ["id", "class", "scopes"]
+        }
+      },
+      readiness: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          grantedScopes: {
+            type: "array",
+            items: { type: "string" }
+          },
+          rateLimitedOperationIds: {
+            type: "array",
+            items: { type: "string" }
+          },
+          degraded: { type: "boolean" },
+          blockedReasons: {
+            type: "array",
+            items: { type: "string" }
+          }
+        }
+      }
+    },
+    required: ["service", "auth", "scopes", "operations"]
+  },
+  AgentCatalogConnectorReadinessListResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      connectors: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            plugin: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: { type: "string", minLength: 1 },
+                version: { type: "string", minLength: 1 },
+                name: { type: "string", minLength: 1 },
+                enabled: { type: "boolean" },
+                status: { type: "string", minLength: 1 },
+                sourceType: { type: "string", minLength: 1 },
+                sourceScope: { type: "string", enum: ["workspace", "system"] }
+              },
+              required: ["id", "version", "name", "enabled", "status", "sourceType", "sourceScope"]
+            },
+            connector: { $ref: "#/components/schemas/ConnectorMetadata" },
+            readiness: { $ref: "#/components/schemas/ConnectorReadinessSummary" }
+          },
+          required: ["plugin", "connector", "readiness"]
+        }
+      },
+      total: { type: "integer", minimum: 0 }
+    },
+    required: ["connectors", "total"]
   },
   CapabilityPackMetadata: {
     type: "object",
@@ -354,6 +560,10 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
         }
       },
       exampleWorkflows: {
+        type: "array",
+        items: JSON_VALUE_SCHEMA
+      },
+      outcomes: {
         type: "array",
         items: JSON_VALUE_SCHEMA
       }
@@ -449,6 +659,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
             status: { type: "string", minLength: 1 },
             available: { type: "boolean" },
             providerReadiness: { $ref: "#/components/schemas/ProviderReadiness" },
+            certification: { $ref: "#/components/schemas/AgentCatalogCertification" },
             metadata: {
               type: "object",
               additionalProperties: true
@@ -469,6 +680,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
             "status",
             "available",
             "providerReadiness",
+            "certification",
             "metadata",
             "validationErrors",
             "createdAt",
@@ -2089,6 +2301,12 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
     },
     responseSchema: { $ref: "#/components/schemas/AgentCatalogAgentListResult" }
   },
+  listAgentCatalogConnectorReadiness: {
+    operationId: "listAgentCatalogConnectorReadiness",
+    method: "GET",
+    path: "/api/v1/agent-catalog/connectors/readiness",
+    responseSchema: { $ref: "#/components/schemas/AgentCatalogConnectorReadinessListResult" }
+  },
   listRepositories: {
     operationId: "listRepositories",
     method: "GET",
@@ -2467,6 +2685,20 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       required: ["runId"]
     },
     responseSchema: { $ref: "#/components/schemas/TaskWorkbenchTaskRunDetail" }
+  },
+  getTaskRunEvidenceBundle: {
+    operationId: "getTaskRunEvidenceBundle",
+    method: "GET",
+    path: "/api/v1/task-runs/:runId/evidence-bundle",
+    pathParamsSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        runId: STRING_SCHEMA
+      },
+      required: ["runId"]
+    },
+    responseSchema: JSON_VALUE_SCHEMA
   },
   getTaskRunArtifact: {
     operationId: "getTaskRunArtifact",
@@ -2943,6 +3175,24 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       additionalProperties: true
     }
   },
+  getWorkflowQueueStatus: {
+    operationId: "getWorkflowQueueStatus",
+    method: "GET",
+    path: "/api/v1/workflow-queue/status",
+    querySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        at: STRING_SCHEMA,
+        staleAfterMs: { type: "integer", minimum: 1 },
+        limit: { type: "integer", minimum: 1 }
+      }
+    },
+    responseSchema: {
+      type: "object",
+      additionalProperties: true
+    }
+  },
   executeWorkflowRun: {
     operationId: "executeWorkflowRun",
     method: "POST",
@@ -3159,7 +3409,8 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
         provenance: DURABLE_MEMORY_PROVENANCE_SCHEMA,
         memoryType: STRING_SCHEMA,
         proposedBody: STRING_SCHEMA,
-        reason: STRING_SCHEMA
+        reason: STRING_SCHEMA,
+        evidence: STRING_SCHEMA
       },
       required: ["targetNamespace", "provenance", "memoryType", "proposedBody", "reason"]
     },
@@ -3753,6 +4004,40 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       required: ["items"]
     }
   },
+  simulateRbacRole: {
+    operationId: "simulateRbacRole",
+    method: "GET",
+    path: "/api/v1/rbac/simulate",
+    querySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        role: { type: "string", enum: ["Viewer", "Operator", "Admin"] }
+      }
+    },
+    responseSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        role: { type: "string", enum: ["Viewer", "Operator", "Admin"] },
+        operations: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              id: STRING_SCHEMA,
+              label: STRING_SCHEMA,
+              requiredPermission: STRING_SCHEMA,
+              allowed: { type: "boolean" }
+            },
+            required: ["id", "label", "requiredPermission", "allowed"]
+          }
+        }
+      },
+      required: ["role", "operations"]
+    }
+  },
   listIdentityRoleAssignments: {
     operationId: "listIdentityRoleAssignments",
     method: "GET",
@@ -3840,12 +4125,72 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
         cursor: { type: "string" },
         limit: { type: "integer", minimum: 1 },
         actor: { type: "string" },
+        subject: { type: "string" },
+        category: { type: "string" },
         categories: { type: "string" },
+        resource: { type: "string" },
+        resourceId: { type: "string" },
+        workspace: { type: "string" },
+        workspaceId: { type: "string" },
+        run: { type: "string" },
+        runId: { type: "string" },
         createdAfter: { type: "string", format: "date-time" },
         createdBefore: { type: "string", format: "date-time" }
       }
     },
     responseSchema: { $ref: "#/components/schemas/GovernanceAuditHistoryResult" }
+  },
+  exportGovernanceAuditTrailJsonl: {
+    operationId: "exportGovernanceAuditTrailJsonl",
+    method: "GET",
+    path: "/api/v1/governance/audit-trail/export.jsonl",
+    querySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        cursor: { type: "string" },
+        limit: { type: "integer", minimum: 1 },
+        actor: { type: "string" },
+        subject: { type: "string" },
+        category: { type: "string" },
+        categories: { type: "string" },
+        resource: { type: "string" },
+        resourceId: { type: "string" },
+        workspace: { type: "string" },
+        workspaceId: { type: "string" },
+        run: { type: "string" },
+        runId: { type: "string" },
+        createdAfter: { type: "string", format: "date-time" },
+        createdBefore: { type: "string", format: "date-time" }
+      }
+    },
+    responseSchema: { type: "string" }
+  },
+  exportGovernanceAuditTrailCsv: {
+    operationId: "exportGovernanceAuditTrailCsv",
+    method: "GET",
+    path: "/api/v1/governance/audit-trail/export.csv",
+    querySchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        cursor: { type: "string" },
+        limit: { type: "integer", minimum: 1 },
+        actor: { type: "string" },
+        subject: { type: "string" },
+        category: { type: "string" },
+        categories: { type: "string" },
+        resource: { type: "string" },
+        resourceId: { type: "string" },
+        workspace: { type: "string" },
+        workspaceId: { type: "string" },
+        run: { type: "string" },
+        runId: { type: "string" },
+        createdAfter: { type: "string", format: "date-time" },
+        createdBefore: { type: "string", format: "date-time" }
+      }
+    },
+    responseSchema: { type: "string" }
   },
   listEvents: {
     operationId: "listEvents",

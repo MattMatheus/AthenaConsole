@@ -24,4 +24,40 @@ describe("ApiClient", () => {
       }
     });
   });
+
+  it("preserves structured error details", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            ok: false,
+            error: {
+              code: "CONFIG_ERROR",
+              message: "Run readiness blocked.",
+              details: {
+                kind: "task-run-readiness",
+                readiness: {
+                  checks: [{ id: "model-provider", status: "blocked", nextStep: "Configure provider." }],
+                },
+              },
+            },
+          }),
+          { status: 400 },
+        ),
+      ),
+    );
+
+    const client = new ApiClient({ baseUrl: "http://api.example" });
+    await expect(client.post("/v1/tasks/task-1/run", {})).rejects.toMatchObject({
+      status: 400,
+      code: "CONFIG_ERROR",
+      details: {
+        kind: "task-run-readiness",
+        readiness: {
+          checks: [{ id: "model-provider", status: "blocked", nextStep: "Configure provider." }],
+        },
+      },
+    });
+  });
 });

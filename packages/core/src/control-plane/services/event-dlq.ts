@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, open, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { acquireSessionLock } from "../../runtime/session-lock.js";
 import type { AthenaConfig } from "../../shared/config.js";
 import { getRequestAuthContext } from "../auth.js";
@@ -25,6 +25,13 @@ export class LocalEventService implements EventService {
   private readonly retentionMaxRecords: number;
   private readonly retentionMaxAgeMs: number;
   private readonly retentionMaxBytes: number;
+  private readonly externalSink:
+    | {
+        kind: "jsonl";
+        path: string;
+        includeTypes?: Set<string>;
+      }
+    | undefined;
   private sweepScheduled = false;
   private sweepInFlight: Promise<void> | undefined;
 
@@ -36,6 +43,14 @@ export class LocalEventService implements EventService {
     this.retentionMaxRecords = config.telemetry?.events.maxRecords ?? 10_000;
     this.retentionMaxAgeMs = config.telemetry?.events.maxAgeMs ?? 30 * 24 * 60 * 60 * 1_000;
     this.retentionMaxBytes = config.telemetry?.events.maxBytes ?? 5_000_000;
+    const sink = config.telemetry?.events.sink;
+    this.externalSink = sink
+      ? {
+          kind: sink.kind,
+          path: resolve(config.workspaceRoot, sink.path),
+          ...(sink.includeTypes ? { includeTypes: new Set(sink.includeTypes) } : {})
+        }
+      : undefined;
   }
 
   async list(query: EventQuery = {}): Promise<EventQueryResult> {
@@ -86,6 +101,7 @@ export class LocalEventService implements EventService {
         await this.appendRowLocked(safetyRow);
         this.emitSafetyAlert(safetyRow);
       }
+      await this.deliverExternalSinkLocked([row, ...(safetyRow ? [safetyRow] : [])]);
     } finally {
       await lock.release();
     }
@@ -107,6 +123,46 @@ export class LocalEventService implements EventService {
       await handle.sync();
     } finally {
       await handle.close();
+    }
+  }
+
+  private async deliverExternalSinkLocked(rows: EventRecord[]): Promise<void> {
+    const sink = this.externalSink;
+    if (!sink) {
+      return;
+    }
+    const deliverable = rows.filter((row) => !sink.includeTypes || sink.includeTypes.has(row.type));
+    if (deliverable.length === 0) {
+      return;
+    }
+    try {
+      await mkdir(dirname(sink.path), { recursive: true });
+      const handle = await open(sink.path, "a");
+      try {
+        for (const row of deliverable) {
+          await handle.appendFile(`${JSON.stringify(redactSinkEvent(row))}\n`, "utf8");
+        }
+        await handle.sync();
+      } finally {
+        await handle.close();
+      }
+    } catch (error) {
+      await this.appendRowLocked({
+        id: randomUUID(),
+        traceId: deliverable[0]?.traceId ?? randomUUID(),
+        type: "event.sink.delivery_failed",
+        createdAt: new Date().toISOString(),
+        payload: {
+          sinkKind: sink.kind,
+          destination: sink.path,
+          attemptedEvents: deliverable.map((row) => ({
+            id: row.id,
+            type: row.type,
+            traceId: row.traceId
+          })),
+          error: error instanceof Error ? error.message : String(error)
+        }
+      });
     }
   }
 
@@ -606,6 +662,30 @@ function truncate(value: string | undefined, maxChars: number): string | undefin
     return value;
   }
   return `${value.slice(0, maxChars)}...`;
+}
+
+const SINK_REDACT_KEY_PATTERN = /api[-_.]?key|authorization|bearer|body|content|credential|password|raw[-_.]?(artifact[-_.]?)?payload|secret|secret[-_.]?ref|token|transcript/i;
+const SINK_REDACTION_TEXT = "[redacted]";
+
+function redactSinkEvent(row: EventRecord): EventRecord {
+  return redactSinkValue(row) as EventRecord;
+}
+
+function redactSinkValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(redactSinkValue);
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, entry]) => {
+      if (SINK_REDACT_KEY_PATTERN.test(key)) {
+        return [key, SINK_REDACTION_TEXT];
+      }
+      return [key, redactSinkValue(entry)];
+    })
+  );
 }
 
 function isIgnorableSweepError(error: unknown): boolean {

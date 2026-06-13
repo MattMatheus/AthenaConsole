@@ -173,6 +173,93 @@ describe("agent catalog service", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("blocks first-party certified maturity until passing eval result links exist", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-agent-catalog-certification-"));
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        seedCertifiedCatalog(appState);
+        const service = new LocalAgentCatalogService(config, { appState });
+
+        let agents = await service.listAgents();
+        expect(agents.agents[0]).toMatchObject({
+          id: "bundled.certified.agent",
+          certification: {
+            status: "blocked",
+            required: true,
+            declaredMaturity: "certified",
+            effectiveMaturity: "preview",
+            reasons: ["missing-eval-run"]
+          }
+        });
+
+        const suite = appState.evals.createSuite({
+          id: "certification-suite",
+          name: "Certification Suite",
+          status: "active"
+        });
+        const failedRun = appState.evals.createRun({
+          id: "eval-certification-failed",
+          suiteId: suite.id,
+          agentId: "bundled.certified.agent",
+          agentVersion: "0.1.0",
+          promptTemplateHash: "sha256:certified-agent-v1",
+          status: "completed"
+        });
+        appState.evals.createResult({
+          id: "eval-certification-failed-result",
+          evalRunId: failedRun.id,
+          caseId: "case-failure",
+          status: "failed",
+          expectedArtifactUri: "fixture://expected.md",
+          actualArtifactUri: "memory://actual.md"
+        });
+
+        agents = await service.listAgents();
+        expect(agents.agents[0]?.certification).toMatchObject({
+          status: "blocked",
+          effectiveMaturity: "preview",
+          reasons: ["failing-eval-results"]
+        });
+
+        const passingRun = appState.evals.createRun({
+          id: "eval-certification-passed",
+          suiteId: suite.id,
+          agentId: "bundled.certified.agent",
+          agentVersion: "0.1.0",
+          promptTemplateHash: "sha256:certified-agent-v1",
+          status: "completed"
+        });
+        appState.evals.createResult({
+          id: "eval-certification-passed-result",
+          evalRunId: passingRun.id,
+          caseId: "case-pass",
+          status: "passed",
+          expectedArtifactUri: "fixture://expected.md",
+          actualArtifactUri: "memory://actual.md"
+        });
+
+        agents = await service.listAgents();
+        expect(agents.agents[0]?.certification).toMatchObject({
+          status: "certified",
+          required: true,
+          declaredMaturity: "certified",
+          effectiveMaturity: "certified",
+          evalRunId: "eval-certification-passed",
+          evalResultIds: ["eval-certification-passed-result"],
+          expectedArtifactUris: ["fixture://expected.md"],
+          actualArtifactUris: ["memory://actual.md"],
+          reasons: []
+        });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 function seedCatalog(appState: ReturnType<typeof openAppStateDatabase>): void {
@@ -297,6 +384,49 @@ function seedCatalog(appState: ReturnType<typeof openAppStateDatabase>): void {
         implementation: {
           type: "local-command",
           command: "npm"
+        }
+      }
+    }
+  });
+}
+
+function seedCertifiedCatalog(appState: ReturnType<typeof openAppStateDatabase>): void {
+  appState.plugins.upsert({
+    id: "team-orchestrator.bundled.certified-test",
+    version: "0.1.0",
+    path: "/tmp/team-orchestrator-certified-test",
+    status: "loaded",
+    sourceType: "system",
+    manifest: {
+      plugin: {
+        name: "Certified Test Plugin",
+        pack: {
+          category: "software-team",
+          maturity: "certified",
+          credentialRequirements: ["none"],
+          memoryRequirements: ["none"],
+          safety: {
+            posture: "read-only",
+            externalWrites: false
+          }
+        }
+      }
+    },
+    validationErrors: []
+  });
+  appState.agents.upsert({
+    id: "bundled.certified.agent",
+    version: "0.1.0",
+    pluginId: "team-orchestrator.bundled.certified-test",
+    pluginVersion: "0.1.0",
+    name: "Certified Test Agent",
+    capabilities: ["repo.summary"],
+    status: "loaded",
+    manifest: {
+      agent: {
+        implementation: {
+          type: "local-command",
+          command: "node"
         }
       }
     }

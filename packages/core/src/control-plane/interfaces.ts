@@ -9,7 +9,9 @@ import type {
   A2aStallAlertHistoryResult,
   AgentCatalogAgentListQuery,
   AgentCatalogAgentListResult,
+  AgentCatalogConnectorReadinessListResult,
   AgentCatalogPluginListResult,
+  EvidenceBundle,
   TaskWorkbenchMetadata,
   TaskWorkbenchTask,
   TaskWorkbenchTaskCreateRequest,
@@ -62,6 +64,8 @@ import type {
   RunTemplateListQuery,
   TemplateRunRequest,
   WorkflowRunGraphStatus,
+  WorkflowQueueStatusQuery,
+  WorkflowQueueStatusResult,
   WorkflowTemplateCatalogListQuery,
   WorkflowTemplateCatalogListResult,
   WorkflowTemplateInstantiateRequest,
@@ -157,6 +161,10 @@ export interface RunTemplateService {
 
 export interface WorkflowStatusService {
   getStatus(runId: string): Promise<WorkflowRunGraphStatus>;
+}
+
+export interface WorkflowQueueStatusService {
+  getStatus(query?: WorkflowQueueStatusQuery): Promise<WorkflowQueueStatusResult> | WorkflowQueueStatusResult;
 }
 
 export interface WorkflowDagExecutorService {
@@ -272,6 +280,8 @@ export interface EventService {
 
 export interface GovernanceAuditService {
   list(query?: GovernanceAuditHistoryQuery): Promise<GovernanceAuditHistoryResult>;
+  exportJsonl(query?: GovernanceAuditHistoryQuery): Promise<string>;
+  exportCsv(query?: GovernanceAuditHistoryQuery): Promise<string>;
 }
 
 export interface OperationsService {
@@ -366,6 +376,7 @@ export interface StateDiagnosticsService {
 export interface AgentCatalogService {
   listPlugins(): Promise<AgentCatalogPluginListResult>;
   listAgents(query?: AgentCatalogAgentListQuery): Promise<AgentCatalogAgentListResult>;
+  listConnectorReadiness(): Promise<AgentCatalogConnectorReadinessListResult>;
 }
 
 export interface TaskWorkbenchService {
@@ -375,6 +386,7 @@ export interface TaskWorkbenchService {
   create(request: TaskWorkbenchTaskCreateRequest): Promise<TaskWorkbenchTask>;
   update(id: string, request: TaskWorkbenchTaskUpdateRequest): Promise<TaskWorkbenchTask>;
   getRun(runId: string): Promise<TaskWorkbenchTaskRunDetail>;
+  exportRunEvidenceBundle(runId: string, request?: { destinationKind?: string }): Promise<EvidenceBundle>;
   getRunArtifact(runId: string, artifactId: string): Promise<TaskWorkbenchArtifactRecord>;
   getRunReadiness(id: string): Promise<TaskWorkbenchRunReadiness>;
   runTask(id: string, request?: TaskWorkbenchTaskRunRequest): Promise<TaskWorkbenchTaskRun>;

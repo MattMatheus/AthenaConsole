@@ -17,8 +17,8 @@ workflow:
       assignedAgentId: bundled.github.repo-context.local
       assignedAgentVersion: 0.1.0
       inputs:
-        repository: "{{ inputs.repository }}"
-        focus: "{{ inputs.focus }}"
+        repository: "{{ repository }}"
+        focus: "{{ focus }}"
     - id: local-repo-summary
       title: Summarize local repository context
       assignedAgentId: bundled.software-team.repo-summary.local
@@ -27,4 +27,4 @@ workflow:
         - github-context
       inputs:
         repoPath: "."
-        objective: "{{ inputs.focus }}"
+        objective: "{{ focus }}"

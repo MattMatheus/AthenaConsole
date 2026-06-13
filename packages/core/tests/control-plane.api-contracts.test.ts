@@ -9,7 +9,7 @@ import {
 
 describe("control-plane api contracts", () => {
   it("declares the full initial v1 route surface", () => {
-    expect(API_V1_ROUTES.length).toBe(107);
+    expect(API_V1_ROUTES.length).toBe(113);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/capabilities")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/health")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/readiness")).toBe(true);
@@ -19,12 +19,16 @@ describe("control-plane api contracts", () => {
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/agent-catalog/agents")).toBe(
       true
     );
+    expect(
+      API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/agent-catalog/connectors/readiness")
+    ).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/workflow-templates")).toBe(
       true
     );
     expect(
       API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/workflow-templates/:id/instantiate")
     ).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/workflow-queue/status")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/missions")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/missions")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/missions/:id")).toBe(true);
@@ -43,6 +47,7 @@ describe("control-plane api contracts", () => {
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/tasks/:id/run-readiness")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/tasks/:id/run")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/task-runs/:runId")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/task-runs/:runId/evidence-bundle")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/task-runs/:runId/artifacts/:artifactId")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/task-runs/:runId/cancel")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/runs")).toBe(true);
@@ -96,6 +101,7 @@ describe("control-plane api contracts", () => {
     expect(API_V1_ROUTES.some((route) => route.path === "/api/v1/rejections" && route.method === "GET")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.path === "/api/v1/policy/rejections" && route.method === "GET")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.path === "/api/v1/rbac/roles" && route.method === "GET")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.path === "/api/v1/rbac/simulate" && route.method === "GET")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.path === "/api/v1/rbac/assignments" && route.method === "GET")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.path === "/api/v1/rbac/assignments/:subject" && route.method === "PUT")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.path === "/api/v1/rbac/assignments/:subject" && route.method === "DELETE")).toBe(
@@ -103,6 +109,8 @@ describe("control-plane api contracts", () => {
     );
     expect(API_V1_ROUTES.some((route) => route.path === "/api/v1/rbac/audit/:subject" && route.method === "GET")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.path === "/api/v1/governance/audit-trail" && route.method === "GET")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.path === "/api/v1/governance/audit-trail/export.jsonl" && route.method === "GET")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.path === "/api/v1/governance/audit-trail/export.csv" && route.method === "GET")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/sessions/:id/artifacts")).toBe(
       true
     );

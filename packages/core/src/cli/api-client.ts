@@ -1,6 +1,7 @@
 import type {
   CancelRunRequest,
   CancelRunResult,
+  EvidenceBundle,
   RunRequest,
   RunResult,
   ScheduledTask,
@@ -71,6 +72,7 @@ export interface CliApiClient {
   run(request: RunRequest): Promise<RunResult>;
   runTemplate(request: { id: string; params?: Record<string, string> }): Promise<RunResult>;
   cancel(request: CancelRunRequest): Promise<CancelRunResult>;
+  getTaskRunEvidenceBundle(runId: string): Promise<EvidenceBundle>;
   enqueueWork(request: { sessionId: string; payload: string; mode: WorkItem["mode"] }): Promise<WorkQueueState>;
   getWorkQueue(sessionId: string): Promise<WorkQueueState>;
   drainWork(request: { sessionId: string; provider?: string; model?: string }): Promise<DrainResult>;
@@ -148,6 +150,15 @@ export function createCliApiClient(options: CliApiClientOptions): CliApiClient {
         {
           ...(request.reason ? { reason: request.reason } : {})
         }
+      );
+    },
+    async getTaskRunEvidenceBundle(runId: string): Promise<EvidenceBundle> {
+      return requestJson<EvidenceBundle>(
+        baseUrl,
+        timeoutMs,
+        "GET",
+        `/api/v1/task-runs/${encodeURIComponent(runId)}/evidence-bundle`,
+        {}
       );
     },
     async enqueueWork(request: { sessionId: string; payload: string; mode: WorkItem["mode"] }): Promise<WorkQueueState> {
@@ -412,6 +423,9 @@ function validateSuccessData(method: "POST" | "GET" | "PUT" | "DELETE", path: st
   }
   if (/^\/api\/v1\/runs\/[^/]+\/cancel$/.test(path) && typeof data.status !== "string") {
     throw new CliApiClientError(`API ${method} ${path} missing data.status`, { kind: "response" });
+  }
+  if (/^\/api\/v1\/task-runs\/[^/]+\/evidence-bundle$/.test(path) && typeof data.manifest !== "object") {
+    throw new CliApiClientError(`API ${method} ${path} missing data.manifest`, { kind: "response" });
   }
   if (path === "/api/v1/work/enqueue" && !Array.isArray(data.items)) {
     throw new CliApiClientError(`API ${method} ${path} missing data.items`, { kind: "response" });

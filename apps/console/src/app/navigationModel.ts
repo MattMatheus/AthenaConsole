@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  Activity,
   BookOpen,
   Bot,
   CalendarClock,
@@ -36,6 +37,7 @@ export const navSections: NavSection[] = [
     items: [
       { path: "/", label: "Dashboard", match: /^\/$/, icon: LayoutDashboard },
       { path: "/start", label: "Start Work", match: /^\/start/, icon: Sparkles },
+      { path: "/workflow-queue", label: "Queue", match: /^\/workflow-queue/, icon: Activity },
       { path: "/runs", label: "Work History", match: /^\/runs|^\/sessions/, icon: History },
       { path: "/agents", label: "Capabilities", match: /^\/agents/, icon: Bot },
       { path: "/resources", label: "Resources", match: /^\/resources/, icon: SlidersHorizontal },

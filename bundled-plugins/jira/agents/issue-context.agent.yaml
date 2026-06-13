@@ -1,0 +1,70 @@
+schemaVersion: 1
+agent:
+  id: bundled.jira.issue-context.local
+  name: Jira Issue Context
+  version: 0.1.0
+  description: Reads fixture-backed Jira issue context and emits a review-ready markdown brief.
+  capabilities:
+    - jira.issue.context
+  inputs:
+    site:
+      type: string
+      required: false
+      label: Jira site
+    issueKey:
+      type: string
+      required: true
+      label: Issue key
+    repository:
+      type: string
+      required: false
+      label: Related repository
+    focus:
+      type: markdown
+      required: false
+      label: Review focus
+  outputs:
+    mode: flexible
+    artifacts:
+      - key: jira_issue_context
+        label: Jira issue context
+        kind: primary
+        format: markdown
+  implementation:
+    type: local-command
+    command: node
+    args:
+      - scripts/jira-runner.mjs
+      - issue-context
+    cwd: .
+  runtime:
+    preferredBackend: local-process
+    workingDirectory: .
+    connectorOperations:
+      - issue-read
+  permissions:
+    network: deny
+    filesystem: scoped
+    credentials: scoped
+  limits:
+    maxRuntimeSeconds: 30
+    maxToolCalls: 0
+    maxRetries: 0
+    maxOutputBytes: 12000
+    maxArtifacts: 1
+  observability:
+    mode: inspectable
+    eventHints:
+      - jira.issue
+      - connector.issue.read
+  compatibility:
+    teamOrchestrator: ">=0.1.0"
+    pluginApi: team-orchestrator.manifests.v1
+  ui:
+    icon: ticket
+    color: "#3455db"
+    inputOrder:
+      - site
+      - issueKey
+      - repository
+      - focus

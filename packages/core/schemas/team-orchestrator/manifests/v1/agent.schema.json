@@ -112,6 +112,9 @@
                 "pattern": "^[a-zA-Z0-9._:-]+$"
               },
               "uniqueItems": true
+            },
+            "retryPolicy": {
+              "$ref": "#/definitions/retryPolicy"
             }
           }
         },
@@ -168,6 +171,10 @@
                 "minLength": 1
               },
               "uniqueItems": true
+            },
+            "strictResultEnvelope": {
+              "type": "boolean",
+              "default": false
             }
           }
         },
@@ -313,6 +320,35 @@
         },
         "schema": {
           "$ref": "#/definitions/relativePath"
+        }
+      }
+    },
+    "retryPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxAttempts", "backoff", "retryableFailurePhases", "idempotency", "externalWriteRetry"],
+      "properties": {
+        "maxAttempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "backoff": {
+          "enum": ["none", "fixed", "linear", "exponential"]
+        },
+        "retryableFailurePhases": {
+          "type": "array",
+          "items": {
+            "enum": ["runtime-start", "execution", "provider", "verification", "artifact-export", "connector-rate-limit"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "idempotency": {
+          "enum": ["read-only", "idempotent", "non-idempotent"]
+        },
+        "externalWriteRetry": {
+          "enum": ["forbid", "require-approval", "allow"]
         }
       }
     },

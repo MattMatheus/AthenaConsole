@@ -4,6 +4,39 @@ plugin:
   name: First-Run Demo
   version: 0.1.0
   description: Local sample plugin that exercises the canonical workflow DAG run loop.
+  pack:
+    category: example
+    maturity: stable
+    credentialRequirements:
+      - none
+    memoryRequirements:
+      - none
+    safety:
+      posture: read-only
+      externalWrites: false
+      notes: Deterministic first-run workflow that uses local sample evidence and requires no external credentials.
+    exampleWorkflows:
+      - path: workflows/first-run-demo.workflow.yaml
+        id: first-run.demo.workflow
+        version: 0.1.0
+    outcomes:
+      - id: first-run
+        title: Run the first-run demo
+        description: Instantiate the deterministic sample workflow and inspect its run evidence.
+        target:
+          kind: workflow
+          id: first-run.demo.workflow
+          version: 0.1.0
+        contextRequirements:
+          - none
+        expectedArtifacts:
+          - label: First-run demo evidence
+            format: json
+        executionMode: deterministic
+        ui:
+          icon: rocket
+          badge: No credentials
+          order: 0
   authors:
     - name: Team Orchestrator
   agents:

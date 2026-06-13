@@ -230,6 +230,99 @@
           },
           "uniqueItems": true,
           "default": []
+        },
+        "outcomes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/outcomeMetadata"
+          },
+          "uniqueItems": true,
+          "default": []
+        }
+      }
+    },
+    "outcomeMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "description", "target", "contextRequirements", "expectedArtifacts", "executionMode"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "id"],
+          "properties": {
+            "kind": {
+              "enum": ["agent", "workflow", "link"]
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "$ref": "#/definitions/semver"
+            },
+            "href": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "contextRequirements": {
+          "type": "array",
+          "items": {
+            "enum": ["none", "repository", "model-provider", "connector-account", "failure-output", "release-evidence", "memory"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "expectedArtifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "format"],
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "format": {
+                "enum": ["markdown", "json", "text", "csv"]
+              }
+            }
+          },
+          "default": []
+        },
+        "executionMode": {
+          "enum": ["deterministic", "model-backed", "connector-backed"]
+        },
+        "ui": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "icon": {
+              "type": "string"
+            },
+            "badge": {
+              "type": "string"
+            },
+            "order": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         }
       }
     },

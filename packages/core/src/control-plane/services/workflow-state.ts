@@ -61,6 +61,7 @@ export class LocalWorkflowStateService {
     const snapshot = this.appState.workflowDagRuns.requireSnapshot(runId);
     const step = requireStep(snapshot, stepId);
     const timestamp = now.toISOString();
+    const attempt = step.attempt + 1;
     this.appState.workflowDagRuns.updateRun(runId, {
       status: "running",
       startedAt: snapshot.run.startedAt ?? timestamp,
@@ -69,11 +70,18 @@ export class LocalWorkflowStateService {
     });
     this.appState.workflowDagRuns.updateStep(runId, stepId, {
       status: "running",
-      attempt: step.attempt + 1,
+      attempt,
       ready: false,
       startedAt: timestamp,
       finishedAt: null,
       failure: undefined,
+      now
+    });
+    this.appState.workflowDagRuns.startAttempt({
+      runId,
+      stepId,
+      attempt,
+      startedAt: timestamp,
       now
     });
     this.appState.workflowDagRuns.appendEvent({
@@ -81,16 +89,28 @@ export class LocalWorkflowStateService {
       stepId,
       type: "workflow.step.started",
       message: `Workflow step ${stepId} started.`,
+      payload: { attempt },
       timestamp
     });
     return this.recomputeReadiness(runId, now);
   }
 
   completeStep(runId: string, stepId: string, output: unknown = {}, now: Date = new Date()): WorkflowDagRunSnapshot {
+    const snapshot = this.appState.workflowDagRuns.requireSnapshot(runId);
+    const step = requireStep(snapshot, stepId);
     const timestamp = now.toISOString();
     this.appState.workflowDagRuns.updateStep(runId, stepId, {
       status: "completed",
       ready: false,
+      finishedAt: timestamp,
+      output,
+      now
+    });
+    this.appState.workflowDagRuns.finishAttempt({
+      runId,
+      stepId,
+      attempt: step.attempt,
+      status: "completed",
       finishedAt: timestamp,
       output,
       now
@@ -100,12 +120,15 @@ export class LocalWorkflowStateService {
       stepId,
       type: "workflow.step.completed",
       message: `Workflow step ${stepId} completed.`,
+      payload: { attempt: step.attempt },
       timestamp
     });
     return this.finalizeRun(this.recomputeReadiness(runId, now), now);
   }
 
   failStep(runId: string, stepId: string, failure: unknown, now: Date = new Date()): WorkflowDagRunSnapshot {
+    const snapshot = this.appState.workflowDagRuns.requireSnapshot(runId);
+    const step = requireStep(snapshot, stepId);
     const timestamp = now.toISOString();
     this.appState.workflowDagRuns.updateStep(runId, stepId, {
       status: "failed",
@@ -120,13 +143,65 @@ export class LocalWorkflowStateService {
       finishedAt: timestamp,
       now
     });
+    this.appState.workflowDagRuns.finishAttempt({
+      runId,
+      stepId,
+      attempt: step.attempt,
+      status: "failed",
+      finishedAt: timestamp,
+      failure,
+      now
+    });
     this.appState.workflowDagRuns.appendEvent({
       runId,
       stepId,
       type: "workflow.step.failed",
       level: "error",
       message: `Workflow step ${stepId} failed.`,
-      payload: { failure },
+      payload: { attempt: step.attempt, failure },
+      timestamp
+    });
+    return this.recomputeReadiness(runId, now);
+  }
+
+  cancelStep(runId: string, stepId: string, cancellation: unknown, now: Date = new Date()): WorkflowDagRunSnapshot {
+    const snapshot = this.appState.workflowDagRuns.requireSnapshot(runId);
+    const step = requireStep(snapshot, stepId);
+    if (step.status === "cancelled") {
+      return snapshot;
+    }
+    const timestamp = now.toISOString();
+    this.appState.workflowDagRuns.updateStep(runId, stepId, {
+      status: "cancelled",
+      ready: false,
+      finishedAt: timestamp,
+      failure: cancellation,
+      now
+    });
+    this.appState.workflowDagRuns.updateRun(runId, {
+      status: "cancelled",
+      failure: { stepId, detail: cancellation },
+      finishedAt: timestamp,
+      now
+    });
+    if (step.attempt > 0) {
+      this.appState.workflowDagRuns.finishAttempt({
+        runId,
+        stepId,
+        attempt: step.attempt,
+        status: "cancelled",
+        finishedAt: timestamp,
+        failure: cancellation,
+        now
+      });
+    }
+    this.appState.workflowDagRuns.appendEvent({
+      runId,
+      stepId,
+      type: "workflow.step.cancelled",
+      level: "warning",
+      message: `Workflow step ${stepId} cancelled.`,
+      payload: { attempt: step.attempt, cancellation },
       timestamp
     });
     return this.recomputeReadiness(runId, now);
@@ -140,14 +215,24 @@ export class LocalWorkflowStateService {
     }
     const timestamp = now.toISOString();
     for (const step of runningSteps) {
+      const failure = {
+        code: "STALE_RUNNING_STEP",
+        message: "Recovered stale running step after restart."
+      };
       this.appState.workflowDagRuns.updateStep(runId, step.stepId, {
         status: "failed",
         ready: false,
         finishedAt: timestamp,
-        failure: {
-          code: "STALE_RUNNING_STEP",
-          message: "Recovered stale running step after restart."
-        },
+        failure,
+        now
+      });
+      this.appState.workflowDagRuns.finishAttempt({
+        runId,
+        stepId: step.stepId,
+        attempt: step.attempt,
+        status: "failed",
+        finishedAt: timestamp,
+        failure,
         now
       });
     }

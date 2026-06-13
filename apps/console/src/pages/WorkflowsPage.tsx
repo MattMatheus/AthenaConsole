@@ -1,7 +1,7 @@
 import { CheckCircle2, Play, RefreshCw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { GuidanceNote } from "../components";
+import { buildWorkPreflightItems, GuidanceNote, WorkPreflightPanel } from "../components";
 import type { CapabilityPackMetadata, ProviderReadiness } from "../features/agent-catalog";
 import {
   connectedRepositoryReadinessMessage,
@@ -155,6 +155,8 @@ export function WorkflowsPage() {
   const templateIdParam = searchParams.get("templateId")?.trim() ?? "";
   const capabilityParam = searchParams.get("capability")?.trim() ?? "";
   const initialSearch = searchParams.get("q")?.trim() ?? "";
+  const repoIdParam = searchParams.get("repoId")?.trim() ?? "";
+  const runModeParam = searchParams.get("runMode")?.trim() ?? "";
   const [search, setSearch] = useState(initialSearch);
   const [availability, setAvailability] = useState<AvailabilityFilter>("all");
   const [source, setSource] = useState<SourceFilter>("all");
@@ -221,6 +223,23 @@ export function WorkflowsPage() {
   const packCategories = useMemo(() => uniquePackCategories(templates), [templates]);
   const isCapabilityFlow = Boolean(templateIdParam);
   const missingInputs = missingRequiredInputCount(inputFields, inputValues, Boolean(selectedRepository));
+  const preflightItems = buildWorkPreflightItems({
+    backingLabel: "Backing workflow",
+    backingName: selectedTemplate?.name,
+    backingResolving: Boolean(templateIdParam),
+    backingEmptyLabel: "Choose a workflow",
+    repositoryName: selectedRepository?.name,
+    repositoryDetail: repoReadinessMessage || selectedRepository?.workspacePath,
+    repositoryBlocked: Boolean(repoReadinessMessage),
+    providerReadiness: selectedTemplate?.providerReadiness,
+    providerBlocking: providerReadinessBlocking,
+    pack: selectedTemplate?.plugin.pack,
+    runModeLabel: runModeLabel(runMode),
+    runModeSummary: runModeSafetySummary(runMode),
+    policyWarning: runMode === "approved-write",
+    missingInputs,
+    requiredInputCount: inputFields.filter((field) => field.required).length,
+  });
 
   useEffect(() => {
     if (!selectedTemplate && selectedTemplateKey) {
@@ -230,6 +249,22 @@ export function WorkflowsPage() {
       setSelectedTemplateKey(templateKey(selectedTemplate));
     }
   }, [selectedTemplate, selectedTemplateKey]);
+
+  useEffect(() => {
+    if (!repoIdParam || repositoriesQuery.isLoading || selectedRepositoryId) {
+      return;
+    }
+    if (repositories.some((repository) => repository.id === repoIdParam)) {
+      setSelectedRepositoryId(repoIdParam);
+    }
+  }, [repoIdParam, repositories, repositoriesQuery.isLoading, selectedRepositoryId]);
+
+  useEffect(() => {
+    if (!RUN_MODES.includes(runModeParam as TaskWorkbenchRunMode)) {
+      return;
+    }
+    setRunMode(runModeParam as TaskWorkbenchRunMode);
+  }, [runModeParam]);
 
   useEffect(() => {
     const nextValues = initialWorkflowTemplateInputValues(selectedTemplate);
@@ -320,46 +355,7 @@ export function WorkflowsPage() {
         </section>
       ) : null}
 
-      <section className={styles.preflightPanel} aria-label="Work preflight">
-        <div className={styles.sectionHeader}>
-          <div>
-            <p className={styles.panelMeta}>Preflight</p>
-            <p className={styles.panelTitle}>Review before instantiating</p>
-          </div>
-          <span className={styles.badge}>Workflow</span>
-        </div>
-        <div className={styles.preflightGrid}>
-          <PreflightItem
-            label="Backing workflow"
-            value={selectedTemplate ? selectedTemplate.name : templateIdParam ? "Resolving selected workflow" : "Choose a workflow"}
-            tone={selectedTemplate ? "ok" : "warn"}
-          />
-          <PreflightItem
-            label="Repository"
-            value={selectedRepository ? selectedRepository.name : "No repo selected"}
-            tone={selectedRepository ? "ok" : "warn"}
-            detail={repoReadinessMessage || selectedRepository?.workspacePath}
-          />
-          <PreflightItem
-            label="Provider"
-            value={selectedTemplate?.providerReadiness.status ?? "No workflow selected"}
-            tone={providerReadinessBlocking ? "warn" : "ok"}
-            detail={selectedTemplate?.providerReadiness.message}
-          />
-          <PreflightItem
-            label="Safety"
-            value={runModeLabel(runMode)}
-            tone={runMode === "approved-write" ? "warn" : "ok"}
-            detail={runModeSafetySummary(runMode)}
-          />
-          <PreflightItem
-            label="Required inputs"
-            value={missingInputs > 0 ? `${missingInputs} missing` : "Ready"}
-            tone={missingInputs > 0 ? "warn" : "ok"}
-            detail={`${inputFields.filter((field) => field.required).length} required fields`}
-          />
-        </div>
-      </section>
+      <WorkPreflightPanel badge="Workflow" title="Review before instantiating" items={preflightItems} />
 
       {!isCapabilityFlow ? (
       <div className={styles.summaryGrid}>
@@ -694,7 +690,9 @@ export function WorkflowsPage() {
                   ) : null}
                 </section>
 
-                {instantiateMutation.error instanceof Error ? <p className={styles.errorText}>{instantiateMutation.error.message}</p> : null}
+                {instantiateMutation.error instanceof Error ? (
+                  <p className={styles.errorText}>{preflightErrorMessage(instantiateMutation.error) ?? instantiateMutation.error.message}</p>
+                ) : null}
                 {hasAttemptedInstantiate && providerReadinessBlocking ? (
                   <p className={styles.errorText}>Configure a valid model provider in Settings before instantiating this workflow.</p>
                 ) : null}
@@ -870,27 +868,37 @@ function taskRunMode(inputs: unknown): string {
   return "read-only";
 }
 
-function PreflightItem({
-  detail,
-  label,
-  tone,
-  value,
-}: {
-  detail?: string | undefined;
-  label: string;
-  tone: "ok" | "warn";
-  value: string;
-}) {
-  return (
-    <article className={styles.preflightItem}>
-      <div className={styles.preflightTop}>
-        <span className={styles.panelMeta}>{label}</span>
-        <span className={tone === "ok" ? styles.badgeSuccess : styles.badgeWarning}>{tone === "ok" ? "ok" : "check"}</span>
-      </div>
-      <p className={styles.preflightValue}>{value}</p>
-      {detail ? <p className={styles.description}>{detail}</p> : null}
-    </article>
-  );
+function preflightErrorMessage(error: Error): string | undefined {
+  const readiness = readReadinessDetails(error);
+  if (!readiness) {
+    return undefined;
+  }
+  const blocked = readiness.checks.find((check) => check.status === "blocked");
+  if (!blocked) {
+    return undefined;
+  }
+  return `${readiness.summary} ${blocked.label}: ${blocked.message} ${blocked.nextStep}`;
+}
+
+function readReadinessDetails(error: Error): { summary: string; checks: Array<{ status: string; label: string; message: string; nextStep: string }> } | undefined {
+  const details = (error as { details?: unknown }).details;
+  if (typeof details !== "object" || details === null || !("readiness" in details)) {
+    return undefined;
+  }
+  const readiness = (details as { readiness?: unknown }).readiness;
+  if (typeof readiness !== "object" || readiness === null || !Array.isArray((readiness as { checks?: unknown }).checks)) {
+    return undefined;
+  }
+  const summary = typeof (readiness as { summary?: unknown }).summary === "string" ? (readiness as { summary: string }).summary : error.message;
+  const checks = (readiness as { checks: unknown[] }).checks
+    .filter((check): check is Record<string, unknown> => typeof check === "object" && check !== null)
+    .map((check) => ({
+      status: typeof check.status === "string" ? check.status : "",
+      label: typeof check.label === "string" ? check.label : "Readiness",
+      message: typeof check.message === "string" ? check.message : "",
+      nextStep: typeof check.nextStep === "string" ? check.nextStep : "",
+    }));
+  return { summary, checks };
 }
 
 function renderInputField(

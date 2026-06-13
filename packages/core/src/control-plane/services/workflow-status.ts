@@ -50,6 +50,16 @@ export function buildWorkflowRunGraphStatus(snapshot: WorkflowDagRunSnapshot, ap
       status: step.status,
       ready: step.ready,
       attempt: step.attempt,
+      attemptHistory: snapshot.attempts
+        .filter((attempt) => attempt.stepId === step.stepId)
+        .map((attempt) => ({
+          attempt: attempt.attempt,
+          status: attempt.status,
+          startedAt: attempt.startedAt,
+          ...(attempt.finishedAt ? { finishedAt: attempt.finishedAt } : {}),
+          ...(attempt.failure !== undefined ? { failure: attempt.failure } : {}),
+          ...(attempt.output !== undefined ? { output: attempt.output } : {})
+        })),
       dependencies: [...step.dependencies],
       dependents: dependentsByStepId.get(step.stepId) ?? [],
       blockingStepIds: [...step.blockingStepIds],

@@ -56,7 +56,7 @@
 
 .summaryGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: var(--space-3);
 }
 
@@ -346,6 +346,71 @@
   list-style: none;
 }
 
+.connectorReadiness {
+  border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent);
+  border-radius: 8px;
+  background: #fbfdff;
+  padding: var(--space-2);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.connectorTitle {
+  color: var(--color-text);
+  font-size: var(--font-size-200);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.connectorGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.connectorGrid > * {
+  min-width: 0;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.connectorLabel {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.connectorValue,
+.connectorValueWarning {
+  color: var(--color-text);
+  font-size: 0.76rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.connectorValueWarning {
+  color: var(--color-warning);
+  font-weight: 800;
+}
+
+.connectorReason,
+.connectorNextStep {
+  margin: 0;
+  font-size: var(--font-size-200);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.connectorReason {
+  color: var(--color-warning);
+  font-weight: 700;
+}
+
+.connectorNextStep {
+  color: var(--color-text-muted);
+}
+
 .validationItem {
   border-left: 3px solid var(--color-warning);
   padding-left: var(--space-2);
@@ -593,6 +658,10 @@
   }
 
   .detailKvRow {
+    grid-template-columns: 1fr;
+  }
+
+  .connectorGrid {
     grid-template-columns: 1fr;
   }
 }

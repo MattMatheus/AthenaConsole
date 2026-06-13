@@ -1,15 +1,25 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { isAbsolute, resolve } from "node:path";
+import { createHash, randomUUID } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
+import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AthenaError } from "../../runtime/errors.js";
 import type { AthenaConfig } from "../../shared/config.js";
+import { getRequestAuthContext } from "../auth.js";
 import { validateDurableMemoryEventPayload } from "../../shared/contracts/durable-memory.js";
 import type { VerificationPolicyFailure } from "../../shared/contracts/harness.js";
 import type {
   ModelProviderRequirement,
   ProviderReadiness,
+  EvidenceBundle,
+  EvidenceBundleArtifactEntry,
+  EvidenceBundleChecksum,
+  EvidenceBundleEventEntry,
+  EvidenceBundleMemoryEntry,
+  EvidenceBundleMemoryProposal,
+  EvidenceBundleMemoryRecord,
+  EvidenceBundleProviderMetadata,
+  EvidenceBundleUsage,
   TaskWorkbenchRunMode,
   TaskWorkbenchMetadata,
   TaskWorkbenchArtifactContent,
@@ -30,7 +40,13 @@ import type {
   TaskWorkbenchTaskRunRequest,
   TaskWorkbenchTaskUpdateRequest
 } from "../../shared/contracts.js";
-import { DEFAULT_TASK_WORKBENCH_RUN_MODE, TASK_WORKBENCH_RUN_MODES, TASK_WORKBENCH_STATUSES } from "../../shared/contracts.js";
+import {
+  DEFAULT_TASK_WORKBENCH_RUN_MODE,
+  EVIDENCE_BUNDLE_SCHEMA_VERSION,
+  TASK_WORKBENCH_RUN_MODES,
+  TASK_WORKBENCH_STATUSES,
+  redactEvidenceBundleValue
+} from "../../shared/contracts.js";
 import type { ModelProviderRuntimeConfig } from "../../shared/contracts/model-providers.js";
 import type {
   DurableMemoryGetRequest,
@@ -51,7 +67,7 @@ import type {
   TaskRecord
 } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
-import type { TaskWorkbenchService } from "../interfaces.js";
+import type { EventService, TaskWorkbenchService } from "../interfaces.js";
 import { LocalModelProviderConfigService } from "./model-providers.js";
 import type { DurableMemoryService } from "./durable-memory.js";
 import { evaluateProviderReadiness, normalizeModelProviderRequirement } from "./provider-readiness.js";
@@ -60,7 +76,28 @@ import { LocalWorkflowStateService } from "./workflow-state.js";
 export interface LocalTaskWorkbenchServiceOptions {
   appState?: AppStateDatabase;
   durableMemoryService?: DurableMemoryService;
+  eventService?: EventService;
 }
+
+const RUN_EVENT_SIDECAR_MAX_RECORDS = 200;
+const RUN_EVENT_SIDECAR_MAX_BYTES = 128 * 1024;
+const LOCAL_COMMAND_HOST_ENV_ALLOWLIST = [
+  "PATH",
+  "HOME",
+  "TMPDIR",
+  "TEMP",
+  "TMP",
+  "USER",
+  "LOGNAME",
+  "LANG",
+  "LC_ALL",
+  "SYSTEMROOT",
+  "COMSPEC",
+  "PATHEXT",
+  "ATHENA_AGENT_CONSOLE_RUNNER",
+  "ATHENA_AGENT_REPO",
+  "ATHENA_AGENT_PYTHON"
+] as const;
 
 interface ActiveTaskRun {
   child?: ChildProcessWithoutNullStreams;
@@ -136,6 +173,9 @@ interface AgentManifestDocument {
       approvalRequiredFor?: unknown[];
       durableMemory?: DurableMemoryPermissionDeclaration;
     };
+    observability?: {
+      strictResultEnvelope?: unknown;
+    };
     limits?: {
       maxRuntimeSeconds?: unknown;
       maxToolCalls?: unknown;
@@ -193,6 +233,18 @@ interface TaskRunSafetyStop {
   observed?: number;
   reason: string;
   backend: TaskExecutionBackend;
+}
+
+interface EvidenceBundleExportAudit {
+  runId: string;
+  taskId: string;
+  bundleId: string;
+  bundleChecksum: EvidenceBundleChecksum;
+  destinationKind: string;
+  schemaVersion: string;
+  eventCount: number;
+  artifactCount: number;
+  memoryCount: number;
 }
 
 interface AgentRunEnvelope {
@@ -264,6 +316,7 @@ interface RuntimeMemoryProposeRequest {
   memoryType: string;
   proposedBody: string;
   reason: string;
+  evidence?: string;
 }
 
 export class LocalTaskWorkbenchService implements TaskWorkbenchService {
@@ -372,6 +425,116 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
     });
   }
 
+  async exportRunEvidenceBundle(runId: string, request: { destinationKind?: string } = {}): Promise<EvidenceBundle> {
+    const { bundle, audit } = await this.withAppStateAsync(async (appState) => {
+      const run = appState.runs.get(runId);
+      if (!run || run.targetType !== "task") {
+        throw new AthenaError("PROVIDER_NOT_FOUND", `Task run not found: ${runId}`);
+      }
+      const task = appState.tasks.get(run.targetId);
+      const runEvents = appState.runEvents.listForRun(run.id);
+      const provider = buildEvidenceBundleProviderMetadata(appState, run, runEvents);
+      const usage = buildEvidenceBundleUsage(run, runEvents);
+      const runMetadataRedacted = redactEvidenceBundleValue({
+        run: mapRunRecord(run),
+        ...(task ? { task: mapTaskRecord(task, appState) } : {}),
+        ...(provider ? { provider } : {}),
+        policy: {
+          runMode: task ? resolveTaskRunMode(task.inputs) : undefined,
+          ...(run.safetyStop !== undefined ? { safetyStop: run.safetyStop } : {}),
+          ...(run.verificationStatus ? { verificationStatus: run.verificationStatus } : {}),
+          ...(run.verificationFailures ? { verificationFailures: run.verificationFailures } : {})
+        },
+        ...(usage ? { usage } : {})
+      });
+
+      const events = runEvents.map((event): EvidenceBundleEventEntry => {
+        const redacted = redactEvidenceBundleValue(mapRunEventRecord(event));
+        return {
+          id: event.id,
+          event: redacted.value,
+          checksum: checksumValue(redacted.value)
+        };
+      });
+      const artifacts = appState.artifacts.listForRun(run.id).map((artifact): EvidenceBundleArtifactEntry => {
+        const metadata = mapArtifactMetadataRecord(artifact);
+        const payload = {
+          kind: "artifact-ref" as const,
+          storageUri: metadata.storageUri,
+          mediaType: mediaTypeForArtifactFormat(metadata.format),
+          ...(metadata.sizeBytes !== undefined ? { sizeBytes: metadata.sizeBytes } : {}),
+          ...(metadata.hash ? { checksum: { algorithm: "sha256" as const, value: metadata.hash } } : {})
+        };
+        const redacted = redactEvidenceBundleValue({ metadata, payload });
+        return {
+          id: artifact.id,
+          metadata: redacted.value.metadata,
+          payload: redacted.value.payload,
+          checksum: checksumValue(redacted.value)
+        };
+      });
+      const memory = await buildEvidenceBundleMemoryEntries(this.options.durableMemoryService, run, task, runEvents);
+      const entryChecksums = [
+        checksumValue(runMetadataRedacted.value),
+        ...events.map((event) => event.checksum),
+        ...artifacts.map((artifact) => artifact.checksum),
+        ...memory.map((entry) => entry.checksum)
+      ];
+      const redactedFields = [
+        ...prefixRedactionPaths("manifest.run", runMetadataRedacted.report.redactedFields),
+        ...events.flatMap((entry) => prefixRedactionPaths(`events.${entry.id}`, redactEvidenceBundleValue(entry.event).report.redactedFields)),
+        ...artifacts.flatMap((entry) =>
+          prefixRedactionPaths(`artifacts.${entry.id}`, redactEvidenceBundleValue({ metadata: entry.metadata, payload: entry.payload }).report.redactedFields)
+        )
+      ];
+      const manifestBase = {
+        schemaVersion: EVIDENCE_BUNDLE_SCHEMA_VERSION,
+        bundleId: `evidence-bundle-${run.id}`,
+        createdAt: new Date().toISOString(),
+        source: {
+          product: "team-orchestrator" as const
+        },
+        run: runMetadataRedacted.value,
+        redaction: {
+          strategy: "secret-key-recursive" as const,
+          redactedFields
+        },
+        checksums: {
+          manifest: { algorithm: "sha256" as const, value: "" },
+          entries: entryChecksums
+        }
+      };
+      const bundle = {
+        manifest: {
+          ...manifestBase,
+          checksums: {
+            ...manifestBase.checksums,
+            manifest: checksumValue(manifestBase)
+          }
+        },
+        events,
+        artifacts,
+        memory
+      };
+      return {
+        bundle,
+        audit: {
+          runId: run.id,
+          taskId: task?.id ?? run.targetId,
+          bundleId: bundle.manifest.bundleId,
+          bundleChecksum: bundle.manifest.checksums.manifest,
+          destinationKind: request.destinationKind ?? "service",
+          schemaVersion: bundle.manifest.schemaVersion,
+          eventCount: bundle.events.length,
+          artifactCount: bundle.artifacts.length,
+          memoryCount: bundle.memory.length
+        }
+      };
+    });
+    await this.emitEvidenceBundleExportedAudit(audit);
+    return bundle;
+  }
+
   async getRunArtifact(runId: string, artifactId: string): Promise<TaskWorkbenchArtifactRecord> {
     return this.withAppState((appState) => {
       const run = appState.runs.get(runId);
@@ -391,10 +554,13 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
 
   async runTask(id: string, request: TaskWorkbenchTaskRunRequest = {}): Promise<TaskWorkbenchTaskRun> {
     return this.withAppStateAsync(async (appState) => {
-      const task = normalizeTaskRecordRepoInputs(requireTask(appState, id));
+      let task = normalizeTaskRecordRepoInputs(requireTask(appState, id));
       const readiness = evaluateTaskRunReadiness(appState, task);
       if (!readiness.ready) {
-        throw new AthenaError("CONFIG_ERROR", readiness.summary);
+        throw new AthenaError("CONFIG_ERROR", readiness.summary, false, undefined, {
+          kind: "task-run-readiness",
+          readiness
+        });
       }
       if (task.status !== "ready") {
         throw new AthenaError("CONFIG_ERROR", `Task ${id} must be ready before it can run.`);
@@ -412,7 +578,11 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       const modelProvider = modelProviderRequirement
         ? await resolveTaskModelProvider(this.config, appState, modelProviderRequirement)
         : undefined;
+      const runtimeSecrets = collectRuntimeSecrets(modelProvider);
       const memoryContext = resolveRuntimeMemoryContext(manifest, this.options.durableMemoryService);
+      if (hasMemoryContextRequest(task)) {
+        task = await injectApprovedMemoryContext(task, memoryContext, this.options.durableMemoryService);
+      }
       const runId = request.runId ?? `run-${randomUUID()}`;
       const startedAt = new Date().toISOString();
       let run = appState.runs.create({
@@ -463,11 +633,12 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         return await this.runHttpApiTask(appState, run, task, agent, execution, safety, memoryContext);
       }
       const command = execution;
+      const eventSidecarPath = createRunEventSidecarPath(this.config, run.id);
       let child: ChildProcessWithoutNullStreams;
       try {
         child = spawn(command.command, command.args, {
           cwd: command.cwd,
-          env: command.env ?? process.env,
+          env: withRunEventSidecarEnv(command.env ?? {}, eventSidecarPath),
           stdio: ["pipe", "pipe", "pipe"]
         });
       } catch (error) {
@@ -488,13 +659,13 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       const stderrChunks: Buffer[] = [];
       child.stdout.on("data", (chunk: Buffer) => {
         stdoutChunks.push(chunk);
-        appendRunEvent(appState, run.id, task, agent.id, "run.log", chunk.toString("utf8"), {
+        appendRunEvent(appState, run.id, task, agent.id, "run.log", redactSecretString(chunk.toString("utf8"), runtimeSecrets), {
           stream: "stdout"
         });
       });
       child.stderr.on("data", (chunk: Buffer) => {
         stderrChunks.push(chunk);
-        appendRunEvent(appState, run.id, task, agent.id, "run.log", chunk.toString("utf8"), {
+        appendRunEvent(appState, run.id, task, agent.id, "run.log", redactSecretString(chunk.toString("utf8"), runtimeSecrets), {
           stream: "stderr"
         });
       });
@@ -514,6 +685,9 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       const endedAt = new Date().toISOString();
       const stdout = Buffer.concat(stdoutChunks).toString("utf8");
       const stderr = Buffer.concat(stderrChunks).toString("utf8");
+      const redactedStdout = redactSecretString(stdout, runtimeSecrets);
+      const redactedStderr = redactSecretString(stderr, runtimeSecrets);
+      ingestRunEventSidecar(appState, eventSidecarPath, run, task, agent.id, runtimeSecrets);
       if (active.cancellationRequested) {
         appState.tasks.update(task.id, { status: "cancelled" });
         run = appState.runs.update(run.id, {
@@ -527,7 +701,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         appendRunEvent(appState, run.id, task, agent.id, "run.cancelled", `${backendLabel(command.backend)} task run cancelled.`, {
           signal: exit.signal
         });
-        failLinkedWorkflowDagStep(appState, task, run, {
+        cancelLinkedWorkflowDagStep(appState, task, run, {
           reason: "cancelled",
           signal: exit.signal
         });
@@ -539,12 +713,12 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       if (exit.code === 0) {
         let envelope: AgentRunEnvelope;
         try {
-          envelope = parseAgentRunEnvelope(stdout);
+          envelope = redactAgentRunEnvelope(parseAgentRunEnvelope(stdout, resolveStrictResultEnvelope(manifest)), runtimeSecrets);
         } catch (error) {
           return failTaskRun(appState, run, task, agent.id, `${backendLabel(command.backend)} task run returned invalid output.`, {
-            phase: "output",
+            phase: "output-parse",
             error: error instanceof Error ? error.message : String(error),
-            stdout
+            stdout: redactedStdout
           });
         }
         const envelopeSafetyStop = validateEnvelopeLimits(envelope, command.backend, safety);
@@ -610,9 +784,10 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         status: "failed",
         endedAt,
         failure: {
+          phase: "process-exit",
           code: exit.code,
           signal: exit.signal,
-          stderr
+          stderr: redactedStderr
         }
       });
       appendRunEvent(appState, run.id, task, agent.id, "run.failed", `${backendLabel(command.backend)} task run failed.`, {
@@ -620,9 +795,10 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
         signal: exit.signal
       });
       failLinkedWorkflowDagStep(appState, task, run, {
+        phase: "process-exit",
         code: exit.code,
         signal: exit.signal,
-        stderr
+        stderr: redactedStderr
       });
       return mapRunRecord(run);
     });
@@ -798,6 +974,24 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
           appendRunEvent(appState, runId, task, active.agentId, "run.cancel.unsupported", "Cancellation is unsupported for this active backend.", {
             backend: active.backend
           });
+        } else {
+          const cancelledAt = new Date().toISOString();
+          const run = appState.runs.get(runId);
+          appState.tasks.update(task.id, { status: "cancelled" });
+          if (run && run.status !== "completed" && run.status !== "failed" && run.status !== "cancelled") {
+            const cancelledRun = appState.runs.update(runId, {
+              status: "cancelled",
+              endedAt: cancelledAt,
+              failure: {
+                reason: "cancelled",
+                ...(request.reason ? { requestedReason: request.reason } : {})
+              }
+            });
+            cancelLinkedWorkflowDagStep(appState, task, cancelledRun, {
+              reason: "cancelled",
+              ...(request.reason ? { requestedReason: request.reason } : {})
+            });
+          }
         }
       }
     });
@@ -836,6 +1030,34 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
     } finally {
       appState.close();
     }
+  }
+
+  private async emitEvidenceBundleExportedAudit(audit: EvidenceBundleExportAudit): Promise<void> {
+    const eventService = this.options.eventService;
+    if (!eventService) {
+      return;
+    }
+    const actor = getRequestAuthContext();
+    await eventService.emit({
+      type: "evidence-bundle.exported",
+      runId: audit.runId,
+      taskId: audit.taskId,
+      payload: {
+        actor: {
+          subject: actor?.subject ?? "system",
+          role: actor?.role ?? "system"
+        },
+        runId: audit.runId,
+        taskId: audit.taskId,
+        bundleId: audit.bundleId,
+        bundleChecksum: audit.bundleChecksum,
+        destinationKind: audit.destinationKind,
+        schemaVersion: audit.schemaVersion,
+        eventCount: audit.eventCount,
+        artifactCount: audit.artifactCount,
+        memoryCount: audit.memoryCount
+      }
+    });
   }
 }
 
@@ -1054,7 +1276,8 @@ function resolveLocalCommand(manifest: AgentManifestDocument, plugin: PluginInde
     backend: "local-process",
     command: implementation.command,
     args: normalizeStringArray(implementation.args, "implementation.args"),
-    cwd: resolveBoundedWorkingDirectory(manifest, plugin)
+    cwd: resolveBoundedWorkingDirectory(manifest, plugin),
+    env: buildLocalCommandEnvironment(manifest)
   };
 }
 
@@ -1153,6 +1376,29 @@ function validateBackendCompatibility(
       throw new AthenaError("CONFIG_ERROR", `Assigned agent does not declare ${backend} runtime compatibility.`);
     }
   }
+}
+
+function buildLocalCommandEnvironment(manifest: AgentManifestDocument): Record<string, string> {
+  return {
+    ...copyAllowedHostEnvironment(process.env),
+    ...normalizeStringMap(
+      {
+        ...(manifest.agent?.runtime?.environment ?? {})
+      },
+      "local-command environment"
+    )
+  };
+}
+
+function copyAllowedHostEnvironment(env: NodeJS.ProcessEnv): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const key of LOCAL_COMMAND_HOST_ENV_ALLOWLIST) {
+    const value = env[key];
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result;
 }
 
 function normalizeStringArray(value: unknown, path: string): string[] {
@@ -1335,9 +1581,52 @@ function validateTaskInputs(inputContract: Record<string, unknown> | undefined, 
   }
 }
 
-function parseAgentRunEnvelope(stdout: string): AgentRunEnvelope {
+function resolveStrictResultEnvelope(manifest: AgentManifestDocument): boolean {
+  return manifest.agent?.observability?.strictResultEnvelope === true;
+}
+
+function collectRuntimeSecrets(modelProvider: ModelProviderRuntimeConfig | undefined): string[] {
+  return modelProvider?.apiKey ? [modelProvider.apiKey] : [];
+}
+
+function redactAgentRunEnvelope(envelope: AgentRunEnvelope, secrets: string[]): AgentRunEnvelope {
+  if (secrets.length === 0) {
+    return envelope;
+  }
+  return {
+    output: redactRuntimeSecrets(envelope.output, secrets),
+    artifacts: envelope.artifacts.map((artifact) => redactRuntimeSecrets(artifact, secrets) as AgentRunArtifact),
+    memoryRequests: envelope.memoryRequests.map((request) => redactRuntimeSecrets(request, secrets) as RuntimeMemoryRequest),
+    ...(envelope.verificationStatus ? { verificationStatus: envelope.verificationStatus } : {}),
+    ...(envelope.verificationFailures
+      ? { verificationFailures: envelope.verificationFailures.map((failure) => redactRuntimeSecrets(failure, secrets) as VerificationPolicyFailure) }
+      : {})
+  };
+}
+
+function redactRuntimeSecrets(value: unknown, secrets: string[]): unknown {
+  if (typeof value === "string") {
+    return redactSecretString(value, secrets);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => redactRuntimeSecrets(item, secrets));
+  }
+  if (isRecord(value)) {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, redactRuntimeSecrets(item, secrets)]));
+  }
+  return value;
+}
+
+function redactSecretString(value: string, secrets: string[]): string {
+  return secrets.reduce((next, secret) => (secret ? next.split(secret).join("[redacted]") : next), value);
+}
+
+function parseAgentRunEnvelope(stdout: string, strict = false): AgentRunEnvelope {
   const trimmed = stdout.trim();
   if (!trimmed) {
+    if (strict) {
+      throw new AthenaError("CONFIG_ERROR", "Strict result envelope mode requires non-empty stdout.");
+    }
     return {
       output: {},
       artifacts: [],
@@ -1347,7 +1636,13 @@ function parseAgentRunEnvelope(stdout: string): AgentRunEnvelope {
   let parsed: unknown;
   try {
     parsed = JSON.parse(trimmed) as unknown;
-  } catch {
+  } catch (error) {
+    if (strict) {
+      throw new AthenaError(
+        "CONFIG_ERROR",
+        `Strict result envelope mode requires stdout to be valid JSON: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
     return {
       output: { stdout },
       artifacts: [],
@@ -1415,7 +1710,8 @@ function parseRuntimeMemoryRequest(value: unknown): RuntimeMemoryRequest {
       targetNamespace: value.targetNamespace,
       memoryType: value.memoryType,
       proposedBody: value.proposedBody,
-      reason: value.reason
+      reason: value.reason,
+      ...(typeof value.evidence === "string" && value.evidence.trim() ? { evidence: value.evidence.trim() } : {})
     };
   }
   throw new AthenaError("CONFIG_ERROR", `Unsupported memory request operation: ${value.operation}`);
@@ -1496,6 +1792,7 @@ async function processRuntimeMemoryRequests(
       memoryType: request.memoryType,
       proposedBody: request.proposedBody,
       reason: request.reason,
+      ...(request.evidence ? { evidence: request.evidence } : {}),
       provenance: {
         sourceKind: "task-run",
         actorType: "agent",
@@ -1513,6 +1810,7 @@ async function processRuntimeMemoryRequests(
       memoryType: proposal.memoryType,
       status: proposal.status,
       reason: proposal.reason,
+      ...(proposal.evidence ? { evidence: proposal.evidence } : {}),
       provenance: {
         sourceKind: proposal.provenance.sourceKind,
         taskId: proposal.provenance.taskId,
@@ -1556,6 +1854,65 @@ function resolveRuntimeMemoryContext(
     message: "Assigned agent declares durable-memory access.",
     operations
   };
+}
+
+function hasMemoryContextRequest(task: TaskRecord): boolean {
+  const inputs = isRecord(task.inputs) ? task.inputs : {};
+  return isRecord(inputs.memoryContextRequest) && !(typeof inputs.memoryContext === "string" && inputs.memoryContext.trim());
+}
+
+async function injectApprovedMemoryContext(
+  task: TaskRecord,
+  context: ResolvedRuntimeMemoryContext,
+  durableMemoryService: DurableMemoryService | undefined
+): Promise<TaskRecord> {
+  const inputs = isRecord(task.inputs) ? task.inputs : {};
+  if (typeof inputs.memoryContext === "string" && inputs.memoryContext.trim()) {
+    return task;
+  }
+  const request = inputs.memoryContextRequest;
+  if (!isRecord(request)) {
+    return task;
+  }
+  if (!durableMemoryService) {
+    throw new AthenaError("CONFIG_ERROR", "Durable memory is unavailable for pre-run memory context injection.");
+  }
+  if (!isDurableMemoryNamespaceRef(request.namespace) || typeof request.query !== "string" || !request.query.trim()) {
+    throw new AthenaError("CONFIG_ERROR", "task.inputs.memoryContextRequest requires namespace and query.");
+  }
+  requireRuntimeMemoryAccess(context, "read", request.namespace);
+  const searchResult = await durableMemoryService.search({
+    namespace: request.namespace,
+    query: request.query.trim(),
+    ...(typeof request.limit === "number" && Number.isInteger(request.limit) && request.limit > 0 ? { limit: request.limit } : {})
+  });
+  const memoryContext = formatApprovedMemoryContext(searchResult.records);
+  if (!memoryContext) {
+    return task;
+  }
+  return {
+    ...task,
+    inputs: {
+      ...inputs,
+      memoryContext
+    }
+  };
+}
+
+function formatApprovedMemoryContext(records: Awaited<ReturnType<DurableMemoryService["search"]>>["records"]): string {
+  const activeRecords = records.filter((record) => record.status === "active").slice(0, 5);
+  if (activeRecords.length === 0) {
+    return "";
+  }
+  return [
+    "Approved durable memory context:",
+    "",
+    ...activeRecords.flatMap((record, index) => [
+      `${index + 1}. ${record.memoryType} (${record.namespace.scope}:${record.namespace.id}, ${record.id})`,
+      record.summary ? `Summary: ${record.summary}` : `Body: ${record.body}`,
+      ""
+    ])
+  ].join("\n").trim();
 }
 
 function resolveRuntimeMemoryOperation(
@@ -1686,6 +2043,97 @@ function appendRunEvent(
   });
 }
 
+function createRunEventSidecarPath(config: AthenaConfig, runId: string): string {
+  const root = resolve(config.workspaceRoot, config.stateDir, "run-events");
+  mkdirSync(root, { recursive: true });
+  return join(root, `${runId.replace(/[^a-zA-Z0-9._-]/g, "_")}.jsonl`);
+}
+
+function withRunEventSidecarEnv(env: NodeJS.ProcessEnv, sidecarPath: string): NodeJS.ProcessEnv {
+  return {
+    ...env,
+    ATHENA_CONSOLE_RUN_EVENTS_FILE: sidecarPath,
+    ATHENA_AGENT_CONSOLE_EVENTS_PATH: sidecarPath
+  };
+}
+
+function ingestRunEventSidecar(
+  appState: AppStateDatabase,
+  sidecarPath: string,
+  run: RunRecord,
+  task: TaskRecord,
+  agentId: string,
+  runtimeSecrets: string[]
+): void {
+  if (!existsSync(sidecarPath)) {
+    return;
+  }
+  try {
+    const stats = statSync(sidecarPath);
+    const raw = readFileSync(sidecarPath, "utf8");
+    const cappedRaw = raw.slice(0, RUN_EVENT_SIDECAR_MAX_BYTES);
+    const lines = cappedRaw.split(/\r?\n/).filter((line) => line.trim().length > 0);
+    const recordLimit = Math.min(lines.length, RUN_EVENT_SIDECAR_MAX_RECORDS);
+    for (let index = 0; index < recordLimit; index += 1) {
+      ingestRunEventSidecarLine(appState, run, task, agentId, lines[index] ?? "", index + 1, runtimeSecrets);
+    }
+    if (lines.length > RUN_EVENT_SIDECAR_MAX_RECORDS || raw.length > cappedRaw.length || stats.size > RUN_EVENT_SIDECAR_MAX_BYTES) {
+      appendRunEvent(appState, run.id, task, agentId, "agent.events.truncated", "Agent event sidecar was truncated during ingestion.", {
+        maxRecords: RUN_EVENT_SIDECAR_MAX_RECORDS,
+        maxBytes: RUN_EVENT_SIDECAR_MAX_BYTES,
+        observedRecords: lines.length,
+        observedBytes: stats.size
+      }, "warning");
+    }
+  } catch (error) {
+    appendRunEvent(appState, run.id, task, agentId, "agent.events.ingest_failed", "Agent event sidecar ingestion failed.", {
+      error: error instanceof Error ? error.message : String(error)
+    }, "warning");
+  }
+}
+
+function ingestRunEventSidecarLine(
+  appState: AppStateDatabase,
+  run: RunRecord,
+  task: TaskRecord,
+  agentId: string,
+  line: string,
+  lineNumber: number,
+  runtimeSecrets: string[]
+): void {
+  try {
+    const parsed = JSON.parse(line) as unknown;
+    if (!isRecord(parsed) || typeof parsed.type !== "string") {
+      throw new Error("Sidecar event must be a JSON object with a string type.");
+    }
+    const eventType = parsed.type.startsWith("agent.") ? parsed.type : `agent.${parsed.type}`;
+    const payload = redactRuntimeSecrets(
+      {
+        ...(isRecord(parsed.payload) ? parsed.payload : { event: parsed }),
+        sidecarLine: lineNumber,
+        ...(typeof parsed.timestamp === "string" ? { sourceTimestamp: parsed.timestamp } : {})
+      },
+      runtimeSecrets
+    );
+    appendRunEvent(
+      appState,
+      run.id,
+      task,
+      agentId,
+      eventType,
+      `Agent event: ${parsed.type}`,
+      payload,
+      eventType.includes("failed") ? "error" : "info"
+    );
+  } catch (error) {
+    appendRunEvent(appState, run.id, task, agentId, "agent.event.invalid", "Malformed agent event sidecar line.", {
+      lineNumber,
+      line: redactSecretString(line, runtimeSecrets),
+      error: error instanceof Error ? error.message : String(error)
+    }, "warning");
+  }
+}
+
 function appendDurableMemoryRunEvent(
   appState: AppStateDatabase,
   runId: string,
@@ -1783,6 +2231,20 @@ function failLinkedWorkflowDagStep(appState: AppStateDatabase, task: TaskRecord,
     taskId: task.id,
     status: run.status,
     failure,
+    execution: taskRunExecutionDetail(run)
+  });
+}
+
+function cancelLinkedWorkflowDagStep(appState: AppStateDatabase, task: TaskRecord, run: RunRecord, cancellation: unknown): void {
+  const link = resolveWorkflowDagStepLink(task);
+  if (!link) {
+    return;
+  }
+  new LocalWorkflowStateService(appState).cancelStep(link.runId, link.stepId, {
+    taskRunId: run.id,
+    taskId: task.id,
+    status: run.status,
+    cancellation,
     execution: taskRunExecutionDetail(run)
   });
 }
@@ -2300,6 +2762,224 @@ function summarizeRunReadiness(checks: TaskWorkbenchRunReadinessCheck[]): TaskWo
     summary: "Run readiness checks passed.",
     checks
   };
+}
+
+function checksumValue(value: unknown): EvidenceBundleChecksum {
+  return {
+    algorithm: "sha256",
+    value: createHash("sha256").update(canonicalJson(value)).digest("hex")
+  };
+}
+
+function canonicalJson(value: unknown): string {
+  return JSON.stringify(sortJsonValue(value));
+}
+
+function sortJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sortJsonValue);
+  }
+  if (!isRecord(value)) {
+    return value;
+  }
+  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, sortJsonValue(value[key])]));
+}
+
+function prefixRedactionPaths(prefix: string, paths: string[]): string[] {
+  return paths.map((path) => `${prefix}${path === "$" ? "" : path.replace(/^\$/, "")}`);
+}
+
+function buildEvidenceBundleProviderMetadata(
+  appState: AppStateDatabase,
+  run: RunRecord,
+  events: RunEventRecord[]
+): EvidenceBundleProviderMetadata | undefined {
+  const output = isRecord(run.output) ? run.output : {};
+  const providerEvent = latestEventPayload(events, "run.model_provider");
+  const providerId = readString(output.providerId) ?? readString(output.provider) ?? readString(providerEvent?.providerId);
+  const providerConfig = providerId ? appState.modelProviderConfigs.get(providerId) : undefined;
+  const providerKind = readString(output.providerKind) ?? readString(providerEvent?.providerKind) ?? providerConfig?.providerKind;
+  const model = readString(output.model) ?? readString(providerEvent?.model) ?? providerConfig?.defaultModel;
+  const baseUrl = readString(providerEvent?.baseUrl) ?? providerConfig?.baseUrl;
+  const status = readString(output.providerStatus) ?? providerConfig?.status;
+
+  if (!providerId && !providerKind && !model && !baseUrl && !status) {
+    return undefined;
+  }
+  return {
+    ...(providerId ? { providerId } : {}),
+    ...(providerKind ? { providerKind } : {}),
+    ...(model ? { model } : {}),
+    ...(baseUrl ? { baseUrl } : {}),
+    ...(providerConfig?.secretRef ? { secretRef: { ...providerConfig.secretRef, configured: providerConfig.status === "configured" } } : {}),
+    ...(status ? { status } : {})
+  };
+}
+
+function buildEvidenceBundleUsage(run: RunRecord, events: RunEventRecord[]): EvidenceBundleUsage | undefined {
+  const output = isRecord(run.output) ? run.output : {};
+  const outputUsage = isRecord(output.usage) ? output.usage : undefined;
+  const eventUsage = latestEventPayload(events, "run.usage");
+  const usage = outputUsage ?? eventUsage;
+  if (!usage) {
+    return undefined;
+  }
+  const inputTokens = readNumber(usage.inputTokens) ?? readNumber(usage.promptTokens) ?? readNumber(usage.prompt_tokens) ?? readNumber(usage.input_tokens);
+  const outputTokens =
+    readNumber(usage.outputTokens) ?? readNumber(usage.completionTokens) ?? readNumber(usage.completion_tokens) ?? readNumber(usage.output_tokens);
+  const totalTokens =
+    readNumber(usage.totalTokens) ??
+    readNumber(usage.total_tokens) ??
+    (inputTokens !== undefined && outputTokens !== undefined ? inputTokens + outputTokens : undefined);
+  const costUsd = readNumber(usage.costUsd) ?? readNumber(output.costUsd);
+  if (inputTokens === undefined && outputTokens === undefined && totalTokens === undefined && costUsd === undefined && outputUsage === undefined) {
+    return undefined;
+  }
+  return {
+    ...(inputTokens !== undefined ? { inputTokens } : {}),
+    ...(outputTokens !== undefined ? { outputTokens } : {}),
+    ...(totalTokens !== undefined ? { totalTokens } : {}),
+    ...(costUsd !== undefined ? { costUsd } : {}),
+    providerUsage: usage
+  };
+}
+
+async function buildEvidenceBundleMemoryEntries(
+  durableMemoryService: DurableMemoryService | undefined,
+  run: RunRecord,
+  task: TaskRecord | undefined,
+  events: RunEventRecord[]
+): Promise<EvidenceBundleMemoryEntry[]> {
+  if (!durableMemoryService) {
+    return [];
+  }
+  const namespaces = memoryNamespacesForRun(events);
+  if (namespaces.length === 0) {
+    return [];
+  }
+  const proposalIds = new Set(
+    events
+      .filter((event) => event.type === "memory.proposal.created" && isRecord(event.payload))
+      .map((event) => readString((event.payload as Record<string, unknown>).proposalId))
+      .filter((id): id is string => id !== undefined)
+  );
+  const entries = new Map<string, EvidenceBundleMemoryEntry>();
+
+  for (const namespace of namespaces) {
+    const proposals = await durableMemoryService.listProposals({ namespace });
+    for (const proposal of proposals) {
+      if (!proposalIds.has(proposal.id) && proposal.provenance.runId !== run.id && proposal.provenance.taskId !== task?.id) {
+        continue;
+      }
+      const proposalMetadata = evidenceBundleProposalMetadata(proposal);
+      const entry = redactEvidenceBundleValue({
+        id: `proposal-${proposal.id}`,
+        namespace: proposal.targetNamespace,
+        proposal: proposalMetadata,
+        ...(proposal.status === "approved" || proposal.status === "rejected"
+          ? {
+              approval: {
+                id: proposal.id,
+                approved: proposal.status === "approved",
+                ...(proposal.reviewedBy ? { approvedBy: proposal.reviewedBy } : {}),
+                ...(proposal.reviewedAt ? { approvedAt: proposal.reviewedAt } : {}),
+                operation: proposal.status === "approved" ? "durable-memory.proposal.approve" : "durable-memory.proposal.reject",
+                reason: proposal.reason
+              }
+            }
+          : {})
+      });
+      entries.set(`proposal-${proposal.id}`, {
+        ...entry.value,
+        checksum: checksumValue(entry.value)
+      });
+    }
+
+    const records = await durableMemoryService.list({ namespace, includeArchived: true, limit: 1000 });
+    for (const record of records.records) {
+      if (record.provenance.runId !== run.id && record.provenance.taskId !== task?.id) {
+        continue;
+      }
+      const recordMetadata = evidenceBundleRecordMetadata(record);
+      const entry = redactEvidenceBundleValue({
+        id: `record-${record.id}`,
+        namespace: record.namespace,
+        record: recordMetadata
+      });
+      entries.set(`record-${record.id}`, {
+        ...entry.value,
+        checksum: checksumValue(entry.value)
+      });
+    }
+  }
+
+  return [...entries.values()].sort((left, right) => left.id.localeCompare(right.id));
+}
+
+function memoryNamespacesForRun(events: RunEventRecord[]): DurableMemoryNamespaceRef[] {
+  const namespaces = new Map<string, DurableMemoryNamespaceRef>();
+  for (const event of events) {
+    if (!event.type.startsWith("memory.") || !isRecord(event.payload)) {
+      continue;
+    }
+    for (const namespace of collectNamespaceRefs(event.payload)) {
+      namespaces.set(namespaceKey(namespace), namespace);
+    }
+  }
+  return [...namespaces.values()];
+}
+
+function collectNamespaceRefs(value: unknown): DurableMemoryNamespaceRef[] {
+  if (Array.isArray(value)) {
+    return value.flatMap(collectNamespaceRefs);
+  }
+  if (!isRecord(value)) {
+    return [];
+  }
+  const refs = isNamespaceRef(value) ? [value] : [];
+  return [...refs, ...Object.values(value).flatMap(collectNamespaceRefs)];
+}
+
+function isNamespaceRef(value: unknown): value is DurableMemoryNamespaceRef {
+  return isRecord(value) && typeof value.scope === "string" && typeof value.id === "string";
+}
+
+function namespaceKey(namespace: DurableMemoryNamespaceRef): string {
+  return `${namespace.scope}:${namespace.id}`;
+}
+
+function evidenceBundleProposalMetadata(proposal: import("../../shared/contracts/durable-memory.js").DurableMemoryProposal): EvidenceBundleMemoryProposal {
+  const { proposedBody: _proposedBody, evidence: _evidence, ...metadata } = proposal;
+  return {
+    ...metadata,
+    proposedBodyChecksum: checksumValue(proposal.proposedBody)
+  };
+}
+
+function evidenceBundleRecordMetadata(record: import("../../shared/contracts/durable-memory.js").DurableMemoryRecord): EvidenceBundleMemoryRecord {
+  const { body: _body, ...metadata } = record;
+  return {
+    ...metadata,
+    bodyChecksum: checksumValue(record.body)
+  };
+}
+
+function latestEventPayload(events: RunEventRecord[], type: string): Record<string, unknown> | undefined {
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (event?.type === type && isRecord(event.payload)) {
+      return event.payload;
+    }
+  }
+  return undefined;
+}
+
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+}
+
+function readNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function mapTaskRecord(record: TaskRecord, appState?: AppStateDatabase): TaskWorkbenchTask {

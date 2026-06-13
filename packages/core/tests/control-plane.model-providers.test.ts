@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { LocalModelProviderConfigService } from "../src/control-plane/services/model-providers.js";
 import { loadConfig } from "../src/shared/config.js";
+import type { EventEmitRequest, EventQueryResult } from "../src/shared/contracts.js";
 
 describe("model provider config service", () => {
   it("redacts secret values while resolving runtime config internally", async () => {
@@ -109,6 +110,56 @@ describe("model provider config service", () => {
 
       const runtime = await service.resolveRuntimeConfig("provider-deepseek");
       expect(runtime.apiKey).toBe("sk-deepseek-test");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("audits model provider secret reads without recording secret values", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-model-provider-audit-"));
+    const secretFile = join(dir, "openai.key");
+    writeFileSync(secretFile, "sk-audit-secret\n", "utf8");
+    const events: EventEmitRequest[] = [];
+    try {
+      const service = new LocalModelProviderConfigService(loadConfig(dir), {
+        eventService: {
+          async emit(event) {
+            events.push(event);
+          },
+          async list(): Promise<EventQueryResult> {
+            return { events: [] };
+          }
+        }
+      });
+      await service.create({
+        id: "provider-audit",
+        name: "Audited OpenAI",
+        providerKind: "openai-compatible",
+        defaultModel: "gpt-4.1-mini",
+        secret: {
+          kind: "local-file",
+          name: secretFile
+        }
+      });
+
+      await service.resolveRuntimeConfig("provider-audit");
+      await Promise.resolve();
+
+      expect(events).toContainEqual(
+        expect.objectContaining({
+          type: "secret.read",
+          payload: {
+            reference: {
+              kind: "local-file",
+              name: secretFile
+            },
+            purpose: "model-provider.runtime",
+            subject: "system",
+            resourceId: "provider-audit"
+          }
+        })
+      );
+      expect(JSON.stringify(events)).not.toContain("sk-audit-secret");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

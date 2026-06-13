@@ -5,6 +5,7 @@ export function usage(): string {
     "  athena run --session <id> --input <text> [--provider <id>] [--model <id>] [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",
     "  athena run --template <id> [--param key=value]... [--session <id>] [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",
     "  athena cancel --session <id> [--reason <text>] [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",
+    "  athena task-run evidence-bundle --run <run-id> [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",
     "  athena agent scaffold --name <display-name> [--plugins-dir <path>] [--plugin-id <id>] [--agent-id <id>] [--description <text>]",
     "  athena work enqueue --session <id> --input <text> [--mode followup|collect] [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",
     "  athena work drain --session <id> [--provider <id>] [--model <id>] [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",

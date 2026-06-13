@@ -15,12 +15,19 @@ FROM node:20-bookworm-slim AS runtime
 WORKDIR /workspace
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends git ca-certificates \
+  && apt-get install -y --no-install-recommends ca-certificates git python3 python3-pip python3-venv \
   && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV ATHENA_DEV_API_HOST=0.0.0.0
 ENV ATHENA_DEV_API_PORT=8787
+ENV ATHENA_AGENT_REPO=/opt/athena-agent-src
+ENV ATHENA_AGENT_PYTHON=/opt/athena-agent-venv/bin/python
+
+COPY --from=athena_agent . /opt/athena-agent-src
+RUN python3 -m venv /opt/athena-agent-venv \
+  && /opt/athena-agent-venv/bin/python -m pip install --upgrade pip \
+  && /opt/athena-agent-venv/bin/python -m pip install --no-cache-dir /opt/athena-agent-src
 
 COPY --from=builder /workspace/package*.json ./
 COPY --from=builder /workspace/node_modules ./node_modules

@@ -112,6 +112,7 @@ interface DurableMemoryProposalRow {
   memory_type: string;
   proposed_body: string;
   reason: string;
+  evidence: string | null;
   status: DurableMemoryProposalStatus;
   created_at: string;
   reviewed_at: string | null;
@@ -172,6 +173,7 @@ export function ensureDurableMemoryServerStorageSchema(db: Database.Database): v
       memory_type text not null,
       proposed_body text not null,
       reason text not null,
+      evidence text,
       status text not null,
       created_at text not null,
       reviewed_at text,
@@ -198,6 +200,7 @@ export function ensureDurableMemoryServerStorageSchema(db: Database.Database): v
       on durable_memory_snapshots(namespace_scope, namespace_id, created_at);
   `);
   ensureColumn(db, "durable_memory_records", "embedding_json", "text");
+  ensureColumn(db, "durable_memory_proposals", "evidence", "text");
 }
 
 export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStorage {
@@ -292,6 +295,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
         memory_type,
         proposed_body,
         reason,
+        evidence,
         status,
         created_at,
         reviewed_at,
@@ -308,6 +312,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
         @memoryType,
         @proposedBody,
         @reason,
+        @evidence,
         @status,
         @createdAt,
         @reviewedAt,
@@ -518,6 +523,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
       memoryType: request.memoryType,
       proposedBody: request.proposedBody,
       reason: request.reason,
+      evidence: request.evidence ?? null,
       status: "pending",
       createdAt: now,
       reviewedAt: null,
@@ -664,7 +670,7 @@ function recordSelectSql(suffix: string): string {
 function proposalSelectSql(suffix: string): string {
   return `
     select id, target_namespace_scope, target_namespace_id, target_namespace_json, target_namespace_ancestors_json,
-      provenance_json, source_kind, memory_type, proposed_body, reason, status, created_at, reviewed_at, reviewed_by
+      provenance_json, source_kind, memory_type, proposed_body, reason, evidence, status, created_at, reviewed_at, reviewed_by
     from durable_memory_proposals ${suffix}
   `;
 }
@@ -713,6 +719,7 @@ function mapProposalRow(row: DurableMemoryProposalRow): DurableMemoryProposal {
     memoryType: row.memory_type,
     proposedBody: row.proposed_body,
     reason: row.reason,
+    ...(row.evidence ? { evidence: row.evidence } : {}),
     status: row.status,
     createdAt: row.created_at,
     ...(row.reviewed_at ? { reviewedAt: row.reviewed_at } : {}),

@@ -17,5 +17,5 @@ workflow:
       assignedAgentId: bundled.github.issue.triage.local
       assignedAgentVersion: 0.1.0
       inputs:
-        repository: "{{ inputs.repository }}"
-        issueBatch: "{{ inputs.issueBatch }}"
+        repository: "{{ repository }}"
+        issueBatch: "{{ issueBatch }}"

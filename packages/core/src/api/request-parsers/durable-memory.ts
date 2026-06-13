@@ -105,7 +105,8 @@ export function parseDurableMemoryProposalCreateRequest(body: Record<string, unk
     provenance: parseProvenance(body.provenance, "durable-memory.proposal.provenance"),
     memoryType: requireString(body, "memoryType", "durable-memory.proposal"),
     proposedBody: requireString(body, "proposedBody", "durable-memory.proposal"),
-    reason: requireString(body, "reason", "durable-memory.proposal")
+    reason: requireString(body, "reason", "durable-memory.proposal"),
+    ...(typeof body.evidence === "string" && body.evidence.trim() ? { evidence: body.evidence.trim() } : {})
   };
   assertMutationReason("proposal-create", request.reason);
   return request;

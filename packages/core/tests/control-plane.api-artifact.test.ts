@@ -52,6 +52,12 @@ describe("control-plane api artifact", () => {
     );
     expect(artifact.openapi.paths["/api/v1/rbac/audit/{subject}"]?.get?.operationId).toBe("auditIdentityPermissions");
     expect(artifact.openapi.paths["/api/v1/governance/audit-trail"]?.get?.operationId).toBe("listGovernanceAuditTrail");
+    expect(artifact.openapi.paths["/api/v1/governance/audit-trail/export.jsonl"]?.get?.operationId).toBe(
+      "exportGovernanceAuditTrailJsonl"
+    );
+    expect(artifact.openapi.paths["/api/v1/governance/audit-trail/export.csv"]?.get?.operationId).toBe(
+      "exportGovernanceAuditTrailCsv"
+    );
     expect(artifact.openapi.components.schemas.RunResult).toBeDefined();
     expect(artifact.openapi.components.schemas.RunRejectionEvent).toBeDefined();
     expect(artifact.openapi.components.schemas.RbacRoleDefinition).toBeDefined();

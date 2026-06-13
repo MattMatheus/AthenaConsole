@@ -23,6 +23,10 @@ workflow:
       type: markdown
       label: Memory Context
       required: false
+    memoryContextRequest:
+      type: object
+      label: Memory Context Request
+      required: false
   tasks:
     - id: summarize
       title: Summarize repository
@@ -35,6 +39,7 @@ workflow:
         objective: "{{ objective }}"
         evidence: "{{ evidence }}"
         memoryContext: "{{ memoryContext }}"
+        memoryContextRequest: "{{ memoryContextRequest }}"
     - id: audit-docs
       title: Audit documentation
       capabilityRequirements:
@@ -48,6 +53,7 @@ workflow:
         objective: "{{ objective }}"
         evidence: "{{ evidence }}"
         memoryContext: "{{ memoryContext }}"
+        memoryContextRequest: "{{ memoryContextRequest }}"
   ui:
     icon: folder-search
     color: "#246b5b"

@@ -1,0 +1,125 @@
+.preflightPanel {
+  border: 1px solid #cbdff7;
+  border-radius: 8px;
+  background: #f7fbff;
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.preflightGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.preflightItem {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fff;
+  padding: var(--space-3);
+}
+
+.preflightTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.preflightValue {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.panelTitle {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.panelMeta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-200);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.description {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.fixPath {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-200);
+  line-height: 1.4;
+}
+
+.badge,
+.badgeSuccess,
+.badgeWarning,
+.badgeBlocked {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  font-size: var(--font-size-100);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.badge {
+  background: var(--color-brand-50);
+  color: var(--color-brand-800);
+}
+
+.badgeSuccess {
+  background: #e8f7ee;
+  color: #166534;
+}
+
+.badgeWarning {
+  background: #fff5d6;
+  color: #92400e;
+}
+
+.badgeBlocked {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+@media (max-width: 1280px) {
+  .preflightGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .sectionHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .preflightGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -217,6 +217,65 @@ describe("workflow template catalog api", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("blocks workflow instantiation with structured preflight details", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-workflow-template-blocked-"));
+    const config = loadConfig(dir);
+    const appState = openAppStateDatabase(config);
+    try {
+      seedProviderBlockedTemplate(appState);
+    } finally {
+      appState.close();
+    }
+
+    const server = createApiServer({
+      config,
+      host: "127.0.0.1",
+      port: 0
+    });
+    let bound: { host: string; port: number };
+    try {
+      bound = await server.start();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      rmSync(dir, { recursive: true, force: true });
+      if (message.includes("EPERM")) {
+        return;
+      }
+      throw error;
+    }
+    const base = `http://${bound.host}:${bound.port}`;
+
+    try {
+      const response = await fetch(`${base}/api/v1/workflow-templates/api.provider-blocked.workflow/instantiate`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ inputs: { topic: "providers" } })
+      });
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        ok: false,
+        error: {
+          details: {
+            kind: "workflow-template-readiness",
+            readiness: {
+              status: "blocked",
+              checks: expect.arrayContaining([
+                expect.objectContaining({
+                  id: "model-provider",
+                  status: "blocked",
+                  nextStep: "Configure a valid model provider before instantiating this workflow."
+                })
+              ])
+            }
+          }
+        }
+      });
+    } finally {
+      await server.stop();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 function seedInstantiationTemplate(appState: ReturnType<typeof openAppStateDatabase>): void {
@@ -264,6 +323,56 @@ function seedInstantiationTemplate(appState: ReturnType<typeof openAppStateDatab
             dependsOn: ["draft"]
           }
         ]
+      }
+    },
+    status: "loaded",
+    validationErrors: []
+  });
+}
+
+function seedProviderBlockedTemplate(appState: ReturnType<typeof openAppStateDatabase>): void {
+  appState.plugins.upsert({
+    id: "team-orchestrator.test.api-provider-blocked",
+    version: "0.1.0",
+    path: "/tmp/team-orchestrator-api-provider-blocked-plugin",
+    sourceType: "local",
+    status: "loaded",
+    manifest: {
+      schemaVersion: 1,
+      plugin: {
+        id: "team-orchestrator.test.api-provider-blocked",
+        name: "API Provider Blocked Plugin",
+        version: "0.1.0"
+      }
+    },
+    validationErrors: []
+  });
+  appState.workflowTemplates.upsert({
+    id: "api.provider-blocked.workflow",
+    version: "0.1.0",
+    pluginId: "team-orchestrator.test.api-provider-blocked",
+    pluginVersion: "0.1.0",
+    name: "API Provider Blocked Workflow",
+    taskCount: 1,
+    manifest: {
+      schemaVersion: 1,
+      workflow: {
+        id: "api.provider-blocked.workflow",
+        name: "API Provider Blocked Workflow",
+        version: "0.1.0",
+        goal: "Use a configured provider for {{topic}}.",
+        providerRequirements: [
+          {
+            required: true,
+            providerKind: "openai-compatible",
+            providerId: "missing-provider",
+            model: "gpt-test"
+          }
+        ],
+        inputs: {
+          topic: { required: true }
+        },
+        tasks: [{ id: "draft", title: "Draft {{topic}}" }]
       }
     },
     status: "loaded",

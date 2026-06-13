@@ -5,9 +5,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { openAppStateDatabase } from "../src/control-plane/app-state/index.js";
-import type { DurableMemoryService } from "../src/control-plane/services/durable-memory.js";
+import { LocalDurableMemoryService, type DurableMemoryService } from "../src/control-plane/services/durable-memory.js";
+import { LocalEventService } from "../src/control-plane/services/event-dlq.js";
 import { LocalTaskWorkbenchService } from "../src/control-plane/services/task-workbench.js";
 import { LocalWorkflowStatusService } from "../src/control-plane/services/workflow-status.js";
+import { SqliteDurableMemoryServerStorage } from "../src/durable-memory/server-storage.js";
 import { AthenaError } from "../src/runtime/errors.js";
 import { loadConfig } from "../src/shared/config.js";
 
@@ -18,7 +20,8 @@ describe("task workbench service", () => {
       const config = loadConfig(dir);
       const appState = openAppStateDatabase(config);
       try {
-        const service = new LocalTaskWorkbenchService(config, { appState });
+        const eventService = new LocalEventService(config);
+        const service = new LocalTaskWorkbenchService(config, { appState, eventService });
 
         const task = await service.create({
           title: "Draft task",
@@ -57,7 +60,8 @@ describe("task workbench service", () => {
       const appState = openAppStateDatabase(config);
       try {
         seedCatalog(appState);
-        const service = new LocalTaskWorkbenchService(config, { appState });
+        const eventService = new LocalEventService(config);
+        const service = new LocalTaskWorkbenchService(config, { appState, eventService });
 
         await expect(
           service.create({
@@ -208,13 +212,16 @@ process.stdin.on("end", () => {
           capabilityRequirements: ["code.modify"],
           inputs: {
             taskBrief: "Patch the API",
+            apiToken: "sk-test-secret",
             retryCount: 2
           }
         });
-        const service = new LocalTaskWorkbenchService(config, { appState });
+        const eventService = new LocalEventService(config);
+        const service = new LocalTaskWorkbenchService(config, { appState, eventService });
 
         const run = await service.runTask("task-run-success", { runId: "run-success" });
         const detail = await service.getRun("run-success");
+        const bundle = await service.exportRunEvidenceBundle("run-success");
 
         expect(run).toMatchObject({
           id: "run-success",
@@ -271,10 +278,546 @@ process.stdin.on("end", () => {
             metadata: { source: "test" }
           })
         ]);
+        expect(bundle).toMatchObject({
+          manifest: {
+            schemaVersion: "team-orchestrator.evidence-bundle.v1",
+            bundleId: "evidence-bundle-run-success",
+            run: {
+              run: {
+                id: "run-success",
+                status: "completed"
+              },
+              task: {
+                id: "task-run-success",
+                inputs: expect.objectContaining({
+                  apiToken: "[redacted]"
+                })
+              },
+              policy: {
+                runMode: "read-only",
+                verificationStatus: "verification-failed"
+              }
+            },
+            checksums: {
+              manifest: {
+                algorithm: "sha256",
+                value: expect.stringMatching(/^[a-f0-9]{64}$/)
+              },
+              entries: expect.arrayContaining([
+                expect.objectContaining({
+                  algorithm: "sha256",
+                  value: expect.stringMatching(/^[a-f0-9]{64}$/)
+                })
+              ])
+            }
+          },
+          artifacts: [
+            expect.objectContaining({
+              id: "artifact-summary",
+              payload: expect.objectContaining({
+                kind: "artifact-ref",
+                storageUri: "artifacts/run-success/summary.md",
+                mediaType: "text/markdown"
+              }),
+              checksum: expect.objectContaining({
+                algorithm: "sha256",
+                value: expect.stringMatching(/^[a-f0-9]{64}$/)
+              })
+            })
+          ]
+        });
+        expect(bundle.manifest.run.provider).toBeUndefined();
+        expect(bundle.manifest.run.usage).toBeUndefined();
+        expect(bundle.memory).toEqual([]);
+        expect(bundle.events.map((event) => event.event.type)).toEqual(expect.arrayContaining(["run.started", "run.completed"]));
+        expect(bundle.manifest.redaction.redactedFields).toContain("manifest.run.task.inputs.apiToken");
+        expect(JSON.stringify(bundle)).not.toContain("sk-test-secret");
+        const auditEvents = await eventService.list({ types: ["evidence-bundle.exported"], limit: 5 });
+        expect(auditEvents.events).toHaveLength(1);
+        expect(auditEvents.events[0]).toMatchObject({
+          type: "evidence-bundle.exported",
+          runId: "run-success",
+          taskId: "task-run-success",
+          payload: {
+            actor: {
+              subject: "system",
+              role: "system"
+            },
+            runId: "run-success",
+            taskId: "task-run-success",
+            bundleId: "evidence-bundle-run-success",
+            bundleChecksum: bundle.manifest.checksums.manifest,
+            destinationKind: "service",
+            schemaVersion: "team-orchestrator.evidence-bundle.v1",
+            artifactCount: 1
+          }
+        });
+        expect(JSON.stringify(auditEvents.events[0])).not.toContain("sk-test-secret");
+        expect(JSON.stringify(auditEvents.events[0])).not.toContain("Patch the API");
       } finally {
         appState.close();
       }
     } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("populates evidence bundle provider and usage metadata without leaking provider secrets", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-evidence-provider-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      const secretFile = join(dir, "provider-key.txt");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(secretFile, "sk-provider-secret", "utf8");
+      writeFileSync(
+        join(pluginDir, "provider-usage.js"),
+        `
+let raw = "";
+process.stdin.on("data", (chunk) => { raw += chunk; });
+process.stdin.on("end", () => {
+  const envelope = JSON.parse(raw);
+  process.stdout.write(JSON.stringify({
+    output: {
+      summary: envelope.task.inputs.taskBrief,
+      provider: envelope.modelProvider.id,
+      model: envelope.modelProvider.defaultModel,
+      usage: {
+        inputTokens: 12,
+        outputTokens: 8,
+        totalTokens: 20,
+        costUsd: 0.01,
+        providerPayload: {
+          requestId: "req-fixture",
+          apiKey: envelope.modelProvider.apiKey
+        }
+      }
+    },
+    artifacts: []
+  }));
+});
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "provider-usage.js", {
+          modelProvider: {
+            required: true,
+            providerId: "fixture-openai",
+            providerKind: "openai-compatible",
+            model: "gpt-fixture"
+          }
+        });
+        appState.modelProviderConfigs.create({
+          id: "fixture-openai",
+          name: "Fixture OpenAI",
+          providerKind: "openai-compatible",
+          baseUrl: "https://example.invalid/v1",
+          defaultModel: "gpt-fixture",
+          secretRef: {
+            kind: "local-file",
+            name: secretFile
+          },
+          status: "configured",
+          statusMessage: "fixture provider configured"
+        });
+        appState.tasks.create({
+          id: "task-provider-usage",
+          title: "Run provider usage",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: {
+            taskBrief: "Use the configured provider"
+          }
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+
+        await service.runTask("task-provider-usage", { runId: "run-provider-usage" });
+        const bundle = await service.exportRunEvidenceBundle("run-provider-usage");
+
+        expect(bundle.manifest.run.provider).toEqual({
+          providerId: "fixture-openai",
+          providerKind: "openai-compatible",
+          model: "gpt-fixture",
+          baseUrl: "https://example.invalid/v1",
+          secretRef: "[redacted]",
+          status: "configured"
+        });
+        expect(bundle.manifest.run.usage).toMatchObject({
+          inputTokens: 12,
+          outputTokens: 8,
+          totalTokens: 20,
+          costUsd: 0.01,
+          providerUsage: {
+            providerPayload: {
+              requestId: "req-fixture",
+              apiKey: "[redacted]"
+            }
+          }
+        });
+        expect(bundle.manifest.redaction.redactedFields).toEqual(
+          expect.arrayContaining(["manifest.run.provider.secretRef", "manifest.run.usage.providerUsage.providerPayload.apiKey"])
+        );
+        expect(JSON.stringify(bundle)).not.toContain("sk-provider-secret");
+        expect(JSON.stringify(bundle)).not.toContain(secretFile);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("accepts a parseable JSON envelope when strict result envelope mode is enabled", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-strict-success-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "strict-success.js"),
+        "process.stdout.write(JSON.stringify({ output: { ok: true }, artifacts: [] }));",
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "strict-success.js", { strictResultEnvelope: true });
+        appState.tasks.create({
+          id: "task-run-strict-success",
+          title: "Run strict success",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: { taskBrief: "Return valid JSON" }
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+
+        const run = await service.runTask("task-run-strict-success", { runId: "run-strict-success" });
+
+        expect(run).toMatchObject({
+          id: "run-strict-success",
+          status: "completed",
+          output: { ok: true }
+        });
+        expect(appState.tasks.get("task-run-strict-success")).toMatchObject({ status: "completed" });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps legacy local-command output lenient when strict result envelope mode is disabled", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-lenient-output-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(join(pluginDir, "legacy-output.js"), "process.stdout.write('not-json');", "utf8");
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "legacy-output.js");
+        appState.tasks.create({
+          id: "task-run-lenient-output",
+          title: "Run lenient output",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: { taskBrief: "Return legacy text" }
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+
+        const run = await service.runTask("task-run-lenient-output", { runId: "run-lenient-output" });
+
+        expect(run).toMatchObject({
+          id: "run-lenient-output",
+          status: "completed",
+          output: { stdout: "not-json" }
+        });
+        expect(appState.tasks.get("task-run-lenient-output")).toMatchObject({ status: "completed" });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("fails strict result envelope runs when stdout is malformed or empty", async () => {
+    const cases = [
+      {
+        name: "malformed",
+        script: "strict-malformed.js",
+        body: "process.stdout.write('not-json');",
+        expectedError: "valid JSON"
+      },
+      {
+        name: "empty",
+        script: "strict-empty.js",
+        body: "",
+        expectedError: "non-empty stdout"
+      }
+    ];
+
+    for (const testCase of cases) {
+      const dir = mkdtempSync(join(tmpdir(), `athena-task-workbench-strict-${testCase.name}-`));
+      try {
+        const config = loadConfig(dir);
+        const pluginDir = join(dir, "plugin");
+        mkdirSync(pluginDir, { recursive: true });
+        writeFileSync(join(pluginDir, testCase.script), testCase.body, "utf8");
+        const appState = openAppStateDatabase(config);
+        try {
+          seedRunnableCatalog(appState, pluginDir, testCase.script, { strictResultEnvelope: true });
+          appState.tasks.create({
+            id: `task-run-strict-${testCase.name}`,
+            title: `Run strict ${testCase.name}`,
+            status: "ready",
+            assignedAgentId: "software.run.local",
+            assignedAgentVersion: "1.0.0",
+            capabilityRequirements: ["code.modify"],
+            inputs: { taskBrief: "Return invalid output" }
+          });
+          const service = new LocalTaskWorkbenchService(config, { appState });
+
+          const run = await service.runTask(`task-run-strict-${testCase.name}`, { runId: `run-strict-${testCase.name}` });
+
+          expect(run).toMatchObject({
+            id: `run-strict-${testCase.name}`,
+            status: "failed",
+            failure: {
+              phase: "output-parse",
+              error: expect.stringContaining(testCase.expectedError)
+            }
+          });
+          expect(appState.tasks.get(`task-run-strict-${testCase.name}`)).toMatchObject({ status: "failed" });
+          expect(appState.runEvents.listForRun(`run-strict-${testCase.name}`).map((event) => event.type)).toContain("run.failed");
+        } finally {
+          appState.close();
+        }
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
+  });
+
+  it("ingests local-command agent event sidecars without corrupting stdout output", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-sidecar-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "sidecar.js"),
+        `
+const { appendFileSync } = require("node:fs");
+const sidecar = process.env.ATHENA_CONSOLE_RUN_EVENTS_FILE;
+if (!sidecar || sidecar !== process.env.ATHENA_AGENT_CONSOLE_EVENTS_PATH) {
+  throw new Error("missing sidecar env");
+}
+appendFileSync(sidecar, JSON.stringify({ type: "tool.started", payload: { tools: [{ id: "call-1", name: "list_dir" }] } }) + "\\n");
+appendFileSync(sidecar, "{not-json}\\n");
+appendFileSync(sidecar, JSON.stringify({ type: "tool.completed", payload: { events: [{ name: "list_dir", status: "ok" }] } }) + "\\n");
+process.stdout.write(JSON.stringify({ output: { ok: true }, artifacts: [] }));
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "sidecar.js", { strictResultEnvelope: true });
+        appState.tasks.create({
+          id: "task-run-sidecar",
+          title: "Run sidecar",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: { taskBrief: "Emit sidecar events" }
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+
+        const run = await service.runTask("task-run-sidecar", { runId: "run-sidecar" });
+        const detail = await service.getRun("run-sidecar");
+
+        expect(run).toMatchObject({
+          id: "run-sidecar",
+          status: "completed",
+          output: { ok: true }
+        });
+        expect(detail.events.map((event) => event.type)).toEqual(
+          expect.arrayContaining(["agent.tool.started", "agent.tool.completed", "agent.event.invalid", "run.log", "run.completed"])
+        );
+        expect(detail.events.find((event) => event.type === "agent.tool.started")?.payload).toMatchObject({
+          tools: [{ id: "call-1", name: "list_dir" }],
+          sidecarLine: 1
+        });
+        expect(detail.events.find((event) => event.type === "agent.event.invalid")).toMatchObject({
+          level: "warning",
+          payload: expect.objectContaining({
+            lineNumber: 2
+          })
+        });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("caps local-command agent event sidecar ingestion", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-sidecar-cap-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "many-sidecar-events.js"),
+        `
+const { appendFileSync } = require("node:fs");
+const sidecar = process.env.ATHENA_CONSOLE_RUN_EVENTS_FILE;
+for (let index = 0; index < 205; index += 1) {
+  appendFileSync(sidecar, JSON.stringify({ type: "tool.started", payload: { index } }) + "\\n");
+}
+process.stdout.write(JSON.stringify({ output: { ok: true }, artifacts: [] }));
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "many-sidecar-events.js", { strictResultEnvelope: true });
+        appState.tasks.create({
+          id: "task-run-sidecar-cap",
+          title: "Run sidecar cap",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: { taskBrief: "Emit too many sidecar events" }
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+
+        const run = await service.runTask("task-run-sidecar-cap", { runId: "run-sidecar-cap" });
+        const events = appState.runEvents.listForRun("run-sidecar-cap");
+
+        expect(run.status).toBe("completed");
+        expect(events.filter((event) => event.type === "agent.tool.started")).toHaveLength(200);
+        expect(events).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: "agent.events.truncated",
+              level: "warning",
+              payload: expect.objectContaining({
+                maxRecords: 200,
+                observedRecords: 205
+              })
+            })
+          ])
+        );
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("runs local-command agents with an explicit environment allowlist", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-env-allowlist-"));
+    const previousAuthToken = process.env.ATHENA_AUTH_API_TOKEN;
+    const previousOpenAiKey = process.env.OPENAI_API_KEY;
+    const previousAthenaOpenAiKey = process.env.ATHENA_OPENAI_API_KEY;
+    const previousBridgeRunner = process.env.ATHENA_AGENT_CONSOLE_RUNNER;
+    try {
+      process.env.ATHENA_AUTH_API_TOKEN = "server-auth-token";
+      process.env.OPENAI_API_KEY = "sk-host-openai";
+      process.env.ATHENA_OPENAI_API_KEY = "sk-athena-openai";
+      process.env.ATHENA_AGENT_CONSOLE_RUNNER = "fixture-runner";
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "env-dump.js"),
+        `
+process.stdout.write(JSON.stringify({
+  output: {
+    authToken: process.env.ATHENA_AUTH_API_TOKEN ?? null,
+    openaiKey: process.env.OPENAI_API_KEY ?? null,
+    athenaOpenaiKey: process.env.ATHENA_OPENAI_API_KEY ?? null,
+    bridgeRunner: process.env.ATHENA_AGENT_CONSOLE_RUNNER ?? null,
+    pluginVisible: process.env.PLUGIN_VISIBLE ?? null,
+    sidecar: Boolean(process.env.ATHENA_CONSOLE_RUN_EVENTS_FILE && process.env.ATHENA_AGENT_CONSOLE_EVENTS_PATH)
+  },
+  artifacts: []
+}));
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "env-dump.js", {
+          strictResultEnvelope: true,
+          environment: {
+            PLUGIN_VISIBLE: "yes"
+          }
+        });
+        appState.tasks.create({
+          id: "task-run-env-allowlist",
+          title: "Run env allowlist",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: { taskBrief: "Dump env" }
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+
+        const run = await service.runTask("task-run-env-allowlist", { runId: "run-env-allowlist" });
+
+        expect(run).toMatchObject({
+          status: "completed",
+          output: {
+            authToken: null,
+            openaiKey: null,
+            athenaOpenaiKey: null,
+            bridgeRunner: "fixture-runner",
+            pluginVisible: "yes",
+            sidecar: true
+          }
+        });
+        expect(JSON.stringify(run)).not.toContain("server-auth-token");
+        expect(JSON.stringify(run)).not.toContain("sk-host-openai");
+        expect(JSON.stringify(run)).not.toContain("sk-athena-openai");
+      } finally {
+        appState.close();
+      }
+    } finally {
+      if (previousAuthToken === undefined) {
+        delete process.env.ATHENA_AUTH_API_TOKEN;
+      } else {
+        process.env.ATHENA_AUTH_API_TOKEN = previousAuthToken;
+      }
+      if (previousOpenAiKey === undefined) {
+        delete process.env.OPENAI_API_KEY;
+      } else {
+        process.env.OPENAI_API_KEY = previousOpenAiKey;
+      }
+      if (previousAthenaOpenAiKey === undefined) {
+        delete process.env.ATHENA_OPENAI_API_KEY;
+      } else {
+        process.env.ATHENA_OPENAI_API_KEY = previousAthenaOpenAiKey;
+      }
+      if (previousBridgeRunner === undefined) {
+        delete process.env.ATHENA_AGENT_CONSOLE_RUNNER;
+      } else {
+        process.env.ATHENA_AGENT_CONSOLE_RUNNER = previousBridgeRunner;
+      }
       rmSync(dir, { recursive: true, force: true });
     }
   });
@@ -415,7 +958,8 @@ process.stdin.on("end", () => {
         targetNamespace: { scope: "repository", id: "demo" },
         memoryType: "repo-note",
         proposedBody: "Remember the test convention.",
-        reason: "Captured during run."
+        reason: "Captured during run.",
+        evidence: "The runner observed repeated fixture setup."
       }
     ],
     artifacts: []
@@ -457,6 +1001,7 @@ process.stdin.on("end", () => {
           expect.objectContaining({
             targetNamespace: { scope: "repository", id: "demo" },
             memoryType: "repo-note",
+            evidence: "The runner observed repeated fixture setup.",
             provenance: expect.objectContaining({
               sourceKind: "task-run",
               actorType: "agent",
@@ -470,6 +1015,258 @@ process.stdin.on("end", () => {
           expect.arrayContaining(["memory.context", "memory.search", "memory.records.selected", "memory.proposal.created"])
         );
         expect(JSON.stringify(detail.events.filter((event) => event.type.startsWith("memory.")))).not.toContain("Remember the test convention.");
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("injects approved durable-memory context into task inputs before the run", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-memory-context-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "memory-context.js"),
+        `
+let raw = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => { raw += chunk; });
+process.stdin.on("end", () => {
+  const envelope = JSON.parse(raw);
+  process.stdout.write(JSON.stringify({
+    output: { memoryContext: envelope.task.inputs.memoryContext },
+    artifacts: []
+  }));
+});
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "memory-context.js", {
+          durableMemoryPermissions: {
+            read: { namespaces: ["repository:demo"], maxSensitivity: "internal" }
+          }
+        });
+        appState.tasks.create({
+          id: "task-memory-context",
+          title: "Memory context",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: {
+            taskBrief: "Inject memory",
+            memoryContextRequest: {
+              namespace: { scope: "repository", id: "demo" },
+              query: "test convention",
+              limit: 2
+            }
+          }
+        });
+        const durableMemoryService = createMockDurableMemoryService();
+        const service = new LocalTaskWorkbenchService(config, { appState, durableMemoryService });
+
+        const run = await service.runTask("task-memory-context", { runId: "run-memory-context" });
+
+        expect(run).toMatchObject({
+          status: "completed",
+          output: {
+            memoryContext: expect.stringContaining("Approved durable memory context:")
+          }
+        });
+        expect(run.output).toMatchObject({
+          memoryContext: expect.stringContaining("body must not appear in events")
+        });
+        expect(durableMemoryService.search).toHaveBeenCalledWith({
+          namespace: { scope: "repository", id: "demo" },
+          query: "test convention",
+          limit: 2
+        });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("blocks pre-run memory context injection when manifest read permissions do not cover the namespace", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-memory-context-denied-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(join(pluginDir, "memory-context-denied.js"), "process.stdin.resume();\n", "utf8");
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "memory-context-denied.js", {
+          durableMemoryPermissions: {
+            read: { namespaces: ["repository:allowed"], maxSensitivity: "internal" }
+          }
+        });
+        appState.tasks.create({
+          id: "task-memory-context-denied",
+          title: "Memory context denied",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: {
+            taskBrief: "Inject memory",
+            memoryContextRequest: {
+              namespace: { scope: "repository", id: "demo" },
+              query: "test convention"
+            }
+          }
+        });
+        const durableMemoryService = createMockDurableMemoryService();
+        const service = new LocalTaskWorkbenchService(config, { appState, durableMemoryService });
+
+        await expect(service.runTask("task-memory-context-denied", { runId: "run-memory-context-denied" })).rejects.toThrow(
+          "durable-memory read access does not include namespace repository:demo"
+        );
+        expect(durableMemoryService.search).not.toHaveBeenCalled();
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("persists runtime memory proposals for review and approval", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-memory-proposal-real-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "memory-proposal.js"),
+        `
+process.stdin.resume();
+process.stdin.on("end", () => {
+  process.stdout.write(JSON.stringify({
+    output: { ok: true },
+    memoryRequests: [
+      {
+        operation: "propose",
+        targetNamespace: { scope: "repository", id: "demo" },
+        memoryType: "repo-convention",
+        proposedBody: "Use focused memory proposal tests. sk-memory-secret",
+        reason: "Stable convention captured during a run.",
+        evidence: "The run created a reviewable proposal and approved it."
+      }
+    ],
+    artifacts: []
+  }));
+});
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "memory-proposal.js", {
+          durableMemoryPermissions: {
+            propose: { namespaces: ["repository:demo"], maxSensitivity: "internal" }
+          }
+        });
+        appState.tasks.create({
+          id: "task-memory-proposal-real",
+          title: "Memory proposal",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: { taskBrief: "Propose memory" }
+        });
+        const durableMemoryService = new LocalDurableMemoryService(new SqliteDurableMemoryServerStorage(appState.db));
+        const service = new LocalTaskWorkbenchService(config, { appState, durableMemoryService });
+
+        const run = await service.runTask("task-memory-proposal-real", { runId: "run-memory-proposal-real" });
+        const proposals = await durableMemoryService.listProposals({ namespace: { scope: "repository", id: "demo" } });
+
+        expect(run).toMatchObject({ status: "completed" });
+        expect(proposals).toEqual([
+          expect.objectContaining({
+            targetNamespace: { scope: "repository", id: "demo" },
+            memoryType: "repo-convention",
+            proposedBody: "Use focused memory proposal tests. sk-memory-secret",
+            reason: "Stable convention captured during a run.",
+            evidence: "The run created a reviewable proposal and approved it.",
+            status: "pending"
+          })
+        ]);
+
+        const approved = await durableMemoryService.approveProposal({
+          id: proposals[0]!.id,
+          actorId: "operator",
+          reason: "Approved pilot memory."
+        });
+        const records = await durableMemoryService.list({
+          namespace: { scope: "repository", id: "demo" }
+        });
+
+        expect(approved).toMatchObject({ status: "approved", reviewedBy: "operator" });
+        expect(records.records).toEqual([
+          expect.objectContaining({
+            memoryType: "repo-convention",
+            body: "Use focused memory proposal tests. sk-memory-secret",
+            provenance: expect.objectContaining({
+              createdByAction: "proposal-approved",
+              actorId: "operator"
+            })
+          })
+        ]);
+        const bundle = await service.exportRunEvidenceBundle("run-memory-proposal-real");
+        expect(bundle.memory.map((entry) => entry.id).sort()).toEqual([
+          `proposal-${proposals[0]!.id}`,
+          `record-${records.records[0]!.id}`
+        ]);
+        expect(bundle.memory.find((entry) => entry.id === `proposal-${proposals[0]!.id}`)).toMatchObject({
+          namespace: { scope: "repository", id: "demo" },
+          proposal: {
+            id: proposals[0]!.id,
+            targetNamespace: { scope: "repository", id: "demo" },
+            memoryType: "repo-convention",
+            status: "approved",
+            proposedBodyChecksum: {
+              algorithm: "sha256",
+              value: expect.stringMatching(/^[a-f0-9]{64}$/)
+            }
+          },
+          approval: {
+            id: proposals[0]!.id,
+            approved: true,
+            approvedBy: "operator",
+            operation: "durable-memory.proposal.approve"
+          },
+          checksum: {
+            algorithm: "sha256",
+            value: expect.stringMatching(/^[a-f0-9]{64}$/)
+          }
+        });
+        expect(bundle.memory.find((entry) => entry.id === `record-${records.records[0]!.id}`)).toMatchObject({
+          namespace: { scope: "repository", id: "demo" },
+          record: {
+            id: records.records[0]!.id,
+            memoryType: "repo-convention",
+            bodyChecksum: {
+              algorithm: "sha256",
+              value: expect.stringMatching(/^[a-f0-9]{64}$/)
+            },
+            provenance: expect.objectContaining({
+              createdByAction: "proposal-approved",
+              runId: "run-memory-proposal-real"
+            })
+          }
+        });
+        expect(JSON.stringify(bundle.memory)).not.toContain("sk-memory-secret");
+        expect(JSON.stringify(bundle.memory)).not.toContain("Use focused memory proposal tests.");
       } finally {
         appState.close();
       }
@@ -1849,6 +2646,7 @@ process.stdin.on("end", () => {
           id: "run-fail",
           status: "failed",
           failure: {
+            phase: "process-exit",
             code: 7,
             stderr: "boom"
           }
@@ -2002,6 +2800,69 @@ process.stdin.on("end", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("propagates active local task cancellation into linked workflow DAG state", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-task-workbench-workflow-cancel-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(join(pluginDir, "slow-workflow.js"), "setTimeout(() => process.stdout.write('{}'), 5000);", "utf8");
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableCatalog(appState, pluginDir, "slow-workflow.js");
+        appState.workflowDagRuns.create({
+          id: "workflow-run-cancel",
+          workflowTemplateId: "cancel.workflow",
+          stepOrder: ["run"],
+          dependencies: { run: [] }
+        });
+        appState.tasks.create({
+          id: "task-run-workflow-cancel",
+          title: "Run workflow cancel",
+          status: "ready",
+          assignedAgentId: "software.run.local",
+          assignedAgentVersion: "1.0.0",
+          capabilityRequirements: ["code.modify"],
+          inputs: { taskBrief: "Wait please" },
+          provenance: {
+            source: "workflow-template",
+            workflowTemplateId: "cancel.workflow",
+            templateTaskId: "run",
+            workflowDagRunId: "workflow-run-cancel",
+            workflowDagStepId: "run"
+          }
+        });
+        const service = new LocalTaskWorkbenchService(config, { appState });
+        const statusService = new LocalWorkflowStatusService(config, { appState });
+
+        const runPromise = service.runTask("task-run-workflow-cancel", { runId: "run-workflow-cancel" });
+        const cancel = await service.cancelRun("run-workflow-cancel", { reason: "operator-request" });
+        expect(cancel).toEqual({ runId: "run-workflow-cancel", status: "cancelled" });
+        expect(appState.runs.get("run-workflow-cancel")).toMatchObject({ status: "cancelled" });
+        expect(appState.tasks.get("task-run-workflow-cancel")).toMatchObject({ status: "cancelled" });
+
+        const run = await runPromise;
+        const workflowStatus = await statusService.getStatus("workflow-run-cancel");
+
+        expect(run.status).toBe("cancelled");
+        expect(appState.runEvents.listForRun("run-workflow-cancel").map((event) => event.type)).toEqual(
+          expect.arrayContaining(["run.cancel.requested", "run.cancelled"])
+        );
+        expect(workflowStatus.run.status).toBe("cancelled");
+        expect(workflowStatus.nodes.find((node) => node.id === "run")).toMatchObject({
+          status: "cancelled",
+          attempt: 1,
+          attemptHistory: [{ attempt: 1, status: "cancelled" }]
+        });
+        expect(workflowStatus.events.map((event) => event.type)).toContain("workflow.step.cancelled");
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 function seedCatalog(appState: ReturnType<typeof openAppStateDatabase>): void {
@@ -2051,6 +2912,8 @@ function seedRunnableCatalog(
     policyPackId?: string;
     modelProvider?: Record<string, unknown>;
     durableMemoryPermissions?: Record<string, unknown>;
+    strictResultEnvelope?: boolean;
+    environment?: Record<string, unknown>;
   } = {}
 ): void {
   appState.plugins.upsert({
@@ -2096,7 +2959,12 @@ function seedRunnableCatalog(
           preferredBackend: "local-process",
           workingDirectory: ".",
           ...(options.policyPackId ? { policyPackId: options.policyPackId } : {}),
-          ...(options.modelProvider ? { modelProvider: options.modelProvider } : {})
+          ...(options.modelProvider ? { modelProvider: options.modelProvider } : {}),
+          ...(options.environment ? { environment: options.environment } : {})
+        },
+        observability: {
+          mode: "inspectable",
+          ...(options.strictResultEnvelope !== undefined ? { strictResultEnvelope: options.strictResultEnvelope } : {})
         },
         ...(options.limits ? { limits: options.limits } : {}),
         ...(options.approvalRequiredFor || options.durableMemoryPermissions

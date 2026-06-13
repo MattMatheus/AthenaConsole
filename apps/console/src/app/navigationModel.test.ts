@@ -10,6 +10,7 @@ describe("console navigation model", () => {
     expect(labelsFor("Operate")).toEqual([
       "Dashboard",
       "Start Work",
+      "Queue",
       "Work History",
       "Capabilities",
       "Resources",

@@ -1,0 +1,17 @@
+{
+  "agentId": "athena-agent.pr-diff-review",
+  "inputs": {
+    "repo": {
+      "id": "athena-console",
+      "name": "AthenaConsole",
+      "sourceType": "existing-path",
+      "workspacePath": "/path/to/AthenaConsole",
+      "status": "ready",
+      "dirtyState": "unknown"
+    },
+    "diff": "diff --git a/example.ts b/example.ts\n+export const enabled = true;",
+    "objective": "Review the supplied diff for correctness, regression risk, and missing tests.",
+    "evidence": "The change toggles a feature flag used by the console.",
+    "memoryContext": "Prefer concise review comments with direct file references."
+  }
+}

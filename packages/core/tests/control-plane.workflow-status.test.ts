@@ -95,6 +95,13 @@ describe("workflow run graph status", () => {
         expect(status.nodes.find((node) => node.id === "transform")).toMatchObject({
           status: "failed",
           attempt: 1,
+          attemptHistory: [
+            {
+              attempt: 1,
+              status: "failed",
+              failure: { code: "MODEL_TIMEOUT", message: "Timed out" }
+            }
+          ],
           dependencies: ["extract"],
           blockingStepIds: [],
           failure: { code: "MODEL_TIMEOUT", message: "Timed out" },
@@ -191,6 +198,7 @@ describe("workflow run graph status", () => {
             id: string;
             ready: boolean;
             dependencies: string[];
+            attemptHistory: Array<{ attempt: number; status: string }>;
             taskRunEvidence?: { id: string; status: string; outputSummary?: string; artifactCount: number };
           }>;
           edges: Array<{ from: string; to: string }>;
@@ -217,6 +225,7 @@ describe("workflow run graph status", () => {
         dependencies: ["plan"]
       });
       expect(envelope.data.nodes.find((node) => node.id === "plan")).toMatchObject({
+        attemptHistory: [{ attempt: 1, status: "completed" }],
         taskRunEvidence: {
           id: "run-plan",
           status: "completed",

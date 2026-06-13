@@ -1,6 +1,7 @@
-export type WorkflowRunGraphRunStatus = "pending" | "running" | "completed" | "failed" | "resumable";
-export type WorkflowRunGraphStepStatus = "pending" | "running" | "completed" | "failed" | "skipped";
+export type WorkflowRunGraphRunStatus = "pending" | "running" | "completed" | "failed" | "resumable" | "cancelled";
+export type WorkflowRunGraphStepStatus = "pending" | "running" | "completed" | "failed" | "skipped" | "cancelled";
 export type WorkflowRunGraphEventLevel = "info" | "warning" | "error";
+export type WorkflowQueueItemState = "pending" | "running" | "retryable" | "stuck";
 
 export type WorkflowRunStatusSummary = {
   id: string;
@@ -108,4 +109,50 @@ export type WorkflowRunExecuteResult = {
   status: WorkflowRunGraphRunStatus | "cancelled";
   executedStepIds: string[];
   snapshot: Record<string, unknown>;
+};
+
+export type WorkflowQueueStatusWorker = {
+  workerId: string;
+  status: "active" | "expired";
+  activeRunId?: string;
+  activeSessionId?: string;
+  capacity: number;
+  version: string;
+  lastHeartbeatAt: string;
+  expiresAt: string;
+};
+
+export type WorkflowQueueStatusItem = {
+  id: string;
+  state: WorkflowQueueItemState;
+  workflowRunId: string;
+  workflowTemplateId: string;
+  stepId: string;
+  taskId?: string;
+  taskRunId?: string;
+  workerId?: string;
+  reason?: string;
+  attempt: number;
+  maxAttempts?: number;
+  ready: boolean;
+  timestamps: {
+    updatedAt: string;
+    startedAt?: string;
+    finishedAt?: string;
+  };
+};
+
+export type WorkflowQueueStatus = {
+  generatedAt: string;
+  staleWorkerCutoffAt: string;
+  summary: {
+    pending: number;
+    running: number;
+    retryable: number;
+    stuck: number;
+    workersActive: number;
+    workersExpired: number;
+  };
+  items: WorkflowQueueStatusItem[];
+  workers: WorkflowQueueStatusWorker[];
 };

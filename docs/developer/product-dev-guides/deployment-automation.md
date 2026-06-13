@@ -28,7 +28,7 @@ docker compose -f docker-compose.server.yml config
 npm run smoke:product -- --help
 ```
 
-The compose checks use CI-only placeholder secrets so the server profile can be validated without publishing credentials.
+The compose checks use CI-only placeholder secrets so the server profile can be validated without publishing credentials. The server compose build also expects a sibling `../AthenaAgent` build context for the API image's packaged model-backed runtime.
 
 ## Local Server Smoke
 
@@ -37,11 +37,13 @@ After changing deployment docs, compose files, auth defaults, sample plugins, or
 ```bash
 cp server.env.example server.env
 docker compose --env-file server.env -f docker-compose.server.yml up --build -d
+docker compose --env-file server.env -f docker-compose.server.yml exec api \
+  /opt/athena-agent-venv/bin/python -c "import athena_agent.console_runner; print('athena-agent-runtime-ok')"
 npm run smoke:product -- --api-base-url http://127.0.0.1:8787 --api-token "$ATHENA_AUTH_API_TOKEN" --identity console
 docker compose --env-file server.env -f docker-compose.server.yml down
 ```
 
-Use Podman Compose with the same arguments when that is the local container runtime.
+Use Podman Compose with the same arguments when that is the local container runtime and it supports Compose additional build contexts. The AthenaAgent import check proves the server image does not depend on a developer-managed Python environment.
 
 ## Out Of Scope
 

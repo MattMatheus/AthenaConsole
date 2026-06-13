@@ -219,7 +219,279 @@ process.stdin.on("end", () => {
         });
         expect(status.nodes.find((node) => node.id === "review")).toMatchObject({
           status: "completed",
-          attempt: 2
+          attempt: 2,
+          attemptHistory: [
+            {
+              attempt: 1,
+              status: "failed",
+              failure: {
+                taskId: "executor-resume-review",
+                status: "failed",
+                failure: {
+                  code: 7,
+                  stderr: "review failed once"
+                }
+              }
+            },
+            {
+              attempt: 2,
+              status: "completed",
+              output: {
+                taskId: "executor-resume-review",
+                status: "completed"
+              }
+            }
+          ]
+        });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("retries eligible failed steps according to workflow retry policy", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-workflow-dag-executor-retry-success-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "retry-review-once.js"),
+        `
+const { appendFileSync, existsSync, writeFileSync } = require("node:fs");
+const { join } = require("node:path");
+let raw = "";
+process.stdin.on("data", (chunk) => { raw += chunk; });
+process.stdin.on("end", () => {
+  const envelope = JSON.parse(raw);
+  const step = envelope.task.provenance.workflowDagStepId;
+  appendFileSync(join(__dirname, "attempts.log"), step + "\\n");
+  const marker = join(__dirname, "review-failed-once");
+  if (step === "review" && !existsSync(marker)) {
+    writeFileSync(marker, "failed");
+    process.stderr.write("review retryable failure");
+    process.exit(7);
+  }
+  process.stdout.write(JSON.stringify({
+    output: { taskId: envelope.task.id, step },
+    artifacts: []
+  }));
+});
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedExecutableWorkflowTemplate(appState, pluginDir, "retry-review-once.js", {
+          workflowTemplateId: "executor.retry-success.workflow",
+          agentId: "executor.retry-success.agent",
+          retryPolicy: buildExecutorRetryPolicy({ maxAttempts: 2 })
+        });
+        const templateCatalog = new LocalWorkflowTemplateCatalogService(config, { appState });
+        const instantiation = await templateCatalog.instantiate("executor.retry-success.workflow", {
+          missionId: "mission-executor-retry-success",
+          taskIdPrefix: "executor-retry-success"
+        });
+        const executor = new LocalWorkflowDagExecutorService(config, { appState });
+        const statusService = new LocalWorkflowStatusService(config, { appState });
+
+        const result = await executor.execute(instantiation.workflowDagRun.id);
+        const status = await statusService.getStatus(instantiation.workflowDagRun.id);
+        const attempts = readFileSync(join(pluginDir, "attempts.log"), "utf8").trim().split("\n");
+
+        expect(result).toMatchObject({
+          status: "completed",
+          executedStepIds: ["plan", "review", "review"]
+        });
+        expect(attempts).toEqual(["plan", "review", "review"]);
+        expect(status.events.map((event) => event.type)).toContain("workflow.step.retry_scheduled");
+        expect(status.nodes.find((node) => node.id === "review")).toMatchObject({
+          status: "completed",
+          attempt: 2,
+          attemptHistory: [
+            {
+              attempt: 1,
+              status: "failed",
+              failure: {
+                taskId: "executor-retry-success-review",
+                status: "failed",
+                failure: {
+                  phase: "process-exit",
+                  code: 7,
+                  stderr: "review retryable failure"
+                }
+              }
+            },
+            {
+              attempt: 2,
+              status: "completed"
+            }
+          ]
+        });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("stops retrying when workflow retry attempts are exhausted", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-workflow-dag-executor-retry-exhausted-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "always-fail-review.js"),
+        `
+const { appendFileSync } = require("node:fs");
+const { join } = require("node:path");
+let raw = "";
+process.stdin.on("data", (chunk) => { raw += chunk; });
+process.stdin.on("end", () => {
+  const envelope = JSON.parse(raw);
+  const step = envelope.task.provenance.workflowDagStepId;
+  appendFileSync(join(__dirname, "attempts.log"), step + "\\n");
+  if (step === "review") {
+    process.stderr.write("review still failing");
+    process.exit(8);
+  }
+  process.stdout.write(JSON.stringify({
+    output: { taskId: envelope.task.id, step },
+    artifacts: []
+  }));
+});
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedExecutableWorkflowTemplate(appState, pluginDir, "always-fail-review.js", {
+          workflowTemplateId: "executor.retry-exhausted.workflow",
+          agentId: "executor.retry-exhausted.agent",
+          retryPolicy: buildExecutorRetryPolicy({ maxAttempts: 2 })
+        });
+        const templateCatalog = new LocalWorkflowTemplateCatalogService(config, { appState });
+        const instantiation = await templateCatalog.instantiate("executor.retry-exhausted.workflow", {
+          missionId: "mission-executor-retry-exhausted",
+          taskIdPrefix: "executor-retry-exhausted"
+        });
+        const executor = new LocalWorkflowDagExecutorService(config, { appState });
+        const statusService = new LocalWorkflowStatusService(config, { appState });
+
+        const result = await executor.execute(instantiation.workflowDagRun.id);
+        const status = await statusService.getStatus(instantiation.workflowDagRun.id);
+        const attempts = readFileSync(join(pluginDir, "attempts.log"), "utf8").trim().split("\n");
+
+        expect(result).toMatchObject({
+          status: "failed",
+          executedStepIds: ["plan", "review", "review"]
+        });
+        expect(attempts).toEqual(["plan", "review", "review"]);
+        expect(status.events).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: "workflow.step.retry_blocked",
+              payload: expect.objectContaining({
+                reason: "exhausted",
+                attempt: 2,
+                maxAttempts: 2
+              })
+            })
+          ])
+        );
+        expect(status.nodes.find((node) => node.id === "review")).toMatchObject({
+          status: "failed",
+          attempt: 2,
+          attemptHistory: [
+            { attempt: 1, status: "failed" },
+            { attempt: 2, status: "failed" }
+          ]
+        });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("does not retry non-idempotent workflow steps unless external writes are allowed", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-workflow-dag-executor-retry-blocked-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "non-idempotent-fail.js"),
+        `
+const { appendFileSync } = require("node:fs");
+const { join } = require("node:path");
+let raw = "";
+process.stdin.on("data", (chunk) => { raw += chunk; });
+process.stdin.on("end", () => {
+  const envelope = JSON.parse(raw);
+  const step = envelope.task.provenance.workflowDagStepId;
+  appendFileSync(join(__dirname, "attempts.log"), step + "\\n");
+  if (step === "review") {
+    process.stderr.write("write may have happened");
+    process.exit(9);
+  }
+  process.stdout.write(JSON.stringify({
+    output: { taskId: envelope.task.id, step },
+    artifacts: []
+  }));
+});
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedExecutableWorkflowTemplate(appState, pluginDir, "non-idempotent-fail.js", {
+          workflowTemplateId: "executor.retry-blocked.workflow",
+          agentId: "executor.retry-blocked.agent",
+          retryPolicy: buildExecutorRetryPolicy({
+            maxAttempts: 2,
+            idempotency: "non-idempotent",
+            externalWriteRetry: "forbid"
+          })
+        });
+        const templateCatalog = new LocalWorkflowTemplateCatalogService(config, { appState });
+        const instantiation = await templateCatalog.instantiate("executor.retry-blocked.workflow", {
+          missionId: "mission-executor-retry-blocked",
+          taskIdPrefix: "executor-retry-blocked"
+        });
+        const executor = new LocalWorkflowDagExecutorService(config, { appState });
+        const statusService = new LocalWorkflowStatusService(config, { appState });
+
+        const result = await executor.execute(instantiation.workflowDagRun.id);
+        const status = await statusService.getStatus(instantiation.workflowDagRun.id);
+        const attempts = readFileSync(join(pluginDir, "attempts.log"), "utf8").trim().split("\n");
+
+        expect(result).toMatchObject({
+          status: "failed",
+          executedStepIds: ["plan", "review"]
+        });
+        expect(attempts).toEqual(["plan", "review"]);
+        expect(status.events).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              type: "workflow.step.retry_blocked",
+              payload: expect.objectContaining({
+                reason: "unsafe-non-idempotent-write",
+                attempt: 1,
+                maxAttempts: 2
+              })
+            })
+          ])
+        );
+        expect(status.nodes.find((node) => node.id === "review")).toMatchObject({
+          status: "failed",
+          attempt: 1,
+          attemptHistory: [{ attempt: 1, status: "failed" }]
         });
       } finally {
         appState.close();
@@ -234,7 +506,7 @@ function seedExecutableWorkflowTemplate(
   appState: ReturnType<typeof openAppStateDatabase>,
   pluginDir: string,
   scriptName: string,
-  options: { workflowTemplateId: string; agentId: string }
+  options: { workflowTemplateId: string; agentId: string; retryPolicy?: Record<string, unknown> }
 ): void {
   appState.plugins.upsert({
     id: "team-orchestrator.test.workflow-dag-executor",
@@ -316,6 +588,7 @@ function seedExecutableWorkflowTemplate(
             assignedAgentVersion: "1.0.0",
             capabilityRequirements: ["workflow.execute"],
             dependsOn: ["plan"],
+            ...(options.retryPolicy ? { retryPolicy: options.retryPolicy } : {}),
             inputs: {
               taskBrief: "Review the workflow."
             }
@@ -324,4 +597,15 @@ function seedExecutableWorkflowTemplate(
       }
     }
   });
+}
+
+function buildExecutorRetryPolicy(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    maxAttempts: 2,
+    backoff: "none",
+    retryableFailurePhases: ["execution"],
+    idempotency: "idempotent",
+    externalWriteRetry: "allow",
+    ...overrides
+  };
 }

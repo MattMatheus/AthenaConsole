@@ -424,6 +424,101 @@ describe("control-plane events and failed work services", () => {
     }
   });
 
+  it("delivers configured JSONL sink events with redaction and type filtering", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-event-sink-"));
+    try {
+      const sinkPath = join(dir, "external", "events.jsonl");
+      writeFileSync(
+        join(dir, ".env"),
+        [`ATHENA_EVENT_SINK_JSONL_PATH=${sinkPath}`, "ATHENA_EVENT_SINK_INCLUDE_TYPES=run.completed"].join("\n"),
+        "utf8"
+      );
+      const config = loadConfig(dir);
+      const services = createLocalControlPlaneServices({ config });
+
+      await services.eventService.emit({
+        type: "run.started",
+        payload: {
+          token: "sk-start-token"
+        }
+      });
+      await services.eventService.emit({
+        type: "run.completed",
+        payload: {
+          provider: "mock",
+          apiKey: "sk-secret-key",
+          artifact: {
+            body: "artifact body must not leave the process",
+            storageUri: "memory://artifact"
+          },
+          transcriptSnapshot: {
+            entries: ["secret transcript"]
+          }
+        }
+      });
+
+      const sinkRows = readFileSync(sinkPath, "utf8")
+        .trim()
+        .split(/\r?\n/)
+        .map((line) => JSON.parse(line) as { type: string; payload: Record<string, unknown> });
+
+      expect(sinkRows).toHaveLength(1);
+      expect(sinkRows[0]?.type).toBe("run.completed");
+      expect(sinkRows[0]?.payload).toMatchObject({
+        provider: "mock",
+        apiKey: "[redacted]",
+        artifact: {
+          body: "[redacted]",
+          storageUri: "memory://artifact"
+        },
+        transcriptSnapshot: "[redacted]"
+      });
+      expect(JSON.stringify(sinkRows)).not.toContain("sk-secret-key");
+      expect(JSON.stringify(sinkRows)).not.toContain("artifact body must not leave");
+      expect(JSON.stringify(sinkRows)).not.toContain("secret transcript");
+
+      const localEvents = await services.eventService.list({ limit: 10 });
+      expect(localEvents.events.some((event) => event.type === "run.completed")).toBe(true);
+      expect(JSON.stringify(localEvents.events)).toContain("sk-secret-key");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("records JSONL sink delivery failures without blocking local event storage", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-event-sink-failed-"));
+    try {
+      const sinkPath = join(dir, "external-as-file");
+      writeFileSync(sinkPath, "not a directory", "utf8");
+      writeFileSync(join(dir, ".env"), `ATHENA_EVENT_SINK_JSONL_PATH=${join(sinkPath, "events.jsonl")}`, "utf8");
+      const config = loadConfig(dir);
+      const services = createLocalControlPlaneServices({ config });
+
+      await services.eventService.emit({
+        type: "run.completed",
+        payload: {
+          ok: true
+        }
+      });
+
+      const localEvents = await services.eventService.list({ limit: 10 });
+      expect(localEvents.events.some((event) => event.type === "run.completed")).toBe(true);
+      expect(localEvents.events).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: "event.sink.delivery_failed",
+            payload: expect.objectContaining({
+              sinkKind: "jsonl",
+              attemptedEvents: [expect.objectContaining({ type: "run.completed" })]
+            })
+          })
+        ])
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("emits canonical safety.violation events for safety sources with transcript snapshots", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-events-safety-canonical-"));
     try {

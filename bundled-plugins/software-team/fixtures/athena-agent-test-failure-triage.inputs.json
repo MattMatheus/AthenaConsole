@@ -1,0 +1,17 @@
+{
+  "agentId": "athena-agent.test-failure-triage",
+  "inputs": {
+    "repo": {
+      "id": "athena-console",
+      "name": "AthenaConsole",
+      "sourceType": "existing-path",
+      "workspacePath": "/path/to/AthenaConsole",
+      "status": "ready",
+      "dirtyState": "unknown"
+    },
+    "testLog": "FAIL example.test.ts\nExpected true but received false",
+    "objective": "Explain the likely failure and propose the next local diagnostic checks.",
+    "evidence": "The failure appears after a feature flag change.",
+    "memoryContext": "Call out whether the failure is deterministic or needs reproduction."
+  }
+}

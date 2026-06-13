@@ -1,0 +1,15 @@
+{
+  "workflowId": "bundled.jira.issue-context-review.workflow",
+  "connectorFixture": {
+    "liveNetwork": false,
+    "scenarios": ["issue-read", "issue-search", "auth-missing", "scope-missing", "rate-limited"],
+    "expectedEvents": ["connector.issue.read"],
+    "expectedArtifacts": ["jira_issue_context"]
+  },
+  "inputs": {
+    "site": "https://acme.atlassian.net",
+    "issueKey": "ENG-1842",
+    "repository": "acme/widget-service",
+    "focus": "Check rollout risk and test coverage."
+  }
+}

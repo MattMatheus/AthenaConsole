@@ -235,6 +235,49 @@ describe("control-plane readiness", () => {
     }
   });
 
+  it("warns when trusted identity headers are enabled without a declared sanitizing proxy", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-readiness-trusted-proxy-"));
+    const previousAuthEnabled = process.env.ATHENA_AUTH_ENABLED;
+    const previousAuthToken = process.env.ATHENA_AUTH_API_TOKEN;
+    const previousTrustedProxy = process.env.ATHENA_AUTH_TRUSTED_PROXY_CONFIGURED;
+    try {
+      process.env.ATHENA_AUTH_ENABLED = "true";
+      process.env.ATHENA_AUTH_API_TOKEN = "test-token-with-safe-length";
+      delete process.env.ATHENA_AUTH_TRUSTED_PROXY_CONFIGURED;
+      const readiness = new LocalReadinessService(loadConfig(dir), readinessOptions(dir));
+
+      const report = await readiness.getReadiness();
+
+      expect(report.checks.find((check) => check.id === "trusted-proxy-auth")).toMatchObject({
+        status: "degraded",
+        required: true,
+        message: "Trusted identity header auth is enabled without a declared header-stripping proxy.",
+        details: {
+          identityHeader: "x-athena-identity",
+          trustedProxyConfigured: false
+        }
+      });
+      expect(JSON.stringify(report)).not.toContain("test-token");
+    } finally {
+      if (previousAuthEnabled === undefined) {
+        delete process.env.ATHENA_AUTH_ENABLED;
+      } else {
+        process.env.ATHENA_AUTH_ENABLED = previousAuthEnabled;
+      }
+      if (previousAuthToken === undefined) {
+        delete process.env.ATHENA_AUTH_API_TOKEN;
+      } else {
+        process.env.ATHENA_AUTH_API_TOKEN = previousAuthToken;
+      }
+      if (previousTrustedProxy === undefined) {
+        delete process.env.ATHENA_AUTH_TRUSTED_PROXY_CONFIGURED;
+      } else {
+        process.env.ATHENA_AUTH_TRUSTED_PROXY_CONFIGURED = previousTrustedProxy;
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("reports current remote durable memory without exposing token references", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-readiness-durable-current-"));
     const previousToken = process.env.TEAM_MEMORY_TOKEN;
@@ -499,6 +542,12 @@ function agentCatalogService(input: { total: number; plugins: Array<{ id: string
         agents: [],
         total: 0,
         filters: {}
+      };
+    },
+    async listConnectorReadiness() {
+      return {
+        connectors: [],
+        total: 0
       };
     }
   } as AgentCatalogService;

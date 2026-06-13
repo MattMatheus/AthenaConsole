@@ -1,5 +1,12 @@
 export type AgentCatalogPluginSourceScope = "workspace" | "system";
 export type ProviderReadinessStatus = "configured" | "missing" | "invalid" | "untested";
+export type ConnectorReadinessStatus =
+  | "configured"
+  | "missing-credentials"
+  | "missing-scopes"
+  | "rate-limited"
+  | "degraded"
+  | "blocked";
 
 export type ModelProviderRequirement = {
   required: boolean;
@@ -18,6 +25,18 @@ export type ProviderReadiness = {
   providerKind?: "openai-compatible";
   model?: string;
   message: string;
+};
+
+export type ConnectorReadiness = {
+  status: ConnectorReadinessStatus;
+  serviceId?: string;
+  serviceName?: string;
+  credentialState: "not-required" | "missing" | "bound" | "invalid";
+  missingScopes: string[];
+  requiredScopes: string[];
+  rateLimitedOperations: string[];
+  reasons: string[];
+  nextStep: string;
 };
 
 export type AgentCatalogValidationIssue = {
@@ -40,6 +59,30 @@ export type CapabilityPackMetadata = {
     notes?: string;
   };
   exampleWorkflows?: Array<Record<string, unknown>>;
+  outcomes?: CapabilityPackOutcome[];
+};
+
+export type CapabilityPackOutcome = {
+  id: string;
+  title: string;
+  description: string;
+  target: {
+    kind: "agent" | "workflow" | "link";
+    id: string;
+    version?: string;
+    href?: string;
+  };
+  contextRequirements: string[];
+  expectedArtifacts: Array<{
+    label: string;
+    format: string;
+  }>;
+  executionMode: "deterministic" | "model-backed" | "connector-backed" | string;
+  ui?: {
+    icon?: string;
+    badge?: string;
+    order?: number;
+  };
 };
 
 export type AgentCatalogPluginSummary = {
@@ -54,6 +97,7 @@ export type AgentCatalogPluginSummary = {
     name: string;
     description?: string;
     pack?: CapabilityPackMetadata;
+    connectorReadiness?: ConnectorReadiness;
     ui?: Record<string, unknown>;
     compatibility?: Record<string, unknown>;
     permissions?: Record<string, unknown>;
@@ -82,6 +126,18 @@ export type AgentCatalogAgentSummary = {
   status: string;
   available: boolean;
   providerReadiness: ProviderReadiness;
+  certification: {
+    status: "certified" | "blocked" | "not-required";
+    required: boolean;
+    declaredMaturity?: string;
+    effectiveMaturity: string;
+    evalRunId?: string;
+    evalResultIds: string[];
+    expectedArtifactUris: string[];
+    actualArtifactUris: string[];
+    reasons: string[];
+    message: string;
+  };
   metadata: {
     description?: string;
     inputs?: Record<string, unknown>;

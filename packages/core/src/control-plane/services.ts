@@ -31,12 +31,15 @@ import {
   AuthorizedGovernanceAuditService,
   AuthorizedLspService,
   AuthorizedMemoryService,
+  AuthorizedModelProviderConfigService,
   AuthorizedIdentityService,
   AuthorizedPolicyService,
   AuthorizedRunService,
   AuthorizedScheduleService,
   AuthorizedSessionService,
+  AuthorizedTaskWorkbenchService,
   AuthorizedWorkService,
+  AuthorizedWorkflowQueueStatusService,
   AuthorizedWorkflowStatusService,
   ServiceAuthorizer
 } from "./services/authorization.js";
@@ -66,6 +69,7 @@ import { LocalConnectedRepositoryService } from "./services/repositories.js";
 import { LocalModelProviderConfigService } from "./services/model-providers.js";
 import { LocalRunService } from "./services/run-service.js";
 import { LocalStateDiagnosticsService } from "./services/state-diagnostics.js";
+import { LocalWorkflowQueueStatusService } from "./services/workflow-queue-status.js";
 import { LocalWorkflowStatusService } from "./services/workflow-status.js";
 import { LocalWorkflowDagExecutorService } from "./services/workflow-dag-executor.js";
 import { LocalWorkflowTemplateCatalogService } from "./services/workflow-template-catalog.js";
@@ -96,6 +100,7 @@ import type {
   SessionService,
   StateDiagnosticsService,
   TaskWorkbenchService,
+  WorkflowQueueStatusService,
   WorkflowStatusService,
   WorkflowDagExecutorService,
   WorkflowTemplateCatalogService,
@@ -134,6 +139,7 @@ export interface ControlPlaneServices {
   harnessProfileService: HarnessProfileService;
   runTemplateService: RunTemplateService;
   workflowStatusService: WorkflowStatusService;
+  workflowQueueStatusService: WorkflowQueueStatusService;
   workflowDagExecutorService: WorkflowDagExecutorService;
   workflowTemplateCatalogService: WorkflowTemplateCatalogService;
   workService: WorkService;
@@ -241,6 +247,10 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
   const sessionService = new AuthorizedSessionService(new LocalSessionService(stateStore, options.config), authorizer);
   const directiveService = new AuthorizedDirectiveService(new LocalDirectiveService(stateStore), authorizer);
   const workflowStatusService = new AuthorizedWorkflowStatusService(new LocalWorkflowStatusService(options.config), authorizer);
+  const workflowQueueStatusService = new AuthorizedWorkflowQueueStatusService(
+    new LocalWorkflowQueueStatusService(options.config),
+    authorizer
+  );
   const workService = new AuthorizedWorkService(new LocalWorkService(options.config, executionBackend), authorizer);
   const memoryService = new AuthorizedMemoryService(new LocalMemoryService(options.config), authorizer);
   const durableMemoryDb = openAppStateDatabase(options.config);
@@ -264,7 +274,8 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
   const agentCatalogService = new LocalAgentCatalogService(options.config);
   const workflowTemplateCatalogService = new LocalWorkflowTemplateCatalogService(options.config);
   const capabilityService = new LocalCapabilityService(executionBackend, operationsMetricsProvider, sandboxExecutionBackend);
-  const modelProviderConfigService = new LocalModelProviderConfigService(options.config);
+  const modelProviderConfigService = new LocalModelProviderConfigService(options.config, { eventService });
+  const authorizedModelProviderConfigService = new AuthorizedModelProviderConfigService(modelProviderConfigService, authorizer);
   const readinessService = new LocalReadinessService(options.config, {
     stateDiagnosticsService,
     agentCatalogService,
@@ -280,6 +291,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     harnessProfileService: new LocalHarnessProfileService(stateStore, options.config),
     runTemplateService: new LocalRunTemplateService(stateStore, runService),
     workflowStatusService,
+    workflowQueueStatusService,
     workflowDagExecutorService: new LocalWorkflowDagExecutorService(options.config),
     workflowTemplateCatalogService,
     workService,
@@ -309,9 +321,12 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     stateDiagnosticsService,
     agentCatalogService,
     missionWorkbenchService: new LocalMissionWorkbenchService(options.config),
-    taskWorkbenchService: new LocalTaskWorkbenchService(options.config, { durableMemoryService }),
+    taskWorkbenchService: new AuthorizedTaskWorkbenchService(
+      new LocalTaskWorkbenchService(options.config, { durableMemoryService, eventService }),
+      authorizer
+    ),
     connectedRepositoryService: new LocalConnectedRepositoryService(options.config),
-    modelProviderConfigService,
+    modelProviderConfigService: authorizedModelProviderConfigService,
     shutdown: async () => {
       if (hasShutdown(eventService)) {
         await eventService.shutdown();

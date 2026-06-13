@@ -7,6 +7,18 @@ export interface RbacRoleDefinition {
   permissions: string[];
 }
 
+export interface RbacRoleSimulationOperation {
+  id: string;
+  label: string;
+  requiredPermission: string;
+  allowed: boolean;
+}
+
+export interface RbacRoleSimulationResult {
+  role: AthenaRbacRole;
+  operations: RbacRoleSimulationOperation[];
+}
+
 export interface IdentityRoleAssignment {
   subject: string;
   subjectType: IdentitySubjectType;

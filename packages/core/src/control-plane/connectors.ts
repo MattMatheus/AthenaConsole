@@ -23,7 +23,15 @@ export interface ConnectorMetadata {
     maxAttempts?: number;
     backoff?: "none" | "linear" | "exponential";
   };
+  readiness?: ConnectorReadinessDiagnostics;
   operations: ConnectorOperationDeclaration[];
+}
+
+export interface ConnectorReadinessDiagnostics {
+  grantedScopes?: string[];
+  rateLimitedOperationIds?: string[];
+  degraded?: boolean;
+  blockedReasons?: string[];
 }
 
 export interface ConnectorScopeDeclaration {
@@ -268,4 +276,3 @@ function connectorReadinessNextStep(status: ConnectorReadinessStatus): string {
       return "Resolve the blocking connector diagnostics before running this connector.";
   }
 }
-

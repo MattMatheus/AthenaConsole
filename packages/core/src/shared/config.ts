@@ -126,6 +126,11 @@ export interface AthenaConfig {
       maxRecords: number;
       maxAgeMs: number;
       maxBytes: number;
+      sink?: {
+        kind: "jsonl";
+        path: string;
+        includeTypes?: string[];
+      };
     };
     appInsights?: {
       enabled: boolean;
@@ -140,6 +145,7 @@ export interface AthenaConfig {
     identityHeader: string;
     apiToken?: string;
     allowExternalUnauthenticated: boolean;
+    trustedProxyConfigured: boolean;
     defaultRole: AthenaRbacRole;
     identityRoleMap: Record<string, AthenaRbacRole>;
   };
@@ -243,11 +249,11 @@ const DEFAULT_CONFIG: AthenaConfig = {
     maxToolResultChars: 12_000
   },
   telemetry: {
-    events: {
-      maxRecords: 10_000,
-      maxAgeMs: 30 * DAY_MS,
-      maxBytes: 5_000_000
-    },
+      events: {
+        maxRecords: 10_000,
+        maxAgeMs: 30 * DAY_MS,
+        maxBytes: 5_000_000
+      },
     appInsights: {
       enabled: false,
       samplingPercentage: 20,
@@ -259,6 +265,7 @@ const DEFAULT_CONFIG: AthenaConfig = {
     enabled: false,
     identityHeader: "x-athena-identity",
     allowExternalUnauthenticated: false,
+    trustedProxyConfigured: false,
     defaultRole: "Viewer",
     identityRoleMap: {}
   },
@@ -823,6 +830,11 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
     "ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED",
     DEFAULT_CONFIG.auth!.allowExternalUnauthenticated
   );
+  const trustedProxyConfigured = parseBooleanStrict(
+    env.ATHENA_AUTH_TRUSTED_PROXY_CONFIGURED ?? process.env.ATHENA_AUTH_TRUSTED_PROXY_CONFIGURED,
+    "ATHENA_AUTH_TRUSTED_PROXY_CONFIGURED",
+    DEFAULT_CONFIG.auth!.trustedProxyConfigured
+  );
   const authDefaultRole = parseAuthRole(
     env.ATHENA_AUTH_DEFAULT_ROLE ?? process.env.ATHENA_AUTH_DEFAULT_ROLE,
     "ATHENA_AUTH_DEFAULT_ROLE",
@@ -839,6 +851,8 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
   );
   const eventRetentionDaysRaw = env.ATHENA_EVENT_RETENTION_DAYS ?? process.env.ATHENA_EVENT_RETENTION_DAYS;
   const eventMaxAgeMsRaw = env.ATHENA_EVENTS_MAX_AGE_MS ?? process.env.ATHENA_EVENTS_MAX_AGE_MS;
+  const eventSinkJsonlPath = env.ATHENA_EVENT_SINK_JSONL_PATH ?? process.env.ATHENA_EVENT_SINK_JSONL_PATH;
+  const eventSinkIncludeTypes = parseCsv(env.ATHENA_EVENT_SINK_INCLUDE_TYPES ?? process.env.ATHENA_EVENT_SINK_INCLUDE_TYPES);
   const appInsightsConnectionString =
     env.ATHENA_APPINSIGHTS_CONNECTION_STRING ?? process.env.ATHENA_APPINSIGHTS_CONNECTION_STRING;
   const appInsightsEnabledDefault = appInsightsConnectionString !== undefined;
@@ -1105,7 +1119,16 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
             env.ATHENA_EVENTS_MAX_BYTES ??
             process.env.ATHENA_EVENTS_MAX_BYTES,
           DEFAULT_CONFIG.telemetry!.events.maxBytes
-        )
+        ),
+        ...(eventSinkJsonlPath
+          ? {
+              sink: {
+                kind: "jsonl" as const,
+                path: eventSinkJsonlPath,
+                ...(eventSinkIncludeTypes.length > 0 ? { includeTypes: eventSinkIncludeTypes } : {})
+              }
+            }
+          : {})
       },
       appInsights: {
         enabled: appInsightsEnabled,
@@ -1129,6 +1152,7 @@ export function loadConfig(cwd = process.cwd()): AthenaConfig {
       identityHeader: authIdentityHeader,
       ...(authApiToken ? { apiToken: authApiToken } : {}),
       allowExternalUnauthenticated,
+      trustedProxyConfigured,
       defaultRole: authDefaultRole,
       identityRoleMap: authIdentityRoleMap
     },

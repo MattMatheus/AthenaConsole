@@ -6,17 +6,19 @@ export type ApiClientOptions = {
 
 type ApiEnvelope<TData> =
   | { ok: true; data: TData }
-  | { ok: false; error?: { message?: string } };
+  | { ok: false; error?: { message?: string; details?: unknown } };
 
 export class ApiClientError extends Error {
   readonly status: number;
   readonly code: string | undefined;
+  readonly details: unknown;
 
-  constructor(message: string, options: { status: number; code?: string }) {
+  constructor(message: string, options: { status: number; code?: string; details?: unknown }) {
     super(message);
     this.name = "ApiClientError";
     this.status = options.status;
     this.code = options.code;
+    this.details = options.details;
   }
 }
 
@@ -156,9 +158,10 @@ export class ApiClient {
   private async toApiClientError(response: Response, fallbackContext: string): Promise<ApiClientError> {
     let message = `${fallbackContext} failed with status ${response.status}`;
     let code: string | undefined;
+    let details: unknown;
     try {
       const payload = (await response.json()) as {
-        error?: { message?: string; code?: string };
+        error?: { message?: string; code?: string; details?: unknown };
       };
       if (payload.error?.message) {
         message = payload.error.message;
@@ -166,10 +169,13 @@ export class ApiClient {
       if (payload.error?.code) {
         code = payload.error.code;
       }
+      if (payload.error && "details" in payload.error) {
+        details = payload.error.details;
+      }
     } catch {
       // Keep generic fallback message when response is not JSON.
     }
-    return new ApiClientError(message, { status: response.status, ...(code ? { code } : {}) });
+    return new ApiClientError(message, { status: response.status, ...(code ? { code } : {}), ...(details !== undefined ? { details } : {}) });
   }
 
   private authHeaders(): Record<string, string> {

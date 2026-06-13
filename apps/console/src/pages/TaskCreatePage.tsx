@@ -1,7 +1,7 @@
 import { CheckCircle2, FileSearch, Play, RefreshCw, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { GuidanceNote } from "../components";
+import { buildWorkPreflightItems, GuidanceNote, WorkPreflightPanel } from "../components";
 import {
   useAgentCatalogAgentsQuery,
   type AgentCatalogAgentSummary,
@@ -103,6 +103,8 @@ export function TaskCreatePage() {
   const agentIdParam = searchParams.get("agentId")?.trim() ?? "";
   const agentVersionParam = searchParams.get("version")?.trim() ?? "";
   const capabilityParam = searchParams.get("capability")?.trim() ?? "";
+  const repoIdParam = searchParams.get("repoId")?.trim() ?? "";
+  const runModeParam = searchParams.get("runMode")?.trim() ?? "";
   const agentsQuery = useAgentCatalogAgentsQuery();
   const metadataQuery = useTaskWorkbenchMetadataQuery();
   const repositoriesQuery = useConnectedRepositoriesQuery();
@@ -164,6 +166,23 @@ export function TaskCreatePage() {
   const selectedRunMode = runModes.includes(runMode) ? runMode : metadataQuery.data?.defaultRunMode ?? "read-only";
   const isCapabilityFlow = Boolean(agentIdParam);
   const missingInputs = missingRequiredInputCount(inputFields, inputValues, Boolean(selectedRepository));
+  const preflightItems = buildWorkPreflightItems({
+    backingLabel: "Backing agent",
+    backingName: selectedAgent?.name,
+    backingResolving: Boolean(agentIdParam),
+    backingEmptyLabel: "Choose an agent",
+    repositoryName: selectedRepository?.name,
+    repositoryDetail: repoReadinessMessage || selectedRepository?.workspacePath,
+    repositoryBlocked: Boolean(repoReadinessMessage),
+    providerReadiness: selectedAgent?.providerReadiness,
+    providerBlocking: providerReadinessBlocking,
+    pack: selectedAgent?.plugin.pack,
+    runModeLabel: runModeLabel(selectedRunMode),
+    runModeSummary: runModeSafetySummary(selectedRunMode),
+    policyWarning: selectedRunMode === "approved-write",
+    missingInputs,
+    requiredInputCount: inputFields.filter((field) => field.required).length,
+  });
 
   useEffect(() => {
     if (selectedAgentKey && !agentsQuery.isLoading && !compatibleAgents.some((agent) => agentKey(agent) === selectedAgentKey)) {
@@ -182,6 +201,22 @@ export function TaskCreatePage() {
       setSelectedAgentKey(agentKey(queryAgent));
     }
   }, [agentIdParam, agentVersionParam, agentsQuery.isLoading, compatibleAgents, selectedAgentKey]);
+
+  useEffect(() => {
+    if (!repoIdParam || repositoriesQuery.isLoading || selectedRepositoryId) {
+      return;
+    }
+    if (repositories.some((repository) => repository.id === repoIdParam)) {
+      setSelectedRepositoryId(repoIdParam);
+    }
+  }, [repoIdParam, repositories, repositoriesQuery.isLoading, selectedRepositoryId]);
+
+  useEffect(() => {
+    if (!runModeParam || !runModes.includes(runModeParam as TaskWorkbenchRunMode)) {
+      return;
+    }
+    setRunMode(runModeParam as TaskWorkbenchRunMode);
+  }, [runModeParam, runModes]);
 
   useEffect(() => {
     const nextValues = initialInputValues(inputFields);
@@ -305,46 +340,7 @@ export function TaskCreatePage() {
         </section>
       ) : null}
 
-      <section className={styles.preflightPanel} aria-label="Work preflight">
-        <div className={styles.sectionHeader}>
-          <div>
-            <p className={styles.panelMeta}>Preflight</p>
-            <p className={styles.panelTitle}>Review before saving</p>
-          </div>
-          <span className={styles.badge}>Task</span>
-        </div>
-        <div className={styles.preflightGrid}>
-          <PreflightItem
-            label="Backing agent"
-            value={selectedAgent ? selectedAgent.name : agentIdParam ? "Resolving selected agent" : "Choose an agent"}
-            tone={selectedAgent ? "ok" : "warn"}
-          />
-          <PreflightItem
-            label="Repository"
-            value={selectedRepository ? selectedRepository.name : "No repo selected"}
-            tone={selectedRepository ? "ok" : "warn"}
-            detail={repoReadinessMessage || selectedRepository?.workspacePath}
-          />
-          <PreflightItem
-            label="Provider"
-            value={selectedAgent?.providerReadiness.status ?? "No agent selected"}
-            tone={providerReadinessBlocking ? "warn" : "ok"}
-            detail={selectedAgent?.providerReadiness.message}
-          />
-          <PreflightItem
-            label="Safety"
-            value={runModeLabel(selectedRunMode)}
-            tone={selectedRunMode === "approved-write" ? "warn" : "ok"}
-            detail={runModeSafetySummary(selectedRunMode)}
-          />
-          <PreflightItem
-            label="Required inputs"
-            value={missingInputs > 0 ? `${missingInputs} missing` : "Ready"}
-            tone={missingInputs > 0 ? "warn" : "ok"}
-            detail={`${inputFields.filter((field) => field.required).length} required fields`}
-          />
-        </div>
-      </section>
+      <WorkPreflightPanel badge="Task" title="Review before saving" items={preflightItems} />
 
       {error instanceof Error ? (
         <div className={styles.state}>
@@ -763,7 +759,9 @@ export function TaskCreatePage() {
                       </button>
                     </div>
                   ) : null}
-                  {runTaskMutation.error instanceof Error ? <p className={styles.errorText}>{runTaskMutation.error.message}</p> : null}
+                  {runTaskMutation.error instanceof Error ? (
+                    <p className={styles.errorText}>{preflightErrorMessage(runTaskMutation.error) ?? runTaskMutation.error.message}</p>
+                  ) : null}
                 </>
               ) : (
                 <p className={styles.description}>No task saved in this session.</p>
@@ -877,25 +875,35 @@ function taskRunMode(inputs: unknown): string {
   return "read-only";
 }
 
-function PreflightItem({
-  detail,
-  label,
-  tone,
-  value,
-}: {
-  detail?: string | undefined;
-  label: string;
-  tone: "ok" | "warn";
-  value: string;
-}) {
-  return (
-    <article className={styles.preflightItem}>
-      <div className={styles.preflightTop}>
-        <span className={styles.panelMeta}>{label}</span>
-        <span className={tone === "ok" ? styles.badgeSuccess : styles.badgeWarning}>{tone === "ok" ? "ok" : "check"}</span>
-      </div>
-      <p className={styles.preflightValue}>{value}</p>
-      {detail ? <p className={styles.description}>{detail}</p> : null}
-    </article>
-  );
+function preflightErrorMessage(error: Error): string | undefined {
+  const readiness = readReadinessDetails(error);
+  if (!readiness) {
+    return undefined;
+  }
+  const blocked = readiness.checks.find((check) => check.status === "blocked");
+  if (!blocked) {
+    return undefined;
+  }
+  return `${readiness.summary} ${blocked.label}: ${blocked.message} ${blocked.nextStep}`;
+}
+
+function readReadinessDetails(error: Error): { summary: string; checks: Array<{ status: string; label: string; message: string; nextStep: string }> } | undefined {
+  const details = (error as { details?: unknown }).details;
+  if (typeof details !== "object" || details === null || !("readiness" in details)) {
+    return undefined;
+  }
+  const readiness = (details as { readiness?: unknown }).readiness;
+  if (typeof readiness !== "object" || readiness === null || !Array.isArray((readiness as { checks?: unknown }).checks)) {
+    return undefined;
+  }
+  const summary = typeof (readiness as { summary?: unknown }).summary === "string" ? (readiness as { summary: string }).summary : error.message;
+  const checks = (readiness as { checks: unknown[] }).checks
+    .filter((check): check is Record<string, unknown> => typeof check === "object" && check !== null)
+    .map((check) => ({
+      status: typeof check.status === "string" ? check.status : "",
+      label: typeof check.label === "string" ? check.label : "Readiness",
+      message: typeof check.message === "string" ? check.message : "",
+      nextStep: typeof check.nextStep === "string" ? check.nextStep : "",
+    }));
+  return { summary, checks };
 }

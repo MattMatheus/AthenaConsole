@@ -165,6 +165,45 @@ process.stdin.on("end", () => {
         }
       });
 
+      const blockedRunResponse = await fetch(`${base}/api/v1/tasks/${encodeURIComponent("task-api-draft")}/run`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({})
+      });
+      expect(blockedRunResponse.status).toBe(400);
+      const blockedRunEnvelope = (await blockedRunResponse.json()) as {
+        ok: boolean;
+        error: {
+          message: string;
+          details?: {
+            kind?: string;
+            readiness?: { checks?: Array<{ id: string; status: string; message: string; nextStep: string }> };
+          };
+        };
+      };
+      expect(blockedRunEnvelope).toMatchObject({
+        ok: false,
+        error: {
+          details: {
+            kind: "task-run-readiness",
+            readiness: {
+              checks: expect.arrayContaining([
+                expect.objectContaining({
+                  id: "task-status",
+                  status: "blocked",
+                  nextStep: "Move the task to ready before starting a run."
+                }),
+                expect.objectContaining({
+                  id: "assigned-agent",
+                  status: "blocked",
+                  nextStep: "Assign a loaded agent that satisfies the task capability requirements."
+                })
+              ])
+            }
+          }
+        }
+      });
+
       const invalidReadyResponse = await fetch(`${base}/api/v1/tasks/${encodeURIComponent("task-api-draft")}`, {
         method: "PUT",
         headers: { "content-type": "application/json" },
@@ -310,6 +349,77 @@ process.stdin.on("end", () => {
       expect(runDetailEnvelope.data.events.map((event) => event.type)).toEqual(
         expect.arrayContaining(["run.validated", "run.started", "run.log", "run.completed"])
       );
+
+      const bundleResponse = await fetch(`${base}/api/v1/task-runs/${encodeURIComponent("api-run-1")}/evidence-bundle`);
+      expect(bundleResponse.status).toBe(200);
+      const bundleEnvelope = (await bundleResponse.json()) as {
+        ok: boolean;
+        data: {
+          manifest: {
+            schemaVersion: string;
+            bundleId: string;
+            checksums: { manifest: { value: string }; entries: Array<{ value: string }> };
+          };
+          artifacts: Array<{ id: string; payload: { kind: string; storageUri?: string } }>;
+          events: Array<{ event: { type: string } }>;
+        };
+      };
+      expect(bundleEnvelope).toMatchObject({
+        ok: true,
+        data: {
+          manifest: {
+            schemaVersion: "team-orchestrator.evidence-bundle.v1",
+            bundleId: "evidence-bundle-api-run-1"
+          },
+          artifacts: expect.arrayContaining([
+            expect.objectContaining({
+              id: "artifact-good",
+              payload: expect.objectContaining({
+                kind: "artifact-ref",
+                storageUri: "memory://api-run/api-run-1/good.md"
+              })
+            })
+          ])
+        }
+      });
+      expect(bundleEnvelope.data.manifest.checksums.manifest.value).toMatch(/^[a-f0-9]{64}$/);
+      expect(bundleEnvelope.data.manifest.checksums.entries.length).toBeGreaterThanOrEqual(1);
+      expect(bundleEnvelope.data.events.map((event) => event.event.type)).toEqual(expect.arrayContaining(["run.started", "run.completed"]));
+
+      const auditEventsResponse = await fetch(`${base}/api/v1/events?types=evidence-bundle.exported&limit=5`);
+      expect(auditEventsResponse.status).toBe(200);
+      const auditEventsEnvelope = (await auditEventsResponse.json()) as {
+        ok: boolean;
+        data: {
+          events: Array<{
+            type: string;
+            runId?: string;
+            taskId?: string;
+            payload?: {
+              bundleId?: string;
+              bundleChecksum?: { value?: string };
+              destinationKind?: string;
+              artifactCount?: number;
+            };
+          }>;
+        };
+      };
+      expect(auditEventsEnvelope.data.events).toEqual([
+        expect.objectContaining({
+          type: "evidence-bundle.exported",
+          runId: "api-run-1",
+          taskId: "task-api-draft",
+          payload: expect.objectContaining({
+            bundleId: "evidence-bundle-api-run-1",
+            bundleChecksum: expect.objectContaining({
+              value: bundleEnvelope.data.manifest.checksums.manifest.value
+            }),
+            destinationKind: "api-response",
+            artifactCount: 9
+          })
+        })
+      ]);
+      expect(JSON.stringify(auditEventsEnvelope.data.events[0])).not.toContain("# API Artifact");
 
       const artifactResponse = await fetch(`${base}/api/v1/task-runs/${encodeURIComponent("api-run-1")}/artifacts/artifact-good`);
       expect(artifactResponse.status).toBe(200);

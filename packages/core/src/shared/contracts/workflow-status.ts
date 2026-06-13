@@ -1,5 +1,5 @@
-export type WorkflowRunGraphRunStatus = "pending" | "running" | "completed" | "failed" | "resumable";
-export type WorkflowRunGraphStepStatus = "pending" | "running" | "completed" | "failed" | "skipped";
+export type WorkflowRunGraphRunStatus = "pending" | "running" | "completed" | "failed" | "resumable" | "cancelled";
+export type WorkflowRunGraphStepStatus = "pending" | "running" | "completed" | "failed" | "skipped" | "cancelled";
 export type WorkflowRunGraphEventLevel = "info" | "warning" | "error";
 
 export interface WorkflowRunStatusSummary {
@@ -44,11 +44,21 @@ export interface WorkflowRunStatusTaskRunEvidence {
   artifacts: WorkflowRunStatusTaskArtifactSummary[];
 }
 
+export interface WorkflowRunStatusStepAttempt {
+  attempt: number;
+  status: "running" | "completed" | "failed" | "cancelled";
+  startedAt: string;
+  finishedAt?: string;
+  failure?: unknown;
+  output?: unknown;
+}
+
 export interface WorkflowRunStatusNode {
   id: string;
   status: WorkflowRunGraphStepStatus;
   ready: boolean;
   attempt: number;
+  attemptHistory: WorkflowRunStatusStepAttempt[];
   dependencies: string[];
   dependents: string[];
   blockingStepIds: string[];

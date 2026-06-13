@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
+import { openAppStateDatabase } from "../src/control-plane/app-state/index.js";
 import { withRequestAuthContext, type ScopeSet } from "../src/control-plane/auth.js";
 import type { ExecutionBackend } from "../src/control-plane/backends.js";
 import { createLocalControlPlaneServices, type ControlPlaneServices } from "../src/control-plane/services.js";
@@ -296,6 +297,169 @@ describe("control-plane authorization wrappers", () => {
     }
   });
 
+  it("enforces pilot posture for provider config, task execution, memory review, policy changes, and run inspection", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-authz-pilot-"));
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_AUTH_ENABLED=true\nATHENA_AUTHZ_MODE=enforce", "utf8");
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableTaskAgent(appState);
+      } finally {
+        appState.close();
+      }
+      const services = createLocalControlPlaneServices({ config });
+
+      await expect(withRole("Viewer", () => services.modelProviderConfigService.list())).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withRole("Operator", () =>
+          services.modelProviderConfigService.create({
+            id: "provider-operator-denied",
+            name: "Denied",
+            providerKind: "openai-compatible",
+            defaultModel: "gpt-test",
+            secret: { kind: "env", name: "OPENAI_API_KEY" }
+          })
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withRole("Admin", () =>
+          services.modelProviderConfigService.create({
+            id: "provider-admin",
+            name: "Admin Provider",
+            providerKind: "openai-compatible",
+            defaultModel: "gpt-test",
+            secret: { kind: "env", name: "OPENAI_API_KEY" }
+          })
+        )
+      ).resolves.toMatchObject({
+        id: "provider-admin",
+        status: "missing"
+      });
+
+      await expect(
+        withRole("Viewer", () =>
+          services.taskWorkbenchService.create({
+            id: "task-authz",
+            title: "Pilot posture task",
+            status: "ready",
+            assignedAgentId: "software.authz.local"
+          })
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withRole("Operator", () =>
+          services.taskWorkbenchService.create({
+            id: "task-authz",
+            title: "Pilot posture task",
+            status: "ready",
+            assignedAgentId: "software.authz.local"
+          })
+        )
+      ).resolves.toMatchObject({
+        id: "task-authz",
+        status: "ready"
+      });
+      await expect(withRole("Viewer", () => services.taskWorkbenchService.runTask("task-authz"))).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      const run = await withRole("Operator", () =>
+        services.taskWorkbenchService.runTask("task-authz", { runId: "run-authz-task" })
+      );
+      expect(run).toMatchObject({
+        id: "run-authz-task"
+      });
+      await expect(withRole("Viewer", () => services.taskWorkbenchService.getRun("run-authz-task"))).resolves.toMatchObject({
+        run: {
+          id: "run-authz-task"
+        }
+      });
+      await expect(withRole("Viewer", () => services.taskWorkbenchService.cancelRun("run-authz-task"))).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+
+      const proposal = await withRole("Operator", () =>
+        services.durableMemoryService.createProposal({
+          targetNamespace: { scope: "repository", id: "repo-authz" },
+          provenance: {
+            sourceKind: "task-run",
+            taskId: "task-authz",
+            runId: "run-authz-task",
+            createdByAction: "runtime-memory-proposal"
+          },
+          memoryType: "repo-note",
+          proposedBody: "Remember the pilot posture.",
+          reason: "agent proposed useful context"
+        })
+      );
+      await expect(
+        withRole("Viewer", () =>
+          services.durableMemoryService.approveProposal({
+            id: proposal.id,
+            actorId: "viewer",
+            reason: "viewer should not approve"
+          })
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withRole("Viewer", () =>
+          services.durableMemoryService.rejectProposal({
+            id: proposal.id,
+            actorId: "viewer",
+            reason: "viewer should not reject"
+          })
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withRole("Operator", () =>
+          services.durableMemoryService.approveProposal({
+            id: proposal.id,
+            actorId: "operator",
+            reason: "approved"
+          })
+        )
+      ).resolves.toMatchObject({
+        status: "approved",
+        reviewedBy: "operator"
+      });
+
+      await expect(
+        withRole("Viewer", () =>
+          services.policyService.put({
+            schemaVersion: 1,
+            updatedAt: new Date().toISOString(),
+            maxConcurrentRuns: 1
+          })
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withRole("Admin", () =>
+          services.policyService.put({
+            schemaVersion: 1,
+            updatedAt: new Date().toISOString(),
+            maxConcurrentRuns: 1
+          })
+        )
+      ).resolves.toMatchObject({
+        maxConcurrentRuns: 1
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("enforces scope constraints after permission checks and audits scope denials", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-authz-scope-"));
     try {
@@ -487,6 +651,20 @@ describe("control-plane authorization wrappers", () => {
       await expect(withRole("Viewer", () => soft.runService.cancel({ sessionId: "s-soft" }))).rejects.toMatchObject({
         code: "AUTHZ_DENIED"
       });
+      await expect(withRole("Viewer", () => soft.modelProviderConfigService.list())).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withRole("Viewer", () =>
+          soft.durableMemoryService.approveProposal({
+            id: "missing-proposal",
+            actorId: "viewer",
+            reason: "viewer should not approve in soft-enforce"
+          })
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
       await expect(
         withRole("Viewer", () =>
           soft.policyService.put({
@@ -541,4 +719,39 @@ function globalScope(): ScopeSet {
     sessionIds: [],
     runIds: []
   };
+}
+
+function seedRunnableTaskAgent(appState: ReturnType<typeof openAppStateDatabase>): void {
+  appState.plugins.upsert({
+    id: "team-orchestrator.test.authz",
+    version: "0.1.0",
+    path: "/tmp/team-orchestrator-authz-plugin",
+    enabled: true,
+    status: "loaded",
+    sourceType: "local",
+    manifest: {},
+    validationErrors: []
+  });
+  appState.agents.upsert({
+    id: "software.authz.local",
+    version: "1.0.0",
+    pluginId: "team-orchestrator.test.authz",
+    pluginVersion: "0.1.0",
+    name: "Authz Runner",
+    capabilities: ["test.run"],
+    status: "loaded",
+    manifest: {
+      agent: {
+        implementation: {
+          type: "local-command",
+          command: "/bin/echo",
+          args: ['{"summary":"ok","output":{"markdown":"authorized run completed"}}']
+        },
+        runtime: {
+          preferredBackend: "local-process",
+          workingDirectory: "."
+        }
+      }
+    }
+  });
 }

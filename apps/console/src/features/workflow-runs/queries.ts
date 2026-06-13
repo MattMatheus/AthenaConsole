@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { executeWorkflowRun, fetchWorkflowRunStatus } from "./api";
+import { executeWorkflowRun, fetchWorkflowQueueStatus, fetchWorkflowRunStatus } from "./api";
 import { shouldPollWorkflowRun } from "./runGraphModel";
 
 export function useWorkflowRunStatusQuery(runId: string | undefined) {
@@ -27,5 +27,14 @@ export function useExecuteWorkflowRunMutation() {
       void queryClient.invalidateQueries({ queryKey: ["mission-workbench"] });
       void queryClient.invalidateQueries({ queryKey: ["task-workbench", "tasks"] });
     },
+  });
+}
+
+export function useWorkflowQueueStatusQuery() {
+  return useQuery({
+    queryKey: ["workflow-queue", "status"],
+    queryFn: fetchWorkflowQueueStatus,
+    staleTime: 1_000,
+    refetchInterval: 5_000,
   });
 }

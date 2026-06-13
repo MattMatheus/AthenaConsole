@@ -47,45 +47,6 @@
   padding: var(--space-4);
 }
 
-.preflightPanel {
-  border: 1px solid #cbdff7;
-  border-radius: 8px;
-  background: #f7fbff;
-  padding: var(--space-4);
-  display: grid;
-  gap: var(--space-3);
-}
-
-.preflightGrid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: var(--space-3);
-}
-
-.preflightItem {
-  min-width: 0;
-  display: grid;
-  gap: var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: #fff;
-  padding: var(--space-3);
-}
-
-.preflightTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.preflightValue {
-  margin: 0;
-  color: var(--color-text);
-  font-weight: 800;
-  overflow-wrap: anywhere;
-}
-
 .guidancePanel {
   border: 1px solid var(--color-border);
   border-radius: 8px;
@@ -434,10 +395,6 @@
     grid-template-columns: 1fr;
   }
 
-  .preflightGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .taskFacts {
     grid-template-columns: 1fr;
   }
@@ -454,10 +411,6 @@
   }
 
   .inputGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .preflightGrid {
     grid-template-columns: 1fr;
   }
 

@@ -1,0 +1,18 @@
+{
+  "id": "software-team.test-failure-triage.golden",
+  "mode": "test-failure",
+  "agentId": "bundled.software-team.test-failure-explain.local",
+  "agentVersion": "0.1.0",
+  "promptTemplateHash": "sha256:software-team-test-failure-triage-golden-v1",
+  "inputs": {
+    "repositoryPath": "/workspace/AthenaConsole",
+    "testLog": "FAIL example.test.ts\nExpected true but received false",
+    "objective": "Explain the likely failure and propose the next local diagnostic checks.",
+    "evidence": "The failure appears after a feature flag change.",
+    "memoryContext": "Call out whether the failure is deterministic or needs reproduction."
+  },
+  "expected": {
+    "summary": "Test failure explanation prepared from supplied logs.",
+    "markdown": "# Test Failure Explanation\n\nTest failure explanation prepared from supplied logs.\n\n## Failure signal\nExplain the likely failure and propose the next local diagnostic checks.\n\n## Likely cause\nThe failure appears after a feature flag change.\n\n## Next diagnostic steps\nFAIL example.test.ts\nExpected true but received false\n\n## Safety\nThis bundled runner is deterministic, local, and does not perform external writes.\n\n## Memory\nOperator-supplied memory context was included as reviewable local evidence.\n"
+  }
+}

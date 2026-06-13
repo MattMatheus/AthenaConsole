@@ -2,8 +2,13 @@ import type { AthenaConfig } from "../../shared/config.js";
 import type {
   AgentCatalogAgentListQuery,
   AgentCatalogAgentListResult,
+  AgentCatalogCertification,
   AgentCatalogAgentMetadata,
   AgentCatalogAgentSummary,
+  AgentCatalogConnectorReadinessEntry,
+  AgentCatalogConnectorReadinessListResult,
+  EvalResultRecord,
+  EvalRunRecord,
   AgentCatalogPluginListResult,
   AgentCatalogPluginMetadata,
   AgentCatalogPluginSummary,
@@ -75,13 +80,26 @@ export class LocalAgentCatalogService implements AgentCatalogService {
       const agents = appState.agents
         .list()
         .filter((agent) => hasRequiredCapabilities(agent.capabilities, requiredCapabilities))
-        .map((agent) => mapAgentSummary(agent, pluginsByKey.get(pluginKey(agent.pluginId, agent.pluginVersion)), providers))
+        .map((agent) => mapAgentSummary(agent, pluginsByKey.get(pluginKey(agent.pluginId, agent.pluginVersion)), providers, appState))
         .filter((agent): agent is AgentCatalogAgentSummary => Boolean(agent));
 
       return {
         agents,
         total: agents.length,
         filters: requiredCapabilities.length > 0 ? { capabilities: requiredCapabilities } : {}
+      };
+    });
+  }
+
+  async listConnectorReadiness(): Promise<AgentCatalogConnectorReadinessListResult> {
+    return this.withAppState((appState) => {
+      const connectors = appState.plugins
+        .list()
+        .map((plugin) => mapConnectorReadinessEntry(plugin, appState))
+        .filter((entry): entry is AgentCatalogConnectorReadinessEntry => entry !== undefined);
+      return {
+        connectors,
+        total: connectors.length
       };
     });
   }
@@ -109,7 +127,11 @@ function mapPluginSummary(plugin: PluginIndexRecord, agents: AgentIndexRecord[],
         pluginId: plugin.id,
         pluginVersion: plugin.version,
         connector: manifest.plugin.connector,
-        binding: connectorBinding
+        binding: connectorBinding,
+        grantedScopes: manifest.plugin.connector.readiness?.grantedScopes,
+        rateLimitedOperationIds: manifest.plugin.connector.readiness?.rateLimitedOperationIds,
+        degraded: manifest.plugin.connector.readiness?.degraded,
+        blockedReasons: manifest.plugin.connector.readiness?.blockedReasons
       })
     : undefined;
   return {
@@ -139,10 +161,45 @@ function mapPluginSummary(plugin: PluginIndexRecord, agents: AgentIndexRecord[],
   };
 }
 
+function mapConnectorReadinessEntry(
+  plugin: PluginIndexRecord,
+  appState: AppStateDatabase
+): AgentCatalogConnectorReadinessEntry | undefined {
+  const manifest = normalizePluginManifest(plugin.manifest);
+  const connector = manifest.plugin?.connector;
+  if (!connector) {
+    return undefined;
+  }
+  const binding = appState.connectorCredentialBindings.get(plugin.id, plugin.version, connector.service.id);
+  return {
+    plugin: {
+      id: plugin.id,
+      version: plugin.version,
+      name: manifest.plugin?.name ?? plugin.id,
+      enabled: plugin.enabled,
+      status: plugin.status,
+      sourceType: plugin.sourceType,
+      sourceScope: resolveSourceScope(plugin.sourceType)
+    },
+    connector,
+    readiness: evaluateConnectorReadiness({
+      pluginId: plugin.id,
+      pluginVersion: plugin.version,
+      connector,
+      binding,
+      grantedScopes: connector.readiness?.grantedScopes,
+      rateLimitedOperationIds: connector.readiness?.rateLimitedOperationIds,
+      degraded: connector.readiness?.degraded,
+      blockedReasons: connector.readiness?.blockedReasons
+    })
+  };
+}
+
 function mapAgentSummary(
   agent: AgentIndexRecord,
   plugin: PluginIndexRecord | undefined,
-  providers: ReturnType<AppStateDatabase["modelProviderConfigs"]["list"]>
+  providers: ReturnType<AppStateDatabase["modelProviderConfigs"]["list"]>,
+  appState: AppStateDatabase
 ): AgentCatalogAgentSummary | undefined {
   if (!plugin) {
     return undefined;
@@ -168,11 +225,119 @@ function mapAgentSummary(
     status: agent.status,
     available: plugin.enabled && plugin.status === "loaded" && agent.status === "loaded",
     providerReadiness: evaluateProviderReadiness(providerRequirement ? [providerRequirement] : [], providers),
+    certification: evaluateAgentCertification(agent, plugin, pluginManifest, appState),
     metadata: mapAgentMetadata(agentManifest),
     validationErrors: [],
     createdAt: agent.createdAt,
     updatedAt: agent.updatedAt
   };
+}
+
+function evaluateAgentCertification(
+  agent: AgentIndexRecord,
+  plugin: PluginIndexRecord,
+  pluginManifest: PluginManifestDocument,
+  appState: AppStateDatabase
+): AgentCatalogCertification {
+  const declaredMaturity = pluginManifest.plugin?.pack?.maturity;
+  const required = isFirstPartyPlugin(plugin) && declaredMaturity === "certified";
+  if (!required) {
+    return {
+      status: "not-required",
+      required: false,
+      ...(declaredMaturity ? { declaredMaturity } : {}),
+      effectiveMaturity: declaredMaturity ?? "unknown",
+      evalResultIds: [],
+      expectedArtifactUris: [],
+      actualArtifactUris: [],
+      reasons: [],
+      message: "Certification gate is not required for this agent."
+    };
+  }
+
+  const candidate = findPassingCertificationRun(appState, agent);
+  if (candidate) {
+    return {
+      status: "certified",
+      required: true,
+      declaredMaturity,
+      effectiveMaturity: "certified",
+      evalRunId: candidate.run.id,
+      evalResultIds: candidate.results.map((result) => result.id),
+      expectedArtifactUris: candidate.results.map((result) => result.expectedArtifactUri!).filter(Boolean),
+      actualArtifactUris: candidate.results.map((result) => result.actualArtifactUri!).filter(Boolean),
+      reasons: [],
+      message: "Certified by passing eval results with expected and actual artifact links."
+    };
+  }
+
+  return {
+    status: "blocked",
+    required: true,
+    declaredMaturity,
+    effectiveMaturity: "preview",
+    evalResultIds: [],
+    expectedArtifactUris: [],
+    actualArtifactUris: [],
+    reasons: certificationBlockReasons(appState, agent),
+    message: "Declared certified maturity is blocked until a completed passing eval run records expected and actual artifact links."
+  };
+}
+
+function findPassingCertificationRun(
+  appState: AppStateDatabase,
+  agent: AgentIndexRecord
+): { run: EvalRunRecord; results: EvalResultRecord[] } | undefined {
+  const runs = appState.evals.listRuns({
+    agentId: agent.id,
+    agentVersion: agent.version,
+    status: "completed",
+    limit: 1000
+  });
+  for (const run of runs) {
+    const results = appState.evals.listResults({ evalRunId: run.id, limit: 1000 });
+    if (
+      results.length > 0 &&
+      results.every(
+        (result) =>
+          result.status === "passed" &&
+          typeof result.expectedArtifactUri === "string" &&
+          result.expectedArtifactUri.length > 0 &&
+          typeof result.actualArtifactUri === "string" &&
+          result.actualArtifactUri.length > 0
+      )
+    ) {
+      return { run, results };
+    }
+  }
+  return undefined;
+}
+
+function certificationBlockReasons(appState: AppStateDatabase, agent: AgentIndexRecord): string[] {
+  const runs = appState.evals.listRuns({
+    agentId: agent.id,
+    agentVersion: agent.version,
+    limit: 1000
+  });
+  if (runs.length === 0) {
+    return ["missing-eval-run"];
+  }
+  if (!runs.some((run) => run.status === "completed")) {
+    return ["missing-completed-eval-run"];
+  }
+  const completedRuns = runs.filter((run) => run.status === "completed");
+  const completedResults = completedRuns.flatMap((run) => appState.evals.listResults({ evalRunId: run.id, limit: 1000 }));
+  if (completedResults.length === 0) {
+    return ["missing-eval-results"];
+  }
+  if (completedResults.some((result) => result.status !== "passed")) {
+    return ["failing-eval-results"];
+  }
+  return ["missing-eval-artifact-links"];
+}
+
+function isFirstPartyPlugin(plugin: PluginIndexRecord): boolean {
+  return plugin.sourceType === "system" || plugin.id.startsWith("team-orchestrator.bundled.");
 }
 
 function mapAgentMetadata(manifest: AgentManifestDocument): AgentCatalogAgentMetadata {

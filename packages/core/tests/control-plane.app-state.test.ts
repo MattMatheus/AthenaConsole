@@ -34,6 +34,9 @@ describe("control-plane app-state database", () => {
             "app_state_migrations",
             "approvals",
             "artifact_metadata",
+            "eval_results",
+            "eval_runs",
+            "eval_suites",
             "missions",
             "plugin_index",
             "run_events",
@@ -41,9 +44,11 @@ describe("control-plane app-state database", () => {
             "schedules",
             "tasks",
             "workflow_dag_run_events",
+            "workflow_dag_run_step_attempts",
             "workflow_dag_run_steps",
             "workflow_dag_runs",
-            "workflow_template_index"
+            "workflow_template_index",
+            "worker_heartbeats"
           ])
         );
 

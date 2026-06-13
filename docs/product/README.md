@@ -16,6 +16,7 @@ epics/
 roadmap/            — Flight path and future horizon
 research/           — Active investigations
 release/            — Release notes
+pilot/              — Pilot packaging, demo, and adoption guidance
 ```
 
 ## Start here
@@ -24,6 +25,7 @@ release/            — Release notes
 - `architecture/decisions/` — why we made each structural choice
 - `epics/active/` — what's next
 - `roadmap/flight-path.md` — sequencing overview
+- `pilot/athena-agent-workbench-pilot.md` — current AthenaAgent workbench pilot package
 
 ## Retention rules
 

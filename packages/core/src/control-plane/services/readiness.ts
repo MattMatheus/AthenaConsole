@@ -588,6 +588,23 @@ export class LocalReadinessService implements ReadinessService {
     const externallyReachable = isExternallyReachableHost(apiHost);
     const authEnabled = this.config.auth?.enabled === true && Boolean(this.config.auth.apiToken);
     const explicitLocalOverride = this.config.auth?.allowExternalUnauthenticated === true;
+    const trustedProxyConfigured = this.config.auth?.trustedProxyConfigured === true;
+    const identityHeader = this.config.auth?.identityHeader ?? "x-athena-identity";
+    if (authEnabled && !trustedProxyConfigured) {
+      return degradedCheck({
+        id: "trusted-proxy-auth",
+        label: "Trusted identity proxy",
+        category: "security",
+        required: true,
+        message: "Trusted identity header auth is enabled without a declared header-stripping proxy.",
+        nextStep:
+          "Place the API behind a reverse proxy that strips inbound identity headers and injects authenticated identities, then set ATHENA_AUTH_TRUSTED_PROXY_CONFIGURED=true.",
+        details: {
+          identityHeader,
+          trustedProxyConfigured: false
+        }
+      });
+    }
     if (externallyReachable && !authEnabled && explicitLocalOverride) {
       return degradedCheck({
         id: "server-exposure",
@@ -628,7 +645,8 @@ export class LocalReadinessService implements ReadinessService {
       details: {
         externallyReachable,
         authEnabled,
-        explicitLocalOverride
+        explicitLocalOverride,
+        trustedProxyConfigured
       }
     });
   }

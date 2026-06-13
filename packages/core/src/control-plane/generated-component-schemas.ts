@@ -4444,7 +4444,15 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
         "enum": [
           "policy",
           "rbac-role",
-          "identity-assignment"
+          "identity-assignment",
+          "identity",
+          "provider",
+          "secret-reference",
+          "task-workflow",
+          "connector",
+          "artifact",
+          "memory",
+          "evidence"
         ]
       },
       "action": {
@@ -4532,7 +4540,15 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
               "enum": [
                 "policy",
                 "rbac-role",
-                "identity-assignment"
+                "identity-assignment",
+                "identity",
+                "provider",
+                "secret-reference",
+                "task-workflow",
+                "connector",
+                "artifact",
+                "memory",
+                "evidence"
               ]
             },
             "action": {

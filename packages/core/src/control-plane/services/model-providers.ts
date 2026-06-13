@@ -1,5 +1,3 @@
-import { existsSync, readFileSync } from "node:fs";
-import { isAbsolute, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { AthenaError } from "../../runtime/errors.js";
 import type { AthenaConfig } from "../../shared/config.js";
@@ -18,12 +16,21 @@ import type {
 import type { AppStateDatabase } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
 import type { ModelProviderConfigRecord } from "../app-state/domain-repositories/model-providers.js";
-import type { ModelProviderConfigService } from "../interfaces.js";
+import { getRequestAuthContext } from "../auth.js";
+import type { EventService, ModelProviderConfigService } from "../interfaces.js";
+import { SecretResolver } from "./secret-resolver.js";
 
 const DEFAULT_OPENAI_COMPATIBLE_BASE_URL = "https://api.openai.com/v1";
 
 export class LocalModelProviderConfigService implements ModelProviderConfigService {
-  constructor(private readonly config: AthenaConfig) {}
+  private readonly secretResolver: SecretResolver;
+
+  constructor(
+    private readonly config: AthenaConfig,
+    options: { eventService?: EventService } = {}
+  ) {
+    this.secretResolver = new SecretResolver(config, { eventService: options.eventService });
+  }
 
   async list(): Promise<ModelProviderConfigListResult> {
     return this.withAppState((appState) => {
@@ -103,7 +110,11 @@ export class LocalModelProviderConfigService implements ModelProviderConfigServi
       if (!record) {
         throw new AthenaError("PROVIDER_NOT_FOUND", `Model provider config not found: ${id}`);
       }
-      const status = this.evaluateSecret(record.secretRef);
+      const status = this.evaluateSecret(record.secretRef, {
+        purpose: "model-provider.test",
+        subject: getRequestAuthContext()?.subject,
+        resourceId: record.id
+      });
       appState.modelProviderConfigs.update(id, {
         status: status.status,
         statusMessage: status.message
@@ -127,7 +138,11 @@ export class LocalModelProviderConfigService implements ModelProviderConfigServi
       if (record.providerKind !== "openai-compatible") {
         throw new AthenaError("CONFIG_ERROR", `Unsupported model provider kind: ${record.providerKind}`);
       }
-      const apiKey = resolveSecret(record.secretRef, this.config);
+      const apiKey = this.secretResolver.resolve(record.secretRef, {
+        purpose: "model-provider.runtime",
+        subject: getRequestAuthContext()?.subject,
+        resourceId: record.id
+      });
       return {
         id: record.id,
         providerKind: record.providerKind,
@@ -147,9 +162,12 @@ export class LocalModelProviderConfigService implements ModelProviderConfigServi
     }
   }
 
-  private evaluateSecret(secret: ModelProviderSecretReference): { status: ModelProviderSecretStatus; message: string } {
+  private evaluateSecret(
+    secret: ModelProviderSecretReference,
+    audit?: { purpose: string; subject?: string; resourceId?: string }
+  ): { status: ModelProviderSecretStatus; message: string } {
     try {
-      resolveSecret(secret, this.config);
+      this.secretResolver.resolve(secret, audit);
       return {
         status: "configured",
         message: `${secret.kind} secret reference is configured.`
@@ -192,54 +210,6 @@ function secretMetadata(secret: ModelProviderSecretReference, configured: boolea
     name: secret.name,
     configured
   };
-}
-
-function resolveSecret(secret: ModelProviderSecretReference, config: AthenaConfig): string {
-  if (secret.kind === "env") {
-    const value = process.env[secret.name] ?? readDotEnvValue(config.workspaceRoot, secret.name);
-    if (!value) {
-      throw new AthenaError("CONFIG_ERROR", `Environment secret is not configured: ${secret.name}`);
-    }
-    return value;
-  }
-  if (secret.kind === "local-file") {
-    if (!isAbsolute(secret.name)) {
-      throw new AthenaError("CONFIG_ERROR", "Local-file secret reference must be an absolute path.");
-    }
-    if (!existsSync(secret.name)) {
-      throw new AthenaError("CONFIG_ERROR", "Local-file secret reference does not exist.");
-    }
-    const value = readFileSync(secret.name, "utf8").trim();
-    if (!value) {
-      throw new AthenaError("CONFIG_ERROR", "Local-file secret reference is empty.");
-    }
-    return value;
-  }
-  throw new AthenaError("CONFIG_ERROR", "Unsupported secret reference kind.");
-}
-
-function readDotEnvValue(workspaceRoot: string, key: string): string | undefined {
-  const envPath = resolve(workspaceRoot, ".env");
-  if (!existsSync(envPath)) {
-    return undefined;
-  }
-  const content = readFileSync(envPath, "utf8");
-  for (const rawLine of content.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) {
-      continue;
-    }
-    const eqIndex = line.indexOf("=");
-    if (eqIndex <= 0) {
-      continue;
-    }
-    const name = line.slice(0, eqIndex).trim();
-    if (name !== key) {
-      continue;
-    }
-    return line.slice(eqIndex + 1).trim().replace(/^['"]|['"]$/g, "");
-  }
-  return undefined;
 }
 
 function normalizeProviderConfigError(error: unknown): AthenaError {

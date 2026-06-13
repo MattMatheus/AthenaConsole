@@ -18,6 +18,7 @@ import { StartWorkPage } from "../pages/StartWorkPage";
 import { TaskCreatePage } from "../pages/TaskCreatePage";
 import { TaskRunDetailPage } from "../pages/TaskRunDetailPage";
 import { WorkflowRunDetailPage } from "../pages/WorkflowRunDetailPage";
+import { WorkflowQueuePage } from "../pages/WorkflowQueuePage";
 import { WorkflowsPage } from "../pages/WorkflowsPage";
 import { DOCUMENTATION_ALIAS_PATH, DOCUMENTATION_CANONICAL_PATH } from "./routeModel";
 
@@ -69,6 +70,10 @@ export const router = createBrowserRouter([
       {
         path: "workflows",
         element: <WorkflowsPage />,
+      },
+      {
+        path: "workflow-queue",
+        element: <WorkflowQueuePage />,
       },
       {
         path: "workflows/runs/:runId",

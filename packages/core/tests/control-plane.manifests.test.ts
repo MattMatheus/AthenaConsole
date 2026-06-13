@@ -152,6 +152,69 @@ describe("Team Orchestrator manifest schemas", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("accepts agent runtime retry policy declarations", () => {
+    const result = validateManifestDocument(
+      "agent",
+      buildAgentManifest({
+        runtime: {
+          preferredBackend: "local-process",
+          retryPolicy: buildRetryPolicy()
+        }
+      })
+    );
+
+    expect(result.issues).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts workflow task retry policy declarations", () => {
+    const result = validateManifestDocument("workflow", {
+      schemaVersion: 1,
+      workflow: {
+        id: "valid.workflow",
+        name: "Valid Workflow",
+        version: "0.1.0",
+        goal: "Validate retry policy.",
+        tasks: [
+          {
+            id: "plan",
+            title: "Plan",
+            retryPolicy: buildRetryPolicy()
+          }
+        ]
+      }
+    });
+
+    expect(result.issues).toEqual([]);
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects invalid workflow task retry policy declarations", () => {
+    const result = validateManifestDocument("workflow", {
+      schemaVersion: 1,
+      workflow: {
+        id: "invalid.workflow",
+        name: "Invalid Workflow",
+        version: "0.1.0",
+        goal: "Reject retry policy.",
+        tasks: [
+          {
+            id: "plan",
+            title: "Plan",
+            retryPolicy: {
+              ...buildRetryPolicy(),
+              maxAttempts: 0,
+              externalWriteRetry: "always"
+            }
+          }
+        ]
+      }
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.some((issue) => issue.path.includes("retryPolicy"))).toBe(true);
+  });
+
   it("accepts explicit durable-memory read, propose, and reviewed-write permissions", () => {
     const result = validateManifestDocument(
       "agent",
@@ -377,5 +440,15 @@ function buildConnectorMetadata(): Record<string, unknown> {
         approvalRequired: true
       }
     ]
+  };
+}
+
+function buildRetryPolicy(): Record<string, unknown> {
+  return {
+    maxAttempts: 3,
+    backoff: "exponential",
+    retryableFailurePhases: ["runtime-start", "execution", "connector-rate-limit"],
+    idempotency: "idempotent",
+    externalWriteRetry: "require-approval"
   };
 }

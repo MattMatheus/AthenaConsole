@@ -17,6 +17,7 @@ On your workstation:
 
 - Browser access to the server console port.
 - The Team Orchestrator repository URL.
+- The AthenaAgent repository URL.
 - A public HTTP(S) Git URL or absolute local Git path for the target repo you want to inspect.
 
 The walkthrough uses the deterministic `repo-summary` sample agent, so a model provider is optional. Provider setup is included for the point where you want model-backed agents.
@@ -44,12 +45,17 @@ These paths map to:
 - `/athena/plugins` for operator-supplied plugins.
 - `/run/secrets/athena` for read-only local-file provider secrets.
 
-## 2. Clone Team Orchestrator
+## 2. Clone Team Orchestrator And AthenaAgent
 
 ```bash
+mkdir -p Repos
+cd Repos
 git clone <team-orchestrator-repo-url> AthenaConsole
+git clone <athena-agent-repo-url> AthenaAgent
 cd AthenaConsole
 ```
+
+The server API image builds from `AthenaConsole` and packages AthenaAgent from the sibling `../AthenaAgent` Docker build context. Keep those directory names aligned unless you also update `docker-compose.server.yml`.
 
 Copy the server environment template:
 
@@ -65,6 +71,8 @@ Edit `server.env` before first boot:
 - Confirm every `ATHENA_SERVER_*_PATH` points at the durable host paths created above.
 - Confirm `ATHENA_SERVER_DOCKER_SOCKET` points at the container runtime socket used by the server.
 - Keep `ATHENA_SANDBOX_WORKSPACE_HOST_PATH` aligned with the host path that backs `/athena/workspace`.
+
+The API trusts `x-athena-identity` after the bearer token check. In the server profile, `console` maps to Admin, `operator` maps to Operator, `healthcheck` maps to Viewer, and unknown identities fall back to Viewer. Do not expose this trusted header directly to untrusted clients; a reverse proxy must strip inbound client identity headers and inject only authenticated identities.
 
 ## 3. Seed The Example Plugin
 
@@ -129,6 +137,13 @@ Use the API token and console identity on authenticated API calls:
 curl -H "authorization: Bearer ${ATHENA_AUTH_API_TOKEN}" \
   -H "x-athena-identity: console" \
   "${ATHENA_SERVER_URL}/api/v1/health"
+```
+
+Confirm AthenaAgent was packaged into the API image:
+
+```bash
+docker compose --env-file server.env -f docker-compose.server.yml exec api \
+  /opt/athena-agent-venv/bin/python -c "import athena_agent.console_runner; print('athena-agent-runtime-ok')"
 ```
 
 ## 6. Check Deployment Readiness
@@ -212,6 +227,16 @@ curl "${ATHENA_SERVER_URL}/api/v1/agent-catalog/agents?capabilities=repo.summari
 ```
 
 Expected data includes `repo.summary.local` and `available: true`.
+
+For the bundled model-backed AthenaAgent path, query:
+
+```bash
+curl "${ATHENA_SERVER_URL}/api/v1/agent-catalog/agents?capabilities=repo.summary" \
+  -H "authorization: Bearer ${ATHENA_AUTH_API_TOKEN}" \
+  -H "x-athena-identity: console"
+```
+
+Expected data includes `athena-agent.repo-summary`. Before a model provider is configured it should be present but blocked on provider readiness; after provider setup it should be available for AthenaAgent-backed repository summary tasks.
 
 In the console, open:
 

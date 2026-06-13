@@ -1,0 +1,17 @@
+{
+  "agentId": "athena-agent.repo-summary",
+  "inputs": {
+    "repo": {
+      "id": "athena-console",
+      "name": "AthenaConsole",
+      "sourceType": "existing-path",
+      "workspacePath": "/path/to/AthenaConsole",
+      "status": "ready",
+      "dirtyState": "unknown"
+    },
+    "objective": "Summarize the repository for a new operator before they begin implementation work.",
+    "focus": "Architecture, package layout, validation commands, and any obvious onboarding risks.",
+    "runMode": "read-only",
+    "memoryContext": "Prefer concise operational guidance and cite generated artifacts rather than raw secrets."
+  }
+}

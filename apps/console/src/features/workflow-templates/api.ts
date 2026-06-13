@@ -12,6 +12,7 @@ import type {
 } from "./types";
 import type { ProviderReadiness } from "../agent-catalog";
 import type { CapabilityPackMetadata } from "../agent-catalog";
+import type { CapabilityPackOutcome } from "../agent-catalog";
 import { parseRunReadiness } from "../task-workbench/api";
 
 type RecordValue = Record<string, unknown>;
@@ -49,6 +50,51 @@ function parsePackMetadata(value: unknown): CapabilityPackMetadata | undefined {
     },
     ...(Array.isArray(value.exampleWorkflows)
       ? { exampleWorkflows: value.exampleWorkflows.filter(isRecord) as Array<Record<string, unknown>> }
+      : {}),
+    ...(Array.isArray(value.outcomes)
+      ? { outcomes: value.outcomes.map(parsePackOutcome).filter((item): item is CapabilityPackOutcome => item !== undefined) }
+      : {}),
+  };
+}
+
+function parsePackOutcome(value: unknown): CapabilityPackOutcome | undefined {
+  if (!isRecord(value) || !isRecord(value.target) || typeof value.id !== "string" || typeof value.title !== "string") {
+    return undefined;
+  }
+  const kind =
+    value.target.kind === "agent" || value.target.kind === "workflow" || value.target.kind === "link"
+      ? value.target.kind
+      : undefined;
+  if (!kind || typeof value.target.id !== "string" || typeof value.description !== "string") {
+    return undefined;
+  }
+  const ui = toRecord(value.ui);
+  return {
+    id: value.id,
+    title: value.title,
+    description: value.description,
+    target: {
+      kind,
+      id: value.target.id,
+      ...(typeof value.target.version === "string" ? { version: value.target.version } : {}),
+      ...(typeof value.target.href === "string" ? { href: value.target.href } : {}),
+    },
+    contextRequirements: toStringArray(value.contextRequirements),
+    expectedArtifacts: Array.isArray(value.expectedArtifacts)
+      ? value.expectedArtifacts.filter(isRecord).map((artifact) => ({
+          label: typeof artifact.label === "string" ? artifact.label : "Artifact",
+          format: typeof artifact.format === "string" ? artifact.format : "markdown",
+        }))
+      : [],
+    executionMode: typeof value.executionMode === "string" ? value.executionMode : "deterministic",
+    ...(ui
+      ? {
+          ui: {
+            ...(typeof ui.icon === "string" ? { icon: ui.icon } : {}),
+            ...(typeof ui.badge === "string" ? { badge: ui.badge } : {}),
+            ...(typeof ui.order === "number" ? { order: ui.order } : {}),
+          },
+        }
       : {}),
   };
 }

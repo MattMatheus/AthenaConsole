@@ -1,5 +1,5 @@
 {
-  "workflowId": "bundled.github.pr-review-brief.workflow",
+  "agentId": "bundled.github.approved-write.local",
   "connectorFixture": {
     "liveNetwork": false,
     "scenarios": [

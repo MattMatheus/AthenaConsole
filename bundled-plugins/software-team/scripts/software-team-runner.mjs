@@ -6,7 +6,11 @@ for await (const chunk of process.stdin) {
 
 const envelopeText = Buffer.concat(chunks).toString("utf8").trim();
 const envelope = envelopeText ? JSON.parse(envelopeText) : {};
-const inputs = envelope.inputs ?? {};
+const inputs = isRecord(envelope.task?.inputs)
+  ? envelope.task.inputs
+  : isRecord(envelope.inputs)
+    ? envelope.inputs
+    : {};
 
 const modes = {
   "repo-summary": {
@@ -85,4 +89,8 @@ process.stdout.write(
 
 function text(value, fallback) {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : fallback;
+}
+
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }

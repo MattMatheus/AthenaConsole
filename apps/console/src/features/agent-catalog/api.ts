@@ -3,11 +3,13 @@ import type {
   AgentCatalogAgentListQuery,
   AgentCatalogAgentListResult,
   AgentCatalogAgentSummary,
+  CapabilityPackOutcome,
   CapabilityPackMetadata,
   AgentCatalogPluginListResult,
   AgentCatalogPluginSourceScope,
   AgentCatalogPluginSummary,
   AgentCatalogValidationIssue,
+  ConnectorReadiness,
   ProviderReadiness,
 } from "./types";
 
@@ -51,6 +53,51 @@ function parsePackMetadata(value: unknown): CapabilityPackMetadata | undefined {
     ...(Array.isArray(value.exampleWorkflows)
       ? { exampleWorkflows: value.exampleWorkflows.filter(isRecord) as Array<Record<string, unknown>> }
       : {}),
+    ...(Array.isArray(value.outcomes)
+      ? { outcomes: value.outcomes.map(parsePackOutcome).filter((item): item is CapabilityPackOutcome => item !== undefined) }
+      : {}),
+  };
+}
+
+function parsePackOutcome(value: unknown): CapabilityPackOutcome | undefined {
+  if (!isRecord(value) || !isRecord(value.target) || typeof value.id !== "string" || typeof value.title !== "string") {
+    return undefined;
+  }
+  const kind =
+    value.target.kind === "agent" || value.target.kind === "workflow" || value.target.kind === "link"
+      ? value.target.kind
+      : undefined;
+  if (!kind || typeof value.target.id !== "string" || typeof value.description !== "string") {
+    return undefined;
+  }
+  const ui = toRecord(value.ui);
+  return {
+    id: value.id,
+    title: value.title,
+    description: value.description,
+    target: {
+      kind,
+      id: value.target.id,
+      ...(typeof value.target.version === "string" ? { version: value.target.version } : {}),
+      ...(typeof value.target.href === "string" ? { href: value.target.href } : {}),
+    },
+    contextRequirements: toStringArray(value.contextRequirements),
+    expectedArtifacts: Array.isArray(value.expectedArtifacts)
+      ? value.expectedArtifacts.filter(isRecord).map((artifact) => ({
+          label: typeof artifact.label === "string" ? artifact.label : "Artifact",
+          format: typeof artifact.format === "string" ? artifact.format : "markdown",
+        }))
+      : [],
+    executionMode: typeof value.executionMode === "string" ? value.executionMode : "deterministic",
+    ...(ui
+      ? {
+          ui: {
+            ...(typeof ui.icon === "string" ? { icon: ui.icon } : {}),
+            ...(typeof ui.badge === "string" ? { badge: ui.badge } : {}),
+            ...(typeof ui.order === "number" ? { order: ui.order } : {}),
+          },
+        }
+      : {}),
   };
 }
 
@@ -81,6 +128,42 @@ function parseProviderReadiness(value: unknown): ProviderReadiness {
   };
 }
 
+function parseConnectorReadiness(value: unknown): ConnectorReadiness | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  const status =
+    value.status === "configured" ||
+    value.status === "missing-credentials" ||
+    value.status === "missing-scopes" ||
+    value.status === "rate-limited" ||
+    value.status === "degraded" ||
+    value.status === "blocked"
+      ? value.status
+      : undefined;
+  const credentialState =
+    value.credentialState === "not-required" ||
+    value.credentialState === "missing" ||
+    value.credentialState === "bound" ||
+    value.credentialState === "invalid"
+      ? value.credentialState
+      : undefined;
+  if (!status || !credentialState) {
+    return undefined;
+  }
+  return {
+    status,
+    ...(typeof value.serviceId === "string" ? { serviceId: value.serviceId } : {}),
+    ...(typeof value.serviceName === "string" ? { serviceName: value.serviceName } : {}),
+    credentialState,
+    missingScopes: toStringArray(value.missingScopes),
+    requiredScopes: toStringArray(value.requiredScopes),
+    rateLimitedOperations: toStringArray(value.rateLimitedOperations),
+    reasons: toStringArray(value.reasons),
+    nextStep: typeof value.nextStep === "string" ? value.nextStep : "Review connector readiness before running connector-backed work.",
+  };
+}
+
 function parseValidationIssue(value: unknown): AgentCatalogValidationIssue | undefined {
   if (!isRecord(value) || typeof value.path !== "string" || typeof value.message !== "string") {
     return undefined;
@@ -107,6 +190,7 @@ function parsePlugin(value: unknown): AgentCatalogPluginSummary | undefined {
   const compatibility = toRecord(metadata.compatibility);
   const permissions = toRecord(metadata.permissions);
   const pack = parsePackMetadata(metadata.pack);
+  const connectorReadiness = parseConnectorReadiness(metadata.connectorReadiness);
   return {
     id: value.id,
     version: value.version,
@@ -119,6 +203,7 @@ function parsePlugin(value: unknown): AgentCatalogPluginSummary | undefined {
       name: typeof metadata.name === "string" ? metadata.name : value.id,
       ...(typeof metadata.description === "string" ? { description: metadata.description } : {}),
       ...(pack ? { pack } : {}),
+      ...(connectorReadiness ? { connectorReadiness } : {}),
       ...(ui ? { ui } : {}),
       ...(compatibility ? { compatibility } : {}),
       ...(permissions ? { permissions } : {}),
@@ -165,6 +250,7 @@ function parseAgent(value: unknown): AgentCatalogAgentSummary | undefined {
     status: typeof value.status === "string" ? value.status : "unknown",
     available: Boolean(value.available),
     providerReadiness: parseProviderReadiness(value.providerReadiness),
+    certification: parseCertification(value.certification),
     metadata: {
       ...(typeof metadata.description === "string" ? { description: metadata.description } : {}),
       ...(inputs ? { inputs } : {}),
@@ -182,6 +268,24 @@ function parseAgent(value: unknown): AgentCatalogAgentSummary | undefined {
       : [],
     createdAt: typeof value.createdAt === "string" ? value.createdAt : new Date(0).toISOString(),
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : new Date(0).toISOString(),
+  };
+}
+
+function parseCertification(value: unknown): AgentCatalogAgentSummary["certification"] {
+  const record = isRecord(value) ? value : {};
+  const status =
+    record.status === "certified" || record.status === "blocked" || record.status === "not-required" ? record.status : "not-required";
+  return {
+    status,
+    required: Boolean(record.required),
+    ...(typeof record.declaredMaturity === "string" ? { declaredMaturity: record.declaredMaturity } : {}),
+    effectiveMaturity: typeof record.effectiveMaturity === "string" ? record.effectiveMaturity : "unknown",
+    ...(typeof record.evalRunId === "string" ? { evalRunId: record.evalRunId } : {}),
+    evalResultIds: toStringArray(record.evalResultIds),
+    expectedArtifactUris: toStringArray(record.expectedArtifactUris),
+    actualArtifactUris: toStringArray(record.actualArtifactUris),
+    reasons: toStringArray(record.reasons),
+    message: typeof record.message === "string" ? record.message : "",
   };
 }
 

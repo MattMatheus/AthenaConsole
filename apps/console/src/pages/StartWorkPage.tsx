@@ -7,70 +7,54 @@ import {
   SearchCheck,
   Sparkles,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  useAgentCatalogAgentsQuery,
+  useAgentCatalogPluginsQuery,
+  type AgentCatalogAgentSummary,
+  type ProviderReadiness,
+} from "../features/agent-catalog";
+import {
+  connectedRepositoryReadinessMessage,
+  useConnectedRepositoriesQuery,
+} from "../features/connected-repositories";
+import { useWorkflowTemplatesQuery, type WorkflowTemplateSummary } from "../features/workflow-templates";
 import styles from "./PageScaffold.module.css";
+import {
+  buildStartWorkOutcomes,
+  startWorkBlockedReasons,
+  startWorkHrefWithContext,
+  type StartWorkOutcome,
+} from "./startWorkModel";
 
-type WorkOutcome = {
-  id: string;
-  title: string;
-  body: string;
-  href: string;
-  icon: JSX.Element;
-  meta: string;
-};
-
-const outcomes: WorkOutcome[] = [
-  {
-    id: "first-run",
-    title: "Run the first-run demo",
-    body: "Instantiate the deterministic sample workflow and inspect its run evidence.",
-    href: "/workflows?templateId=first-run.demo.workflow&capability=Run%20the%20first-run%20demo",
-    icon: <Rocket size={18} />,
-    meta: "No credentials",
-  },
-  {
-    id: "repo-summary",
-    title: "Summarize a repository",
-    body: "Use the bundled software-team pack to describe structure, risks, and next steps.",
-    href: "/tasks?agentId=bundled.software-team.repo-summary.local&version=0.1.0&capability=Summarize%20a%20repository",
-    icon: <FileSearch size={18} />,
-    meta: "Repo context",
-  },
-  {
-    id: "code-review",
-    title: "Review code changes",
-    body: "Start a focused code review task using an existing local repository.",
-    href: "/tasks?agentId=bundled.software-team.code-review.local&version=0.1.0&capability=Review%20code%20changes",
-    icon: <SearchCheck size={18} />,
-    meta: "Read-only",
-  },
-  {
-    id: "release-readiness",
-    title: "Check release readiness",
-    body: "Run the bundled release workflow to collect readiness notes and evidence.",
-    href: "/workflows?templateId=bundled.software-team.release-readiness.workflow&capability=Check%20release%20readiness",
-    icon: <ClipboardCheck size={18} />,
-    meta: "Workflow",
-  },
-  {
-    id: "test-failure",
-    title: "Explain a test failure",
-    body: "Create a task that turns failure output into a concise debugging brief.",
-    href: "/tasks?agentId=bundled.software-team.test-failure-explain.local&version=0.1.0&capability=Explain%20a%20test%20failure",
-    icon: <ListChecks size={18} />,
-    meta: "Local analysis",
-  },
-  {
-    id: "github-pr",
-    title: "Prepare a GitHub PR brief",
-    body: "Use the GitHub connector pack when credentials and fixture context are ready.",
-    href: "/workflows?templateId=bundled.github.pr-review-brief.workflow&capability=Prepare%20a%20GitHub%20PR%20brief",
-    icon: <GitPullRequest size={18} />,
-    meta: "Connector",
-  },
-];
+const RUN_MODES = ["read-only", "propose-changes", "approved-write"] as const;
 
 export function StartWorkPage() {
+  const pluginsQuery = useAgentCatalogPluginsQuery();
+  const agentsQuery = useAgentCatalogAgentsQuery();
+  const templatesQuery = useWorkflowTemplatesQuery({ includeUnavailable: true });
+  const repositoriesQuery = useConnectedRepositoriesQuery();
+  const [selectedRepositoryId, setSelectedRepositoryId] = useState("");
+  const [runMode, setRunMode] = useState<(typeof RUN_MODES)[number]>("read-only");
+  const outcomes = buildStartWorkOutcomes(pluginsQuery.data?.plugins ?? []);
+  const agents = agentsQuery.data?.agents ?? [];
+  const templates = templatesQuery.data?.templates ?? [];
+  const repositories = repositoriesQuery.data?.repositories ?? [];
+  const selectedRepository = repositories.find((repository) => repository.id === selectedRepositoryId);
+  const repositoryReadinessMessage = connectedRepositoryReadinessMessage(selectedRepository);
+  const repositoryReady = Boolean(selectedRepository && !repositoryReadinessMessage);
+
+  useEffect(() => {
+    if (selectedRepositoryId || repositoriesQuery.isLoading) {
+      return;
+    }
+    const readyRepository = repositories.find((repository) => repository.status === "ready");
+    if (readyRepository) {
+      setSelectedRepositoryId(readyRepository.id);
+    }
+  }, [repositories, repositoriesQuery.isLoading, selectedRepositoryId]);
+
   return (
     <section className={styles.page}>
       <div className={styles.pageHeader}>
@@ -93,19 +77,52 @@ export function StartWorkPage() {
       </p>
 
       <section className={styles.createWorkPanel}>
-        <div>
-          <p className={styles.key}>Capabilities</p>
-          <h3 className={styles.resourceTitle}>Bundled starting points</h3>
+        <div className={styles.createWorkHeader}>
+          <div>
+            <p className={styles.key}>Capabilities</p>
+            <h3 className={styles.resourceTitle}>Bundled starting points</h3>
+          </div>
+          <div className={styles.startWorkControls}>
+            <label className={styles.startWorkControl}>
+              <span>Repository</span>
+              <select value={selectedRepositoryId} onChange={(event) => setSelectedRepositoryId(event.target.value)}>
+                <option value="">No repository selected</option>
+                {repositories.map((repository) => (
+                  <option key={repository.id} value={repository.id}>
+                    {repository.name} ({repository.status})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.startWorkControl}>
+              <span>Run mode</span>
+              <select value={runMode} onChange={(event) => setRunMode(event.target.value as (typeof RUN_MODES)[number])}>
+                {RUN_MODES.map((mode) => (
+                  <option key={mode} value={mode}>
+                    {runModeLabel(mode)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
+        {repositoryReadinessMessage ? <p className={styles.settingsMuted}>{repositoryReadinessMessage}</p> : null}
         <div className={styles.createWorkGrid}>
-          {outcomes.map((outcome) => (
-            <Link key={outcome.id} to={outcome.href} className={styles.createWorkEntry}>
-              <span className={styles.stepIcon}>{outcome.icon}</span>
-              <span className={styles.value}>{outcome.title}</span>
-              <span className={styles.settingsMuted}>{outcome.body}</span>
-              <span className={styles.panelMeta}>{outcome.meta}</span>
-            </Link>
-          ))}
+          {pluginsQuery.isLoading || agentsQuery.isLoading || templatesQuery.isLoading || repositoriesQuery.isLoading ? (
+            <p className={styles.settingsMuted}>Loading starting points...</p>
+          ) : null}
+          {pluginsQuery.error instanceof Error ? <p>{pluginsQuery.error.message}</p> : null}
+          {agentsQuery.error instanceof Error ? <p>{agentsQuery.error.message}</p> : null}
+          {templatesQuery.error instanceof Error ? <p>{templatesQuery.error.message}</p> : null}
+          {repositoriesQuery.error instanceof Error ? <p>{repositoriesQuery.error.message}</p> : null}
+          {outcomes.map((outcome) => {
+            const readiness = outcomeReadiness(outcome, agents, templates, repositoryReady);
+            const href = startWorkHrefWithContext(outcome, { repositoryId: selectedRepositoryId, runMode });
+            return <StartWorkCard key={outcome.id} outcome={outcome} href={href} blockedReasons={readiness.blockedReasons} />;
+          })}
+          {!pluginsQuery.isLoading && outcomes.length === 0 ? (
+            <p className={styles.settingsMuted}>No packaged starting points are available yet.</p>
+          ) : null}
         </div>
       </section>
 
@@ -123,4 +140,96 @@ export function StartWorkPage() {
       </section>
     </section>
   );
+}
+
+function StartWorkCard({
+  blockedReasons,
+  href,
+  outcome,
+}: {
+  blockedReasons: string[];
+  href: string;
+  outcome: StartWorkOutcome;
+}) {
+  const content = (
+    <>
+      <span className={styles.stepIcon}>{iconForOutcome(outcome)}</span>
+      <span className={styles.value}>{outcome.title}</span>
+      <span className={styles.settingsMuted}>{outcome.body}</span>
+      <span className={styles.panelMeta}>{outcome.meta}</span>
+      {blockedReasons.length > 0 ? <span className={styles.startWorkBlocked}>{blockedReasons.join(" ")}</span> : null}
+    </>
+  );
+
+  if (blockedReasons.length > 0) {
+    return (
+      <article className={`${styles.createWorkEntry} ${styles.createWorkEntryDisabled}`} aria-disabled="true">
+        {content}
+      </article>
+    );
+  }
+
+  return (
+    <Link to={href} className={styles.createWorkEntry}>
+      {content}
+    </Link>
+  );
+}
+
+function outcomeReadiness(
+  outcome: StartWorkOutcome,
+  agents: AgentCatalogAgentSummary[],
+  templates: WorkflowTemplateSummary[],
+  repositoryReady: boolean,
+): { blockedReasons: string[] } {
+  const target = outcome.target.kind === "agent"
+    ? agents?.find((agent) => agent.id === outcome.target.id && (!outcome.target.version || agent.version === outcome.target.version))
+    : outcome.target.kind === "workflow"
+      ? templates?.find((template) => template.id === outcome.target.id && (!outcome.target.version || template.version === outcome.target.version))
+      : undefined;
+  const providerReadiness = target?.providerReadiness as ProviderReadiness | undefined;
+  const providerReady = providerReadiness ? !isProviderReadinessBlocking(providerReadiness) : outcome.target.kind === "link";
+  return {
+    blockedReasons: startWorkBlockedReasons(outcome, {
+      backingReady: outcome.target.kind === "link" || Boolean(target),
+      repositoryReady,
+      providerReady,
+    }),
+  };
+}
+
+function isProviderReadinessBlocking(readiness: ProviderReadiness): boolean {
+  return Boolean(readiness.required && (readiness.status === "missing" || readiness.status === "invalid"));
+}
+
+function runModeLabel(mode: (typeof RUN_MODES)[number]): string {
+  if (mode === "read-only") {
+    return "Read-only";
+  }
+  if (mode === "propose-changes") {
+    return "Propose changes";
+  }
+  return "Approved write";
+}
+
+function iconForOutcome(outcome: StartWorkOutcome): JSX.Element {
+  if (outcome.icon === "rocket") {
+    return <Rocket size={18} />;
+  }
+  if (outcome.icon === "file-search" || outcome.icon === "folder-search") {
+    return <FileSearch size={18} />;
+  }
+  if (outcome.icon === "search-check") {
+    return <SearchCheck size={18} />;
+  }
+  if (outcome.icon === "clipboard-check" || outcome.icon === "list-checks") {
+    return <ClipboardCheck size={18} />;
+  }
+  if (outcome.icon === "git-pull-request" || outcome.icon === "github") {
+    return <GitPullRequest size={18} />;
+  }
+  if (outcome.icon === "list-checks-alt") {
+    return <ListChecks size={18} />;
+  }
+  return <Sparkles size={18} />;
 }

@@ -42,6 +42,7 @@ export interface ApiErrorBody {
     message: string;
     retryable: boolean;
     traceId?: string;
+    details?: unknown;
   };
 }
 
@@ -57,6 +58,11 @@ export const API_V1_ROUTES: ApiRouteDefinition[] = [
   { method: "GET", path: `${API_V1_PREFIX}/admin/health`, operationId: "getAdminHealth" },
   { method: "GET", path: `${API_V1_PREFIX}/agent-catalog/plugins`, operationId: "listAgentCatalogPlugins" },
   { method: "GET", path: `${API_V1_PREFIX}/agent-catalog/agents`, operationId: "listAgentCatalogAgents" },
+  {
+    method: "GET",
+    path: `${API_V1_PREFIX}/agent-catalog/connectors/readiness`,
+    operationId: "listAgentCatalogConnectorReadiness"
+  },
   { method: "GET", path: `${API_V1_PREFIX}/repositories`, operationId: "listRepositories" },
   { method: "POST", path: `${API_V1_PREFIX}/repositories`, operationId: "createRepository" },
   { method: "POST", path: `${API_V1_PREFIX}/repositories/inspect`, operationId: "inspectRepositoryPath" },
@@ -81,6 +87,7 @@ export const API_V1_ROUTES: ApiRouteDefinition[] = [
   { method: "GET", path: `${API_V1_PREFIX}/tasks/:id/run-readiness`, operationId: "getTaskRunReadiness" },
   { method: "POST", path: `${API_V1_PREFIX}/tasks/:id/run`, operationId: "runTask" },
   { method: "GET", path: `${API_V1_PREFIX}/task-runs/:runId`, operationId: "getTaskRun" },
+  { method: "GET", path: `${API_V1_PREFIX}/task-runs/:runId/evidence-bundle`, operationId: "getTaskRunEvidenceBundle" },
   { method: "GET", path: `${API_V1_PREFIX}/task-runs/:runId/artifacts/:artifactId`, operationId: "getTaskRunArtifact" },
   { method: "POST", path: `${API_V1_PREFIX}/task-runs/:runId/cancel`, operationId: "cancelTaskRun" },
   { method: "POST", path: `${API_V1_PREFIX}/runs`, operationId: "createRun" },
@@ -119,6 +126,13 @@ export const API_V1_ROUTES: ApiRouteDefinition[] = [
   { method: "POST", path: `${API_V1_PREFIX}/templates/:id/run`, operationId: "runTemplate" },
   { method: "GET", path: `${API_V1_PREFIX}/workflow-templates`, operationId: "listWorkflowTemplates" },
   { method: "POST", path: `${API_V1_PREFIX}/workflow-templates/:id/instantiate`, operationId: "instantiateWorkflowTemplate" },
+  {
+    method: "GET",
+    path: `${API_V1_PREFIX}/workflow-queue/status`,
+    operationId: "getWorkflowQueueStatus",
+    lifecycle: "stable",
+    surface: "canonical"
+  },
   {
     method: "GET",
     path: `${API_V1_PREFIX}/workflow-runs/:runId/status`,
@@ -199,11 +213,14 @@ export const API_V1_ROUTES: ApiRouteDefinition[] = [
     surface: "canonical"
   },
   { method: "GET", path: `${API_V1_PREFIX}/rbac/roles`, operationId: "listRbacRoles" },
+  { method: "GET", path: `${API_V1_PREFIX}/rbac/simulate`, operationId: "simulateRbacRole" },
   { method: "GET", path: `${API_V1_PREFIX}/rbac/assignments`, operationId: "listIdentityRoleAssignments" },
   { method: "PUT", path: `${API_V1_PREFIX}/rbac/assignments/:subject`, operationId: "upsertIdentityRoleAssignment" },
   { method: "DELETE", path: `${API_V1_PREFIX}/rbac/assignments/:subject`, operationId: "deleteIdentityRoleAssignment" },
   { method: "GET", path: `${API_V1_PREFIX}/rbac/audit/:subject`, operationId: "auditIdentityPermissions" },
   { method: "GET", path: `${API_V1_PREFIX}/governance/audit-trail`, operationId: "listGovernanceAuditTrail", queryMode: "cursor-page" },
+  { method: "GET", path: `${API_V1_PREFIX}/governance/audit-trail/export.jsonl`, operationId: "exportGovernanceAuditTrailJsonl" },
+  { method: "GET", path: `${API_V1_PREFIX}/governance/audit-trail/export.csv`, operationId: "exportGovernanceAuditTrailCsv" },
   { method: "GET", path: `${API_V1_PREFIX}/events`, operationId: "listEvents", queryMode: "cursor-page" },
   { method: "GET", path: `${API_V1_PREFIX}/events/stream`, operationId: "streamEvents", stream: "sse", queryMode: "tail" },
   { method: "GET", path: `${API_V1_PREFIX}/rejections`, operationId: "listRejections", queryMode: "cursor-page" },
@@ -255,6 +272,7 @@ export function mapErrorToHttp(error: unknown, traceId?: string): ApiErrorRespon
         code: athenaError.code,
         message: athenaError.message,
         retryable: athenaError.retryable,
+        ...(athenaError.details !== undefined ? { details: athenaError.details } : {}),
         ...(traceId ? { traceId } : {})
       }
     }

@@ -80,6 +80,7 @@ describe("loadConfig", () => {
       expect(config.telemetry?.events.maxRecords).toBe(10000);
       expect(config.telemetry?.events.maxAgeMs).toBe(30 * 24 * 60 * 60 * 1000);
       expect(config.telemetry?.events.maxBytes).toBe(5000000);
+      expect(config.telemetry?.events.sink).toBeUndefined();
       expect(config.telemetry?.appInsights?.enabled).toBe(false);
       expect(config.telemetry?.appInsights?.connectionString).toBeUndefined();
       expect(config.telemetry?.appInsights?.samplingPercentage).toBe(20);
@@ -93,6 +94,28 @@ describe("loadConfig", () => {
       expect(config.auth?.identityRoleMap).toEqual({});
       expect(config.authz?.mode).toBe("off");
       expect(config.authz?.defaultDecision).toBe("allow");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("loads JSONL event sink configuration", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-config-event-sink-"));
+    try {
+      writeFileSync(
+        join(dir, ".env"),
+        ["ATHENA_EVENT_SINK_JSONL_PATH=.athena/external/events.jsonl", "ATHENA_EVENT_SINK_INCLUDE_TYPES=run.completed,safety.violation"].join(
+          "\n"
+        ),
+        "utf8"
+      );
+      const config = loadConfig(dir);
+
+      expect(config.telemetry?.events.sink).toEqual({
+        kind: "jsonl",
+        path: ".athena/external/events.jsonl",
+        includeTypes: ["run.completed", "safety.violation"]
+      });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
