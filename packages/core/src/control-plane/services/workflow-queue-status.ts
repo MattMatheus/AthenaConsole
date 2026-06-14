@@ -14,19 +14,11 @@ import type {
   WorkerHeartbeatRecord
 } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
+import { isRetryFailurePhase, parseWorkflowTaskRetryPolicy, type RetryFailurePhase } from "./workflow-retry-policy.js";
 
 interface LocalWorkflowQueueStatusServiceOptions {
   appState?: AppStateDatabase;
   defaultStaleAfterMs?: number;
-}
-
-type RetryFailurePhase = "runtime-start" | "execution" | "provider" | "verification" | "artifact-export" | "connector-rate-limit";
-
-interface WorkflowTaskRetryPolicy {
-  maxAttempts: number;
-  retryableFailurePhases: RetryFailurePhase[];
-  idempotency: "read-only" | "idempotent" | "non-idempotent";
-  externalWriteRetry: "forbid" | "require-approval" | "allow";
 }
 
 export class LocalWorkflowQueueStatusService {
@@ -134,7 +126,7 @@ function classifyStep(
     return baseItem(snapshot, step, task, "retryable", {
       taskRun: failedRun,
       reason: "retry-policy-allows-next-attempt",
-      maxAttempts: retryPolicyFromTask(task)?.maxAttempts
+      maxAttempts: parseWorkflowTaskRetryPolicy(task)?.maxAttempts
     });
   }
   return undefined;
@@ -178,7 +170,7 @@ function latestTaskRun(appState: AppStateDatabase, task: TaskRecord, status: Run
 }
 
 function isRetryableStep(task: TaskRecord, step: WorkflowDagStepRecord): boolean {
-  const policy = retryPolicyFromTask(task);
+  const policy = parseWorkflowTaskRetryPolicy(task);
   if (!policy || step.attempt >= policy.maxAttempts) {
     return false;
   }
@@ -187,28 +179,6 @@ function isRetryableStep(task: TaskRecord, step: WorkflowDagStepRecord): boolean
     return false;
   }
   return policy.idempotency !== "non-idempotent" || policy.externalWriteRetry === "allow";
-}
-
-function retryPolicyFromTask(task: TaskRecord): WorkflowTaskRetryPolicy | undefined {
-  if (!isRecord(task.provenance) || !isRecord(task.provenance.retryPolicy)) {
-    return undefined;
-  }
-  const policy = task.provenance.retryPolicy;
-  if (
-    typeof policy.maxAttempts !== "number" ||
-    !Array.isArray(policy.retryableFailurePhases) ||
-    !isRetryIdempotency(policy.idempotency) ||
-    !isExternalWriteRetry(policy.externalWriteRetry)
-  ) {
-    return undefined;
-  }
-  const retryableFailurePhases = policy.retryableFailurePhases.filter(isRetryFailurePhase);
-  return {
-    maxAttempts: policy.maxAttempts,
-    retryableFailurePhases,
-    idempotency: policy.idempotency,
-    externalWriteRetry: policy.externalWriteRetry
-  };
 }
 
 function classifyRetryFailurePhase(failure: unknown): RetryFailurePhase {
@@ -249,23 +219,4 @@ function normalizePositiveInteger(value: number | undefined, fallback: number): 
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
-function isRetryFailurePhase(value: unknown): value is RetryFailurePhase {
-  return (
-    value === "runtime-start" ||
-    value === "execution" ||
-    value === "provider" ||
-    value === "verification" ||
-    value === "artifact-export" ||
-    value === "connector-rate-limit"
-  );
-}
-
-function isRetryIdempotency(value: unknown): value is WorkflowTaskRetryPolicy["idempotency"] {
-  return value === "read-only" || value === "idempotent" || value === "non-idempotent";
-}
-
-function isExternalWriteRetry(value: unknown): value is WorkflowTaskRetryPolicy["externalWriteRetry"] {
-  return value === "forbid" || value === "require-approval" || value === "allow";
 }

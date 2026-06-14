@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import Ajv, { type ErrorObject, type ValidateFunction } from "ajv";
+import { Ajv, type ErrorObject, type ValidateFunction } from "ajv";
 import { load as loadYaml } from "js-yaml";
 import { validateWorkflowTemplateDag } from "../workflow-template-dag.js";
 
@@ -236,7 +236,7 @@ function getValidator(kind: TeamOrchestratorManifestKind, schemaRoot: string = r
     return cached;
   }
 
-  const ajv = new Ajv({ allErrors: true });
+  const ajv = new Ajv({ allErrors: true, allowUnionTypes: true });
   const schema = JSON.parse(readFileSync(schemaPath, "utf8")) as object;
   const validator = ajv.compile(schema);
   schemaCache.set(schemaPath, validator);
@@ -245,7 +245,7 @@ function getValidator(kind: TeamOrchestratorManifestKind, schemaRoot: string = r
 
 function mapAjvErrors(errors: ErrorObject[]): ManifestValidationIssue[] {
   return errors.map((error) => ({
-    path: error.dataPath || "$",
+    path: error.instancePath || "$",
     message: error.message ?? "schema validation failed",
     keyword: error.keyword
   }));

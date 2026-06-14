@@ -229,6 +229,7 @@ export class ScheduleManager {
           const current = tasks.find((row) => row.id === id);
           if (current) {
             current.running = false;
+            current.nextRunAt = addMinutes(finish, current.everyMinutes);
             current.updatedAt = finish;
             await this.saveTasks(tasks);
           }

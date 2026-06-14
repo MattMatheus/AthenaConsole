@@ -171,6 +171,7 @@ function seedQueueStatusFixtures(appState: ReturnType<typeof openAppStateDatabas
     workflowTemplateId: "queue.retryable.workflow",
     retryPolicy: {
       maxAttempts: 2,
+      backoff: "none",
       retryableFailurePhases: ["execution"],
       idempotency: "idempotent",
       externalWriteRetry: "allow"

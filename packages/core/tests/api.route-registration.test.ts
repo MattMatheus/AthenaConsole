@@ -30,6 +30,7 @@ describe("api route registration", () => {
     expect(RUN_TEMPLATE_ROUTES.every((route) => route.meta.family === "run-templates")).toBe(true);
     expect(WORKFLOW_ROUTES.every((route) => route.meta.family === "workflows")).toBe(true);
     expect(WORKFLOW_ROUTES.map((route) => route.path)).toEqual([
+      "/api/v1/workflow-queue/status",
       "/api/v1/workflow-runs/:runId/status",
       "/api/v1/workflow-runs/:runId/execute"
     ]);

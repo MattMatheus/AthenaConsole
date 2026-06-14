@@ -412,6 +412,13 @@ describe("task, mission, and run repositories", () => {
           type: "run.started",
           timestamp: "2026-01-01T00:00:01.000Z"
         });
+        appState.runEvents.append({
+          id: "event-3",
+          runId: "run-1",
+          taskId: "task-run",
+          type: "run.completed",
+          timestamp: "2026-01-01T00:00:03.000Z"
+        });
         appState.artifacts.create({
           id: "artifact-summary",
           runId: "run-1",
@@ -422,22 +429,36 @@ describe("task, mission, and run repositories", () => {
           format: "markdown",
           storageUri: "artifacts/run-1/summary.md",
           sizeBytes: 42,
-          metadata: { audience: "operator" }
+          metadata: { audience: "operator" },
+          createdAt: "2026-01-01T00:00:01.000Z"
+        });
+        appState.artifacts.create({
+          id: "artifact-log",
+          runId: "run-1",
+          taskId: "task-run",
+          label: "Log",
+          kind: "secondary",
+          format: "json",
+          storageUri: "artifacts/run-1/log.json",
+          metadata: { audience: "debug" },
+          createdAt: "2026-01-01T00:00:02.000Z"
         });
 
-        expect(appState.runEvents.listForRun("run-1").map((event) => event.id)).toEqual(["event-1", "event-2"]);
+        expect(appState.runEvents.listForRun("run-1").map((event) => event.id)).toEqual(["event-1", "event-2", "event-3"]);
+        expect(appState.runEvents.listForRun("run-1", { limit: 2 }).map((event) => event.id)).toEqual(["event-1", "event-2"]);
         expect(appState.runEvents.listForRun("run-1")[1]).toMatchObject({
           message: "Working",
           payload: { step: 1 }
         });
-        expect(appState.artifacts.listForRun("run-1")).toEqual([
-          expect.objectContaining({
-            id: "artifact-summary",
-            label: "Summary",
-            storageUri: "artifacts/run-1/summary.md",
-            metadata: { audience: "operator" }
-          })
-        ]);
+        expect(appState.artifacts.listForRun("run-1").map((artifact) => artifact.id)).toEqual(["artifact-summary", "artifact-log"]);
+        expect(appState.artifacts.listForRun("run-1", { limit: 1 }).map((artifact) => artifact.id)).toEqual(["artifact-summary"]);
+        expect(appState.artifacts.getForRun("run-1", "artifact-log")).toMatchObject({
+          id: "artifact-log",
+          label: "Log",
+          storageUri: "artifacts/run-1/log.json",
+          metadata: { audience: "debug" }
+        });
+        expect(appState.artifacts.getForRun("run-1", "missing-artifact")).toBeUndefined();
 
         const completed = appState.runs.update("run-1", {
           status: "completed",

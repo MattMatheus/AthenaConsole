@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { isAbsolute, resolve, extname } from "node:path";
+import { isAbsolute, resolve, extname, sep } from "node:path";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { AthenaError } from "../../runtime/errors.js";
@@ -464,7 +464,13 @@ function normalizeAbsolutePath(workspaceRoot: string, file: string): string {
   if (!trimmed) {
     throw new AthenaError("CONFIG_ERROR", "file is required.");
   }
-  return isAbsolute(trimmed) ? trimmed : resolve(workspaceRoot, trimmed);
+  const root = resolve(workspaceRoot);
+  const absolute = isAbsolute(trimmed) ? resolve(trimmed) : resolve(root, trimmed);
+  const rootWithSeparator = root.endsWith(sep) ? root : `${root}${sep}`;
+  if (absolute !== root && !absolute.startsWith(rootWithSeparator)) {
+    throw new AthenaError("CONFIG_ERROR", "file must resolve inside the workspace root.");
+  }
+  return absolute;
 }
 
 function shouldRestartClient(error: unknown): boolean {

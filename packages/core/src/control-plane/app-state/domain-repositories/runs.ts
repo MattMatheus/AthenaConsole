@@ -319,9 +319,14 @@ export interface AppendRunEventInput {
   workspaceId?: string;
 }
 
+export interface ListRunRecordsOptions {
+  limit?: number;
+}
+
 export class RunEventRepository {
   private readonly insertStatement: Database.Statement;
   private readonly listForRunStatement: Database.Statement;
+  private readonly listForRunLimitedStatement: Database.Statement;
 
   constructor(private readonly db: Database.Database) {
     this.insertStatement = db.prepare(`
@@ -359,6 +364,9 @@ export class RunEventRepository {
     this.listForRunStatement = db.prepare(
       "select id, run_id, task_id, mission_id, agent_id, type, level, timestamp, message, payload_json, parent_event_id, trace_id, workspace_id from run_events where run_id = ? order by timestamp asc, rowid asc"
     );
+    this.listForRunLimitedStatement = db.prepare(
+      "select id, run_id, task_id, mission_id, agent_id, type, level, timestamp, message, payload_json, parent_event_id, trace_id, workspace_id from run_events where run_id = ? order by timestamp asc, rowid asc limit ?"
+    );
   }
 
   append(input: AppendRunEventInput): RunEventRecord {
@@ -395,9 +403,17 @@ export class RunEventRepository {
     };
   }
 
-  listForRun(runId: string): RunEventRecord[] {
-    return this.listForRunStatement.all(runId).map((row) => mapRunEventRow(row as RunEventRow));
+  listForRun(runId: string, options: ListRunRecordsOptions = {}): RunEventRecord[] {
+    if (options.limit === undefined) {
+      return this.listForRunStatement.all(runId).map((row) => mapRunEventRow(row as RunEventRow));
+    }
+    const limit = clampAppStateListLimit(options.limit);
+    return this.listForRunLimitedStatement.all(runId, limit).map((row) => mapRunEventRow(row as RunEventRow));
   }
+}
+
+export interface ListArtifactMetadataOptions {
+  limit?: number;
 }
 
 export interface ArtifactMetadataRecord {
@@ -437,6 +453,8 @@ export interface CreateArtifactMetadataInput {
 export class ArtifactMetadataRepository {
   private readonly insertStatement: Database.Statement;
   private readonly listForRunStatement: Database.Statement;
+  private readonly listForRunLimitedStatement: Database.Statement;
+  private readonly getForRunStatement: Database.Statement;
 
   constructor(private readonly db: Database.Database) {
     this.insertStatement = db.prepare(`
@@ -476,6 +494,12 @@ export class ArtifactMetadataRepository {
     this.listForRunStatement = db.prepare(
       "select id, run_id, task_id, agent_id, label, kind, format, storage_uri, size_bytes, hash, metadata_json, schema_validation_json, workspace_id, created_at from artifact_metadata where run_id = ? order by created_at asc, rowid asc"
     );
+    this.listForRunLimitedStatement = db.prepare(
+      "select id, run_id, task_id, agent_id, label, kind, format, storage_uri, size_bytes, hash, metadata_json, schema_validation_json, workspace_id, created_at from artifact_metadata where run_id = ? order by created_at asc, rowid asc limit ?"
+    );
+    this.getForRunStatement = db.prepare(
+      "select id, run_id, task_id, agent_id, label, kind, format, storage_uri, size_bytes, hash, metadata_json, schema_validation_json, workspace_id, created_at from artifact_metadata where run_id = ? and id = ?"
+    );
   }
 
   create(input: CreateArtifactMetadataInput): ArtifactMetadataRecord {
@@ -514,8 +538,17 @@ export class ArtifactMetadataRepository {
     };
   }
 
-  listForRun(runId: string): ArtifactMetadataRecord[] {
-    return this.listForRunStatement.all(runId).map((row) => mapArtifactMetadataRow(row as ArtifactMetadataRow));
+  getForRun(runId: string, artifactId: string): ArtifactMetadataRecord | undefined {
+    const row = this.getForRunStatement.get(runId, artifactId) as ArtifactMetadataRow | undefined;
+    return row ? mapArtifactMetadataRow(row) : undefined;
+  }
+
+  listForRun(runId: string, options: ListArtifactMetadataOptions = {}): ArtifactMetadataRecord[] {
+    if (options.limit === undefined) {
+      return this.listForRunStatement.all(runId).map((row) => mapArtifactMetadataRow(row as ArtifactMetadataRow));
+    }
+    const limit = clampAppStateListLimit(options.limit);
+    return this.listForRunLimitedStatement.all(runId, limit).map((row) => mapArtifactMetadataRow(row as ArtifactMetadataRow));
   }
 }
 

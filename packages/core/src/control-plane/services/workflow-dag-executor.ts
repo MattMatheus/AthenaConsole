@@ -4,10 +4,12 @@ import type { TaskWorkbenchTaskRun } from "../../shared/contracts.js";
 import type { AppStateDatabase, TaskRecord, WorkflowDagRunSnapshot, WorkflowDagStepRecord } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
 import { LocalTaskWorkbenchService } from "./task-workbench.js";
+import { computeRetryBackoffMs, isRetryFailurePhase, parseWorkflowTaskRetryPolicy, type RetryFailurePhase } from "./workflow-retry-policy.js";
 import { LocalWorkflowStateService } from "./workflow-state.js";
 
 export interface LocalWorkflowDagExecutorOptions {
   appState?: AppStateDatabase;
+  sleep?: (ms: number) => Promise<void>;
 }
 
 export interface WorkflowDagExecutionResult {
@@ -15,16 +17,6 @@ export interface WorkflowDagExecutionResult {
   status: WorkflowDagRunSnapshot["run"]["status"];
   executedStepIds: string[];
   snapshot: WorkflowDagRunSnapshot;
-}
-
-type RetryFailurePhase = "runtime-start" | "execution" | "provider" | "verification" | "artifact-export" | "connector-rate-limit";
-
-interface WorkflowTaskRetryPolicy {
-  maxAttempts: number;
-  backoff: "none" | "fixed" | "linear" | "exponential";
-  retryableFailurePhases: RetryFailurePhase[];
-  idempotency: "read-only" | "idempotent" | "non-idempotent";
-  externalWriteRetry: "forbid" | "require-approval" | "allow";
 }
 
 interface RetryDecision {
@@ -36,12 +28,40 @@ interface RetryDecision {
 }
 
 export class LocalWorkflowDagExecutorService {
+  private readonly inFlightRuns = new Map<string, Promise<WorkflowDagExecutionResult>>();
+  private readonly sleep: (ms: number) => Promise<void>;
+
   constructor(
     private readonly config: AthenaConfig,
     private readonly options: LocalWorkflowDagExecutorOptions = {}
-  ) {}
+  ) {
+    this.sleep = options.sleep ?? defaultWorkflowDagExecutorSleep;
+  }
 
   async execute(runId: string): Promise<WorkflowDagExecutionResult> {
+    return this.withRunGuard(runId, () => this.executeInternal(runId));
+  }
+
+  async resume(runId: string): Promise<WorkflowDagExecutionResult> {
+    return this.withRunGuard(runId, () => this.resumeInternal(runId));
+  }
+
+  private async withRunGuard(
+    runId: string,
+    run: () => Promise<WorkflowDagExecutionResult>
+  ): Promise<WorkflowDagExecutionResult> {
+    const existing = this.inFlightRuns.get(runId);
+    if (existing) {
+      return existing;
+    }
+    const promise = run().finally(() => {
+      this.inFlightRuns.delete(runId);
+    });
+    this.inFlightRuns.set(runId, promise);
+    return promise;
+  }
+
+  private async executeInternal(runId: string): Promise<WorkflowDagExecutionResult> {
     return this.withAppStateAsync(async (appState) => {
       const executedStepIds: string[] = [];
       const workflowState = new LocalWorkflowStateService(appState);
@@ -82,6 +102,10 @@ export class LocalWorkflowDagExecutorService {
           }
           const resumable = workflowState.resumeFromFirstFailedStep(runId);
           resetProjectedTasksForPendingSteps(appState, resumable);
+          const policy = parseWorkflowTaskRetryPolicy(task);
+          if (policy) {
+            await this.sleep(computeRetryBackoffMs(policy.backoff, failedStep.attempt));
+          }
           snapshot = workflowState.recomputeReadiness(runId);
           continue;
         }
@@ -96,13 +120,13 @@ export class LocalWorkflowDagExecutorService {
     });
   }
 
-  async resume(runId: string): Promise<WorkflowDagExecutionResult> {
+  private async resumeInternal(runId: string): Promise<WorkflowDagExecutionResult> {
     return this.withAppStateAsync(async (appState) => {
       const workflowState = new LocalWorkflowStateService(appState);
       workflowState.recoverStaleRunningSteps(runId);
       const resumable = workflowState.resumeFromFirstFailedStep(runId);
       resetProjectedTasksForPendingSteps(appState, resumable);
-      return this.execute(runId);
+      return this.executeInternal(runId);
     });
   }
 
@@ -132,9 +156,13 @@ function resetProjectedTasksForPendingSteps(appState: AppStateDatabase, snapshot
   }
 }
 
+function defaultWorkflowDagExecutorSleep(ms: number): Promise<void> {
+  return ms > 0 ? new Promise((resolve) => setTimeout(resolve, ms)) : Promise.resolve();
+}
+
 function evaluateRetryDecision(task: TaskRecord, step: WorkflowDagStepRecord, taskRun: TaskWorkbenchTaskRun): RetryDecision {
   const phase = classifyRetryFailurePhase(taskRun.failure, taskRun);
-  const policy = retryPolicyFromTask(task);
+  const policy = parseWorkflowTaskRetryPolicy(task);
   if (!policy) {
     return {
       retry: false,
@@ -180,34 +208,6 @@ function evaluateRetryDecision(task: TaskRecord, step: WorkflowDagStepRecord, ta
   };
 }
 
-function retryPolicyFromTask(task: TaskRecord): WorkflowTaskRetryPolicy | undefined {
-  if (!isRecord(task.provenance) || !isRecord(task.provenance.retryPolicy)) {
-    return undefined;
-  }
-  const policy = task.provenance.retryPolicy;
-  if (
-    typeof policy.maxAttempts !== "number" ||
-    !Number.isInteger(policy.maxAttempts) ||
-    !isRetryBackoff(policy.backoff) ||
-    !Array.isArray(policy.retryableFailurePhases) ||
-    !isRetryIdempotency(policy.idempotency) ||
-    !isExternalWriteRetry(policy.externalWriteRetry)
-  ) {
-    return undefined;
-  }
-  const retryableFailurePhases = policy.retryableFailurePhases.filter(isRetryFailurePhase);
-  if (retryableFailurePhases.length === 0) {
-    return undefined;
-  }
-  return {
-    maxAttempts: policy.maxAttempts,
-    backoff: policy.backoff,
-    retryableFailurePhases,
-    idempotency: policy.idempotency,
-    externalWriteRetry: policy.externalWriteRetry
-  };
-}
-
 function classifyRetryFailurePhase(failure: unknown, taskRun: TaskWorkbenchTaskRun): RetryFailurePhase {
   if (taskRun.verificationStatus === "verification-failed") {
     return "verification";
@@ -247,27 +247,4 @@ function selectNextReadyStep(snapshot: WorkflowDagRunSnapshot): WorkflowDagStepR
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
-}
-
-function isRetryBackoff(value: unknown): value is WorkflowTaskRetryPolicy["backoff"] {
-  return value === "none" || value === "fixed" || value === "linear" || value === "exponential";
-}
-
-function isRetryFailurePhase(value: unknown): value is RetryFailurePhase {
-  return (
-    value === "runtime-start" ||
-    value === "execution" ||
-    value === "provider" ||
-    value === "verification" ||
-    value === "artifact-export" ||
-    value === "connector-rate-limit"
-  );
-}
-
-function isRetryIdempotency(value: unknown): value is WorkflowTaskRetryPolicy["idempotency"] {
-  return value === "read-only" || value === "idempotent" || value === "non-idempotent";
-}
-
-function isExternalWriteRetry(value: unknown): value is WorkflowTaskRetryPolicy["externalWriteRetry"] {
-  return value === "forbid" || value === "require-approval" || value === "allow";
 }

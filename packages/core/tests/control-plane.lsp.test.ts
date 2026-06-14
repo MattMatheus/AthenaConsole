@@ -1,8 +1,9 @@
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import { createLocalControlPlaneServices } from "../src/control-plane/services.js";
+import { AthenaError } from "../src/runtime/errors.js";
 import { loadConfig } from "../src/shared/config.js";
 
 const FAKE_LSP_SCRIPT = `
@@ -153,6 +154,85 @@ function respond(id, result) {
 `;
 
 describe("control-plane LSP service", () => {
+  it("rejects relative file paths that escape the workspace root", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-lsp-bounds-"));
+    try {
+      const config = loadConfig(dir);
+      const services = createLocalControlPlaneServices({
+        config,
+        lspOptions: {
+          serverCommands: {
+            typescript: {
+              command: process.execPath,
+              args: ["-e", ""]
+            }
+          }
+        }
+      });
+
+      await expectPathOutsideWorkspaceError(services.lspService.getDocumentSymbols("../outside.ts"));
+      await services.shutdown?.();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects absolute file paths outside the workspace root", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-lsp-bounds-"));
+    try {
+      const outsideFile = resolve(dir, "..", "outside.ts");
+      const config = loadConfig(dir);
+      const services = createLocalControlPlaneServices({
+        config,
+        lspOptions: {
+          serverCommands: {
+            typescript: {
+              command: process.execPath,
+              args: ["-e", ""]
+            }
+          }
+        }
+      });
+
+      await expectPathOutsideWorkspaceError(services.lspService.getDocumentSymbols(outsideFile));
+      await services.shutdown?.();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("allows in-workspace relative file paths past containment validation", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-lsp-bounds-"));
+    try {
+      mkdirSync(join(dir, "src"), { recursive: true });
+      writeFileSync(join(dir, "src", "index.ts"), "export const value = 1;\n", "utf8");
+      const config = loadConfig(dir);
+      const services = createLocalControlPlaneServices({
+        config,
+        lspOptions: {
+          serverCommands: {
+            typescript: {
+              command: process.execPath,
+              args: ["-e", ""]
+            }
+          },
+          requestTimeoutMs: 50
+        }
+      });
+
+      try {
+        await services.lspService.getDocumentSymbols("src/index.ts");
+      } catch (error) {
+        expect(error).toBeInstanceOf(AthenaError);
+        expect((error as AthenaError).message).not.toContain("file must resolve inside the workspace root");
+      }
+
+      await services.shutdown?.();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("supports definition/reference/hover semantic calls", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-lsp-"));
     try {
@@ -251,6 +331,13 @@ describe("control-plane LSP service", () => {
     }
   });
 });
+
+async function expectPathOutsideWorkspaceError(promise: Promise<unknown>): Promise<void> {
+  await expect(promise).rejects.toMatchObject({
+    code: "CONFIG_ERROR",
+    message: "file must resolve inside the workspace root."
+  });
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

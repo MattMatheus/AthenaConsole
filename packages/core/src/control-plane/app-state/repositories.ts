@@ -543,6 +543,8 @@ export interface AgentIndexUpsert {
 }
 
 export class AgentIndexRepository {
+  private readonly getStatement: Database.Statement;
+  private readonly findByIdStatement: Database.Statement;
   private readonly listStatement: Database.Statement;
   private readonly listForPluginStatement: Database.Statement;
   private readonly upsertStatement: Database.Statement;
@@ -550,6 +552,12 @@ export class AgentIndexRepository {
   private readonly deleteForPluginStatement: Database.Statement;
 
   constructor(private readonly db: Database.Database) {
+    this.getStatement = db.prepare(
+      "select id, version, plugin_id, plugin_version, name, capabilities_json, manifest_json, status, lifecycle_status, created_at, updated_at from agent_index where id = ? and version = ?"
+    );
+    this.findByIdStatement = db.prepare(
+      "select id, version, plugin_id, plugin_version, name, capabilities_json, manifest_json, status, lifecycle_status, created_at, updated_at from agent_index where id = ? order by version asc limit 1"
+    );
     this.listStatement = db.prepare(
       "select id, version, plugin_id, plugin_version, name, capabilities_json, manifest_json, status, lifecycle_status, created_at, updated_at from agent_index order by id asc, version asc"
     );
@@ -595,6 +603,16 @@ export class AgentIndexRepository {
     `);
     this.deleteStatement = db.prepare("delete from agent_index where id = ? and version = ?");
     this.deleteForPluginStatement = db.prepare("delete from agent_index where plugin_id = ? and plugin_version = ?");
+  }
+
+  get(id: string, version: string): AgentIndexRecord | undefined {
+    const row = this.getStatement.get(id, version) as AgentIndexRow | undefined;
+    return row ? this.mapRow(row) : undefined;
+  }
+
+  findById(id: string): AgentIndexRecord | undefined {
+    const row = this.findByIdStatement.get(id) as AgentIndexRow | undefined;
+    return row ? this.mapRow(row) : undefined;
   }
 
   list(): AgentIndexRecord[] {

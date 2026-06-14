@@ -294,7 +294,7 @@ Source epics:
 - `docs/product/epics/completed/2026.39.00-epic-built-in-software-team-agent-pack.md`
 - `docs/product/epics/completed/2026.40.00-epic-connector-pack-platform.md`
 - `docs/product/epics/completed/2026.41.00-epic-github-connector-pack.md`
-- `docs/product/epics/active/2026.42.00-epic-product-intuition-and-start-work-flow.md`
+- `docs/product/epics/completed/2026.42.00-epic-product-intuition-and-start-work-flow.md`
 - `docs/product/epics/active/2026.43.00-epic-knowledge-work-connector-pack.md`
 
 ### Current Flywheel Priorities
@@ -305,7 +305,7 @@ The `2026.1` local-first release candidate is cut and published as `release-2026
 
 Post-release roadmap refinement has accepted the durable memory architecture baseline. The accepted architecture records are `docs/product/architecture/decisions/0019-durable-memory-domain-architecture.md`, `docs/product/architecture/decisions/0020-durable-memory-provider-interface.md`, `docs/product/architecture/decisions/0021-durable-memory-namespace-and-provenance-model.md`, `docs/product/architecture/decisions/0022-durable-memory-local-cache-boundary.md`, `docs/product/architecture/decisions/0023-durable-memory-remote-backend-recommendation.md`, and `docs/product/architecture/decisions/0024-semantic-memory-retrieval-and-sync-strategy.md`; `STORY-20260602-durable-memory-server-storage` completed the storage implementation slice, `STORY-20260602-durable-memory-api-routes` completed the API implementation slice, `STORY-20260602-durable-memory-remote-provider-client` completed the remote provider implementation slice, `STORY-20260602-durable-memory-readiness-config` completed the `2026.35` readiness/config slice, and `STORY-20260602-durable-memory-console-inspector` completed the console inspector slice.
 
-The next active product arc is `2026.42 Product Intuition And Start-Work Flow`. It intentionally defers `2026.43 Knowledge Work Connector Pack` until the console is refocused around outcomes, capabilities, resources, work history, and review instead of exposing every implementation primitive as a primary operator choice.
+The `2026.42 Product Intuition And Start-Work Flow` arc is complete; it refocused the console around outcomes, capabilities, resources, work history, and review instead of exposing every implementation primitive as a primary operator choice. `2026.43 Knowledge Work Connector Pack` remains intentionally deferred.
 
 The completed durable-memory governance sequence lives in `flywheel/backlog/engineering/done/` as `STORY-20260602-memory-manifest-permissions.md`, `STORY-20260602-memory-runtime-context.md`, `STORY-20260602-memory-usage-events.md`, `STORY-20260602-memory-proposed-review.md`, `STORY-20260602-memory-artifact-promotion.md`, and `STORY-20260602-memory-aware-run-detail.md`.
 

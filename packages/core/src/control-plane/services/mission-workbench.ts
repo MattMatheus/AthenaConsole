@@ -17,14 +17,12 @@ import type {
   MissionWorkbenchMissionTaskCreateRequest,
   MissionWorkbenchMissionTaskListResult,
   MissionWorkbenchMissionUpdateRequest,
-  TaskWorkbenchRunEvent,
-  TaskWorkbenchTask,
   TaskWorkbenchTaskRun
 } from "../../shared/contracts.js";
-import type { AppStateDatabase, MissionRecord, RunEventRecord, RunRecord, TaskRecord } from "../app-state/index.js";
+import type { AppStateDatabase, MissionRecord, RunRecord, TaskRecord } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
 import type { MissionWorkbenchService } from "../interfaces.js";
-import { evaluateTaskRunReadiness, LocalTaskWorkbenchService } from "./task-workbench.js";
+import { LocalTaskWorkbenchService, mapRunEventRecord, mapTaskRecord } from "./task-workbench.js";
 
 export interface LocalMissionWorkbenchServiceOptions {
   appState?: AppStateDatabase;
@@ -426,29 +424,6 @@ function mapMissionRecord(record: MissionRecord): MissionWorkbenchMission {
   };
 }
 
-function mapTaskRecord(record: TaskRecord, appState?: AppStateDatabase): TaskWorkbenchTask {
-  return {
-    id: record.id,
-    title: record.title,
-    description: record.description,
-    status: record.status,
-    capabilityRequirements: record.capabilityRequirements,
-    ...(record.assignedAgentId ? { assignedAgentId: record.assignedAgentId } : {}),
-    ...(record.assignedAgentVersion ? { assignedAgentVersion: record.assignedAgentVersion } : {}),
-    inputs: record.inputs,
-    dependsOn: record.dependsOn,
-    workspaceId: record.workspaceId,
-    ...(record.missionId ? { missionId: record.missionId } : {}),
-    ...(record.sourceRunId ? { sourceRunId: record.sourceRunId } : {}),
-    ...(record.provenance !== undefined ? { provenance: record.provenance } : {}),
-    ...(record.createdBy ? { createdBy: record.createdBy } : {}),
-    createdAt: record.createdAt,
-    updatedAt: record.updatedAt,
-    ...(record.archivedAt ? { archivedAt: record.archivedAt } : {}),
-    ...(appState ? { runReadiness: evaluateTaskRunReadiness(appState, record) } : {})
-  };
-}
-
 function mapMissionRunRecord(record: RunRecord): MissionWorkbenchMissionRun {
   return {
     id: record.id,
@@ -498,23 +473,6 @@ function mapTaskRunRecord(record: RunRecord): TaskWorkbenchTaskRun {
     ...(record.safetyStop !== undefined ? { safetyStop: record.safetyStop } : {}),
     createdAt: record.createdAt,
     updatedAt: record.updatedAt
-  };
-}
-
-function mapRunEventRecord(record: RunEventRecord): TaskWorkbenchRunEvent {
-  return {
-    id: record.id,
-    runId: record.runId,
-    ...(record.taskId ? { taskId: record.taskId } : {}),
-    ...(record.missionId ? { missionId: record.missionId } : {}),
-    ...(record.agentId ? { agentId: record.agentId } : {}),
-    type: record.type,
-    level: record.level,
-    timestamp: record.timestamp,
-    message: record.message,
-    payload: record.payload,
-    ...(record.parentEventId ? { parentEventId: record.parentEventId } : {}),
-    ...(record.traceId ? { traceId: record.traceId } : {})
   };
 }
 

@@ -82,6 +82,7 @@ export interface LocalTaskWorkbenchServiceOptions {
 
 const RUN_EVENT_SIDECAR_MAX_RECORDS = 200;
 const RUN_EVENT_SIDECAR_MAX_BYTES = 128 * 1024;
+const RUN_DETAIL_EVENT_LIMIT = 1000;
 const LOCAL_COMMAND_HOST_ENV_ALLOWLIST = [
   "PATH",
   "HOME",
@@ -421,8 +422,8 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       return {
         run: mapRunRecord(run, appState),
         ...(task ? { task: mapTaskRecord(task, appState) } : {}),
-        events: appState.runEvents.listForRun(run.id).map(mapRunEventRecord),
-        artifacts: appState.artifacts.listForRun(run.id).map(mapArtifactMetadataRecord)
+        events: appState.runEvents.listForRun(run.id, { limit: RUN_DETAIL_EVENT_LIMIT }).map(mapRunEventRecord),
+        artifacts: appState.artifacts.listForRun(run.id, { limit: RUN_DETAIL_EVENT_LIMIT }).map(mapArtifactMetadataRecord)
       };
     });
   }
@@ -543,7 +544,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
       if (!run || run.targetType !== "task") {
         throw new AthenaError("PROVIDER_NOT_FOUND", `Task run not found: ${runId}`);
       }
-      const artifact = appState.artifacts.listForRun(run.id).find((item) => item.id === artifactId);
+      const artifact = appState.artifacts.getForRun(run.id, artifactId);
       if (!artifact) {
         throw new AthenaError("PROVIDER_NOT_FOUND", `Task run artifact not found: ${artifactId}`);
       }
@@ -2510,9 +2511,9 @@ function resolveAssignedAgentForReadiness(
   assignedAgentId: string,
   assignedAgentVersion: string | undefined
 ): { agent: AgentIndexRecord; plugin: PluginIndexRecord } | undefined {
-  const agent = appState.agents
-    .list()
-    .find((candidate) => candidate.id === assignedAgentId && (!assignedAgentVersion || candidate.version === assignedAgentVersion));
+  const agent = assignedAgentVersion
+    ? appState.agents.get(assignedAgentId, assignedAgentVersion)
+    : appState.agents.findById(assignedAgentId);
   if (!agent) {
     return undefined;
   }
@@ -3088,7 +3089,7 @@ function readNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
-function mapTaskRecord(record: TaskRecord, appState?: AppStateDatabase): TaskWorkbenchTask {
+export function mapTaskRecord(record: TaskRecord, appState?: AppStateDatabase): TaskWorkbenchTask {
   const latestRun = appState?.runs.list({ targetType: "task", targetId: record.id, limit: 1 })[0];
   return {
     id: record.id,
@@ -3175,7 +3176,7 @@ function mapRunUsageSummary(record: {
   };
 }
 
-function mapRunEventRecord(record: RunEventRecord): TaskWorkbenchRunEvent {
+export function mapRunEventRecord(record: RunEventRecord): TaskWorkbenchRunEvent {
   return {
     id: record.id,
     runId: record.runId,

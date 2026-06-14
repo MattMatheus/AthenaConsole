@@ -1,26 +1,42 @@
+import { lazy } from "react";
 import { Navigate, createBrowserRouter } from "react-router-dom";
 import { AppLayout } from "../layout/AppLayout";
-import { AgentCatalogPage } from "../pages/AgentCatalogPage";
-import { AgentDetailPage } from "../pages/AgentDetailPage";
 import { DashboardPage } from "../pages/DashboardPage";
-import { DocumentationPage } from "../pages/DocumentationPage";
-import { DurableMemoryPage } from "../pages/DurableMemoryPage";
-import { MissionsPage } from "../pages/MissionsPage";
-import { FailedWorkPage } from "../pages/FailedWorkPage";
-import { AuditTrailPage } from "../pages/AuditTrailPage";
-import { RbacPage } from "../pages/RbacPage";
-import { ResourcesPage } from "../pages/ResourcesPage";
-import { RunTemplatesPage } from "../pages/RunTemplatesPage";
-import { SchedulesPage } from "../pages/SchedulesPage";
-import { RunHistoryPage } from "../pages/SessionsPage";
-import { SettingsPage } from "../pages/SettingsPage";
-import { StartWorkPage } from "../pages/StartWorkPage";
-import { TaskCreatePage } from "../pages/TaskCreatePage";
-import { TaskRunDetailPage } from "../pages/TaskRunDetailPage";
-import { WorkflowRunDetailPage } from "../pages/WorkflowRunDetailPage";
-import { WorkflowQueuePage } from "../pages/WorkflowQueuePage";
-import { WorkflowsPage } from "../pages/WorkflowsPage";
 import { DOCUMENTATION_ALIAS_PATH, DOCUMENTATION_CANONICAL_PATH } from "./routeModel";
+
+const StartWorkPage = lazy(() => import("../pages/StartWorkPage").then((m) => ({ default: m.StartWorkPage })));
+const AgentCatalogPage = lazy(() =>
+  import("../pages/AgentCatalogPage").then((m) => ({ default: m.AgentCatalogPage })),
+);
+const AgentDetailPage = lazy(() => import("../pages/AgentDetailPage").then((m) => ({ default: m.AgentDetailPage })));
+const TaskCreatePage = lazy(() => import("../pages/TaskCreatePage").then((m) => ({ default: m.TaskCreatePage })));
+const TaskRunDetailPage = lazy(() =>
+  import("../pages/TaskRunDetailPage").then((m) => ({ default: m.TaskRunDetailPage })),
+);
+const SchedulesPage = lazy(() => import("../pages/SchedulesPage").then((m) => ({ default: m.SchedulesPage })));
+const MissionsPage = lazy(() => import("../pages/MissionsPage").then((m) => ({ default: m.MissionsPage })));
+const RunHistoryPage = lazy(() => import("../pages/SessionsPage").then((m) => ({ default: m.RunHistoryPage })));
+const WorkflowsPage = lazy(() => import("../pages/WorkflowsPage").then((m) => ({ default: m.WorkflowsPage })));
+const WorkflowQueuePage = lazy(() =>
+  import("../pages/WorkflowQueuePage").then((m) => ({ default: m.WorkflowQueuePage })),
+);
+const WorkflowRunDetailPage = lazy(() =>
+  import("../pages/WorkflowRunDetailPage").then((m) => ({ default: m.WorkflowRunDetailPage })),
+);
+const RunTemplatesPage = lazy(() =>
+  import("../pages/RunTemplatesPage").then((m) => ({ default: m.RunTemplatesPage })),
+);
+const FailedWorkPage = lazy(() => import("../pages/FailedWorkPage").then((m) => ({ default: m.FailedWorkPage })));
+const ResourcesPage = lazy(() => import("../pages/ResourcesPage").then((m) => ({ default: m.ResourcesPage })));
+const DurableMemoryPage = lazy(() =>
+  import("../pages/DurableMemoryPage").then((m) => ({ default: m.DurableMemoryPage })),
+);
+const DocumentationPage = lazy(() =>
+  import("../pages/DocumentationPage").then((m) => ({ default: m.DocumentationPage })),
+);
+const RbacPage = lazy(() => import("../pages/RbacPage").then((m) => ({ default: m.RbacPage })));
+const AuditTrailPage = lazy(() => import("../pages/AuditTrailPage").then((m) => ({ default: m.AuditTrailPage })));
+const SettingsPage = lazy(() => import("../pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 
 export const router = createBrowserRouter([
   {

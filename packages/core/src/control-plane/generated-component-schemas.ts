@@ -4150,6 +4150,134 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
               ]
             }
           },
+          "modelBreakdown": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "provider": {
+                  "type": "string"
+                },
+                "model": {
+                  "type": "string"
+                },
+                "estimatedSpendUsd": {
+                  "type": "number"
+                },
+                "inputTokens": {
+                  "type": "number"
+                },
+                "outputTokens": {
+                  "type": "number"
+                },
+                "totalTokens": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "provider",
+                "model",
+                "estimatedSpendUsd",
+                "inputTokens",
+                "outputTokens",
+                "totalTokens"
+              ]
+            }
+          },
+          "userBreakdown": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "userId": {
+                  "type": "string"
+                },
+                "estimatedSpendUsd": {
+                  "type": "number"
+                },
+                "inputTokens": {
+                  "type": "number"
+                },
+                "outputTokens": {
+                  "type": "number"
+                },
+                "totalTokens": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "userId",
+                "estimatedSpendUsd",
+                "inputTokens",
+                "outputTokens",
+                "totalTokens"
+              ]
+            }
+          },
+          "workspaceBreakdown": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "workspaceId": {
+                  "type": "string"
+                },
+                "estimatedSpendUsd": {
+                  "type": "number"
+                },
+                "inputTokens": {
+                  "type": "number"
+                },
+                "outputTokens": {
+                  "type": "number"
+                },
+                "totalTokens": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "workspaceId",
+                "estimatedSpendUsd",
+                "inputTokens",
+                "outputTokens",
+                "totalTokens"
+              ]
+            }
+          },
+          "dailyTrend": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "date": {
+                  "type": "string"
+                },
+                "estimatedSpendUsd": {
+                  "type": "number"
+                },
+                "inputTokens": {
+                  "type": "number"
+                },
+                "outputTokens": {
+                  "type": "number"
+                },
+                "totalTokens": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "date",
+                "estimatedSpendUsd",
+                "inputTokens",
+                "outputTokens",
+                "totalTokens"
+              ]
+            }
+          },
           "tokenMix": {
             "type": "object",
             "additionalProperties": false,
@@ -4186,6 +4314,10 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
           "totalEstimatedSpendUsd",
           "agentBreakdown",
           "providerBreakdown",
+          "modelBreakdown",
+          "userBreakdown",
+          "workspaceBreakdown",
+          "dailyTrend",
           "tokenMix"
         ]
       }
@@ -4442,10 +4574,10 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
       "category": {
         "type": "string",
         "enum": [
+          "identity",
           "policy",
           "rbac-role",
           "identity-assignment",
-          "identity",
           "provider",
           "secret-reference",
           "task-workflow",
@@ -4538,10 +4670,10 @@ export const GENERATED_COMPONENT_SCHEMAS: Record<string, ApiSchema> = {
             "category": {
               "type": "string",
               "enum": [
+                "identity",
                 "policy",
                 "rbac-role",
                 "identity-assignment",
-                "identity",
                 "provider",
                 "secret-reference",
                 "task-workflow",

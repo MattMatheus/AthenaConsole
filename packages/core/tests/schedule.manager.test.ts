@@ -116,6 +116,7 @@ describe("schedule manager", () => {
 
       const tasks = await manager.listTasks();
       expect(tasks[0]?.running).toBe(false);
+      expect(new Date(tasks[0]?.nextRunAt ?? 0).getTime()).toBeGreaterThan(new Date(result.finishedAt).getTime());
 
       const logPath = join(dir, ".athena", "schedule", "logs", "job.jsonl");
       const raw = readFileSync(logPath, "utf8");

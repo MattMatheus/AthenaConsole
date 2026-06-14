@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { openAppStateDatabase } from "../src/control-plane/app-state/index.js";
 import { LocalWorkflowStateService } from "../src/control-plane/services/workflow-state.js";
 import { loadConfig } from "../src/shared/config.js";
@@ -164,6 +164,47 @@ describe("workflow DAG state store", () => {
             }
           })
         ]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("rolls back partial step transition writes when a transition fails", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-workflow-state-rollback-"));
+    try {
+      const appState = openAppStateDatabase(loadConfig(dir));
+      try {
+        const service = new LocalWorkflowStateService(appState);
+        service.createRun({
+          runId: "workflow-run-rollback",
+          workflowTemplateId: "rollback.workflow",
+          tasks: [{ id: "collect" }]
+        });
+        const before = service.requireRun("workflow-run-rollback");
+        const appendEvent = vi.spyOn(appState.workflowDagRuns, "appendEvent").mockImplementation(() => {
+          throw new Error("event sink unavailable");
+        });
+
+        expect(() => service.startStep("workflow-run-rollback", "collect")).toThrow("event sink unavailable");
+        appendEvent.mockRestore();
+
+        const after = service.requireRun("workflow-run-rollback");
+        expect(after.run.status).toBe(before.run.status);
+        expect(after.run.startedAt).toBe(before.run.startedAt);
+        expect(after.run.finishedAt).toBe(before.run.finishedAt);
+        const afterStep = after.steps.find((step) => step.stepId === "collect");
+        expect(afterStep).toMatchObject({
+          status: "pending",
+          attempt: 0,
+          ready: true
+        });
+        expect(afterStep?.startedAt).toBeUndefined();
+        expect(afterStep?.finishedAt).toBeUndefined();
+        expect(after.attempts).toEqual(before.attempts);
+        expect(after.events.map((event) => event.type)).toEqual(before.events.map((event) => event.type));
       } finally {
         appState.close();
       }

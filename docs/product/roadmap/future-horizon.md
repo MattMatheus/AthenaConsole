@@ -126,7 +126,7 @@ Outcome:
 
 Source epic:
 
-- `docs/product/epics/active/2026.42.00-epic-product-intuition-and-start-work-flow.md`
+- `docs/product/epics/completed/2026.42.00-epic-product-intuition-and-start-work-flow.md`
 
 Outcome:
 

@@ -88,6 +88,67 @@ process.stdin.on("end", () => {
     }
   });
 
+  it("coalesces concurrent execute calls for the same workflow DAG run", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-workflow-dag-executor-concurrent-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "slow-success.js"),
+        `
+const { appendFileSync } = require("node:fs");
+const { join } = require("node:path");
+let raw = "";
+process.stdin.on("data", (chunk) => { raw += chunk; });
+process.stdin.on("end", () => {
+  const envelope = JSON.parse(raw);
+  const step = envelope.task.provenance.workflowDagStepId;
+  appendFileSync(join(__dirname, "attempts.log"), step + "\\n");
+  setTimeout(() => {
+    process.stdout.write(JSON.stringify({
+      output: { taskId: envelope.task.id, step },
+      artifacts: []
+    }));
+  }, 50);
+});
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedExecutableWorkflowTemplate(appState, pluginDir, "slow-success.js", {
+          workflowTemplateId: "executor.concurrent.workflow",
+          agentId: "executor.concurrent.agent"
+        });
+        const templateCatalog = new LocalWorkflowTemplateCatalogService(config, { appState });
+        const instantiation = await templateCatalog.instantiate("executor.concurrent.workflow", {
+          missionId: "mission-executor-concurrent",
+          taskIdPrefix: "executor-concurrent"
+        });
+        const executor = new LocalWorkflowDagExecutorService(config, { appState });
+
+        const [first, second] = await Promise.all([
+          executor.execute(instantiation.workflowDagRun.id),
+          executor.execute(instantiation.workflowDagRun.id)
+        ]);
+        const attempts = readFileSync(join(pluginDir, "attempts.log"), "utf8").trim().split("\n");
+
+        expect(second).toBe(first);
+        expect(first).toMatchObject({
+          status: "completed",
+          executedStepIds: ["plan", "review"]
+        });
+        expect(attempts).toEqual(["plan", "review"]);
+        expect(appState.runs.list({ targetType: "task", limit: 100 })).toHaveLength(2);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("stops after a failed projected task and leaves dependents blocked", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-workflow-dag-executor-fail-"));
     try {
@@ -330,6 +391,76 @@ process.stdin.on("end", () => {
             }
           ]
         });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("applies exponential backoff between retry attempts through an injected timer", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-workflow-dag-executor-retry-backoff-"));
+    try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "fail-review-twice.js"),
+        `
+const { appendFileSync, existsSync, readFileSync } = require("node:fs");
+const { join } = require("node:path");
+let raw = "";
+process.stdin.on("data", (chunk) => { raw += chunk; });
+process.stdin.on("end", () => {
+  const envelope = JSON.parse(raw);
+  const step = envelope.task.provenance.workflowDagStepId;
+  const attemptsPath = join(__dirname, "attempts.log");
+  const existing = existsSync(attemptsPath) ? readFileSync(attemptsPath, "utf8").trim().split("\\n").filter(Boolean) : [];
+  const reviewAttempts = existing.filter((entry) => entry === "review").length;
+  appendFileSync(attemptsPath, step + "\\n");
+  if (step === "review" && reviewAttempts < 2) {
+    process.stderr.write("review retryable failure");
+    process.exit(7);
+  }
+  process.stdout.write(JSON.stringify({
+    output: { taskId: envelope.task.id, step },
+    artifacts: []
+  }));
+});
+`,
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedExecutableWorkflowTemplate(appState, pluginDir, "fail-review-twice.js", {
+          workflowTemplateId: "executor.retry-backoff.workflow",
+          agentId: "executor.retry-backoff.agent",
+          retryPolicy: buildExecutorRetryPolicy({ maxAttempts: 3, backoff: "exponential" })
+        });
+        const templateCatalog = new LocalWorkflowTemplateCatalogService(config, { appState });
+        const instantiation = await templateCatalog.instantiate("executor.retry-backoff.workflow", {
+          missionId: "mission-executor-retry-backoff",
+          taskIdPrefix: "executor-retry-backoff"
+        });
+        const sleeps: number[] = [];
+        const executor = new LocalWorkflowDagExecutorService(config, {
+          appState,
+          sleep: (ms) => {
+            sleeps.push(ms);
+            return Promise.resolve();
+          }
+        });
+
+        const result = await executor.execute(instantiation.workflowDagRun.id);
+        const attempts = readFileSync(join(pluginDir, "attempts.log"), "utf8").trim().split("\n");
+
+        expect(result).toMatchObject({
+          status: "completed",
+          executedStepIds: ["plan", "review", "review", "review"]
+        });
+        expect(attempts).toEqual(["plan", "review", "review", "review"]);
+        expect(sleeps).toEqual([1000, 2000]);
       } finally {
         appState.close();
       }

@@ -600,7 +600,7 @@ const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
             version: { type: "string", minLength: 1 },
             path: { type: "string", minLength: 1 },
             enabled: { type: "boolean" },
-            status: { type: "string", enum: ["draft", "verified", "approved", "certified", "deprecated"] },
+            status: { type: "string", minLength: 1 },
             sourceType: { type: "string", minLength: 1 },
             sourceScope: { type: "string", enum: ["workspace", "system"] },
             metadata: {

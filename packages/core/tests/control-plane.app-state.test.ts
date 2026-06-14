@@ -200,6 +200,64 @@ describe("control-plane app-state database", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("looks up indexed agents by exact version and lowest version", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-app-state-agent-index-"));
+    try {
+      const appState = openAppStateDatabase(loadConfig(dir));
+      try {
+        appState.plugins.upsert({
+          id: "agent-index.plugin",
+          version: "0.1.0",
+          path: "/tmp/agent-index-plugin",
+          enabled: true,
+          sourceType: "local",
+          status: "loaded",
+          manifest: {},
+          validationErrors: []
+        });
+        appState.agents.upsert({
+          id: "agent-index.agent",
+          version: "2.0.0",
+          pluginId: "agent-index.plugin",
+          pluginVersion: "0.1.0",
+          name: "Agent v2",
+          capabilities: ["plan"],
+          manifest: { version: 2 },
+          status: "loaded"
+        });
+        appState.agents.upsert({
+          id: "agent-index.agent",
+          version: "1.0.0",
+          pluginId: "agent-index.plugin",
+          pluginVersion: "0.1.0",
+          name: "Agent v1",
+          capabilities: ["plan"],
+          manifest: { version: 1 },
+          status: "loaded"
+        });
+
+        expect(appState.agents.get("agent-index.agent", "2.0.0")).toMatchObject({
+          id: "agent-index.agent",
+          version: "2.0.0",
+          name: "Agent v2",
+          manifest: { version: 2 }
+        });
+        expect(appState.agents.get("agent-index.agent", "missing")).toBeUndefined();
+        expect(appState.agents.findById("agent-index.agent")).toMatchObject({
+          id: "agent-index.agent",
+          version: "1.0.0",
+          name: "Agent v1",
+          manifest: { version: 1 }
+        });
+        expect(appState.agents.findById("missing-agent")).toBeUndefined();
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 function seedPreWorkspaceRows(db: Database.Database): void {

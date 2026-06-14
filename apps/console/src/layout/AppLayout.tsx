@@ -3,7 +3,7 @@ import {
   Search,
   Settings,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { navItems, navSections, type NavItem } from "../app/navigationModel";
 import { usePersistentState } from "../hooks";
@@ -177,7 +177,9 @@ export function AppLayout() {
         </header>
 
         <main className={styles.detailPane}>
-          <Outlet />
+          <Suspense fallback={<div aria-busy="true">Loading...</div>}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>
