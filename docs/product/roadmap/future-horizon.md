@@ -4,173 +4,109 @@
 
 This roadmap captures post-`2026.1` product direction for Team Orchestrator.
 
-The first release candidate should remain focused on the current local-first product baseline. After that release is cut, the next product investment should increase the product's built-in usefulness without turning the console into an unbounded feature pile.
+The product is local-first by default and enterprise-capable by design. Local execution remains the easiest way to start. The future horizon adds durable continuity, useful first-party capabilities, safe connectors, and enterprise governance.
 
 ## Product Thesis
 
 Team Orchestrator should combine:
 
 - local execution where the operator can inspect what agents do,
-- remote continuity where durable memory and account/workspace state travel across machines,
+- remote continuity where memory and app-state can survive across machines,
 - first-party capability packs that make the product useful immediately,
-- connector packs that show how external services can be integrated safely,
-- workflow templates that compose agents into repeatable higher-order flows.
+- connector packs that integrate external services safely,
+- workflow templates that compose agents into repeatable higher-order flows,
+- enterprise controls for workspace isolation, RBAC, cost governance, audit, and server durability.
 
 ## Arc 1: Durable Memory System
 
-Memory should be a first-class Team Orchestrator service, not just a local SQLite file or debug search endpoint.
+Status: Foundation complete.
 
 Product principle:
 
-- **Local execution, remote continuity.**
+- Local execution, remote continuity.
 
-Agents may run on a laptop, local server, or remote host, but durable memory should be scoped to the operator, workspace, project, repository, and team in a way that can travel across those environments.
+Agents may run on a laptop, local server, or remote host, but durable memory should be scoped to the operator, workspace, project, repository, team, agent, task, run, and artifact in a way that can travel across those environments.
 
-### 2026.34 Durable Memory Service Architecture
-
-Source epic:
+Source epics:
 
 - `docs/product/epics/completed/2026.34.00-epic-durable-memory-service-architecture.md`
-
-Outcome:
-
-- Define the canonical memory domain, provider contract, namespace model, auth assumptions, provenance requirements, and local-cache boundary.
-
-### 2026.35 Remote Memory MVP
-
-Source epic:
-
 - `docs/product/epics/completed/2026.35.00-epic-remote-memory-mvp.md`
-
-Outcome:
-
-- Ship a remote-capable memory service path with write, read, search, list, archive/delete, and snapshot primitives. Local SQLite remains useful for development, tests, and cache behavior, but is not the product source of truth for durable memory.
-
-### 2026.36 Memory Governance And Agent Integration
-
-Source epic:
-
 - `docs/product/epics/completed/2026.36.00-epic-memory-governance-agent-integration.md`
-
-Outcome:
-
-- Let agents read, propose, and write memory through explicit permissions, operator review, run provenance, and inspectable audit trails.
-
-### 2026.37 Semantic Memory And Sync Backends
-
-Source epic:
-
 - `docs/product/epics/completed/2026.37.00-epic-semantic-memory-and-sync-backends.md`
-
-Outcome:
-
-- Add semantic retrieval and optional backend adapters such as Chroma or an AthenaMemory-compatible service behind the Team Orchestrator memory contract.
 
 ## Arc 2: Built-In Capability And Connector Packs
 
-First-party agents and workflows should make the product feel immediately capable while serving as canonical examples for agent authors.
+Status: Capability, software-team, connector-platform, GitHub, and product-intuition arcs complete. Knowledge-work connectors deferred.
 
 Product principle:
 
-- **Useful out of the box, extensible by example.**
+- Useful out of the box, extensible by example.
 
-Built-in packs should be ordinary plugins that use the same manifest, runtime, safety, provider, memory, artifact, and workflow systems available to user-authored plugins.
+Built-in packs should be ordinary plugins that use the same manifest, runtime, safety, provider, memory, artifact, workflow, connector, approval, and budget systems available to user-authored plugins.
 
-### 2026.38 Capability Pack Foundation
-
-Source epic:
+Source epics:
 
 - `docs/product/epics/completed/2026.38.00-epic-capability-pack-foundation.md`
-
-Outcome:
-
-- Define first-party pack conventions, pack metadata, bundled installation behavior, documentation patterns, fixture/testing requirements, and workflow composition rules.
-
-### 2026.39 Built-In Software Team Agent Pack
-
-Status: Complete.
-
-Source epic:
-
 - `docs/product/epics/completed/2026.39.00-epic-built-in-software-team-agent-pack.md`
-
-Outcome:
-
-- Ship useful no-auth and provider-backed software-work agents: repo summarizer, code reviewer, changelog/release-note drafter, docs auditor, test failure explainer, and release readiness reviewer.
-
-### 2026.40 Connector Pack Platform
-
-Status: Complete.
-
-Source epic:
-
 - `docs/product/epics/completed/2026.40.00-epic-connector-pack-platform.md`
-
-Outcome:
-
-- Add the connector primitives needed before service-specific packs: auth binding, scopes, rate limits, safe external writes, mock fixtures, and connector diagnostics.
-
-### 2026.41 GitHub Connector Pack
-
-Status: Complete.
-
-Source epic:
-
 - `docs/product/epics/completed/2026.41.00-epic-github-connector-pack.md`
-
-Outcome:
-
-- Provide first-party GitHub agents and workflows for issue triage, PR summarization, PR review support, release-note drafting, and repository onboarding.
-
-### 2026.42 Product Intuition And Start-Work Flow
-
-Source epic:
-
 - `docs/product/epics/completed/2026.42.00-epic-product-intuition-and-start-work-flow.md`
-
-Outcome:
-
-- Refocus the console around user intent, outcomes, capabilities, work history, resources, and review before adding more connector surface area.
-
-### 2026.43 Knowledge Work Connector Pack
-
-Status: Deferred until product-intuition repair is complete.
-
-Source epic:
-
 - `docs/product/epics/active/2026.43.00-epic-knowledge-work-connector-pack.md`
 
-Outcome:
+## Arc 3: Enterprise Readiness
 
-- Provide first-party connectors and agents for knowledge-work surfaces such as Notion, Google Drive/Docs, Slack, Linear/Jira, or local document stores, selected by implementation readiness and safety posture.
+Status: Accepted direction; design and validation pending.
+
+Product principle:
+
+- Local-first by default, enterprise-capable by design.
+
+The enterprise arc makes the existing RBAC, workspace, usage ledger, distributed coordination, and Postgres design work coherent. The product should support a trusted-server/multi-user path only after the safety boundaries are server-bound and testable.
+
+Source decision:
+
+- `docs/product/architecture/decisions/0027-enterprise-multi-user-direction.md`
+
+Planned design and validation:
+
+- `plans/021-workspace-entity-design-spike.md`
+- `plans/022-cost-governance-design.md`
+- `plans/023-postgres-readiness-spike.md`
+
+Required outcomes:
+
+- Workspace lifecycle, membership, and per-workspace role assignment.
+- Server-derived workspace scope replacing client-asserted scope headers for enforcement.
+- Query-level scoping and referential integrity for workspace-owned records.
+- Budget, quota, cap, alert, and usage-reporting model.
+- App-state repository contract tests that reveal SQLite-only assumptions.
+- A server profile that can graduate from SQLite to Postgres without changing product semantics.
 
 ## Sequencing Guidance
 
 Recommended sequence:
 
-1. Cut `2026.1` without adding new product surface.
-2. Refine and accept 2026.34 before implementing any durable memory work.
-3. Build 2026.35 remote memory MVP before memory-aware built-in agents depend on it.
-4. Start 2026.38 capability pack foundation in parallel with memory architecture if release bandwidth allows.
-5. Ship 2026.39 before service connectors so new users get value without third-party credentials.
-6. Build 2026.40 before GitHub or knowledge-work connector packs.
-7. Use 2026.41 as the first service-specific connector proving ground.
-8. Complete 2026.42 before adding more connector surface area, so new capabilities enter an intuitive product shell.
-9. Let 2026.43 select its first service by user value, auth complexity, and safety risk.
+1. Keep the local-first `2026.1` path stable.
+2. Review the enterprise plans against ADR 0027.
+3. Design workspace lifecycle and server-bound RBAC before exposing multi-user operation.
+4. Design cost governance before enterprise pilots depend on usage reporting.
+5. Add Postgres-readiness contract tests before implementing a Postgres backend.
+6. Resume knowledge-work connectors after workspace/RBAC/cost boundaries are clear.
 
 ## Non-Goals
 
-- Do not make SQLite the durable product memory source of truth across machines.
-- Do not require users to copy DB files between laptop, local server, and remote server.
-- Do not bypass the plugin model for first-party agents.
-- Do not add connector write actions without explicit permission, scope, audit, and approval design.
+- Do not make hosted SaaS the only way to use the product.
+- Do not expose multi-user operation while workspace scope is client-asserted.
+- Do not make SQLite the durable product source of truth for multi-node/server profiles.
+- Do not bypass the plugin model for first-party agents or connectors.
+- Do not add connector write actions without explicit permission, scope, audit, approval, and budget design.
 - Do not make natural-language autonomous planning the default path for these arcs.
 
 ## Open Planning Questions
 
-- Should the remote memory MVP be hosted as a separate service, a server mode in this repo, or an adapter to an existing AthenaMemory service?
-- Which identity model should memory use first: single-user token, workspace token, or account/workspace split?
-- What is the first remote storage backend: Postgres, object storage plus index, Chroma server, AthenaMemory, or another service?
-- Should first-party capability packs ship enabled by default, suggested during onboarding, or installed from a local bundled catalog?
-- Which connector should follow GitHub if only one knowledge-work service can be built first?
-- Which platform nouns should remain primary operator concepts, and which should become advanced implementation detail?
+- What is the minimum safe multi-user alpha profile?
+- Which identity provider model should the trusted-server profile support first?
+- Should workspace membership be global-role-plus-workspace-scope, per-workspace role only, or both?
+- Which cost controls are hard caps versus alert-only in the first pass?
+- What is the first Postgres-backed deployment profile and migration path?
+- Which knowledge-work connector should follow once enterprise boundaries are in place?

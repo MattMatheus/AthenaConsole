@@ -1,10 +1,10 @@
 # Team Orchestrator
 
-Team Orchestrator is a local-first agent orchestration workbench for running, inspecting, and coordinating agent work from a web console.
+Team Orchestrator is a local-first, enterprise-capable control plane for running, inspecting, and governing agent work from a web console.
 
-The project is being built around a simple idea: agent systems should be inspectable while they run. Operators should be able to see which agent is doing what, what state was persisted, what artifacts were produced, and why a run succeeded, failed, paused, or required approval.
+The project is built around a simple idea: agent systems should be inspectable and governable while they run. Operators and platform owners should be able to see which agent is doing what, which workspace owns the work, what state was persisted, what cost was incurred, what artifacts were produced, and why a run succeeded, failed, paused, or required approval.
 
-Team Orchestrator currently focuses on local development and local operations. It uses manifest-backed agents and plugins, durable SQLite app state, workflow templates, task and mission runs, runtime safety policies, and a console-first operator experience. It also ships with a deterministic first-run demo plugin, so you can validate the product without external model credentials.
+Team Orchestrator still starts locally: the default path uses manifest-backed agents, plugins, SQLite app state, workflow templates, runtime safety policies, and a console-first operator experience. Current direction extends that baseline toward enterprise operation with workspaces, RBAC, cost governance, distributed coordination, and Postgres-ready app-state boundaries.
 
 ## What It Does
 
@@ -13,23 +13,24 @@ Team Orchestrator provides:
 - A web console for creating, running, and inspecting agent work.
 - A local API server for agents, tasks, missions, runs, schedules, workflow templates, readiness, events, artifacts, diagnostics, and safety controls.
 - Manifest-backed plugins and agents.
-- Durable SQLite app-state for operator-facing control-plane records.
+- Durable app-state for operator-facing control-plane records, with SQLite as the default local store.
 - File-backed artifact payloads for transcripts, run evidence, agent reports, and other inspectable outputs.
 - Workflow-template DAG execution with restart-safe run state and status inspection.
 - Runtime safety defaults, loop limits, approval hooks, and pluggable execution backends.
+- Workspace, RBAC, usage/cost, and server-readiness foundations for enterprise operation.
 - A checked-in first-run sample plugin at `sample-plugins/first-run-demo`.
 
 ## Current Status
 
-This repository is an active product build. The current release-readiness target is the local-first `2026.1` release candidate documented in [Release Readiness](docs/product/release/README.md).
+This repository is an active product build. The shipped `2026.1` release candidate is the local-first baseline documented in [Release Readiness](docs/product/release/README.md). Current `main` is now moving into the enterprise/multi-user direction accepted in [ADR 0027](docs/product/architecture/decisions/0027-enterprise-multi-user-direction.md).
 
 The current foundation includes:
 
-- SQLite-backed app state for plugins, agents, tasks, missions, runs, events, artifact metadata, schedules, workflow templates, workflow DAG runs, directives, harness profiles, and run templates.
+- SQLite-backed local app state for plugins, agents, tasks, missions, runs, events, artifact metadata, schedules, workflow templates, workflow DAG runs, directives, harness profiles, and run templates.
 - A React console for the main operator workflows and first-run onboarding.
 - A Node/TypeScript API and core orchestration package.
 - Local, local-server, and production-like Docker Compose workflows.
-- Product direction and architecture records under `docs/product/`.
+- Product direction and architecture records under `docs/product/`, including enterprise direction, workspace/RBAC planning, cost governance planning, and Postgres readiness planning.
 
 The project intentionally does not maintain legacy compatibility shims for deprecated file-backed control-plane state. When state ownership changes, the project moves forward and updates the canonical runtime path.
 
@@ -105,7 +106,7 @@ sample-plugins/ Example plugin-backed agent assets
 
 Team Orchestrator separates durable control-plane state from inspectable payload files.
 
-SQLite owns operator-facing app state such as tasks, missions, runs, schedules, workflow DAG state, directives, harness profiles, run templates, and artifact metadata.
+SQLite owns local operator-facing app state such as tasks, missions, runs, schedules, workflow DAG state, directives, harness profiles, run templates, and artifact metadata. Server profiles must preserve the repository boundaries that let this state move to Postgres without changing product behavior.
 
 The filesystem remains the right owner for large or human-inspectable payloads such as transcripts, run evidence files, agent reports, logs, plugin source files, and workflow template source manifests.
 
@@ -113,9 +114,10 @@ The current state ownership map lives in:
 
 - [docs/product/architecture/state-ownership-map.md](docs/product/architecture/state-ownership-map.md)
 
-The current product direction lives in:
+The current product and enterprise direction lives in:
 
 - [docs/product/direction/current-direction.md](docs/product/direction/current-direction.md)
+- [docs/product/architecture/decisions/0027-enterprise-multi-user-direction.md](docs/product/architecture/decisions/0027-enterprise-multi-user-direction.md)
 
 ## Documentation
 
@@ -142,4 +144,4 @@ For an end-to-end local-server proof, follow [Fresh Server Real-Work Walkthrough
 
 The package names still use `athena` in several places while the product direction has moved to Team Orchestrator. Treat `athena` package names and CLI names as implementation history for now.
 
-This project is designed for local-first development. Production deployment, cloud persistence, and hosted multi-tenant operation are outside the current core scope unless explicitly introduced by future architecture decisions.
+This project is local-first by default and enterprise-capable by design. Production-grade multi-user operation is gated by workspace lifecycle, server-bound RBAC, cost governance, and Postgres-readiness work rather than by product identity.

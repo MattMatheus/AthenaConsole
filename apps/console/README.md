@@ -2,7 +2,7 @@
 
 Team Orchestrator web console built with Vite, React, and TypeScript.
 
-The console is the primary product surface for the reset direction. It should evolve toward manual task creation, agent selection, task and mission runs, plugin inspection, artifacts, events, logs, schedules, and operator safety controls.
+The console is the primary product surface. It should center outcome-led Start Work flows, work history, capabilities, resources, review, admin controls, artifacts, events, logs, schedules, workspace governance, cost visibility, and operator safety controls.
 
 ## Scripts
 

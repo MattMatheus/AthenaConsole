@@ -13,14 +13,16 @@ Use these when you want to install Team Orchestrator, start the console, connect
 3. [Copy The Model Provider Smoke Agent](../packages/core/docs/user/10-copy-sample-agent.md)
 4. [Fresh Server Real-Work Walkthrough](developer/product-dev-guides/fresh-server-real-work-walkthrough.md)
 
-## Local Server Admin
+## Local Server Or Enterprise Admin
 
-Use these when you want a durable trusted-LAN install with persistent state, plugin paths, repo storage, and secrets.
+Use these when you want a durable trusted-LAN install, or when you are evaluating the enterprise path around workspace scope, RBAC, cost governance, and Postgres readiness.
 
 1. [Local Server Deployment](developer/product-dev-guides/local-server-deployment.md)
 2. [Deployment Automation](developer/product-dev-guides/deployment-automation.md)
 3. [Fresh Server Real-Work Walkthrough](developer/product-dev-guides/fresh-server-real-work-walkthrough.md)
 4. [State Ownership Map](product/architecture/state-ownership-map.md)
+5. [Enterprise Direction ADR](product/architecture/decisions/0027-enterprise-multi-user-direction.md)
+6. [Security Gap Sweep](product/security/security-critical-gap-sweep-2026-06-13.md)
 
 ## Agent Author
 
@@ -47,7 +49,8 @@ Use these when you want to change the product or understand the current implemen
 2. [Current Product Direction](product/direction/current-direction.md)
 3. [Architecture Decisions](product/architecture/decisions/README.md)
 4. [Roadmap Flight Path](product/roadmap/flight-path.md)
-5. [Release Readiness](product/release/README.md)
+5. [Enterprise Direction ADR](product/architecture/decisions/0027-enterprise-multi-user-direction.md)
+6. [Release Readiness](product/release/README.md)
 
 ## Internal Workflow
 
@@ -58,9 +61,13 @@ Workflow state does not live in `docs/`. Use the Flywheel harness for active que
 - `flywheel/backlog/`
 - `flywheel/artifacts/`
 
+Completed Flywheel stories and point-in-time planning/observer records are archived under `flywheel/archive/`.
+
 ## Historical Context
 
 Completed planning and research records remain useful for rationale, but they are not the current user path:
 
 - `docs/product/epics/completed/`
 - `docs/product/research/`
+- `plans/archive/completed-001-019/`
+- `flywheel/archive/`

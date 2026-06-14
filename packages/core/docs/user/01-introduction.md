@@ -2,7 +2,7 @@
 
 This package-level guide documents compatibility surfaces for the Team Orchestrator core runtime. For current operator and agent-author workflows, start with the repo-level guide at `../../../docs/user-guide/README.md`.
 
-The current product direction is Team Orchestrator: a web console and orchestration system for creating agents, connecting repositories, launching real work, and reviewing run artifacts. The core package centers current CLI, API, and console workflows on plugin-backed agents and task execution.
+The current product direction is Team Orchestrator: a local-first, enterprise-capable console and orchestration system for choosing agent capabilities, connecting resources, launching real work, governing workspace-scoped execution, and reviewing run artifacts. The core package centers current CLI, API, and console workflows on plugin-backed agents, task/workflow execution, app-state repositories, RBAC, usage/cost records, and safety controls.
 
 ## Core Concepts
 

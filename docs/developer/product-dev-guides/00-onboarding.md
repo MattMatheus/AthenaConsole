@@ -6,28 +6,30 @@ Welcome to Team Orchestrator. This document is the primary entry point for agent
 
 ## 1. Mission & Scope
 
-Team Orchestrator is a web-first, local-first agent orchestrator for solo developers and product operators.
+Team Orchestrator is a web-first, local-first and enterprise-capable agent work control plane for operators, agent authors, and platform admins.
 
-**Core Focus:** Formal manifest-backed agents, tasks, missions, inspectable runs, plugins, pluggable execution backends, artifacts, events, and operator safety.
-**Deferred:** Enterprise multi-node governance, cloud-first deployment, and natural-language task planning as the primary workflow.
+**Core Focus:** Formal manifest-backed agents, outcome-led work creation, tasks, missions, workflow runs, plugins, pluggable execution backends, artifacts, events, memory, workspace scope, RBAC, cost governance, and operator safety.
+**Deferred:** Exposing multi-user operation before workspace lifecycle, server-bound RBAC, cost controls, and server persistence are ready. Natural-language task planning is not the primary workflow.
 
 ## 2. Current Status & Roadmap
 
-The project is in a **2026 product-direction reset**.
+The project completed the 2026 local-first reset and has accepted an enterprise/multi-user direction.
 
 ### Accepted Baseline
 
 - Product name and direction: Team Orchestrator.
 - Primary surface: web console.
-- Primary user: solo developer first, then product operator, then shared/team use.
+- Primary users: local operator, agent author, team/platform admin.
 - Agent model: formal agents with manifests and lifecycle contracts.
 - Work model: tasks are primary; missions collect tasks; runs execute tasks or missions.
-- Runtime model: local process default, containers first-class, API/cloud backends later.
-- State model: move toward database-backed app state, likely SQLite first.
+- Runtime model: local process default, containers first-class, API/server backends in scope.
+- State model: SQLite is the local default; Postgres-readiness is the server direction.
+- Enterprise model: workspace membership, server-bound RBAC, cost governance, and durable server state are active planning concerns.
 
 Canonical decision record:
 
 - `docs/product/architecture/decisions/0006-team-orchestrator-direction-and-agent-model.md`
+- `docs/product/architecture/decisions/0027-enterprise-multi-user-direction.md`
 
 Active implementation work lives in the Flywheel harness.
 
@@ -54,9 +56,9 @@ To keep your context window efficient, follow these pointers to more detailed in
   - `docs/product/epics/completed/` (delivery history)
   - `docs/product/roadmap/flight-path.md` (future plan)
   - `flywheel/prompts/engineering.md` (current directive)
-  - `flywheel/artifacts/observer/` (cycle closure reports)
+  - `flywheel/archive/` (archived cycle closure reports and completed stories)
 - **Need Architecture Details?** See `docs/developer/product-dev-guides/01-architecture.md`.
-- **Need Current Product Direction?** See `docs/product/architecture/decisions/0006-team-orchestrator-direction-and-agent-model.md`.
+- **Need Current Product Direction?** See `docs/product/direction/current-direction.md` and `docs/product/architecture/decisions/0027-enterprise-multi-user-direction.md`.
 - **Need CLI Command Reference?** See `docs/developer/product-dev-guides/06-cli-reference.md`.
 - **Looking for the Roadmap?** See `docs/product/roadmap/flight-path.md`.
 - **Deep Dive on ADRs?** See `docs/product/architecture/decisions/`.

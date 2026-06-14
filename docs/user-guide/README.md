@@ -2,7 +2,7 @@
 
 # Team Orchestrator User Guide
 
-Team Orchestrator is a local-first console for running agent work from clear outcomes and then inspecting what happened. Use it when you want more durability and reviewability than a chat transcript: you choose a capability, review preflight, run the work, and inspect history, events, outputs, and artifacts later.
+Team Orchestrator is a local-first, enterprise-capable console for running agent work from clear outcomes and then inspecting what happened. Use it when you want more durability, governance, and reviewability than a chat transcript: you choose a capability, review preflight, run the work, and inspect history, events, outputs, artifacts, and policy decisions later.
 
 This guide is written for motivated users who want to learn the system without reading source code. It starts with the operator path, then explains the product model underneath it.
 
@@ -12,7 +12,7 @@ Use this guide if you are:
 
 - a local operator who wants to run agent work against a repository,
 - an agent author who wants to create a plugin-backed agent,
-- a local-server admin who wants a durable trusted-LAN instance,
+- a local-server or enterprise admin evaluating durable server operation,
 - a reviewer who wants to understand what the product can do today.
 
 If you only want the shortest startup path, use [Getting Started](../../GETTING_STARTED.md). Come back here when you want to understand what each step means.
@@ -27,9 +27,10 @@ Team Orchestrator gives you a web console and local API for:
 - running work through local, container, or API backends,
 - inspecting run status, events, outputs, and artifacts,
 - browsing the backing agents, tasks, missions, workflow templates, and run templates when needed,
-- keeping risky actions bounded by permissions, approvals, and limits.
+- keeping risky actions bounded by permissions, approvals, and limits,
+- preparing workspaces, RBAC, usage, cost, and persistence boundaries for enterprise operation.
 
-The product is local-first. The default path runs on your machine or a trusted local server. Hosted, multi-tenant cloud operation is outside the current core scope.
+The product is local-first by default and enterprise-capable by design. The supported default path runs on your machine or a trusted local server. Multi-user operation is a current direction, but should be treated as gated until workspace lifecycle, server-bound RBAC, cost governance, and server persistence are complete.
 
 ## Operator Surfaces
 
@@ -156,14 +157,16 @@ Team Orchestrator separates repository records and run inputs from plugin files.
 
 ### Safety Controls
 
-Safety controls keep local automation bounded. Current controls include:
+Safety controls keep automation bounded. Current controls include:
 
 - permissions declared in manifests,
 - runtime policy packs,
 - max runtime and retry limits,
 - max tool-call and repeated-action limits,
 - approval records for risky actions,
-- read-only and proposed-change modes for repo-affecting work.
+- read-only and proposed-change modes for repo-affecting work,
+- RBAC and workspace-scope foundations,
+- usage and cost ledger foundations.
 
 The product favors explicit operator control over silent autonomous loops.
 

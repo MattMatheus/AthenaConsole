@@ -3,15 +3,6 @@
 Architecture work accepted by review.
 
 ## Completed
-1. `ARCH-20260528-canonical-orchestration-state-model.md`
-2. `ARCH-20260528-service-decomposition-plan.md`
-3. `ARCH-20260528-state-ownership-map.md`
-4. `ARCH-20260529-repo-wiring-operating-model.md`
-5. `ARCH-20260529-real-work-enablement-operating-model.md`
-6. `ARCH-20260602-memory-domain-adr.md`
-7. `ARCH-20260602-memory-provider-interface.md`
-8. `ARCH-20260602-memory-namespace-provenance.md`
-9. `ARCH-20260602-memory-local-cache-boundary.md`
-10. `ARCH-20260602-memory-remote-backend-recommendation.md`
-11. `ARCH-20260602-semantic-memory-backend-strategy.md`
-12. `ARCH-20260603-product-intuition-ia.md`
+No completed architecture items in the live done lane.
+
+Completed architecture-story files retained on disk live under `flywheel/archive/`. Canonical architectural decisions live in `docs/product/architecture/decisions/`.

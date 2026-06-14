@@ -4,7 +4,7 @@
 
 ## Product Identity
 
-This repository is **Team Orchestrator**, a web-first, local-first agent orchestration product.
+This repository is **Team Orchestrator**, a web-first, local-first and enterprise-capable agent work control plane.
 
 The remote/repo name may still be `AthenaConsole`, but new product work should use the Team Orchestrator direction unless the user says otherwise.
 
@@ -25,15 +25,14 @@ If the configured Flywheel active backlog is empty, do not invent work. Route th
 
 ## Current Direction
 
-- Formal manifest-backed agents are the product center.
-- Plugins package one or more agents.
-- Tasks are agent-addressable units of work.
-- Missions group tasks.
-- Runs execute a task or mission.
-- SQLite is the local app-state store for v1.
-- The web console is the primary operator interface.
-- Local execution is preferred, with pluggable backends so cloud/API execution can be added later.
-- Safety should use loop limits and risk-based approvals.
+- Formal manifest-backed agents and capability packs are the product center.
+- Plugins package agents, workflows, docs, fixtures, and connector integrations.
+- Tasks, missions, workflow runs, events, artifacts, and memory records are the inspectable work model.
+- The web console is the primary operator and admin interface.
+- Local execution remains the default posture; trusted-server and enterprise operation are active product directions.
+- Workspaces, RBAC, cost governance, distributed coordination, and Postgres readiness are now in scope per ADR 0027.
+- SQLite remains the default local app-state store; server profiles must avoid SQLite-only assumptions.
+- Safety should use permissions, loop limits, risk-based approvals, audit trails, and budget controls.
 
 Canonical decisions:
 
@@ -48,6 +47,7 @@ Canonical decisions:
 - `docs/product/architecture/decisions/0014-scheduling-model.md`
 - `docs/product/architecture/decisions/0015-canonical-orchestration-state-model.md`
 - `docs/product/architecture/decisions/0016-core-service-decomposition-plan.md`
+- `docs/product/architecture/decisions/0027-enterprise-multi-user-direction.md`
 
 ## Current State
 
