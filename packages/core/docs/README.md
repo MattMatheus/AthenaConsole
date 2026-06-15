@@ -12,14 +12,14 @@ Use this index for package-adjacent references and current agent-author guides. 
 
 ## Legacy Or Compatibility Context
 
-These pages are retained for older links and implementation history. They are not the first stop for a new user:
+These pages have been consolidated into the [Enterprise & Multiplayer User Manual](../../../docs/user-guide/README.md). Links below redirect to the relevant manual pages:
 
-- [Quickstart](user/00-quickstart.md)
-- [Introduction](user/01-introduction.md)
-- [Installation](user/02-installation.md)
-- [Basic Usage](user/03-basic-usage.md)
+- [Quickstart](../../../docs/user-guide/02-install-and-deploy.md)
+- [Introduction](../../../docs/user-guide/01-overview.md)
+- [Installation](../../../docs/user-guide/02-install-and-deploy.md)
+- [Basic Usage](../../../docs/user-guide/05-running-work.md)
 - [API Server](user/04-api-server.md)
-- [Advanced Usage](user/05-advanced-usage.md)
-- [Console UI](user/08-console-ui.md)
-- [Symbolic Navigation](user/09-symbolic-navigation.md)
-- [Package Getting Started](getting-started/README.md)
+- [Advanced Usage](../../../docs/user-guide/05-running-work.md)
+- [Console UI](../../../docs/user-guide/05-running-work.md)
+- [Symbolic Navigation](../../../docs/user-guide/01-overview.md)
+- [Package Getting Started](../../../docs/user-guide/README.md)
