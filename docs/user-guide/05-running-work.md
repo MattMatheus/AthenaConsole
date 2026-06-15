@@ -257,7 +257,7 @@ ATHENA_WORKSPACE_ROOT="$PWD" npm --workspace @athena/api run dev
 
 Then open `/agents` and confirm the new agent appears.
 
-For a full file-by-file tutorial, see [Build Your First Agent](../../packages/core/docs/user/07-pdk-guide.md). For a model-backed copy path, see [Copy The Model Provider Smoke Agent](../../packages/core/docs/user/10-copy-sample-agent.md).
+For a full file-by-file tutorial, see the [Agent Developer Kit guide](../sdk/agent-developer-kit.md). For a model-backed copy path, see [Starting from a sample](../sdk/agent-developer-kit.md#starting-from-a-sample).
 
 ---
 
