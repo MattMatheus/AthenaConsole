@@ -29,6 +29,7 @@ import type {
   TaskWorkbenchService,
   WorkflowQueueStatusService,
   WorkflowStatusService,
+  WorkspaceService,
   WorkService
 } from "../interfaces.js";
 import type { DurableMemoryService } from "./durable-memory.js";
@@ -114,7 +115,12 @@ interface AuthorizationRequirement {
     | "workflowRun.status"
     | "work.drain"
     | "work.enqueue"
-    | "work.status";
+    | "work.status"
+    | "workspaces.create"
+    | "workspaces.delete"
+    | "workspaces.get"
+    | "workspaces.list"
+    | "workspaces.update";
   requiredRoles: AthenaRbacRole[];
   agentName?: string;
   sessionId?: string;
@@ -711,6 +717,53 @@ export class AuthorizedModelProviderConfigService implements ModelProviderConfig
 
   resolveRuntimeConfig(id: string) {
     return this.delegate.resolveRuntimeConfig(id);
+  }
+}
+
+export class AuthorizedWorkspaceService implements WorkspaceService {
+  constructor(
+    private readonly delegate: WorkspaceService,
+    private readonly authorizer: ServiceAuthorizer
+  ) {}
+
+  async list() {
+    await this.authorizer.assertAllowed({
+      operation: "workspaces.list",
+      requiredRoles: ["Admin"]
+    });
+    return this.delegate.list();
+  }
+
+  async get(id: string) {
+    await this.authorizer.assertAllowed({
+      operation: "workspaces.get",
+      requiredRoles: ["Admin"]
+    });
+    return this.delegate.get(id);
+  }
+
+  async create(request: Parameters<WorkspaceService["create"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "workspaces.create",
+      requiredRoles: ["Admin"]
+    });
+    return this.delegate.create(request);
+  }
+
+  async update(id: string, request: Parameters<WorkspaceService["update"]>[1]) {
+    await this.authorizer.assertAllowed({
+      operation: "workspaces.update",
+      requiredRoles: ["Admin"]
+    });
+    return this.delegate.update(id, request);
+  }
+
+  async delete(id: string) {
+    await this.authorizer.assertAllowed({
+      operation: "workspaces.delete",
+      requiredRoles: ["Admin"]
+    });
+    return this.delegate.delete(id);
   }
 }
 

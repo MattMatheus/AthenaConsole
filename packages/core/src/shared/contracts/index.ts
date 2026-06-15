@@ -28,3 +28,4 @@ export * from "./model-providers.js";
 export * from "./provider-readiness.js";
 export * from "./evidence-bundle.js";
 export * from "./evals.js";
+export * from "./workspaces.js";

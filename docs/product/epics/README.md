@@ -17,6 +17,10 @@
 
 - 2026.42 — Product Intuition And Start-Work Flow
 - 2026.43 — Knowledge Work Connector Pack (deferred)
+- 2026.44 — Workspace Lifecycle And Scoped RBAC
+- 2026.45 — Cost Governance Enforcement
+- 2026.46 — Postgres Readiness: Repository Interface Freeze
+- 2026.47 — Agent Certification Eval Runner
 
 ## Recently Completed Epics
 

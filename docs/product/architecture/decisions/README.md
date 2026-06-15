@@ -39,8 +39,9 @@ This directory is the primary long-term record for product decision history.
 - [ADR 0025: Product Intuition And Start Work IA](0025-product-intuition-and-start-work-ia.md) - Accepted
 - [ADR 0026: Formal Agent Manifest Convention For The Agentic Workbench Pilot](0026-formal-agent-manifest-convention.md) - Accepted
 - [ADR 0027: Enterprise And Multi-User Direction](0027-enterprise-multi-user-direction.md) - Accepted
-- [ADR 0028: Workspace Lifecycle And Scoped RBAC](0028-workspace-lifecycle-and-scoped-rbac.md) - Proposed
-- [ADR 0029: Cost Governance - Budgets And Alerts](0029-cost-governance-budgets-and-alerts.md) - Proposed
+- [ADR 0028: Workspace Lifecycle And Scoped RBAC](0028-workspace-lifecycle-and-scoped-rbac.md) - Accepted
+- [ADR 0029: Cost Governance - Budgets And Alerts](0029-cost-governance-budgets-and-alerts.md) - Accepted
+- [ADR 0030: Agent Certification And Eval Runner](0030-agent-certification-and-eval-runner.md) - Accepted
 
 ## Archived Records
 

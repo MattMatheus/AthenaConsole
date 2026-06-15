@@ -4,7 +4,7 @@
 
 ## Status
 
-Proposed.
+Accepted.
 
 ## Context
 
@@ -175,3 +175,7 @@ This design reuses:
 ## Consequences
 
 Cost governance becomes part of the enterprise readiness gate. Usage reporting remains useful on its own, but enterprise pilots should not rely on it as spend protection until budgets, alerts, approvals, and blocking behavior are implemented.
+
+## Addendum: Existing costBudgetDailyUsd Policy Field
+
+A `costBudgetDailyUsd` field already exists on policy (`packages/core/src/shared/contracts/policy.ts:70`) and is currently parsed, stored, and unenforced. The original decision did not account for this field, so epic 2026.45 story 2026.45.01 must reconcile it into the budget model rather than create a parallel budget concept.

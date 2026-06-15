@@ -186,7 +186,7 @@ describe("app-state repository contracts", () => {
     });
   });
 
-  it("workspaces expose the seeded default workspace through public methods", () => {
+  it("workspaces expose lifecycle operations through public methods", () => {
     withAppState((appState) => {
       expect(appState.workspaces.get("default")).toEqual(
         expect.objectContaining({
@@ -196,6 +196,39 @@ describe("app-state repository contracts", () => {
         })
       );
       expect(appState.workspaces.list().map((workspace) => workspace.id)).toContain("default");
+
+      const created = appState.workspaces.create({
+        id: "contract-workspace",
+        name: "Contract Workspace",
+        slug: "contract-workspace",
+        now: new Date("2026-06-14T03:00:00.000Z")
+      });
+      expect(created).toEqual({
+        id: "contract-workspace",
+        name: "Contract Workspace",
+        slug: "contract-workspace",
+        createdAt: "2026-06-14T03:00:00.000Z",
+        updatedAt: "2026-06-14T03:00:00.000Z"
+      });
+      expect(appState.workspaces.getBySlug("contract-workspace")).toEqual(created);
+
+      const updated = appState.workspaces.update("contract-workspace", {
+        name: "Renamed Contract Workspace",
+        slug: "renamed-contract-workspace",
+        now: new Date("2026-06-14T03:01:00.000Z")
+      });
+      expect(updated).toEqual(
+        expect.objectContaining({
+          id: "contract-workspace",
+          name: "Renamed Contract Workspace",
+          slug: "renamed-contract-workspace",
+          updatedAt: "2026-06-14T03:01:00.000Z"
+        })
+      );
+
+      expect(appState.workspaces.hasLiveRecords("contract-workspace")).toBe(false);
+      expect(appState.workspaces.delete("contract-workspace")).toBe(true);
+      expect(appState.workspaces.get("contract-workspace")).toBeUndefined();
     });
   });
 });

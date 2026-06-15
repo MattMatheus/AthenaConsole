@@ -34,6 +34,7 @@ import {
   AuthorizedModelProviderConfigService,
   AuthorizedConnectedRepositoryService,
   AuthorizedIdentityService,
+  AuthorizedWorkspaceService,
   AuthorizedPolicyService,
   AuthorizedRunService,
   AuthorizedScheduleService,
@@ -53,6 +54,7 @@ import { LocalTaskWorkbenchService } from "./services/task-workbench.js";
 import { LocalCapabilityService, LocalOperationsMetricsProvider, LocalOperationsService } from "./services/operations.js";
 import { AzureBillingOperationsCostProvider } from "./azure-billing-cost-provider.js";
 import { LocalIdentityService } from "./services/identity.js";
+import { LocalWorkspaceService } from "./services/workspaces.js";
 import { LocalGovernanceAuditService } from "./services/governance-audit.js";
 import {
   LocalDirectiveService,
@@ -93,6 +95,7 @@ import type {
   OperationsService,
   GovernanceAuditService,
   IdentityService,
+  WorkspaceService,
   MemoryService,
   PolicyService,
   ReadinessService,
@@ -156,6 +159,7 @@ export interface ControlPlaneServices {
   operationsService: OperationsService;
   governanceAuditService: GovernanceAuditService;
   identityService: IdentityService;
+  workspaceService: WorkspaceService;
   capabilityService: CapabilityService;
   readinessService: ReadinessService;
   stateDiagnosticsService: StateDiagnosticsService;
@@ -269,6 +273,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
   );
   const authorizedPolicyService = new AuthorizedPolicyService(policyService, authorizer);
   const identityService = new AuthorizedIdentityService(new LocalIdentityService(options.config, eventService), authorizer);
+  const workspaceService = new AuthorizedWorkspaceService(new LocalWorkspaceService(options.config), authorizer);
   const governanceAuditService = new AuthorizedGovernanceAuditService(new LocalGovernanceAuditService(eventService), authorizer);
 
   const stateDiagnosticsService = new LocalStateDiagnosticsService(options.config, stateStore);
@@ -307,6 +312,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     a2aObservabilityService,
     governanceAuditService,
     identityService,
+    workspaceService,
     operationsService: new AuthorizedOperationsService(
       new LocalOperationsService(
         options.config,

@@ -32,6 +32,7 @@ describe("console navigation model", () => {
     expect(labelsFor("Admin")).toEqual([
       "Audit Trail",
       "Access Control",
+      "Workspaces",
       "Failed Work",
       "Settings",
       "Documentation",

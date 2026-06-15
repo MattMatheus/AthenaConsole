@@ -227,11 +227,46 @@ export interface WorkspaceRecord {
 
 export class WorkspaceRepository {
   private readonly getStatement: Database.Statement;
+  private readonly getBySlugStatement: Database.Statement;
   private readonly listStatement: Database.Statement;
+  private readonly createStatement: Database.Statement;
+  private readonly updateStatement: Database.Statement;
+  private readonly deleteStatement: Database.Statement;
+  private readonly liveRecordStatements: Database.Statement[];
 
   constructor(private readonly db: Database.Database) {
     this.getStatement = db.prepare("select id, name, slug, created_at, updated_at from workspaces where id = ?");
+    this.getBySlugStatement = db.prepare("select id, name, slug, created_at, updated_at from workspaces where slug = ?");
     this.listStatement = db.prepare("select id, name, slug, created_at, updated_at from workspaces order by name asc, id asc");
+    this.createStatement = db.prepare(`
+      insert into workspaces (id, name, slug, created_at, updated_at)
+      values (@id, @name, @slug, @createdAt, @updatedAt)
+    `);
+    this.updateStatement = db.prepare(`
+      update workspaces
+      set
+        name = @name,
+        slug = @slug,
+        updated_at = @updatedAt
+      where id = @id
+    `);
+    this.deleteStatement = db.prepare("delete from workspaces where id = ?");
+    this.liveRecordStatements = [
+      "missions",
+      "tasks",
+      "runs",
+      "run_events",
+      "artifact_metadata",
+      "schedules",
+      "schedule_run_history",
+      "connected_repositories",
+      "model_provider_configs",
+      "connector_credential_bindings",
+      "eval_suites",
+      "eval_runs",
+      "eval_results",
+      "usage_ledger"
+    ].map((table) => db.prepare(`select exists(select 1 from ${table} where workspace_id = ? limit 1) as found`));
   }
 
   get(id: string): WorkspaceRecord | undefined {
@@ -239,8 +274,58 @@ export class WorkspaceRepository {
     return row ? mapWorkspaceRow(row) : undefined;
   }
 
+  getBySlug(slug: string): WorkspaceRecord | undefined {
+    const row = this.getBySlugStatement.get(slug) as WorkspaceRow | undefined;
+    return row ? mapWorkspaceRow(row) : undefined;
+  }
+
   list(): WorkspaceRecord[] {
     return this.listStatement.all().map((row) => mapWorkspaceRow(row as WorkspaceRow));
+  }
+
+  create(input: { id: string; name: string; slug: string; now?: Date }): WorkspaceRecord {
+    const now = (input.now ?? new Date()).toISOString();
+    this.createStatement.run({
+      id: input.id,
+      name: input.name,
+      slug: input.slug,
+      createdAt: now,
+      updatedAt: now
+    });
+    return {
+      id: input.id,
+      name: input.name,
+      slug: input.slug,
+      createdAt: now,
+      updatedAt: now
+    };
+  }
+
+  update(id: string, input: { name?: string; slug?: string; now?: Date }): WorkspaceRecord | undefined {
+    const existing = this.get(id);
+    if (!existing) {
+      return undefined;
+    }
+    const updatedAt = (input.now ?? new Date()).toISOString();
+    this.updateStatement.run({
+      id,
+      name: input.name ?? existing.name,
+      slug: input.slug ?? existing.slug,
+      updatedAt
+    });
+    return this.get(id);
+  }
+
+  delete(id: string): boolean {
+    const result = this.deleteStatement.run(id);
+    return result.changes > 0;
+  }
+
+  hasLiveRecords(id: string): boolean {
+    return this.liveRecordStatements.some((statement) => {
+      const row = statement.get(id) as { found?: number } | undefined;
+      return row?.found === 1;
+    });
   }
 }
 

@@ -23,7 +23,8 @@ export type ApiRouteFamily =
   | "failed-work"
   | "schedules"
   | "operations-events-policy"
-  | "identity-rbac";
+  | "identity-rbac"
+  | "workspaces";
 
 export interface ApiRouteMeta {
   family: ApiRouteFamily;

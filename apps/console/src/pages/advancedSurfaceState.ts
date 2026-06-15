@@ -1,6 +1,6 @@
 import { ApiClientError } from "../services";
 
-export type AdvancedSurfaceId = "audit-trail" | "rbac" | "failed-work";
+export type AdvancedSurfaceId = "audit-trail" | "rbac" | "failed-work" | "workspaces";
 
 export type AdvancedSurfaceNotice = {
   title: string;
@@ -28,6 +28,11 @@ const SURFACE_COPY: Record<AdvancedSurfaceId, SurfaceCopy> = {
     featureName: "Failed Work",
     localProfileMessage:
       "Failed-work recovery depends on recovery queue APIs that may be disabled when the local server has no recovery backend configured.",
+  },
+  workspaces: {
+    featureName: "Workspaces",
+    localProfileMessage:
+      "Workspace lifecycle management depends on workspace admin APIs that may be disabled in lightweight local profiles.",
   },
 };
 

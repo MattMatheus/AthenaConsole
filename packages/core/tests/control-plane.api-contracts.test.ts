@@ -9,7 +9,7 @@ import {
 
 describe("control-plane api contracts", () => {
   it("declares the full initial v1 route surface", () => {
-    expect(API_V1_ROUTES.length).toBe(113);
+    expect(API_V1_ROUTES.length).toBe(118);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/capabilities")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/health")).toBe(true);
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/readiness")).toBe(true);
@@ -25,6 +25,10 @@ describe("control-plane api contracts", () => {
     expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/workflow-templates")).toBe(
       true
     );
+    expect(API_V1_ROUTES.some((route) => route.method === "GET" && route.path === "/api/v1/workspaces")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/workspaces")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "PUT" && route.path === "/api/v1/workspaces/:id")).toBe(true);
+    expect(API_V1_ROUTES.some((route) => route.method === "DELETE" && route.path === "/api/v1/workspaces/:id")).toBe(true);
     expect(
       API_V1_ROUTES.some((route) => route.method === "POST" && route.path === "/api/v1/workflow-templates/:id/instantiate")
     ).toBe(true);

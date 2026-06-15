@@ -35,6 +35,7 @@ const DocumentationPage = lazy(() =>
   import("../pages/DocumentationPage").then((m) => ({ default: m.DocumentationPage })),
 );
 const RbacPage = lazy(() => import("../pages/RbacPage").then((m) => ({ default: m.RbacPage })));
+const WorkspacesPage = lazy(() => import("../pages/WorkspacesPage").then((m) => ({ default: m.WorkspacesPage })));
 const AuditTrailPage = lazy(() => import("../pages/AuditTrailPage").then((m) => ({ default: m.AuditTrailPage })));
 const SettingsPage = lazy(() => import("../pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 
@@ -122,6 +123,10 @@ export const router = createBrowserRouter([
       {
         path: "rbac",
         element: <RbacPage />,
+      },
+      {
+        path: "workspaces",
+        element: <WorkspacesPage />,
       },
       {
         path: "audit-trail",

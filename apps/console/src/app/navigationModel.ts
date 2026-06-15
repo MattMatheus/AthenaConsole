@@ -3,6 +3,7 @@ import {
   Activity,
   BookOpen,
   Bot,
+  Building2,
   CalendarClock,
   Database,
   History,
@@ -59,6 +60,7 @@ export const navSections: NavSection[] = [
     items: [
       { path: "/audit-trail", label: "Audit Trail", match: /^\/audit-trail/, icon: ScrollText },
       { path: "/rbac", label: "Access Control", match: /^\/rbac/, icon: ShieldCheck },
+      { path: "/workspaces", label: "Workspaces", match: /^\/workspaces/, icon: Building2 },
       { path: "/failed-work", label: "Failed Work", match: /^\/failed-work/, icon: AlertTriangle },
       { path: "/settings", label: "Settings", match: /^\/settings/, icon: Settings },
       { path: "/docs", label: "Documentation", match: /^\/docs/, icon: BookOpen },

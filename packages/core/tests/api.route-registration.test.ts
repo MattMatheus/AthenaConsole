@@ -13,6 +13,7 @@ import { RUN_TEMPLATE_ROUTES } from "../src/api/routes/run-template-routes.js";
 import { WORKFLOW_ROUTES } from "../src/api/routes/workflow-routes.js";
 import { FAILED_WORK_ROUTES } from "../src/api/routes/failed-work-routes.js";
 import { OPERATIONS_EVENTS_ROUTES } from "../src/api/routes/operations-events-routes.js";
+import { WORKSPACE_ROUTES } from "../src/api/routes/workspace-routes.js";
 import {
   composeApiRouteTable,
   defineApiRoutes,
@@ -87,6 +88,14 @@ describe("api route registration", () => {
     expect(MISSION_ROUTES.some((route) => route.path === "/api/v1/missions/:id/runs")).toBe(true);
     expect(MISSION_ROUTES.some((route) => route.path === "/api/v1/mission-runs/:runId")).toBe(true);
     expect(TASK_ROUTES.every((route) => route.meta.family === "tasks")).toBe(true);
+    expect(WORKSPACE_ROUTES.every((route) => route.meta.family === "workspaces")).toBe(true);
+    expect(WORKSPACE_ROUTES.map((route) => `${route.method} ${route.path}`)).toEqual([
+      "GET /api/v1/workspaces",
+      "POST /api/v1/workspaces",
+      "GET /api/v1/workspaces/:id",
+      "PUT /api/v1/workspaces/:id",
+      "DELETE /api/v1/workspaces/:id"
+    ]);
   });
 
   it("composes a unified route table from route collection exports", () => {
@@ -112,7 +121,8 @@ describe("api route registration", () => {
       FAILED_WORK_ROUTES,
       SCHEDULE_ROUTES,
       OPERATIONS_EVENTS_ROUTES,
-      POLICY_ROUTES
+      POLICY_ROUTES,
+      WORKSPACE_ROUTES
     );
 
     validateApiRouteTable(table);
@@ -125,6 +135,7 @@ describe("api route registration", () => {
     expect(table.some((route) => route.path === "/api/v1/missions/:id/run" && route.meta.family === "missions")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/missions/:id/runs" && route.meta.family === "missions")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/tasks" && route.meta.family === "tasks")).toBe(true);
+    expect(table.some((route) => route.path === "/api/v1/workspaces" && route.meta.family === "workspaces")).toBe(true);
     expect(table.some((route) => route.path === "/api/v1/memory/search" && route.meta.family === "memory")).toBe(
       true
     );

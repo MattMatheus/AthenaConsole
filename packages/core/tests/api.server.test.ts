@@ -50,6 +50,9 @@ describe("api server", () => {
     expect(resolveApiRouteFamily("GET", "/api/v1/governance/audit-trail")).toBe("identity-rbac");
     expect(resolveApiRouteFamily("GET", "/api/v1/governance/audit-trail/export.jsonl")).toBe("identity-rbac");
     expect(resolveApiRouteFamily("GET", "/api/v1/governance/audit-trail/export.csv")).toBe("identity-rbac");
+    expect(resolveApiRouteFamily("GET", "/api/v1/workspaces")).toBe("workspaces");
+    expect(resolveApiRouteFamily("POST", "/api/v1/workspaces")).toBe("workspaces");
+    expect(resolveApiRouteFamily("GET", "/api/v1/workspaces/default")).toBe("workspaces");
     expect(resolveApiRouteFamily("GET", "/api/v1/rejections")).toBe("operations-events-policy");
     expect(resolveApiRouteFamily("GET", "/api/v1/policy/rejections")).toBe("operations-events-policy");
     expect(resolveApiRouteFamily("POST", "/api/v1/failed-work/msg-1/retry")).toBe("failed-work");

@@ -284,6 +284,39 @@ const DURABLE_MEMORY_RETRIEVAL_DIAGNOSTICS_SCHEMA: ApiSchema = {
 };
 
 const API_COMPONENT_SCHEMAS_NON_GENERATED: Record<string, ApiSchema> = {
+  Workspace: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: STRING_SCHEMA,
+      name: STRING_SCHEMA,
+      slug: STRING_SCHEMA,
+      createdAt: { type: "string", format: "date-time" },
+      updatedAt: { type: "string", format: "date-time" }
+    },
+    required: ["id", "name", "slug", "createdAt", "updatedAt"]
+  },
+  WorkspaceListResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      workspaces: {
+        type: "array",
+        items: { $ref: "#/components/schemas/Workspace" }
+      },
+      total: { type: "integer", minimum: 0 }
+    },
+    required: ["workspaces", "total"]
+  },
+  WorkspaceDeleteResult: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: STRING_SCHEMA,
+      deleted: { type: "boolean" }
+    },
+    required: ["id", "deleted"]
+  },
   ModelProviderRequirement: {
     type: "object",
     additionalProperties: false,
@@ -2163,6 +2196,30 @@ function modelProviderUpdateRequestSchema(): ApiSchema {
       baseUrl: { type: "string", minLength: 1 },
       defaultModel: { type: "string", minLength: 1 },
       secret: modelProviderSecretReferenceSchema()
+    }
+  };
+}
+
+function workspaceCreateRequestSchema(): ApiSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      id: { type: "string", minLength: 1 },
+      name: STRING_SCHEMA,
+      slug: { type: "string", minLength: 1 }
+    },
+    required: ["name"]
+  };
+}
+
+function workspaceUpdateRequestSchema(): ApiSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      name: { type: "string", minLength: 1 },
+      slug: { type: "string", minLength: 1 }
     }
   };
 }
@@ -4155,6 +4212,41 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       required: ["subject"]
     },
     responseSchema: { $ref: "#/components/schemas/IdentityRoleAuditResult" }
+  },
+  listWorkspaces: {
+    operationId: "listWorkspaces",
+    method: "GET",
+    path: "/api/v1/workspaces",
+    responseSchema: { $ref: "#/components/schemas/WorkspaceListResult" }
+  },
+  createWorkspace: {
+    operationId: "createWorkspace",
+    method: "POST",
+    path: "/api/v1/workspaces",
+    requestBodySchema: workspaceCreateRequestSchema(),
+    responseSchema: { $ref: "#/components/schemas/Workspace" }
+  },
+  getWorkspace: {
+    operationId: "getWorkspace",
+    method: "GET",
+    path: "/api/v1/workspaces/:id",
+    pathParamsSchema: idPathParamsSchema(),
+    responseSchema: { $ref: "#/components/schemas/Workspace" }
+  },
+  updateWorkspace: {
+    operationId: "updateWorkspace",
+    method: "PUT",
+    path: "/api/v1/workspaces/:id",
+    pathParamsSchema: idPathParamsSchema(),
+    requestBodySchema: workspaceUpdateRequestSchema(),
+    responseSchema: { $ref: "#/components/schemas/Workspace" }
+  },
+  deleteWorkspace: {
+    operationId: "deleteWorkspace",
+    method: "DELETE",
+    path: "/api/v1/workspaces/:id",
+    pathParamsSchema: idPathParamsSchema(),
+    responseSchema: { $ref: "#/components/schemas/WorkspaceDeleteResult" }
   },
   listGovernanceAuditTrail: {
     operationId: "listGovernanceAuditTrail",

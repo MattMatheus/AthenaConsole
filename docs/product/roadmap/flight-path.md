@@ -94,6 +94,17 @@ Planned source:
 
 - `plans/023-postgres-readiness-spike.md`
 
+### 2026.47 Agent Certification Eval Runner
+
+Promote deterministic golden evals from test-only proof into an operator-triggered
+certification surface. Record eval runs/results in app-state, expose eval APIs,
+and extend the agent catalog so first-party certification can become reachable in
+live instances.
+
+Planned source:
+
+- `docs/product/architecture/decisions/0030-agent-certification-and-eval-runner.md`
+
 ## Deferred Arc: Knowledge Work Connectors
 
 The 2026.43 knowledge-work connector pack remains deferred until enterprise readiness gates are clearer. Knowledge-work connectors add external SaaS auth, privacy, data retention, and write-action risk, so they should enter a product shell with workspace/RBAC/cost boundaries already defined.

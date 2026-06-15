@@ -28,6 +28,7 @@ import { REPOSITORY_ROUTES } from "./routes/repository-routes.js";
 import { MODEL_PROVIDER_ROUTES } from "./routes/model-provider-routes.js";
 import { RUN_ROUTES, SESSION_ROUTES } from "./routes/run-routes.js";
 import { RBAC_ROUTES } from "./routes/identity-rbac-routes.js";
+import { WORKSPACE_ROUTES } from "./routes/workspace-routes.js";
 import { DIRECTIVE_ROUTES } from "./routes/directive-routes.js";
 import { HARNESS_PROFILE_ROUTES } from "./routes/harness-profile-routes.js";
 import { RUN_TEMPLATE_ROUTES } from "./routes/run-template-routes.js";
@@ -74,7 +75,8 @@ const API_V1_ROUTE_TABLE = composeApiRouteTable(
   SCHEDULE_ROUTES,
   OPERATIONS_EVENTS_ROUTES,
   POLICY_ROUTES,
-  RBAC_ROUTES
+  RBAC_ROUTES,
+  WORKSPACE_ROUTES
 );
 validateApiRouteTable(API_V1_ROUTE_TABLE);
 

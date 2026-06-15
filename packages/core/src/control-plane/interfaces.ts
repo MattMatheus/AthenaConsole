@@ -96,6 +96,13 @@ import type {
   WorkQueueState
 } from "../shared/contracts.js";
 import type {
+  Workspace,
+  WorkspaceCreateRequest,
+  WorkspaceDeleteResult,
+  WorkspaceListResult,
+  WorkspaceUpdateRequest
+} from "../shared/contracts/workspaces.js";
+import type {
   ModelProviderConfig,
   ModelProviderConfigCreateRequest,
   ModelProviderConfigDeleteResult,
@@ -141,6 +148,14 @@ export interface IdentityService {
   upsertAssignment(request: IdentityRoleAssignmentUpsertRequest): Promise<IdentityRoleAssignment>;
   removeAssignment(subject: string): Promise<{ subject: string; removed: boolean }>;
   auditPermissions(subject: string): Promise<IdentityRoleAuditResult>;
+}
+
+export interface WorkspaceService {
+  list(): Promise<WorkspaceListResult>;
+  get(id: string): Promise<Workspace>;
+  create(request: WorkspaceCreateRequest): Promise<Workspace>;
+  update(id: string, request: WorkspaceUpdateRequest): Promise<Workspace>;
+  delete(id: string): Promise<WorkspaceDeleteResult>;
 }
 
 export interface DirectiveService {
