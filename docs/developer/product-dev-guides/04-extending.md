@@ -4,7 +4,7 @@
 
 This guide covers current implementation extension points. Future extension work should be reframed around formal agents, plugins, lifecycle contracts, and pluggable execution backends.
 
-For authoring a new local plugin-backed agent, start with `packages/core/docs/user/07-pdk-guide.md`. The console is for operating installed agents; plugin manifests and runner files remain the normal authoring path.
+For authoring a new local plugin-backed agent, start with the [Agent Developer Kit guide](../../../docs/sdk/agent-developer-kit.md). The console is for operating installed agents; plugin manifests and runner files remain the normal authoring path.
 
 ## 1. Add a New `ExecutionBackend`
 

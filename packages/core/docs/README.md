@@ -6,8 +6,7 @@ Use this index for package-adjacent references and current agent-author guides. 
 
 ## Current User Paths
 
-- [Copy The Model Provider Smoke Agent](user/10-copy-sample-agent.md) - Safely copy, rename, restart, and test a model-backed sample agent.
-- [Build Your First Agent](user/07-pdk-guide.md) - Create a local plugin-backed agent with the Team Orchestrator PDK.
+- [Agent Developer Kit Guide](../../../docs/sdk/agent-developer-kit.md) - Build plugin-backed agents with `@athena/pdk`: manifests, envelope parsing, input validation, output builders, and a complete worked example (including how to copy and rename the model-provider-smoke sample).
 - [API Examples](user/06-api-examples.md) - Practical examples of API requests.
 
 ## Legacy Or Compatibility Context

@@ -33,4 +33,4 @@ The API resolves env-style secrets from the running process environment or from 
 
 The runner calls the configured provider's `/chat/completions` endpoint and returns the first assistant message. It never writes the API key to output, events, artifacts, or metadata.
 
-This plugin is the checked-in example of the copy-and-rename path documented in `packages/core/docs/user/10-copy-sample-agent.md`.
+This plugin is the checked-in example of the copy-and-rename path documented in the [Agent Developer Kit guide](../../../docs/sdk/agent-developer-kit.md#starting-from-a-sample).
