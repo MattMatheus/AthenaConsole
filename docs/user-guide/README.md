@@ -1,25 +1,44 @@
 <!-- AUDIENCE: Operator -->
 
-# Team Orchestrator User Guide
-
-> Pages drafted in plan 030. This stub establishes the manual index; full content is authored in that plan.
-> The previous content of this file is retained in git history at commit `9acdfd6`.
+# Team Orchestrator User Manual
 
 Team Orchestrator is a work control plane for teams and operators. Deploy it as a local workbench for one operator, or as a trusted server for a team with workspace membership, RBAC, cost governance, and audit-ready run history.
+
+This manual covers operator and admin workflows: deploying the server, managing workspaces, running work, inspecting results, and administering the platform. For agent authoring and API integration, see the [SDK and Integration Guide](../sdk/README.md).
 
 ---
 
 ## Manual Pages
 
-| Page | Contents | Status |
-|------|----------|--------|
-| Overview | What Team Orchestrator does; product model (tasks, missions, runs, agents, plugins, workflows, events, artifacts) | Plan 030 |
-| Install and Deploy | Prerequisites; local stack; trusted-server profile; environment variables; health and readiness | Plan 030 |
-| Workspaces and Multiplayer | Workspace creation and membership; multi-user operation; preview status for unbuilt isolation | Plan 030 |
-| Roles and RBAC | Roles (Admin, Member, Viewer); permission boundaries; workspace-scoped access | Plan 030 |
-| Running Work | Start Work flow; capabilities; preflight; task and workflow execution; inspection | Plan 030 |
-| Providers, Memory, and Repositories | Configuring model providers; memory backends; repository context and wiring | Plan 030 |
-| Cost Governance | Budgets, usage ledger, quotas; cost enforcement status | Plan 030 |
-| Operations and Admin | Server administration; plugin management; diagnostics; smoke suite | Plan 030 |
-| Troubleshooting | Common errors; readiness failures; provider issues; plugin validation | Plan 030 |
-| Glossary | Canonical definitions for product vocabulary | Plan 030 |
+| # | Page | Contents |
+|---|------|----------|
+| 01 | [Overview](01-overview.md) | What Team Orchestrator does; product model reference (tasks, missions, runs, agents, plugins, workflows, events, artifacts, providers, repositories, safety controls) |
+| 02 | [Install and Deploy](02-install-and-deploy.md) | Prerequisites; local stack; trusted-server and production profiles; environment variables; health and readiness |
+| 03 | [Workspaces and Multiplayer](03-workspaces-and-multiplayer.md) | Workspace creation and management; multi-user operation; what is available today vs. what is in preview |
+| 04 | [Roles and RBAC](04-roles-and-rbac.md) | Roles (Admin, Operator, Viewer); permission boundaries; workspace-scoped access |
+| 05 | [Running Work](05-running-work.md) | Start Work flow; capabilities; preflight; task and workflow execution; first-run demo; product smoke; inspecting results |
+| 06 | [Providers, Memory, and Repositories](06-providers-memory-repos.md) | Configuring model providers; memory backends; repository context and wiring |
+| 07 | [Cost Governance](07-cost-governance.md) | Budgets, usage ledger, quotas; cost enforcement status |
+| 08 | [Operations and Admin](08-operations-and-admin.md) | Server administration; health and readiness; plugin management; events, artifacts, evidence; diagnostics; smoke suite |
+| 09 | [Troubleshooting](09-troubleshooting.md) | Common errors; readiness failures; provider issues; plugin validation |
+| 10 | [Glossary](10-glossary.md) | Canonical definitions for product vocabulary |
+
+---
+
+## Who This Is For
+
+This manual is for:
+
+- operators running agent work against repositories or shared infrastructure,
+- admins deploying and configuring the server for a team,
+- evaluators reviewing what is built, what is in preview, and what to expect.
+
+If you only want the shortest startup path, use [GETTING_STARTED.md](../../GETTING_STARTED.md) at the repo root. Come back here when you want to understand what each step means.
+
+For agent authoring, capability pack development, and the HTTP API reference, see the [SDK and Integration Guide](../sdk/README.md).
+
+---
+
+## Preview Status
+
+Some multi-user capabilities are designed but not yet enforced. Every section that describes an unbuilt or partially-enforced capability carries the preview banner from [docs/conventions.md](../conventions.md). Read those banners before deploying to untrusted users.
