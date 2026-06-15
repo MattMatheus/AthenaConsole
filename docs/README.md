@@ -2,55 +2,49 @@
 
 # Team Orchestrator Documentation
 
-This is the canonical documentation map for the repo. Start here when deciding which docs are current and which are historical.
+Canonical documentation map. Start here to find current, authoritative docs.
 
-## New Local Operator
+Writing conventions for all docs: [conventions.md](conventions.md).
 
-Use these when you want to install Team Orchestrator, start the console, connect a provider, connect a repo, run work, and inspect results.
+---
 
-1. [Team Orchestrator User Guide](user-guide/README.md)
-2. [Getting Started](../GETTING_STARTED.md)
-3. [Copy The Model Provider Smoke Agent](../packages/core/docs/user/10-copy-sample-agent.md)
-4. [Fresh Server Real-Work Walkthrough](developer/product-dev-guides/fresh-server-real-work-walkthrough.md)
+## Operators — Run Work
 
-## Local Server Or Enterprise Admin
+Use these when you want to connect a provider or repository, run agent work, inspect results, manage workspaces, and govern your team's usage.
 
-Use these when you want a durable trusted-LAN install, or when you are evaluating the enterprise path around workspace scope, RBAC, cost governance, and Postgres readiness.
+1. [User Guide](user-guide/README.md) — install, deploy, configure, run work, inspect history, manage workspaces and governance
+2. [Getting Started](../GETTING_STARTED.md) — shortest startup path for a new local install
 
-1. [Local Server Deployment](developer/product-dev-guides/local-server-deployment.md)
-2. [Deployment Automation](developer/product-dev-guides/deployment-automation.md)
-3. [Fresh Server Real-Work Walkthrough](developer/product-dev-guides/fresh-server-real-work-walkthrough.md)
-4. [State Ownership Map](product/architecture/state-ownership-map.md)
-5. [Enterprise Direction ADR](product/architecture/decisions/0027-enterprise-multi-user-direction.md)
-6. [Security Gap Sweep](product/security/security-critical-gap-sweep-2026-06-13.md)
+---
 
-## Agent Author
+## Admins / Enterprise — Deploy and Govern Teams
 
-Use these when you want to create or adapt a plugin-backed agent.
+Use these when you are deploying a shared server, configuring workspace membership and RBAC, enforcing cost controls, or evaluating security readiness.
 
-1. [Team Orchestrator User Guide](user-guide/README.md#create-a-plugin-backed-agent)
-2. [Build Your First Agent](../packages/core/docs/user/07-pdk-guide.md)
-3. [Copy The Model Provider Smoke Agent](../packages/core/docs/user/10-copy-sample-agent.md)
-4. [Capability Pack Authoring](developer/product-dev-guides/capability-pack-authoring.md)
-5. [Agent Developer Kit Package](../packages/pdk/README.md)
-6. Sample plugins:
-   - `sample-plugins/first-run-demo/`
-   - `sample-plugins/model-provider-smoke/`
-   - `sample-plugins/local-user-test/`
-   - `sample-plugins/repo-summary/`
-   - `sample-plugins/generic-research/`
-   - `sample-plugins/code-review/`
+1. [User Guide — Operations and Admin](user-guide/README.md) — workspace lifecycle, roles, cost governance, retention, and admin operations
+2. [Security Gap Sweep](product/security/security-critical-gap-sweep-2026-06-13.md) — known gaps and mitigations for shared deployments
+3. [Enterprise Direction ADR](product/architecture/decisions/0027-enterprise-multi-user-direction.md) — accepted architectural decisions for multi-user operation
 
-## Contributor
+---
 
-Use these when you want to change the product or understand the current implementation direction.
+## Engineers / Integrators — SDK and API
+
+Use these when you want to author plugin-backed agents, call the HTTP control-plane API, or integrate with Team Orchestrator programmatically.
+
+1. [SDK and Integration Guide](sdk/README.md) — Agent Developer Kit (PDK) and HTTP control-plane API reference
+
+---
+
+## Contributors — Change the Product
+
+Use these when you want to understand the current implementation direction or contribute to the codebase.
 
 1. [Developer Guides](developer/product-dev-guides/README.md)
 2. [Current Product Direction](product/direction/current-direction.md)
 3. [Architecture Decisions](product/architecture/decisions/README.md)
 4. [Roadmap Flight Path](product/roadmap/flight-path.md)
-5. [Enterprise Direction ADR](product/architecture/decisions/0027-enterprise-multi-user-direction.md)
-6. [Release Readiness](product/release/README.md)
+
+---
 
 ## Internal Workflow
 
@@ -63,11 +57,13 @@ Workflow state does not live in `docs/`. Use the Flywheel harness for active que
 
 Completed Flywheel stories and point-in-time planning/observer records are archived under `flywheel/archive/`.
 
+---
+
 ## Historical Context
 
-Completed planning and research records remain useful for rationale, but they are not the current user path:
+ADRs are the canonical decision history and do not expire. Completed epics, plans, and Flywheel artifacts are retained in git history.
 
-- `docs/product/epics/completed/`
-- `docs/product/research/`
-- `plans/archive/completed-001-019/`
-- `flywheel/archive/`
+- `docs/product/architecture/decisions/` — Architecture Decision Records
+- `docs/product/research/` — point-in-time research and evaluations
+- `plans/archive/completed-001-019/` — completed implementation plans
+- `flywheel/archive/` — completed Flywheel stories and observer records
