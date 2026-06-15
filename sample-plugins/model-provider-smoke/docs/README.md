@@ -33,4 +33,4 @@ The API resolves env-style secrets from the running process environment or from 
 
 The runner calls the configured provider's `/chat/completions` endpoint and returns the first assistant message. It never writes the API key to output, events, artifacts, or metadata.
 
-To copy this sample into your own agent, follow `packages/core/docs/user/10-copy-sample-agent.md`.
+To copy this sample into your own agent, follow the "Starting from a sample" section of the [Agent Developer Kit guide](../../../docs/sdk/agent-developer-kit.md#starting-from-a-sample).
