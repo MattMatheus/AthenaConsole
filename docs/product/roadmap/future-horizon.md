@@ -4,7 +4,7 @@
 
 This roadmap captures post-`2026.1` product direction for Team Orchestrator.
 
-The product is local-first by default and enterprise-capable by design. Local execution remains the easiest way to start. The future horizon adds durable continuity, useful first-party capabilities, safe connectors, and enterprise governance.
+Team Orchestrator is a work control plane for teams and operators — the primary direction is enterprise/multiplayer team operation. Local execution is a supported mode and the easiest way to start. The future horizon adds durable continuity, useful first-party capabilities, safe connectors, and enterprise governance.
 
 ## Product Thesis
 
@@ -59,7 +59,7 @@ Status: Accepted direction; design and validation pending.
 
 Product principle:
 
-- Local-first by default, enterprise-capable by design.
+- Enterprise/multiplayer primary; local deployment is one supported mode.
 
 The enterprise arc makes the existing RBAC, workspace, usage ledger, distributed coordination, and Postgres design work coherent. The product should support a trusted-server/multi-user path only after the safety boundaries are server-bound and testable.
 
@@ -67,11 +67,7 @@ Source decision:
 
 - `docs/product/architecture/decisions/0027-enterprise-multi-user-direction.md`
 
-Planned design and validation:
-
-- `plans/021-workspace-entity-design-spike.md`
-- `plans/022-cost-governance-design.md`
-- `plans/023-postgres-readiness-spike.md`
+Planned design and validation: see [`plans/README.md`](../../../plans/README.md).
 
 Required outcomes:
 
@@ -86,7 +82,7 @@ Required outcomes:
 
 Recommended sequence:
 
-1. Keep the local-first `2026.1` path stable.
+1. Keep the local single-operator path (`2026.1` baseline) stable as one supported deployment mode.
 2. Review the enterprise plans against ADR 0027.
 3. Design workspace lifecycle and server-bound RBAC before exposing multi-user operation.
 4. Design cost governance before enterprise pilots depend on usage reporting.

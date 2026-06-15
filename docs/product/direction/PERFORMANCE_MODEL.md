@@ -49,4 +49,4 @@ This replaces the older fidelity/pilot calibration framing with practical operat
 - API/backend cost estimate where available
 - local/container runtime duration
 
-Cost visibility matters, but enterprise cost governance is not the product center for the reset.
+Cost visibility matters. Enterprise cost governance — budgets, caps, alerts, and per-workspace usage reporting — is in scope for the current enterprise readiness arc (2026.45).

@@ -4,9 +4,9 @@
 
 ## Core Essence
 
-Team Orchestrator is a web-first control plane for teams that need agent work to be runnable, inspectable, governable, and repeatable.
+Team Orchestrator is a work control plane for teams and operators. The primary product direction is enterprise/multiplayer: workspace-scoped, multi-user operation with RBAC, cost governance, auditable runs, and server-ready persistence.
 
-The first experience is still intentionally local: one operator can start the console, run useful work, and inspect what happened without a hosted service. The product direction is now enterprise-capable: the same model must grow into workspace-scoped, multi-user operation with RBAC, cost governance, auditable runs, and server-ready persistence.
+Local single-operator deployment is a supported mode — one operator can start the console, run useful work, and inspect what happened without a hosted service. It is not the product identity; it is the easiest way to start.
 
 ## Product Promise
 
@@ -25,7 +25,7 @@ The product is an agent work control plane, not a generic prompt runner and not 
 
 Existing systems such as Airflow, Flyte, Kestra, LangGraph, and internal platform consoles are useful reference points, but Team Orchestrator's core product model is agent-native: plugins, formal agents, capabilities, tasks, missions, workflow runs, events, artifacts, memory, approvals, workspaces, and cost governance.
 
-The product should feel local-first by default and enterprise-capable by design. A developer can run it on a laptop. A team should be able to run it on a trusted server with workspace boundaries, policy, usage controls, and audit trails.
+The product is enterprise-first by narrative: a team should be able to run it on a trusted server with workspace boundaries, policy, usage controls, and audit trails. A developer can also run it on a laptop as a local workbench — local deployment is a supported mode, not the lead identity.
 
 ## Naming
 

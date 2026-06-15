@@ -2,9 +2,9 @@
 
 # Current Product Direction
 
-Team Orchestrator is a local-first, enterprise-capable agent work control plane.
+Team Orchestrator is a work control plane for teams and operators. Deploy it as a local workbench for one operator, or as a trusted server for a team with workspace membership, RBAC, cost governance, and audit-ready run history.
 
-The 2026.1 release established the local baseline: a console and API for plugin-backed agents, task and mission work, workflow-template DAG runs, provider setup, repository context, run inspection, artifacts, approvals, and safety limits. Current main now extends that baseline toward multi-user enterprise operation.
+The 2026.1 release established the foundation: a console and API for plugin-backed agents, task and mission work, workflow-template DAG runs, provider setup, repository context, run inspection, artifacts, approvals, and safety limits. Current main is extending that foundation into multi-user enterprise operation — the primary product direction.
 
 The accepted enterprise direction is [ADR 0027: Enterprise And Multi-User Direction](../architecture/decisions/0027-enterprise-multi-user-direction.md).
 
@@ -23,7 +23,7 @@ The product center is:
 
 Use this posture in new work:
 
-- Local-first remains the easiest default path and the supported development loop.
+- Enterprise/multi-user team operation is the primary product direction. Local single-operator deployment is one supported mode, not the product identity.
 - Trusted-server and multi-user operation are in scope, but must be gated by server-bound identity, workspace membership, authorization, cost governance, and durable app-state boundaries.
 - Enterprise capability should strengthen the agent work model, not replace it with a generic infrastructure dashboard.
 - Historical single-user/local-only statements are release-history context, not current product direction.
@@ -54,8 +54,9 @@ Current product direction starts from the accepted reset ADRs and the enterprise
 - `docs/product/architecture/decisions/0025-product-intuition-and-start-work-ia.md`
 - `docs/product/architecture/decisions/0026-formal-agent-manifest-convention.md`
 - `docs/product/architecture/decisions/0027-enterprise-multi-user-direction.md`
-- `docs/product/architecture/decisions/0028-workspace-lifecycle-and-scoped-rbac.md` (Proposed)
-- `docs/product/architecture/decisions/0029-cost-governance-budgets-and-alerts.md` (Proposed)
+- `docs/product/architecture/decisions/0028-workspace-lifecycle-and-scoped-rbac.md` (Active Epic)
+- `docs/product/architecture/decisions/0029-cost-governance-budgets-and-alerts.md` (Active Epic)
+- `docs/product/architecture/decisions/0030-agent-certification-and-eval-runner.md` (Active Epic)
 
 ADRs are retained as canonical history. Completed epics remain reference material under `docs/product/epics/completed/`. Completed Flywheel stories and point-in-time observer/planning artifacts are archived under `flywheel/archive/`.
 
@@ -88,13 +89,7 @@ Roadmap details live in:
 
 ## Active Planning Boundary
 
-The live plan set is `plans/021-023`:
-
-- `021-workspace-entity-design-spike.md`
-- `022-cost-governance-design.md`
-- `023-postgres-readiness-spike.md`
-
-Plans 001-019 are complete and archived under `plans/archive/completed-001-019/`. Plan 020 is superseded by ADR 0027 and archived under `plans/archive/superseded-020-enterprise-direction-adr/`.
+The live plan set is maintained in [`plans/README.md`](../../../plans/README.md). Plans 001-019 are complete and archived under `plans/archive/completed-001-019/`. Plan 020 is superseded by ADR 0027 and archived under `plans/archive/superseded-020-enterprise-direction-adr/`.
 
 Do not start enterprise implementation work until the relevant design plans and ADRs are reviewed. In particular, multi-user exposure must not precede workspace lifecycle, server-derived workspace membership, authorization enforcement, and cost-governance decisions.
 

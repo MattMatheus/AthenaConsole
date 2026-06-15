@@ -2,31 +2,13 @@
 
 # Team Orchestrator Flight Path
 
-This roadmap describes the current product sequence after the 2026 local-first baseline and the enterprise direction pivot.
+This roadmap describes the current product sequence. Team Orchestrator is a work control plane for teams and operators — the primary direction is enterprise/multiplayer team operation with workspace-scoped RBAC, cost governance, and server-ready persistence. Local single-operator deployment is a supported mode and the easiest way to start.
 
-Team Orchestrator is local-first by default and enterprise-capable by design. The current product center is manifest-backed agents, outcome-led work creation, workflow-template DAG runs, durable app-state, inspectable events and artifacts, runtime safety controls, memory, connector packs, workspaces, RBAC, cost governance, and a console for operators and admins.
-
-## Current Baseline
-
-The local-first foundation is complete and shipped as `2026.1`.
-
-Delivered tracks include:
-
-- Foundation app-state, plugin, agent, task, mission, run, event, artifact, schedule, and workflow-template models.
-- Local agent catalog, Start Work, capabilities, resources, work history, review, and admin surfaces.
-- Workflow-template DAG execution, restart recovery, scheduled DAG execution, and console graph/status inspection.
-- Run templates, verification evidence, runtime policy packs, and A2A observability reframing.
-- State ownership map, startup diagnostics, SQLite migrations for operator-owned control-plane resources, artifact classification, and removal of legacy workflow file-state runtime paths.
-- Agent Developer Kit, sample plugins, first-party software-team capability pack, connector platform, GitHub connector pack, durable memory foundations, and semantic retrieval/sync work.
-
-Canonical direction:
-
-- `docs/product/direction/current-direction.md`
-- `docs/product/architecture/decisions/0027-enterprise-multi-user-direction.md`
+The current product center is manifest-backed agents, outcome-led work creation, workflow-template DAG runs, durable app-state, inspectable events and artifacts, runtime safety controls, memory, connector packs, workspaces, RBAC, cost governance, and a console for operators and admins.
 
 ## Completed Product Arcs
 
-Completed arc summaries are below. For detailed epic history, see ADRs in `docs/product/architecture/decisions/` or git history (completed epics removed from disk at commit `9acdfd6`).
+The foundation baseline shipped as `2026.1`. Completed arcs are summarized in `docs/product/epics/completed/`. Use those epics and ADRs for historical rationale, not the archived Flywheel story files.
 
 Major completed arcs:
 
@@ -46,7 +28,7 @@ Major completed arcs:
 
 Status: Accepted direction; design and validation pending.
 
-Goal: make Team Orchestrator safe and coherent for team/server operation without losing the local-first default path.
+Goal: make Team Orchestrator safe and coherent for team/server operation. Local single-operator deployment remains a supported mode throughout.
 
 Why now:
 
@@ -64,11 +46,7 @@ Source decision:
 
 - `docs/product/architecture/decisions/0027-enterprise-multi-user-direction.md`
 
-Active plan set:
-
-- `plans/021-workspace-entity-design-spike.md`
-- `plans/022-cost-governance-design.md`
-- `plans/023-postgres-readiness-spike.md`
+Active plan set: see [`plans/README.md`](../../../plans/README.md).
 
 ### 2026.44 Workspace Lifecycle And Scoped RBAC
 
@@ -118,7 +96,7 @@ Source epic:
 Keep live planning surfaces small:
 
 - ADRs stay in `docs/product/architecture/decisions/`.
-- Completed epics are retained in git history; completed arcs are summarized in prose in the "Completed Product Arcs" section above.
+- Completed epics stay in `docs/product/epics/completed/`.
 - Active plans stay at the top of `plans/`.
 - Completed plans move under `plans/archive/`.
 - Completed Flywheel stories and point-in-time observer/planning artifacts move under `flywheel/archive/`.

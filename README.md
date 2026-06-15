@@ -1,10 +1,18 @@
 # Team Orchestrator
 
-Team Orchestrator is a local-first, enterprise-capable control plane for running, inspecting, and governing agent work from a web console.
+Team Orchestrator is a work control plane for teams and operators. Deploy it as a local workbench for one operator, or as a trusted server for a team with workspace membership, RBAC, cost governance, and audit-ready run history.
 
-The project is built around a simple idea: agent systems should be inspectable and governable while they run. Operators and platform owners should be able to see which agent is doing what, which workspace owns the work, what state was persisted, what cost was incurred, what artifacts were produced, and why a run succeeded, failed, paused, or required approval.
+The product is built around a simple idea: agent systems should be inspectable and governable while they run. Operators and platform owners should be able to see which agent is doing what, which workspace owns the work, what state was persisted, what cost was incurred, what artifacts were produced, and why a run succeeded, failed, paused, or required approval.
 
-Team Orchestrator still starts locally: the default path uses manifest-backed agents, plugins, SQLite app state, workflow templates, runtime safety policies, and a console-first operator experience. Current direction extends that baseline toward enterprise operation with workspaces, RBAC, cost governance, distributed coordination, and Postgres-ready app-state boundaries.
+Deployment modes range from a single-operator local stack to a shared trusted-server profile. The default local path uses manifest-backed agents, plugins, SQLite app state, workflow templates, runtime safety policies, and a console-first operator experience. The enterprise/team path adds workspaces, RBAC, cost governance, distributed coordination, and Postgres-ready app-state boundaries.
+
+> ⚠️ **Preview — not yet enforced in the current build.**
+> This describes the **target** behavior. As of this build, workspace/multi-user
+> isolation is **not enforced**: workspace scope is client-asserted
+> (`x-athena-scope-workspaces` header), there is no membership model, and
+> cross-workspace reads are not blocked at the data layer. Tracking: epic
+> 2026.44 stories .02–.04. **Do not expose a shared/multi-user deployment to
+> untrusted users until these land.**
 
 ## What It Does
 
@@ -36,12 +44,14 @@ The project intentionally does not maintain legacy compatibility shims for depre
 
 ## Quickstart
 
-Start here:
+The recommended path is to evaluate locally first, then deploy for your team.
 
-- [GETTING_STARTED.md](GETTING_STARTED.md)
-- [Team Orchestrator User Guide](docs/user-guide/README.md)
+**Step 1 — Evaluate locally:**
 
-The quickstart covers one supported local path:
+- [GETTING_STARTED.md](GETTING_STARTED.md) — local stack, first-run demo, real repo work
+- [Team Orchestrator User Guide](docs/user-guide/README.md) — full operator and admin guide
+
+The local evaluation path:
 
 1. Start the API and console with `docker-compose.local.yml`.
 2. Check health and readiness at `/api/v1/health` and `/api/v1/readiness`.
@@ -52,6 +62,10 @@ The quickstart covers one supported local path:
 The first-run demo uses the local sample plugin in `sample-plugins/first-run-demo` and the default mock provider, so no OpenAI or Azure setup is required for the initial validation loop.
 
 After the demo, use the repo wiring path in [GETTING_STARTED.md](GETTING_STARTED.md#6-move-from-demo-to-real-repo-work) to expose a local target repo, confirm plugin-backed agents, and start a real task or workflow with repo context.
+
+**Step 2 — Deploy for your team:**
+
+See [Team Orchestrator User Guide](docs/user-guide/README.md) for the trusted-server deployment path, workspace setup, and admin configuration.
 
 ## Local Development
 
@@ -121,11 +135,10 @@ The current product and enterprise direction lives in:
 
 ## Documentation
 
-Key docs:
-
-- [Documentation Map](docs/README.md)
-- [User Guide](docs/user-guide/README.md)
-- [Getting Started](GETTING_STARTED.md)
+- [Documentation Map](docs/README.md) — full index of all docs
+- [User Guide](docs/user-guide/README.md) — operator and admin guide, including trusted-server deployment
+- [SDK Guide](docs/sdk/README.md) — plugin and agent authoring
+- [Getting Started](GETTING_STARTED.md) — local evaluation path and first-run demo
 - [Product Direction](docs/product/direction/current-direction.md)
 - [Roadmap Flight Path](docs/product/roadmap/flight-path.md)
 - [Developer Guides](docs/developer/product-dev-guides/README.md)
@@ -144,4 +157,4 @@ For an end-to-end local-server proof, follow [Fresh Server Real-Work Walkthrough
 
 The package names still use `athena` in several places while the product direction has moved to Team Orchestrator. Treat `athena` package names and CLI names as implementation history for now.
 
-This project is local-first by default and enterprise-capable by design. Production-grade multi-user operation is gated by workspace lifecycle, server-bound RBAC, cost governance, and Postgres-readiness work rather than by product identity.
+This project is enterprise-first by narrative and supports local deployment as one profile. Production-grade multi-user operation is gated by workspace lifecycle, server-bound RBAC, cost governance, and Postgres-readiness work — see the preview banner above and [docs/conventions.md](docs/conventions.md) for what is and is not yet enforced.

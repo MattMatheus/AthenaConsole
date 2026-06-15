@@ -1,6 +1,6 @@
 # Team Orchestrator Core Agent Guide
 
-Team Orchestrator is no longer centered on the legacy Azure/cloud fleet roadmap. Core work should follow the current local-first, enterprise-capable direction documented in the repository root `AGENTS.md` and the accepted ADRs under `docs/product/architecture/decisions/`.
+Team Orchestrator is no longer centered on the legacy Azure/cloud fleet roadmap. Core work should follow the current enterprise/multiplayer-primary direction documented in the repository root `AGENTS.md` and the accepted ADRs under `docs/product/architecture/decisions/`.
 
 Current implementation stage: Stage 8 (in progress).
 

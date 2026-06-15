@@ -1,6 +1,6 @@
 # Getting Started
 
-Use this guide to start Team Orchestrator locally, open Start Work, run the built-in demo outcome, and inspect the result.
+Team Orchestrator is a work control plane for teams and operators. This guide covers the **local evaluation path**: start the stack on your machine, run the first-run demo, then move to real repository work. For trusted-server team deployment with workspace membership and multi-user governance, see the [Team Orchestrator User Guide](docs/user-guide/README.md).
 
 For a fuller explanation of the product model, operator workflows, agent authoring, troubleshooting, and examples, read the [Team Orchestrator User Guide](docs/user-guide/README.md).
 
@@ -309,6 +309,18 @@ docker compose --env-file server.env -f docker-compose.server.yml up --build -d
 ```
 
 The server profile binds ports to `127.0.0.1` by default. Set `ATHENA_SERVER_BIND_ADDRESS=0.0.0.0` only for a protected LAN. See [Local Server Deployment](docs/developer/product-dev-guides/local-server-deployment.md) for path ownership and secret-file conventions.
+
+## Team Deployment (Multi-User)
+
+After validating locally, deploy Team Orchestrator for your team using a trusted-server profile with workspace membership, RBAC, cost governance, and durable persistence. See the [Team Orchestrator User Guide](docs/user-guide/README.md) for the full team deployment guide, including workspace setup and admin configuration.
+
+> ⚠️ **Preview — not yet enforced in the current build.**
+> This describes the **target** behavior. As of this build, workspace/multi-user
+> isolation is **not enforced**: workspace scope is client-asserted
+> (`x-athena-scope-workspaces` header), there is no membership model, and
+> cross-workspace reads are not blocked at the data layer. Tracking: epic
+> 2026.44 stories .02–.04. **Do not expose a shared/multi-user deployment to
+> untrusted users until these land.**
 
 ## Production-Like Local Validation
 

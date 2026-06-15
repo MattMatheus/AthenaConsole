@@ -4,7 +4,7 @@
 
 ## Product Identity
 
-This repository is **Team Orchestrator**, a web-first, local-first and enterprise-capable agent work control plane.
+This repository is **Team Orchestrator**, a web-first work control plane for teams and operators — enterprise/multiplayer team operation is the primary direction; local single-operator deployment is one supported mode.
 
 The remote/repo name may still be `AthenaConsole`, but new product work should use the Team Orchestrator direction unless the user says otherwise.
 
