@@ -5,13 +5,14 @@
 ## Layout
 
 - `active/` — Epics that are upcoming or in-progress
-- `completed/` — Shipped epics (kept for reference, not actively maintained)
+
+Completed epics have been removed from disk; their content is retained in git history at commit `9acdfd6`. ADRs (`docs/product/architecture/decisions/`) are the canonical decision history for completed work.
 
 ## Usage
 
 - Epics describe goal, scope, sequencing, and acceptance boundaries.
 - Reference ADRs for the durable reasoning behind a direction.
-- Once shipped, move to `completed/`.
+- Shipped epics are summarized in prose in `docs/product/roadmap/flight-path.md` (Completed Product Arcs section).
 
 ## Active Epics
 
@@ -21,10 +22,3 @@
 - 2026.45 — Cost Governance Enforcement
 - 2026.46 — Postgres Readiness: Repository Interface Freeze
 - 2026.47 — Agent Certification Eval Runner
-
-## Recently Completed Epics
-
-- 2026.41 — GitHub Connector Pack
-- 2026.40 — Connector Pack Platform
-- 2026.39 — Built-in Software Team Agent Pack
-- 2026.38 — Capability Pack Foundation

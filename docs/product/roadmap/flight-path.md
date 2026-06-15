@@ -26,7 +26,7 @@ Canonical direction:
 
 ## Completed Product Arcs
 
-Completed arcs are summarized in `docs/product/epics/completed/`. Use those epics and ADRs for historical rationale, not the archived Flywheel story files.
+Completed arc summaries are below. For detailed epic history, see ADRs in `docs/product/architecture/decisions/` or git history (completed epics removed from disk at commit `9acdfd6`).
 
 Major completed arcs:
 
@@ -118,7 +118,7 @@ Source epic:
 Keep live planning surfaces small:
 
 - ADRs stay in `docs/product/architecture/decisions/`.
-- Completed epics stay in `docs/product/epics/completed/`.
+- Completed epics are retained in git history; completed arcs are summarized in prose in the "Completed Product Arcs" section above.
 - Active plans stay at the top of `plans/`.
 - Completed plans move under `plans/archive/`.
 - Completed Flywheel stories and point-in-time observer/planning artifacts move under `flywheel/archive/`.
