@@ -1,4 +1,8 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Team Orchestrator Legacy Kubernetes Release Epics
+
+> **Note**: This is a legacy planning artifact describing an older Kubernetes-oriented release concept. It is not the current product release record. For current release readiness, see [`docs/product/release/`](../../../docs/product/release/README.md).
 
 ## Release Goal
 

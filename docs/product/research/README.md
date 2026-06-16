@@ -7,5 +7,6 @@ Completed research streams related to current or historical implementation work.
 Current notes:
 
 - [AthenaMemory Adapter Evaluation](2026-06-02-athenamemory-adapter-evaluation.md)
+- [Kyverno And Agent Sandbox Integration Brief](kyverno-and-agent-sandbox-integration.md)
 
 There is no active research queue after the Team Orchestrator planning cleanup. Stale active research records were retired during that cleanup.

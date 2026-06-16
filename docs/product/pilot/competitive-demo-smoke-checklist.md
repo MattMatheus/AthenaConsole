@@ -1,3 +1,5 @@
+<!-- AUDIENCE: Internal/Technical -->
+
 # Competitive Demo Smoke Checklist
 
 Use this checklist from a clean browser session before claiming the competitive demo path is ready.
