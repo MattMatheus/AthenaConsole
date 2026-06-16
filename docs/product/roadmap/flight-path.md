@@ -8,7 +8,7 @@ The current product center is manifest-backed agents, outcome-led work creation,
 
 ## Completed Product Arcs
 
-The foundation baseline shipped as `2026.1`. Completed arcs are summarized in `docs/product/epics/completed/`. Use those epics and ADRs for historical rationale, not the archived Flywheel story files.
+The foundation baseline shipped as `2026.1`. Completed arc summaries are listed below. Use these summaries and the ADRs for historical rationale, not the archived Flywheel story files.
 
 Major completed arcs:
 
@@ -96,7 +96,7 @@ Source epic:
 Keep live planning surfaces small:
 
 - ADRs stay in `docs/product/architecture/decisions/`.
-- Completed epics stay in `docs/product/epics/completed/`.
+- Completed arc summaries stay in `docs/product/roadmap/flight-path.md` (this file).
 - Active plans stay at the top of `plans/`.
 - Completed plans move under `plans/archive/`.
 - Completed Flywheel stories and point-in-time observer/planning artifacts move under `flywheel/archive/`.

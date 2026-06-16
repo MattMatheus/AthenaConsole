@@ -27,12 +27,7 @@ Product principle:
 
 Agents may run on a laptop, local server, or remote host, but durable memory should be scoped to the operator, workspace, project, repository, team, agent, task, run, and artifact in a way that can travel across those environments.
 
-Source epics:
-
-- `docs/product/epics/completed/2026.34.00-epic-durable-memory-service-architecture.md`
-- `docs/product/epics/completed/2026.35.00-epic-remote-memory-mvp.md`
-- `docs/product/epics/completed/2026.36.00-epic-memory-governance-agent-integration.md`
-- `docs/product/epics/completed/2026.37.00-epic-semantic-memory-and-sync-backends.md`
+Source epics: 2026.34 (Durable Memory Service Architecture), 2026.35 (Remote Memory MVP), 2026.36 (Memory Governance Agent Integration), 2026.37 (Semantic Memory And Sync Backends).
 
 ## Arc 2: Built-In Capability And Connector Packs
 
@@ -44,14 +39,9 @@ Product principle:
 
 Built-in packs should be ordinary plugins that use the same manifest, runtime, safety, provider, memory, artifact, workflow, connector, approval, and budget systems available to user-authored plugins.
 
-Source epics:
+Source epics: 2026.38 (Capability Pack Foundation), 2026.39 (Built-In Software Team Agent Pack), 2026.40 (Connector Pack Platform), 2026.41 (GitHub Connector Pack), 2026.42 (Product Intuition And Start Work Flow).
 
-- `docs/product/epics/completed/2026.38.00-epic-capability-pack-foundation.md`
-- `docs/product/epics/completed/2026.39.00-epic-built-in-software-team-agent-pack.md`
-- `docs/product/epics/completed/2026.40.00-epic-connector-pack-platform.md`
-- `docs/product/epics/completed/2026.41.00-epic-github-connector-pack.md`
-- `docs/product/epics/completed/2026.42.00-epic-product-intuition-and-start-work-flow.md`
-- `docs/product/epics/active/2026.43.00-epic-knowledge-work-connector-pack.md`
+Active: `docs/product/epics/active/2026.43.00-epic-knowledge-work-connector-pack.md`
 
 ## Arc 3: Enterprise Readiness
 

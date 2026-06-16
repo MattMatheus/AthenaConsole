@@ -9,7 +9,7 @@ Complete.
 ## Sources Reviewed
 
 - Team Orchestrator durable-memory ADRs 0019 through 0024.
-- `docs/product/epics/completed/2026.37.00-epic-semantic-memory-and-sync-backends.md`
+- epic 2026.37 (Semantic Memory And Sync Backends) — see `docs/product/roadmap/future-horizon.md` Arc 1
 - Public repository: `https://github.com/MattMatheus/AthenaMemory`
 
 ## External Source Summary

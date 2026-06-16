@@ -58,7 +58,7 @@ Current product direction starts from the accepted reset ADRs and the enterprise
 - `docs/product/architecture/decisions/0029-cost-governance-budgets-and-alerts.md` (Active Epic)
 - `docs/product/architecture/decisions/0030-agent-certification-and-eval-runner.md` (Active Epic)
 
-ADRs are retained as canonical history. Completed epics remain reference material under `docs/product/epics/completed/`. Completed Flywheel stories and point-in-time observer/planning artifacts are archived under `flywheel/archive/`.
+ADRs are retained as canonical history in `docs/product/architecture/decisions/`. Completed arc summaries are in `docs/product/roadmap/flight-path.md`. Completed Flywheel stories and point-in-time observer/planning artifacts are archived under `flywheel/archive/`.
 
 ## Delivered Baseline
 

@@ -51,11 +51,7 @@ Canonical decisions:
 
 ## Current State
 
-The completed foundation reset is recorded in:
-
-- `docs/product/epics/completed/2026.10.00-epic-team-orchestrator-foundation-reset.md`
-
-It delivered SQLite app state, manifest schemas, local plugin loading/indexing, and task/mission/run/event/artifact repositories.
+The completed foundation reset (epic 2026.10) delivered SQLite app state, manifest schemas, local plugin loading/indexing, and task/mission/run/event/artifact repositories. Completed arc history is summarized in `docs/product/roadmap/flight-path.md`.
 
 Before making changes, check `git status --short` and do not revert user changes.
 

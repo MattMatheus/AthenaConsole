@@ -96,7 +96,7 @@ Read these to confirm — do NOT modify any of them in this plan:
   *estimates*, not invoices. The epic must state this.
 
 - **Epic format to follow** — model structurally on
-  `docs/product/epics/completed/2026.41.00-epic-github-connector-pack.md`. Epics
+  `docs/product/epics/active/2026.45.00-epic-cost-governance-enforcement.md`. Epics
   open `<!-- AUDIENCE: Internal/Technical -->`, `# Epic NNNN.NN: Title`,
   `## Status`, `## Goal`, `## Problem`, `## Scope`, `## Story Breakdown` with
   `### NNNN.NN.NN <Title>` (`Purpose:` / `Acceptance:`). The roadmap reserves

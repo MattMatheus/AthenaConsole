@@ -76,13 +76,13 @@ Record the files that link the epic (at minimum `current-direction.md`).
 
 ### Step 2: Choose and apply the reconciliation
 
-Pick the option that matches the repo's epic convention (other shipped epics live
-under `docs/product/epics/completed/` — see that directory):
+Pick the option that matches the repo's epic convention (the completed-epics directory
+was retired in the 2026 docs consolidation — completed arc summaries now live in
+`docs/product/roadmap/flight-path.md`):
 
-- **Option A (preferred if all work is truly done): move to completed.** Move the
-  file from `epics/active/` to `epics/completed/`, update its `## Status` to
-  `Complete.` (matching sibling completed epics), and update EVERY reference found in
-  Step 1 to the new `completed/` path.
+- **Option A (preferred if all work is truly done): mark as complete.** Update the
+  file's `## Status` to `Complete.` (matching the convention used when the epic was
+  active), and update EVERY reference found in Step 1 to the current location.
 - **Option B (if genuine refinement remains): keep active, fix the status.** Replace
   `Active refinement.` with an accurate status that states the five engineering
   stories have shipped and names what refinement actually remains. Only use this if

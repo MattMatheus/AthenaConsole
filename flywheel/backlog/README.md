@@ -28,7 +28,7 @@ No candidate engineering or architecture intake items.
 
 No completed engineering or architecture work in the live done lanes.
 
-Completed items are summarized in the completed epic records under `docs/product/epics/completed/` and archived, when retained on disk, under `flywheel/archive/`.
+Completed arc summaries are in `docs/product/roadmap/flight-path.md`. Completed Flywheel artifacts are archived under `flywheel/archive/`.
 
 ## Rule
 

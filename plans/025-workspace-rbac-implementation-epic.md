@@ -84,8 +84,8 @@ Read these to confirm — do NOT modify any of them in this plan:
     `grep -rn "workspace_members" packages/core/src` → no matches.
 
 - **Epic format to follow** — model the new file structurally on
-  `docs/product/epics/completed/2026.41.00-epic-github-connector-pack.md` and the
-  deferred `docs/product/epics/active/2026.43.00-epic-knowledge-work-connector-pack.md`.
+  `docs/product/epics/active/2026.44.00-epic-workspace-lifecycle-and-scoped-rbac.md` or
+  `docs/product/epics/active/2026.43.00-epic-knowledge-work-connector-pack.md`.
   Epics open with `<!-- AUDIENCE: Internal/Technical -->`, then
   `# Epic NNNN.NN: Title`, `## Status`, `## Goal`, `## Problem`, `## Scope`
   (In scope / Out of scope), then `## Story Breakdown` with subsections

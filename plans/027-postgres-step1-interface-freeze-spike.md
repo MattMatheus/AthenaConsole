@@ -95,7 +95,7 @@ Read these to confirm — do NOT modify any of them in this plan:
   not on the `openAppStateDatabase` factory.
 
 - **Epic format to follow** — model structurally on
-  `docs/product/epics/completed/2026.41.00-epic-github-connector-pack.md`. The
+  `docs/product/epics/active/2026.46.00-epic-postgres-readiness-interface-freeze.md`. The
   roadmap reserves **2026.46** (`docs/product/roadmap/flight-path.md`
   "### 2026.46 Postgres Readiness"). Epics index:
   `docs/product/epics/README.md` `## Active Epics`.
