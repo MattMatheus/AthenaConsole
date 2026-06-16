@@ -7,7 +7,7 @@ Use this index for package-adjacent references and current agent-author guides. 
 ## Current User Paths
 
 - [Agent Developer Kit Guide](../../../docs/sdk/agent-developer-kit.md) - Build plugin-backed agents with `@athena/pdk`: manifests, envelope parsing, input validation, output builders, and a complete worked example (including how to copy and rename the model-provider-smoke sample).
-- [API Examples](user/06-api-examples.md) - Practical examples of API requests.
+- [API Reference](../../../docs/sdk/api/README.md) - Full HTTP control-plane API reference.
 
 ## Legacy Or Compatibility Context
 
@@ -17,7 +17,7 @@ These pages have been consolidated into the [Enterprise & Multiplayer User Manua
 - [Introduction](../../../docs/user-guide/01-overview.md)
 - [Installation](../../../docs/user-guide/02-install-and-deploy.md)
 - [Basic Usage](../../../docs/user-guide/05-running-work.md)
-- [API Server](user/04-api-server.md)
+- [API Server](../../../docs/sdk/api/README.md)
 - [Advanced Usage](../../../docs/user-guide/05-running-work.md)
 - [Console UI](../../../docs/user-guide/05-running-work.md)
 - [Symbolic Navigation](../../../docs/user-guide/01-overview.md)

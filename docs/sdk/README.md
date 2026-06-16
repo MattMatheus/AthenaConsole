@@ -52,16 +52,29 @@ npm install @athena/pdk
 
 The HTTP API is the REST interface for operators and integrators who need to create tasks, trigger runs, inspect results, manage agents and providers, and query usage records.
 
-**Full guide**: `api/README.md` *(drafted in plan 032)*
+**Full reference**: [api/README.md](api/README.md)
 
-Key endpoints (available now):
+Key endpoints:
 
-- `GET /api/v1/health` — service health
-- `GET /api/v1/readiness` — readiness probe
-- `GET /api/v1/agent-catalog/agents` — list available agents (filterable by capabilities)
-- `GET /api/v1/agent-catalog/plugins` — list loaded plugins with catalog diagnostics
-- `POST /api/v1/tasks` — create a task
-- `POST /api/v1/tasks/:id/run` — trigger a run
+| Endpoint | Description |
+| --- | --- |
+| `GET /api/v1/health` | Liveness probe |
+| `GET /api/v1/readiness` | Readiness probe |
+| `GET /api/v1/capabilities` | Server capability flags |
+| `GET /api/v1/agent-catalog/agents` | List agents (filterable by capability) |
+| `GET /api/v1/agent-catalog/plugins` | List plugins with catalog diagnostics |
+| `POST /api/v1/tasks` | Create a task |
+| `PUT /api/v1/tasks/:id` | Update a task |
+| `POST /api/v1/tasks/:id/run` | Trigger a task run |
+| `GET /api/v1/task-runs/:runId` | Get task run status |
+| `POST /api/v1/runs` | Create a low-level run |
+| `POST /api/v1/run-control/by-run/:runId/cancel` | Cancel a run by run ID |
+| `GET /api/v1/sessions` | List run history |
+| `GET /api/v1/events/stream` | Stream system events (SSE) |
+
+**Auth**: `Authorization: Bearer $ATHENA_AUTH_API_TOKEN` + identity header (see [api/README.md](api/README.md)).
+
+**API families** (17 pages): [Core/Health](api/core-health.md) · [Agent Catalog](api/agent-catalog.md) · [Tasks and Runs](api/tasks-and-runs.md) · [Missions](api/missions.md) · [Workflows](api/workflows-and-templates.md) · [Sessions](api/sessions.md) · [Run Templates, Harness Profiles, Directives](api/run-templates-harness-directives.md) · [Runs](api/runs.md) · [Work Queue and Memory](api/work-and-memory.md) · [Failed Work](api/failed-work.md) · [Schedules and Policy](api/schedules-and-policy.md) · [Operations and Events](api/operations-events.md) · [Model Providers](api/model-providers.md) · [Repositories](api/repositories.md) · [Durable Memory](api/durable-memory.md) · [Identity and RBAC](api/identity-rbac.md) · [Workspaces](api/workspaces.md)
 
 ---
 
