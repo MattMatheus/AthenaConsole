@@ -23,26 +23,32 @@ import { K8sMetricsProvider, type K8sMetricsProviderOptions } from "./backends/k
 import {
   AuthorizedA2aObservabilityService,
   AuthorizedA2aFlowService,
+  AuthorizedAgentCatalogService,
   AuthorizedFailedWorkService,
   AuthorizedDirectiveService,
   AuthorizedEventService,
   AuthorizedOperationsService,
   AuthorizedDurableMemoryService,
   AuthorizedGovernanceAuditService,
+  AuthorizedHarnessProfileService,
   AuthorizedLspService,
   AuthorizedMemoryService,
   AuthorizedModelProviderConfigService,
+  AuthorizedMissionWorkbenchService,
   AuthorizedConnectedRepositoryService,
   AuthorizedIdentityService,
   AuthorizedWorkspaceService,
   AuthorizedPolicyService,
   AuthorizedRunService,
+  AuthorizedRunTemplateService,
   AuthorizedScheduleService,
   AuthorizedSessionService,
   AuthorizedTaskWorkbenchService,
   AuthorizedWorkService,
+  AuthorizedWorkflowDagExecutorService,
   AuthorizedWorkflowQueueStatusService,
   AuthorizedWorkflowStatusService,
+  AuthorizedWorkflowTemplateCatalogService,
   ServiceAuthorizer
 } from "./services/authorization.js";
 import { LocalFailedWorkService, LocalEventService } from "./services/event-dlq.js";
@@ -279,6 +285,8 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
   const stateDiagnosticsService = new LocalStateDiagnosticsService(options.config, stateStore);
   const agentCatalogService = new LocalAgentCatalogService(options.config);
   const workflowTemplateCatalogService = new LocalWorkflowTemplateCatalogService(options.config);
+  const harnessProfileService = new LocalHarnessProfileService(stateStore, options.config);
+  const workflowDagExecutorService = new LocalWorkflowDagExecutorService(options.config);
   const capabilityService = new LocalCapabilityService(executionBackend, operationsMetricsProvider, sandboxExecutionBackend);
   const modelProviderConfigService = new LocalModelProviderConfigService(options.config, { eventService });
   const authorizedModelProviderConfigService = new AuthorizedModelProviderConfigService(modelProviderConfigService, authorizer);
@@ -294,12 +302,12 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     runService,
     sessionService,
     directiveService,
-    harnessProfileService: new LocalHarnessProfileService(stateStore, options.config),
-    runTemplateService: new LocalRunTemplateService(stateStore, runService),
+    harnessProfileService: new AuthorizedHarnessProfileService(harnessProfileService, authorizer),
+    runTemplateService: new AuthorizedRunTemplateService(new LocalRunTemplateService(stateStore, runService), authorizer),
     workflowStatusService,
     workflowQueueStatusService,
-    workflowDagExecutorService: new LocalWorkflowDagExecutorService(options.config),
-    workflowTemplateCatalogService,
+    workflowDagExecutorService: new AuthorizedWorkflowDagExecutorService(workflowDagExecutorService, authorizer),
+    workflowTemplateCatalogService: new AuthorizedWorkflowTemplateCatalogService(workflowTemplateCatalogService, authorizer),
     workService,
     memoryService,
     durableMemoryService,
@@ -326,8 +334,8 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     capabilityService,
     readinessService,
     stateDiagnosticsService,
-    agentCatalogService,
-    missionWorkbenchService: new LocalMissionWorkbenchService(options.config),
+    agentCatalogService: new AuthorizedAgentCatalogService(agentCatalogService, authorizer),
+    missionWorkbenchService: new AuthorizedMissionWorkbenchService(new LocalMissionWorkbenchService(options.config), authorizer),
     taskWorkbenchService: new AuthorizedTaskWorkbenchService(
       new LocalTaskWorkbenchService(options.config, { durableMemoryService, eventService }),
       authorizer

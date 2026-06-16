@@ -4,6 +4,7 @@ import type {
   AthenaRbacRole,
   IdentityRoleAuditResult,
   IdentityRoleAssignment,
+  TemplateRunRequest,
   SessionArtifactRecord,
   SessionArtifactSummary,
   TranscriptEntry
@@ -12,23 +13,29 @@ import { getRequestAuthContext } from "../auth.js";
 import type {
   A2aFlowService,
   A2aObservabilityService,
+  AgentCatalogService,
   FailedWorkService,
   DirectiveService,
   EventService,
   OperationsService,
   GovernanceAuditService,
+  HarnessProfileService,
   IdentityService,
   LspService,
   MemoryService,
   ConnectedRepositoryService,
+  MissionWorkbenchService,
   PolicyService,
   RunService,
+  RunTemplateService,
   ScheduleService,
   SessionService,
   ModelProviderConfigService,
   TaskWorkbenchService,
+  WorkflowDagExecutorService,
   WorkflowQueueStatusService,
   WorkflowStatusService,
+  WorkflowTemplateCatalogService,
   WorkspaceService,
   WorkService
 } from "../interfaces.js";
@@ -40,6 +47,9 @@ interface AuthorizationRequirement {
     | "a2aObservability.alertHistory.list"
     | "a2aObservability.alertHistory.export"
     | "a2aFlow.get"
+    | "agentCatalog.agents.list"
+    | "agentCatalog.connectorReadiness.list"
+    | "agentCatalog.plugins.list"
     | "failedWork.discard"
     | "failedWork.list"
     | "failedWork.retry"
@@ -66,6 +76,8 @@ interface AuthorizationRequirement {
     | "operations.cost.settings.write"
     | "operations.summary"
     | "governance.audit.list"
+    | "harnessProfiles.create"
+    | "harnessProfiles.list"
     | "identity.audit"
     | "identity.assignments.delete"
     | "identity.assignments.list"
@@ -83,6 +95,16 @@ interface AuthorizationRequirement {
     | "modelProviders.list"
     | "modelProviders.test"
     | "modelProviders.update"
+    | "missionWorkbench.attachTask"
+    | "missionWorkbench.create"
+    | "missionWorkbench.createTask"
+    | "missionWorkbench.get"
+    | "missionWorkbench.getRun"
+    | "missionWorkbench.list"
+    | "missionWorkbench.listRuns"
+    | "missionWorkbench.listTasks"
+    | "missionWorkbench.runMission"
+    | "missionWorkbench.update"
     | "policy.put"
     | "repositories.create"
     | "repositories.delete"
@@ -93,6 +115,9 @@ interface AuthorizationRequirement {
     | "runs.cancel"
     | "runs.create"
     | "runs.cancelByRunId"
+    | "runTemplates.create"
+    | "runTemplates.list"
+    | "runTemplates.run"
     | "schedules.remove"
     | "schedules.upsert"
     | "sessions.artifacts"
@@ -112,7 +137,10 @@ interface AuthorizationRequirement {
     | "taskWorkbench.runTask"
     | "taskWorkbench.update"
     | "workflowQueue.status"
+    | "workflowRuns.execute"
     | "workflowRun.status"
+    | "workflowTemplates.instantiate"
+    | "workflowTemplates.list"
     | "work.drain"
     | "work.enqueue"
     | "work.status"
@@ -585,6 +613,108 @@ export class AuthorizedWorkflowQueueStatusService implements WorkflowQueueStatus
   }
 }
 
+export class AuthorizedHarnessProfileService implements HarnessProfileService {
+  constructor(
+    private readonly delegate: HarnessProfileService,
+    private readonly authorizer: ServiceAuthorizer
+  ) {}
+
+  async list(query?: Parameters<HarnessProfileService["list"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "harnessProfiles.list",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.list(query);
+  }
+
+  async create(request: Parameters<HarnessProfileService["create"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "harnessProfiles.create",
+      requiredRoles: ["Admin"]
+    });
+    return this.delegate.create(request);
+  }
+}
+
+export class AuthorizedRunTemplateService implements RunTemplateService {
+  constructor(
+    private readonly delegate: RunTemplateService,
+    private readonly authorizer: ServiceAuthorizer
+  ) {}
+
+  async list(query?: Parameters<RunTemplateService["list"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "runTemplates.list",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.list(query);
+  }
+
+  async create(request: Parameters<RunTemplateService["create"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "runTemplates.create",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.create(request);
+  }
+
+  async run(id: string, request?: TemplateRunRequest) {
+    await this.authorizer.assertAllowed({
+      operation: "runTemplates.run",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.run(id, request);
+  }
+}
+
+export class AuthorizedWorkflowDagExecutorService implements WorkflowDagExecutorService {
+  constructor(
+    private readonly delegate: WorkflowDagExecutorService,
+    private readonly authorizer: ServiceAuthorizer
+  ) {}
+
+  async execute(runId: string) {
+    await this.authorizer.assertAllowed({
+      operation: "workflowRuns.execute",
+      requiredRoles: ["Operator", "Admin"],
+      runId
+    });
+    return this.delegate.execute(runId);
+  }
+
+  async resume(runId: string) {
+    await this.authorizer.assertAllowed({
+      operation: "workflowRuns.execute",
+      requiredRoles: ["Operator", "Admin"],
+      runId
+    });
+    return this.delegate.resume(runId);
+  }
+}
+
+export class AuthorizedWorkflowTemplateCatalogService implements WorkflowTemplateCatalogService {
+  constructor(
+    private readonly delegate: WorkflowTemplateCatalogService,
+    private readonly authorizer: ServiceAuthorizer
+  ) {}
+
+  async list(query?: Parameters<WorkflowTemplateCatalogService["list"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "workflowTemplates.list",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.list(query);
+  }
+
+  async instantiate(id: string, request?: Parameters<WorkflowTemplateCatalogService["instantiate"]>[1]) {
+    await this.authorizer.assertAllowed({
+      operation: "workflowTemplates.instantiate",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.instantiate(id, request);
+  }
+}
+
 export class AuthorizedWorkService implements WorkService {
   constructor(
     private readonly delegate: WorkService,
@@ -970,6 +1100,127 @@ export class AuthorizedTaskWorkbenchService implements TaskWorkbenchService {
       workspaceId: detail.run.workspaceId
     });
     return this.delegate.cancelRun(runId, request);
+  }
+}
+
+export class AuthorizedMissionWorkbenchService implements MissionWorkbenchService {
+  constructor(
+    private readonly delegate: MissionWorkbenchService,
+    private readonly authorizer: ServiceAuthorizer
+  ) {}
+
+  async list(query?: Parameters<MissionWorkbenchService["list"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "missionWorkbench.list",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.list(query);
+  }
+
+  async get(id: string) {
+    await this.authorizer.assertAllowed({
+      operation: "missionWorkbench.get",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.get(id);
+  }
+
+  async create(request: Parameters<MissionWorkbenchService["create"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "missionWorkbench.create",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.create(request);
+  }
+
+  async update(id: string, request: Parameters<MissionWorkbenchService["update"]>[1]) {
+    await this.authorizer.assertAllowed({
+      operation: "missionWorkbench.update",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.update(id, request);
+  }
+
+  async listTasks(id: string) {
+    await this.authorizer.assertAllowed({
+      operation: "missionWorkbench.listTasks",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.listTasks(id);
+  }
+
+  async attachTask(id: string, request: Parameters<MissionWorkbenchService["attachTask"]>[1]) {
+    await this.authorizer.assertAllowed({
+      operation: "missionWorkbench.attachTask",
+      requiredRoles: ["Operator", "Admin"]
+    });
+    return this.delegate.attachTask(id, request);
+  }
+
+  async createTask(id: string, request: Parameters<MissionWorkbenchService["createTask"]>[1]) {
+    await this.authorizer.assertAllowed({
+      operation: "missionWorkbench.createTask",
+      requiredRoles: ["Operator", "Admin"],
+      ...(request.assignedAgentId ? { agentName: request.assignedAgentId } : {})
+    });
+    return this.delegate.createTask(id, request);
+  }
+
+  async runMission(id: string, request?: Parameters<MissionWorkbenchService["runMission"]>[1]) {
+    await this.authorizer.assertAllowed({
+      operation: "missionWorkbench.runMission",
+      requiredRoles: ["Operator", "Admin"],
+      runId: request?.runId
+    });
+    return this.delegate.runMission(id, request);
+  }
+
+  async listMissionRuns(id: string) {
+    await this.authorizer.assertAllowed({
+      operation: "missionWorkbench.listRuns",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.listMissionRuns(id);
+  }
+
+  async getMissionRun(runId: string) {
+    await this.authorizer.assertAllowed({
+      operation: "missionWorkbench.getRun",
+      requiredRoles: ["Viewer", "Operator", "Admin"],
+      runId
+    });
+    return this.delegate.getMissionRun(runId);
+  }
+}
+
+export class AuthorizedAgentCatalogService implements AgentCatalogService {
+  constructor(
+    private readonly delegate: AgentCatalogService,
+    private readonly authorizer: ServiceAuthorizer
+  ) {}
+
+  async listPlugins() {
+    await this.authorizer.assertAllowed({
+      operation: "agentCatalog.plugins.list",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.listPlugins();
+  }
+
+  async listAgents(query?: Parameters<AgentCatalogService["listAgents"]>[0]) {
+    await this.authorizer.assertAllowed({
+      operation: "agentCatalog.agents.list",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.listAgents(query);
+  }
+
+  async listConnectorReadiness() {
+    await this.authorizer.assertAllowed({
+      operation: "agentCatalog.connectorReadiness.list",
+      requiredRoles: ["Viewer", "Operator", "Admin"]
+    });
+    return this.delegate.listConnectorReadiness();
   }
 }
 
@@ -1462,6 +1713,16 @@ function isSoftEnforceProtectedOperation(operation: AuthorizationRequirement["op
     operation === "modelProviders.list" ||
     operation === "modelProviders.test" ||
     operation === "modelProviders.update" ||
+    operation === "harnessProfiles.create" ||
+    operation === "runTemplates.create" ||
+    operation === "runTemplates.run" ||
+    operation === "workflowTemplates.instantiate" ||
+    operation === "workflowRuns.execute" ||
+    operation === "missionWorkbench.create" ||
+    operation === "missionWorkbench.update" ||
+    operation === "missionWorkbench.runMission" ||
+    operation === "missionWorkbench.createTask" ||
+    operation === "missionWorkbench.attachTask" ||
     operation === "repositories.create" ||
     operation === "repositories.delete" ||
     operation === "repositories.inspect" ||

@@ -297,6 +297,220 @@ describe("control-plane authorization wrappers", () => {
     }
   });
 
+  it("wraps remaining API service families with role checks", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-authz-api-families-"));
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_AUTH_ENABLED=true\nATHENA_AUTHZ_MODE=enforce", "utf8");
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableTaskAgent(appState);
+      } finally {
+        appState.close();
+      }
+      const services = createLocalControlPlaneServices({ config });
+
+      await expect(withRole("Viewer", () => services.harnessProfileService.list())).resolves.toEqual({
+        items: []
+      });
+      await expect(withRole("Viewer", () => services.runTemplateService.list())).resolves.toEqual({
+        items: []
+      });
+      await expect(withRole("Viewer", () => services.workflowTemplateCatalogService.list())).resolves.toMatchObject({
+        templates: [],
+        total: 0
+      });
+      await expect(withRole("Viewer", () => services.missionWorkbenchService.list())).resolves.toMatchObject({
+        missions: [],
+        total: 0
+      });
+      await expect(withRole("Viewer", () => services.agentCatalogService.listPlugins())).resolves.toMatchObject({
+        total: 1
+      });
+      await expect(withRole("Viewer", () => services.agentCatalogService.listAgents())).resolves.toMatchObject({
+        total: 1
+      });
+      await expect(withRole("Viewer", () => services.agentCatalogService.listConnectorReadiness())).resolves.toMatchObject({
+        connectors: []
+      });
+
+      await expect(
+        withRole("Viewer", () =>
+          services.harnessProfileService.create({
+            displayName: "Viewer Harness",
+            version: "v1",
+            config: { provider: "mock", model: "mock-model", tools: [] },
+            policies: { timeoutMs: 1_000, retryLimit: 0, budgetUsd: 1 }
+          })
+        )
+      ).rejects.toMatchObject({ code: "AUTHZ_DENIED" });
+      await expect(
+        withRole("Viewer", () =>
+          services.runTemplateService.create({
+            harnessProfileId: "missing-profile",
+            directiveTemplate: "Run {{input}}",
+            defaultParams: { input: "demo" }
+          })
+        )
+      ).rejects.toMatchObject({ code: "AUTHZ_DENIED" });
+      await expect(withRole("Viewer", () => services.runTemplateService.run("missing-template"))).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withRole("Viewer", () => services.workflowTemplateCatalogService.instantiate("missing-template"))
+      ).rejects.toMatchObject({ code: "AUTHZ_DENIED" });
+      await expect(withRole("Viewer", () => services.workflowDagExecutorService.execute("missing-run"))).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withRole("Viewer", () =>
+          services.missionWorkbenchService.create({
+            title: "Viewer Mission"
+          })
+        )
+      ).rejects.toMatchObject({ code: "AUTHZ_DENIED" });
+      await expect(
+        withRole("Viewer", () =>
+          services.missionWorkbenchService.update("missing-mission", {
+            title: "Denied"
+          })
+        )
+      ).rejects.toMatchObject({ code: "AUTHZ_DENIED" });
+      await expect(withRole("Viewer", () => services.missionWorkbenchService.runMission("missing-mission"))).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withRole("Viewer", () =>
+          services.missionWorkbenchService.createTask("missing-mission", {
+            title: "Denied Task",
+            status: "ready"
+          })
+        )
+      ).rejects.toMatchObject({ code: "AUTHZ_DENIED" });
+      await expect(
+        withRole("Viewer", () =>
+          services.missionWorkbenchService.attachTask("missing-mission", {
+            taskId: "missing-task"
+          })
+        )
+      ).rejects.toMatchObject({ code: "AUTHZ_DENIED" });
+
+      await expect(
+        withRole("Operator", () =>
+          services.harnessProfileService.create({
+            displayName: "Operator Harness",
+            version: "v1",
+            config: { provider: "mock", model: "mock-model", tools: [] },
+            policies: { timeoutMs: 1_000, retryLimit: 0, budgetUsd: 1 }
+          })
+        )
+      ).rejects.toMatchObject({ code: "AUTHZ_DENIED" });
+      const profile = await withRole("Admin", () =>
+        services.harnessProfileService.create({
+          displayName: "Admin Harness",
+          version: "v1",
+          config: { provider: "mock", model: "mock-model", tools: [] },
+          policies: { timeoutMs: 1_000, retryLimit: 0, budgetUsd: 1 }
+        })
+      );
+      expect(profile).toMatchObject({
+        displayName: "Admin Harness"
+      });
+
+      const runTemplate = await withRole("Operator", () =>
+        services.runTemplateService.create({
+          harnessProfileId: profile.id,
+          directiveTemplate: "Run {{input}}",
+          defaultParams: { input: "authorized" }
+        })
+      );
+      expect(runTemplate).toMatchObject({
+        harnessProfileId: profile.id
+      });
+      await expect(withRole("Operator", () => services.runTemplateService.run(runTemplate.id))).resolves.toMatchObject({
+        template: {
+          id: runTemplate.id
+        }
+      });
+      await expect(withRole("Operator", () => services.workflowTemplateCatalogService.instantiate("missing-template"))).rejects.toMatchObject({
+        code: "PROVIDER_NOT_FOUND"
+      });
+      await expect(withRole("Operator", () => services.workflowDagExecutorService.execute("missing-run"))).rejects.toThrow(
+        "Workflow DAG run not found: missing-run"
+      );
+
+      const mission = await withRole("Operator", () =>
+        services.missionWorkbenchService.create({
+          id: "mission-authz",
+          title: "Authorized Mission",
+          status: "ready"
+        })
+      );
+      await expect(withRole("Viewer", () => services.missionWorkbenchService.get(mission.id))).resolves.toMatchObject({
+        id: mission.id
+      });
+      await expect(withRole("Viewer", () => services.missionWorkbenchService.listTasks(mission.id))).resolves.toMatchObject({
+        total: 0
+      });
+      await expect(withRole("Viewer", () => services.missionWorkbenchService.listMissionRuns(mission.id))).resolves.toMatchObject({
+        total: 0
+      });
+      await expect(
+        withRole("Operator", () =>
+          services.missionWorkbenchService.update(mission.id, {
+            goal: "Updated goal"
+          })
+        )
+      ).resolves.toMatchObject({
+        goal: "Updated goal"
+      });
+      await expect(
+        withRole("Operator", () =>
+          services.missionWorkbenchService.createTask(mission.id, {
+            id: "mission-authz-task",
+            title: "Mission Task",
+            status: "ready",
+            assignedAgentId: "software.authz.local"
+          })
+        )
+      ).resolves.toMatchObject({
+        total: 1
+      });
+      const missionRun = await withRole("Operator", () =>
+        services.missionWorkbenchService.runMission(mission.id, { runId: "mission-authz-run" })
+      );
+      expect(missionRun).toMatchObject({
+        run: {
+          id: "mission-authz-run"
+        }
+      });
+      await expect(withRole("Viewer", () => services.missionWorkbenchService.getMissionRun("mission-authz-run"))).resolves.toMatchObject({
+        run: {
+          id: "mission-authz-run"
+        }
+      });
+      const standaloneTask = await withRole("Operator", () =>
+        services.taskWorkbenchService.create({
+          id: "mission-authz-standalone-task",
+          title: "Standalone Task",
+          status: "ready",
+          assignedAgentId: "software.authz.local"
+        })
+      );
+      await expect(
+        withRole("Operator", () =>
+          services.missionWorkbenchService.attachTask(mission.id, {
+            taskId: standaloneTask.id
+          })
+        )
+      ).resolves.toMatchObject({
+        total: 2
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("enforces pilot posture for provider config, task execution, memory review, policy changes, and run inspection", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-authz-pilot-"));
     try {
