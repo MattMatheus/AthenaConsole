@@ -48,9 +48,9 @@ Canonical tree `docs/` (114 markdown files total in repo). Doc map `docs/README.
 # Team Orchestrator Documentation
 ...
 ## New Local Operator
-1. [Team Orchestrator User Guide](user-guide/README.md)
+1. Team Orchestrator User Guide -> user-guide/README.md
 2. [Getting Started](../GETTING_STARTED.md)
-3. [Copy The Model Provider Smoke Agent](../packages/core/docs/user/10-copy-sample-agent.md)
+3. Copy The Model Provider Smoke Agent -> ../packages/core/docs/user/10-copy-sample-agent.md
 ```
 
 Duplicate user/SDK tree `packages/core/docs/`:
@@ -74,7 +74,7 @@ packages/core/docs/user/05-advanced-usage.md   07-pdk-guide.md
 - `docs/product/epics/completed/2026.32.00-epic-useful-feature-migration-and-legacy-removal.md`
 (Both are in the completed-epics delete set per decision #3, so the collision resolves by deletion — but note it so it isn't "fixed" some other way.)
 
-**The doc-link gate** — `scripts/check-doc-links.mjs` (run via `npm run check:docs`): checks `](target)` relative links in **all tracked `*.md` files repo-wide**, and only reads **tracked** files. Implication: (a) deleting a file fails the build if any *tracked* `.md` still links to it; (b) a brand-new untracked `.md`'s own links are not checked until it is `git add`ed. Therefore: **stage new/moved files before running `check:docs`**, and **repoint every inbound link before deleting a target**.
+**The doc-link gate** — `scripts/check-doc-links.mjs` (run via `npm run check:docs`): checks markdown links shaped like `]` followed by `(target)` in **all tracked `*.md` files repo-wide**, and only reads **tracked** files. Implication: (a) deleting a file fails the build if any *tracked* `.md` still links to it; (b) a brand-new untracked `.md`'s own links are not checked until it is `git add`ed. Therefore: **stage new/moved files before running `check:docs`**, and **repoint every inbound link before deleting a target**.
 
 ## Commands you will need
 
