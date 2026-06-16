@@ -6,14 +6,14 @@ Welcome to Team Orchestrator. This document is the primary entry point for agent
 
 ## 1. Mission & Scope
 
-Team Orchestrator is a web-first, local-first and enterprise-capable agent work control plane for operators, agent authors, and platform admins.
+Team Orchestrator is a work control plane for teams and operators. Deploy it as a local workbench for one operator, or as a trusted server for a team with workspace membership, RBAC, cost governance, and audit-ready run history.
 
 **Core Focus:** Formal manifest-backed agents, outcome-led work creation, tasks, missions, workflow runs, plugins, pluggable execution backends, artifacts, events, memory, workspace scope, RBAC, cost governance, and operator safety.
 **Deferred:** Exposing multi-user operation before workspace lifecycle, server-bound RBAC, cost controls, and server persistence are ready. Natural-language task planning is not the primary workflow.
 
 ## 2. Current Status & Roadmap
 
-The project completed the 2026 local-first reset and has accepted an enterprise/multi-user direction.
+The project completed the 2026 platform reset and has accepted an enterprise/multi-user direction (ADR 0027).
 
 ### Accepted Baseline
 
@@ -53,7 +53,7 @@ To keep your context window efficient, follow these pointers to more detailed in
 - **Need planning structure orientation first?** Start with:
   - `flywheel/README.md` (workflow harness)
   - `flywheel/backlog/engineering/active/README.md` (execution queue)
-  - `docs/product/epics/completed/` (delivery history)
+  - `docs/product/roadmap/flight-path.md` (delivery history and current arc)
   - `docs/product/roadmap/flight-path.md` (future plan)
   - `flywheel/prompts/engineering.md` (current directive)
   - `flywheel/archive/` (archived cycle closure reports and completed stories)

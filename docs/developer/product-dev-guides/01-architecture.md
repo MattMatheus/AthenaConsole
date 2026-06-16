@@ -4,7 +4,7 @@
 
 ## Current Direction Note
 
-Team Orchestrator is console-first and local-first. The API remains the transport and service boundary behind the console, CLI, and automation paths.
+Team Orchestrator is a work control plane for teams and operators. The console is the primary interface; the API is the transport and service boundary behind the console, CLI, and automation paths. Local deployment is the default startup mode; trusted-server and enterprise operation are active product directions.
 
 The accepted product direction is anchored in `docs/product/architecture/decisions/0006-team-orchestrator-direction-and-agent-model.md` and related reset ADRs.
 
