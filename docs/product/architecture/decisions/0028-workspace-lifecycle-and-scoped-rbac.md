@@ -4,7 +4,7 @@
 
 ## Status
 
-Accepted.
+Accepted — implementation tracked in epic 2026.44.
 
 ## Context
 

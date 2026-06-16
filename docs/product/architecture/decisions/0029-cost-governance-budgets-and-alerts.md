@@ -4,7 +4,7 @@
 
 ## Status
 
-Accepted.
+Accepted — implementation tracked in epic 2026.45. Note: `costBudgetDailyUsd` is currently parsed but not enforced; enforcement is pending epic 2026.45.
 
 ## Context
 
