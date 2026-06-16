@@ -256,7 +256,10 @@ with structure matching existing ADRs. Required sections:
 
 Add ONE bullet to `docs/product/architecture/decisions/README.md` after the ADR
 0029 line, matching the exact shape of the surrounding bullets (copy the ADR 0029
-line and edit it): `- [ADR 0030: Agent Certification And Eval Runner](0030-agent-certification-and-eval-runner.md) - Proposed`.
+line and edit it): a markdown link whose text is "ADR 0030: Agent Certification
+And Eval Runner", whose target is the filename
+`0030-agent-certification-and-eval-runner.md` (relative to the decisions index),
+followed by ` - Proposed`.
 
 **Verify**: `npm run check:docs` → exit 0.
 
