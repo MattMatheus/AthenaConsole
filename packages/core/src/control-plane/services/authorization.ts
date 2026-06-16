@@ -148,6 +148,9 @@ interface AuthorizationRequirement {
     | "workspaces.delete"
     | "workspaces.get"
     | "workspaces.list"
+    | "workspaces.members.delete"
+    | "workspaces.members.list"
+    | "workspaces.members.upsert"
     | "workspaces.update";
   requiredRoles: AthenaRbacRole[];
   agentName?: string;
@@ -207,9 +210,10 @@ export class ServiceAuthorizer {
     context: {
       role: AthenaRbacRole;
       scope: { global: boolean; agents: string[]; sessionIds: string[]; runIds: string[]; workspaces?: string[] };
+      workspaceMemberships?: { workspaceId: string; role: AthenaRbacRole }[];
     }
   ): { denyReason: AuthorizationDenyReason; denyDetail?: string } | undefined {
-    if (!requirement.requiredRoles.includes(context.role)) {
+    if (!this.hasRequiredRole(requirement, context)) {
       return {
         denyReason: "ROLE_MISSING"
       };
@@ -222,6 +226,26 @@ export class ServiceAuthorizer {
       denyReason: "SCOPED_ACCESS_VIOLATION",
       denyDetail: scopeViolation
     };
+  }
+
+  private hasRequiredRole(
+    requirement: AuthorizationRequirement,
+    context: {
+      role: AthenaRbacRole;
+      scope: { global: boolean; agents: string[]; sessionIds: string[]; runIds: string[]; workspaces?: string[] };
+      workspaceMemberships?: { workspaceId: string; role: AthenaRbacRole }[];
+    }
+  ): boolean {
+    if (roleSatisfies(context.role, requirement.requiredRoles)) {
+      return true;
+    }
+    if (!requirement.workspaceId) {
+      return isWorkspaceListOperation(requirement.operation)
+        ? (workspaceScopeIdsForRoles(context, requirement.requiredRoles) ?? []).length > 0
+        : false;
+    }
+    const membership = context.workspaceMemberships?.find((entry) => entry.workspaceId === requirement.workspaceId);
+    return membership ? roleSatisfies(membership.role, requirement.requiredRoles) : false;
   }
 
   private resolveAuthzMode(): AuthzMode {
@@ -332,7 +356,7 @@ export class ServiceAuthorizer {
     }
     const workspaceScoped = isWorkspaceScopedOperation(requirement.operation);
     const workspaces = scope.workspaces ?? [];
-    if (workspaceScoped && workspaces.length > 0) {
+    if (workspaceScoped && (workspaces.length > 0 || requirement.workspaceId)) {
       if (!requirement.workspaceId) {
         return "workspaceId is required for this scoped operation.";
       }
@@ -783,8 +807,8 @@ export class AuthorizedModelProviderConfigService implements ModelProviderConfig
       operation: "modelProviders.list",
       requiredRoles: ["Admin"]
     });
-    const listed = await this.delegate.list();
-    const providers = filterByWorkspaceScope(listed.providers);
+    const listed = await this.delegate.list(workspaceListOptionsForRoles(["Admin"]));
+    const providers = filterByWorkspaceRoleScope(listed.providers, ["Admin"]);
     return {
       ...listed,
       providers,
@@ -895,6 +919,37 @@ export class AuthorizedWorkspaceService implements WorkspaceService {
     });
     return this.delegate.delete(id);
   }
+
+  async listMembers(workspaceId: string) {
+    await this.authorizer.assertAllowed({
+      operation: "workspaces.members.list",
+      requiredRoles: ["Admin"],
+      workspaceId
+    });
+    return this.delegate.listMembers(workspaceId);
+  }
+
+  async getMembershipsForSubject(subject: string) {
+    return this.delegate.getMembershipsForSubject(subject);
+  }
+
+  async upsertMember(workspaceId: string, subject: string, request: Parameters<WorkspaceService["upsertMember"]>[2]) {
+    await this.authorizer.assertAllowed({
+      operation: "workspaces.members.upsert",
+      requiredRoles: ["Admin"],
+      workspaceId
+    });
+    return this.delegate.upsertMember(workspaceId, subject, request);
+  }
+
+  async removeMember(workspaceId: string, subject: string) {
+    await this.authorizer.assertAllowed({
+      operation: "workspaces.members.delete",
+      requiredRoles: ["Admin"],
+      workspaceId
+    });
+    return this.delegate.removeMember(workspaceId, subject);
+  }
 }
 
 export class AuthorizedConnectedRepositoryService implements ConnectedRepositoryService {
@@ -908,7 +963,7 @@ export class AuthorizedConnectedRepositoryService implements ConnectedRepository
       operation: "repositories.list",
       requiredRoles: ["Viewer", "Operator", "Admin"]
     });
-    const listed = await this.delegate.list();
+    const listed = await this.delegate.list(workspaceListOptions());
     const repositories = filterByWorkspaceScope(listed.repositories);
     return {
       ...listed,
@@ -1643,7 +1698,10 @@ function isWorkspaceScopedOperation(operation: AuthorizationRequirement["operati
     operation === "taskWorkbench.runReadiness" ||
     operation === "taskWorkbench.run.read" ||
     operation === "taskWorkbench.runTask" ||
-    operation === "taskWorkbench.update"
+    operation === "taskWorkbench.update" ||
+    operation === "workspaces.members.delete" ||
+    operation === "workspaces.members.list" ||
+    operation === "workspaces.members.upsert"
   );
 }
 
@@ -1667,6 +1725,9 @@ function resolveMutationWorkspaceId(requested?: string): string | undefined {
     return requested;
   }
   if (requested) {
+    if (!allowed.includes(requested)) {
+      throw new AthenaError("AUTHZ_DENIED", `Forbidden: workspace '${requested}' is outside allowed scope.`);
+    }
     return requested;
   }
   if (allowed.length === 1) {
@@ -1684,13 +1745,76 @@ function filterByWorkspaceScope<T extends { workspaceId: string }>(items: T[]): 
   return items.filter((item) => allowedSet.has(item.workspaceId));
 }
 
+function filterByWorkspaceRoleScope<T extends { workspaceId: string }>(items: T[], requiredRoles: AthenaRbacRole[]): T[] {
+  const allowed = workspaceScopeIdsForRoles(getRequestAuthContext(), requiredRoles);
+  if (!allowed) {
+    return items;
+  }
+  const allowedSet = new Set(allowed);
+  return items.filter((item) => allowedSet.has(item.workspaceId));
+}
+
+function workspaceListOptions(): { workspaceIds?: string[] } {
+  const allowed = workspaceScopeIds();
+  return allowed ? { workspaceIds: allowed } : {};
+}
+
+function workspaceListOptionsForRoles(requiredRoles: AthenaRbacRole[]): { workspaceIds?: string[] } {
+  const allowed = workspaceScopeIdsForRoles(getRequestAuthContext(), requiredRoles);
+  return allowed ? { workspaceIds: allowed } : {};
+}
+
 function workspaceScopeIds(): string[] | undefined {
   const context = getRequestAuthContext();
   if (!context || context.scope.global) {
     return undefined;
   }
-  const workspaces = context.scope.workspaces ?? [];
-  return workspaces.length > 0 ? workspaces : undefined;
+  return context.scope.workspaces ?? [];
+}
+
+function workspaceScopeIdsForRoles(
+  context:
+    | {
+        role: AthenaRbacRole;
+        scope: { global: boolean; workspaces?: string[] };
+        workspaceMemberships?: { workspaceId: string; role: AthenaRbacRole }[];
+      }
+    | undefined,
+  requiredRoles: AthenaRbacRole[]
+): string[] | undefined {
+  if (!context || context.scope.global) {
+    return undefined;
+  }
+  const scopedWorkspaces = context.scope.workspaces ?? [];
+  if (scopedWorkspaces.length === 0) {
+    return [];
+  }
+  const scopedSet = new Set(scopedWorkspaces);
+  const allowed = new Set<string>();
+  for (const membership of context.workspaceMemberships ?? []) {
+    if (scopedSet.has(membership.workspaceId) && roleSatisfies(membership.role, requiredRoles)) {
+      allowed.add(membership.workspaceId);
+    }
+  }
+  return [...allowed];
+}
+
+function isWorkspaceListOperation(operation: AuthorizationRequirement["operation"]): boolean {
+  return operation === "modelProviders.list";
+}
+
+function roleSatisfies(actual: AthenaRbacRole, allowedRoles: AthenaRbacRole[]): boolean {
+  return allowedRoles.some((allowed) => roleRank(actual) >= roleRank(allowed));
+}
+
+function roleRank(role: AthenaRbacRole): number {
+  if (role === "Admin") {
+    return 3;
+  }
+  if (role === "Operator") {
+    return 2;
+  }
+  return 1;
 }
 
 function resolveAgentName(metadata: Record<string, string> | undefined): string | undefined {

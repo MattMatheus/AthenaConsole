@@ -32,9 +32,9 @@ export class LocalModelProviderConfigService implements ModelProviderConfigServi
     this.secretResolver = new SecretResolver(config, { eventService: options.eventService });
   }
 
-  async list(): Promise<ModelProviderConfigListResult> {
+  async list(options: { workspaceId?: string; workspaceIds?: string[] } = {}): Promise<ModelProviderConfigListResult> {
     return this.withAppState((appState) => {
-      const providers = appState.modelProviderConfigs.list().map((record) => this.mapRecord(record));
+      const providers = appState.modelProviderConfigs.list(options).map((record) => this.mapRecord(record));
       return {
         providers,
         total: providers.length

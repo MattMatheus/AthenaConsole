@@ -884,6 +884,120 @@ describe("control-plane authorization wrappers", () => {
     }
   });
 
+  it("resolves workspace membership roles for workspace-scoped operations", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-authz-membership-"));
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_AUTH_ENABLED=true\nATHENA_AUTHZ_MODE=enforce", "utf8");
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableTaskAgent(appState);
+        appState.workspaces.create({
+          id: "workspace-alpha",
+          name: "Workspace Alpha",
+          slug: "workspace-alpha"
+        });
+        appState.workspaces.create({
+          id: "workspace-beta",
+          name: "Workspace Beta",
+          slug: "workspace-beta"
+        });
+        appState.modelProviderConfigs.create({
+          id: "provider-membership-alpha",
+          name: "Provider Membership Alpha",
+          providerKind: "openai-compatible",
+          baseUrl: "https://example.invalid/v1",
+          defaultModel: "gpt-fixture",
+          secretRef: { kind: "env", name: "OPENAI_API_KEY" },
+          workspaceId: "workspace-alpha"
+        });
+        appState.modelProviderConfigs.create({
+          id: "provider-membership-beta",
+          name: "Provider Membership Beta",
+          providerKind: "openai-compatible",
+          baseUrl: "https://example.invalid/v1",
+          defaultModel: "gpt-fixture",
+          secretRef: { kind: "env", name: "OPENAI_API_KEY" },
+          workspaceId: "workspace-beta"
+        });
+      } finally {
+        appState.close();
+      }
+      const services = createLocalControlPlaneServices({ config });
+
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Viewer", () =>
+          services.taskWorkbenchService.create({
+            id: "task-membership-viewer-denied",
+            title: "Viewer denied",
+            workspaceId: "workspace-alpha"
+          })
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Operator", () =>
+          services.taskWorkbenchService.create({
+            id: "task-membership-operator",
+            title: "Operator allowed",
+            status: "ready",
+            assignedAgentId: "software.authz.local",
+            workspaceId: "workspace-alpha"
+          })
+        )
+      ).resolves.toMatchObject({
+        id: "task-membership-operator",
+        workspaceId: "workspace-alpha"
+      });
+
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Viewer", () =>
+          services.taskWorkbenchService.get("task-membership-operator")
+        )
+      ).resolves.toMatchObject({
+        id: "task-membership-operator",
+        workspaceId: "workspace-alpha"
+      });
+
+      await expect(
+        withMembershipRole("Viewer", "workspace-beta", "Admin", () => services.workspaceService.listMembers("workspace-beta"))
+      ).resolves.toMatchObject({
+        members: [],
+        total: 0
+      });
+
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Admin", () => services.modelProviderConfigService.list())
+      ).resolves.toMatchObject({
+        providers: [expect.objectContaining({ id: "provider-membership-alpha", workspaceId: "workspace-alpha" })],
+        total: 1
+      });
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Viewer", () => services.modelProviderConfigService.list())
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withMembershipRoles(
+          "Viewer",
+          ["workspace-alpha", "workspace-beta"],
+          [
+            { workspaceId: "workspace-alpha", role: "Admin" },
+            { workspaceId: "workspace-beta", role: "Viewer" }
+          ],
+          () => services.modelProviderConfigService.list()
+        )
+      ).resolves.toMatchObject({
+        providers: [expect.objectContaining({ id: "provider-membership-alpha", workspaceId: "workspace-alpha" })],
+        total: 1
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("supports observe and soft-enforce rollout modes", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-authz-rollout-"));
     let observeServices: ControlPlaneServices | undefined;
@@ -995,13 +1109,45 @@ function withAuthScope<T>(role: AthenaRbacRole, scope: ScopeSet, operation: () =
   );
 }
 
+function withMembershipRole<T>(
+  globalRole: AthenaRbacRole,
+  workspaceId: string,
+  workspaceRole: AthenaRbacRole,
+  operation: () => Promise<T>
+): Promise<T> {
+  return withMembershipRoles(globalRole, [workspaceId], [{ workspaceId, role: workspaceRole }], operation);
+}
+
+function withMembershipRoles<T>(
+  globalRole: AthenaRbacRole,
+  workspaceIds: string[],
+  memberships: Array<{ workspaceId: string; role: AthenaRbacRole }>,
+  operation: () => Promise<T>
+): Promise<T> {
+  return withRequestAuthContext(
+    {
+      subject: `principal-${globalRole}-workspace-memberships`,
+      role: globalRole,
+      scope: {
+        global: false,
+        agents: [],
+        sessionIds: [],
+        runIds: [],
+        workspaces: workspaceIds
+      },
+      workspaceMemberships: memberships
+    },
+    operation
+  );
+}
+
 function defaultScopeForRole(role: AthenaRbacRole): ScopeSet {
   return {
     global: role === "Admin",
     agents: [],
     sessionIds: [],
     runIds: [],
-    workspaces: []
+    workspaces: role === "Admin" ? [] : ["default"]
   };
 }
 

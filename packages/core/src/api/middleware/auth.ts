@@ -1,19 +1,32 @@
 import type { IncomingMessage } from "node:http";
 import { createHash, timingSafeEqual } from "node:crypto";
-import { createIdentityRoleResolver, type RequestAuthContext, type ScopeSet } from "../../control-plane/auth.js";
+import {
+  createIdentityRoleResolver,
+  normalizeAuthSubject,
+  type RequestAuthContext,
+  type ScopeSet,
+  type WorkspaceMembership
+} from "../../control-plane/auth.js";
 import { AthenaError } from "../../runtime/errors.js";
 import type { AthenaConfig } from "../../shared/config.js";
 
 export interface IdentityExtractionMiddleware {
-  extract(req: IncomingMessage): RequestAuthContext | undefined;
+  extract(req: IncomingMessage): Promise<RequestAuthContext | undefined>;
 }
 
-export function createIdentityExtractionMiddleware(config: AthenaConfig): IdentityExtractionMiddleware {
+export interface IdentityExtractionMiddlewareOptions {
+  resolveWorkspaceMemberships?: (subject: string) => Promise<WorkspaceMembership[]>;
+}
+
+export function createIdentityExtractionMiddleware(
+  config: AthenaConfig,
+  options: IdentityExtractionMiddlewareOptions = {}
+): IdentityExtractionMiddleware {
   const roleResolver = createIdentityRoleResolver(config);
   const authConfig = config.auth;
   if (!authConfig?.enabled) {
     return {
-      extract(): undefined {
+      async extract(): Promise<undefined> {
         return undefined;
       }
     };
@@ -21,7 +34,7 @@ export function createIdentityExtractionMiddleware(config: AthenaConfig): Identi
 
   const headerName = authConfig.identityHeader.toLowerCase();
   return {
-    extract(req: IncomingMessage): RequestAuthContext {
+    async extract(req: IncomingMessage): Promise<RequestAuthContext> {
       if (authConfig.apiToken) {
         assertValidApiToken(req, authConfig.apiToken);
       }
@@ -31,12 +44,31 @@ export function createIdentityExtractionMiddleware(config: AthenaConfig): Identi
         throw new AthenaError("AUTH_IDENTITY_MISSING", `Missing required header: ${headerName}.`);
       }
       const resolved = roleResolver.resolve(subject);
+      const memberships = await resolveMemberships(resolved, options);
       return {
         ...resolved,
-        scope: parseScopeHeaders(req.headers, resolved.role === "Admin")
+        workspaceMemberships: memberships,
+        scope: parseScopeHeaders(req.headers, {
+          adminGlobal: resolved.role === "Admin",
+          memberships
+        })
       };
     }
   };
+}
+
+async function resolveMemberships(
+  context: RequestAuthContext,
+  options: IdentityExtractionMiddlewareOptions
+): Promise<WorkspaceMembership[]> {
+  if (context.role === "Admin") {
+    return [];
+  }
+  const resolver = options.resolveWorkspaceMemberships;
+  if (!resolver) {
+    return [];
+  }
+  return resolver(context.subject);
 }
 
 function assertValidApiToken(req: IncomingMessage, expectedToken: string): void {
@@ -74,14 +106,17 @@ function parseIdentityHeaderValue(headerValue: string | string[] | undefined): s
   return first;
 }
 
-function parseScopeHeaders(headers: IncomingMessage["headers"], adminGlobal: boolean): ScopeSet {
+function parseScopeHeaders(
+  headers: IncomingMessage["headers"],
+  options: { adminGlobal: boolean; memberships: WorkspaceMembership[] }
+): ScopeSet {
   const agents = parseScopeList(headers["x-athena-scope-agents"]);
   const sessionIds = parseScopeList(headers["x-athena-scope-sessions"]);
   const runIds = parseScopeList(headers["x-athena-scope-runs"]);
-  const workspaces = parseScopeList(headers["x-athena-scope-workspaces"]);
-  const globalHeader = parseScopeGlobal(headers["x-athena-scope-global"]);
+  const requestedWorkspaces = parseScopeList(headers["x-athena-scope-workspaces"]);
+  const workspaces = resolveWorkspaceScope(requestedWorkspaces, options);
   return {
-    global: adminGlobal || globalHeader,
+    global: options.adminGlobal,
     agents,
     sessionIds,
     runIds,
@@ -89,9 +124,23 @@ function parseScopeHeaders(headers: IncomingMessage["headers"], adminGlobal: boo
   };
 }
 
-function parseScopeGlobal(value: string | string[] | undefined): boolean {
-  const normalized = parseIdentityHeaderValue(value)?.toLowerCase();
-  return normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "on";
+function resolveWorkspaceScope(
+  requestedWorkspaces: string[],
+  options: { adminGlobal: boolean; memberships: WorkspaceMembership[] }
+): string[] {
+  if (options.adminGlobal) {
+    return requestedWorkspaces;
+  }
+  const allowed = [...new Set(options.memberships.map((membership) => membership.workspaceId))];
+  if (requestedWorkspaces.length === 0) {
+    return allowed;
+  }
+  const allowedSet = new Set(allowed);
+  const unauthorized = requestedWorkspaces.find((workspaceId) => !allowedSet.has(workspaceId));
+  if (unauthorized) {
+    throw new AthenaError("AUTHZ_DENIED", `Forbidden: workspace '${unauthorized}' is outside allowed membership scope.`);
+  }
+  return requestedWorkspaces;
 }
 
 function parseScopeList(value: string | string[] | undefined): string[] {
@@ -101,7 +150,7 @@ function parseScopeList(value: string | string[] | undefined): string[] {
     for (const token of entry.split(",")) {
       const normalized = token.trim();
       if (normalized.length > 0) {
-        scopes.add(normalized);
+        scopes.add(normalizeAuthSubject(normalized));
       }
     }
   }

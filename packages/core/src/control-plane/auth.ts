@@ -12,10 +12,16 @@ export interface ScopeSet {
   workspaces?: string[];
 }
 
+export interface WorkspaceMembership {
+  workspaceId: string;
+  role: AthenaRbacRole;
+}
+
 export interface RequestAuthContext {
   subject: string;
   role: AthenaRbacRole;
   scope: ScopeSet;
+  workspaceMemberships?: WorkspaceMembership[];
 }
 
 export interface IdentityRoleResolver {
@@ -30,7 +36,7 @@ class ConfigIdentityRoleResolver implements IdentityRoleResolver {
   }
 
   resolve(identity: string): RequestAuthContext {
-    const subject = identity.trim();
+    const subject = normalizeAuthSubject(identity);
     if (!subject) {
       throw new AthenaError("AUTH_IDENTITY_MISSING", "Request identity header is empty.");
     }
@@ -60,6 +66,10 @@ const requestAuthStorage = new AsyncLocalStorage<RequestAuthContext>();
 
 export function createIdentityRoleResolver(config: AthenaConfig): IdentityRoleResolver {
   return new ConfigIdentityRoleResolver(config);
+}
+
+export function normalizeAuthSubject(subject: string): string {
+  return subject.trim();
 }
 
 export function withRequestAuthContext<T>(context: RequestAuthContext, callback: () => Promise<T>): Promise<T> {

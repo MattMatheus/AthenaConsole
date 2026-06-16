@@ -5,10 +5,15 @@ import type {
   Workspace,
   WorkspaceCreateRequest,
   WorkspaceDeleteResult,
+  WorkspaceMember,
+  WorkspaceMemberDeleteResult,
+  WorkspaceMemberListResult,
+  WorkspaceMemberUpsertRequest,
   WorkspaceListResult,
   WorkspaceUpdateRequest
 } from "../../shared/contracts.js";
-import type { AppStateDatabase, WorkspaceRecord } from "../app-state/index.js";
+import { normalizeAuthSubject } from "../auth.js";
+import type { AppStateDatabase, WorkspaceMemberRecord, WorkspaceRecord } from "../app-state/index.js";
 import { openAppStateDatabase } from "../app-state/index.js";
 import type { WorkspaceService } from "../interfaces.js";
 
@@ -91,6 +96,58 @@ export class LocalWorkspaceService implements WorkspaceService {
     });
   }
 
+  async listMembers(workspaceId: string): Promise<WorkspaceMemberListResult> {
+    return this.withAppState((appState) => {
+      assertWorkspaceExists(appState, workspaceId);
+      const members = appState.workspaceMembers.listMembers(workspaceId).map(mapWorkspaceMemberRecord);
+      return {
+        members,
+        total: members.length
+      };
+    });
+  }
+
+  async getMembershipsForSubject(subject: string): Promise<WorkspaceMember[]> {
+    const normalizedSubject = requireSubject(subject);
+    return this.withAppState((appState) =>
+      appState.workspaceMembers.listMembershipsForSubject(normalizedSubject).map(mapWorkspaceMemberRecord)
+    );
+  }
+
+  async upsertMember(
+    workspaceId: string,
+    subject: string,
+    request: WorkspaceMemberUpsertRequest
+  ): Promise<WorkspaceMember> {
+    const normalizedSubject = requireSubject(subject);
+    return this.withAppState((appState) => {
+      assertWorkspaceExists(appState, workspaceId);
+      try {
+        return mapWorkspaceMemberRecord(
+          appState.workspaceMembers.upsertMember({
+            workspaceId,
+            subject: normalizedSubject,
+            role: request.role
+          })
+        );
+      } catch (error) {
+        throw normalizeWorkspaceError(error);
+      }
+    });
+  }
+
+  async removeMember(workspaceId: string, subject: string): Promise<WorkspaceMemberDeleteResult> {
+    const normalizedSubject = requireSubject(subject);
+    return this.withAppState((appState) => {
+      assertWorkspaceExists(appState, workspaceId);
+      return {
+        workspaceId,
+        subject: normalizedSubject,
+        deleted: appState.workspaceMembers.removeMember(workspaceId, normalizedSubject)
+      };
+    });
+  }
+
   private withAppState<T>(callback: (appState: AppStateDatabase) => T): T {
     const appState = openAppStateDatabase(this.config);
     try {
@@ -109,6 +166,30 @@ function mapWorkspaceRecord(record: WorkspaceRecord): Workspace {
     createdAt: record.createdAt,
     updatedAt: record.updatedAt
   };
+}
+
+function mapWorkspaceMemberRecord(record: WorkspaceMemberRecord): WorkspaceMember {
+  return {
+    workspaceId: record.workspaceId,
+    subject: record.subject,
+    role: record.role,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt
+  };
+}
+
+function requireSubject(subject: string): string {
+  const normalized = normalizeAuthSubject(subject);
+  if (!normalized) {
+    throw new AthenaError("AUTH_IDENTITY_MISSING", "Workspace member subject is required.");
+  }
+  return normalized;
+}
+
+function assertWorkspaceExists(appState: AppStateDatabase, workspaceId: string): void {
+  if (!appState.workspaces.get(workspaceId)) {
+    throw new AthenaError("PROVIDER_NOT_FOUND", `Workspace not found: ${workspaceId}`);
+  }
 }
 
 function slugFromName(name: string): string {
@@ -131,6 +212,12 @@ function normalizeWorkspaceError(error: unknown): AthenaError {
   }
   if (message.includes("UNIQUE constraint failed: workspaces.id")) {
     return new AthenaError("CONFIG_ERROR", "Workspace id already exists.");
+  }
+  if (message.includes("CHECK constraint failed: role")) {
+    return new AthenaError("CONFIG_ERROR", "Workspace member role must be Viewer, Operator, or Admin.");
+  }
+  if (message.includes("FOREIGN KEY constraint failed")) {
+    return new AthenaError("PROVIDER_NOT_FOUND", "Workspace not found.");
   }
   return new AthenaError("PROVIDER_ERROR", message, true, error);
 }

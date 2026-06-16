@@ -76,6 +76,7 @@ export interface UpdateConnectedRepositoryInput {
 
 export interface ListConnectedRepositoriesOptions {
   workspaceId?: string;
+  workspaceIds?: string[];
 }
 
 export class ConnectedRepositoryRepository {
@@ -184,10 +185,20 @@ export class ConnectedRepositoryRepository {
   }
 
   list(options: ListConnectedRepositoriesOptions = {}): ConnectedRepositoryRecord[] {
+    if (options.workspaceIds && options.workspaceIds.length === 0) {
+      return [];
+    }
+    if (options.workspaceId || options.workspaceIds) {
+      const workspaceIds = options.workspaceId ? [options.workspaceId] : (options.workspaceIds ?? []);
+      const placeholders = workspaceIds.map(() => "?").join(", ");
+      return this.db
+        .prepare(connectedRepositorySelectSql(`where workspace_id in (${placeholders}) order by updated_at desc, created_at desc, id asc`))
+        .all(...workspaceIds)
+        .map((row) => mapConnectedRepositoryRow(row as ConnectedRepositoryRow));
+    }
     return this.listStatement
       .all()
       .map((row) => mapConnectedRepositoryRow(row as ConnectedRepositoryRow))
-      .filter((row) => (options.workspaceId ? row.workspaceId === options.workspaceId : true));
   }
 
   update(id: string, input: UpdateConnectedRepositoryInput): ConnectedRepositoryRecord | undefined {

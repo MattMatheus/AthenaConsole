@@ -690,6 +690,23 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
       create index if not exists idx_usage_ledger_workspace
         on usage_ledger(workspace_id);
     `
+  },
+  {
+    version: 21,
+    name: "add-workspace-members",
+    sql: `
+      create table if not exists workspace_members (
+        workspace_id text not null references workspaces(id),
+        subject text not null,
+        role text not null check (role in ('Viewer', 'Operator', 'Admin')),
+        created_at text not null,
+        updated_at text not null,
+        primary key (workspace_id, subject)
+      );
+
+      create index if not exists workspace_members_subject_idx
+        on workspace_members(subject, workspace_id);
+    `
   }
 ];
 

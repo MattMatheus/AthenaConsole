@@ -31,9 +31,9 @@ interface GitInspectionResult {
 export class LocalConnectedRepositoryService implements ConnectedRepositoryService {
   constructor(private readonly config: AthenaConfig) {}
 
-  async list(): Promise<ConnectedRepositoryListResult> {
+  async list(options: { workspaceId?: string; workspaceIds?: string[] } = {}): Promise<ConnectedRepositoryListResult> {
     return this.withAppState((appState) => {
-      const repositories = appState.connectedRepositories.list().map(mapRepositoryRecord);
+      const repositories = appState.connectedRepositories.list(options).map(mapRepositoryRecord);
       return {
         repositories,
         total: repositories.length

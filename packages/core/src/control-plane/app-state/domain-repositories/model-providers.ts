@@ -60,6 +60,7 @@ export interface UpdateModelProviderConfigInput {
 
 export interface ListModelProviderConfigOptions {
   workspaceId?: string;
+  workspaceIds?: string[];
 }
 
 export class ModelProviderConfigRepository {
@@ -148,10 +149,20 @@ export class ModelProviderConfigRepository {
   }
 
   list(options: ListModelProviderConfigOptions = {}): ModelProviderConfigRecord[] {
+    if (options.workspaceIds && options.workspaceIds.length === 0) {
+      return [];
+    }
+    if (options.workspaceId || options.workspaceIds) {
+      const workspaceIds = options.workspaceId ? [options.workspaceId] : (options.workspaceIds ?? []);
+      const placeholders = workspaceIds.map(() => "?").join(", ");
+      return this.db
+        .prepare(modelProviderConfigSelectSql(`where workspace_id in (${placeholders}) order by updated_at desc, created_at desc, id asc`))
+        .all(...workspaceIds)
+        .map((row) => mapModelProviderConfigRow(row as ModelProviderConfigRow));
+    }
     return this.listStatement
       .all()
       .map((row) => mapModelProviderConfigRow(row as ModelProviderConfigRow))
-      .filter((row) => (options.workspaceId ? row.workspaceId === options.workspaceId : true));
   }
 
   update(id: string, input: UpdateModelProviderConfigInput): ModelProviderConfigRecord | undefined {

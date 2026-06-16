@@ -99,6 +99,10 @@ import type {
   Workspace,
   WorkspaceCreateRequest,
   WorkspaceDeleteResult,
+  WorkspaceMember,
+  WorkspaceMemberDeleteResult,
+  WorkspaceMemberListResult,
+  WorkspaceMemberUpsertRequest,
   WorkspaceListResult,
   WorkspaceUpdateRequest
 } from "../shared/contracts/workspaces.js";
@@ -156,6 +160,10 @@ export interface WorkspaceService {
   create(request: WorkspaceCreateRequest): Promise<Workspace>;
   update(id: string, request: WorkspaceUpdateRequest): Promise<Workspace>;
   delete(id: string): Promise<WorkspaceDeleteResult>;
+  listMembers(workspaceId: string): Promise<WorkspaceMemberListResult>;
+  getMembershipsForSubject(subject: string): Promise<WorkspaceMember[]>;
+  upsertMember(workspaceId: string, subject: string, request: WorkspaceMemberUpsertRequest): Promise<WorkspaceMember>;
+  removeMember(workspaceId: string, subject: string): Promise<WorkspaceMemberDeleteResult>;
 }
 
 export interface DirectiveService {
@@ -199,7 +207,7 @@ export interface WorkService {
 }
 
 export interface ModelProviderConfigService {
-  list(): Promise<ModelProviderConfigListResult>;
+  list(options?: { workspaceId?: string; workspaceIds?: string[] }): Promise<ModelProviderConfigListResult>;
   get(id: string): Promise<ModelProviderConfig>;
   create(request: ModelProviderConfigCreateRequest): Promise<ModelProviderConfig>;
   update(id: string, request: ModelProviderConfigUpdateRequest): Promise<ModelProviderConfig>;
@@ -409,7 +417,7 @@ export interface TaskWorkbenchService {
 }
 
 export interface ConnectedRepositoryService {
-  list(): Promise<ConnectedRepositoryListResult>;
+  list(options?: { workspaceId?: string; workspaceIds?: string[] }): Promise<ConnectedRepositoryListResult>;
   get(id: string): Promise<ConnectedRepository>;
   create(request: ConnectedRepositoryCreateRequest): Promise<ConnectedRepository>;
   delete(id: string): Promise<ConnectedRepositoryDeleteResult>;

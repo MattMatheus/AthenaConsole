@@ -92,6 +92,9 @@ describe("api route registration", () => {
     expect(WORKSPACE_ROUTES.map((route) => `${route.method} ${route.path}`)).toEqual([
       "GET /api/v1/workspaces",
       "POST /api/v1/workspaces",
+      "GET /api/v1/workspaces/:id/members",
+      "PUT /api/v1/workspaces/:id/members/:subject",
+      "DELETE /api/v1/workspaces/:id/members/:subject",
       "GET /api/v1/workspaces/:id",
       "PUT /api/v1/workspaces/:id",
       "DELETE /api/v1/workspaces/:id"

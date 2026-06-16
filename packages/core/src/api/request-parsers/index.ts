@@ -55,7 +55,11 @@ export {
   parseTaskWorkbenchUpdateRequest
 } from "./task-workbench.js";
 export { parseWorkDrainRequest, parseWorkEnqueueRequest } from "./work.js";
-export { parseWorkspaceCreateRequest, parseWorkspaceUpdateRequest } from "./workspaces.js";
+export {
+  parseWorkspaceCreateRequest,
+  parseWorkspaceMemberUpsertRequest,
+  parseWorkspaceUpdateRequest
+} from "./workspaces.js";
 export { parseCreateWorkflowRequest } from "./workflow.js";
 export { parseWorkflowTemplateCatalogListQuery } from "./workflow-template-catalog.js";
 export { parseWorkflowTemplateInstantiateRequest } from "./workflow-template-instantiation.js";

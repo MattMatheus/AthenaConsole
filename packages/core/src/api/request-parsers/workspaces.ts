@@ -1,5 +1,6 @@
 import { AthenaError } from "../../runtime/errors.js";
-import type { WorkspaceCreateRequest, WorkspaceUpdateRequest } from "../../shared/contracts.js";
+import type { WorkspaceCreateRequest, WorkspaceMemberUpsertRequest, WorkspaceUpdateRequest } from "../../shared/contracts.js";
+import type { AthenaRbacRole } from "../../shared/contracts/base.js";
 import { optionalString, parseJsonObject, requireString } from "../validation.js";
 
 export function parseWorkspaceCreateRequest(body: unknown): WorkspaceCreateRequest {
@@ -21,6 +22,20 @@ export function parseWorkspaceUpdateRequest(body: unknown): WorkspaceUpdateReque
     ...(name ? { name } : {}),
     ...(slug ? { slug: normalizeSlug(slug, "workspaces.update.slug") } : {})
   };
+}
+
+export function parseWorkspaceMemberUpsertRequest(body: unknown): WorkspaceMemberUpsertRequest {
+  const row = parseJsonObject(body, "workspaces.members.upsert");
+  return {
+    role: requireWorkspaceRole(requireString(row, "role", "workspaces.members.upsert"))
+  };
+}
+
+function requireWorkspaceRole(value: string): AthenaRbacRole {
+  if (value === "Viewer" || value === "Operator" || value === "Admin") {
+    return value;
+  }
+  throw new AthenaError("CONFIG_ERROR", "workspaces.members.upsert.role must be Viewer, Operator, or Admin.");
 }
 
 function normalizeIdentifier(value: string, context: string): string {

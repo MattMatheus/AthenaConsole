@@ -1,3 +1,5 @@
+import type { AthenaRbacRole } from "./base.js";
+
 export interface Workspace {
   id: string;
   name: string;
@@ -24,5 +26,28 @@ export interface WorkspaceUpdateRequest {
 
 export interface WorkspaceDeleteResult {
   id: string;
+  deleted: boolean;
+}
+
+export interface WorkspaceMember {
+  workspaceId: string;
+  subject: string;
+  role: AthenaRbacRole;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkspaceMemberListResult {
+  members: WorkspaceMember[];
+  total: number;
+}
+
+export interface WorkspaceMemberUpsertRequest {
+  role: AthenaRbacRole;
+}
+
+export interface WorkspaceMemberDeleteResult {
+  workspaceId: string;
+  subject: string;
   deleted: boolean;
 }

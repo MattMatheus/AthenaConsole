@@ -12,6 +12,7 @@ import type {
   RunTemplate,
   RunTemplateCreateRequest
 } from "../../shared/contracts.js";
+import type { AthenaRbacRole } from "../../shared/contracts/base.js";
 
 export interface AppStateMigrationRecord {
   version: number;
@@ -35,6 +36,14 @@ interface WorkspaceRow {
   id: string;
   name: string;
   slug: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface WorkspaceMemberRow {
+  workspace_id: string;
+  subject: string;
+  role: AthenaRbacRole;
   created_at: string;
   updated_at: string;
 }
@@ -334,6 +343,89 @@ function mapWorkspaceRow(row: WorkspaceRow): WorkspaceRecord {
     id: row.id,
     name: row.name,
     slug: row.slug,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+export interface WorkspaceMemberRecord {
+  workspaceId: string;
+  subject: string;
+  role: AthenaRbacRole;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export class WorkspaceMemberRepository {
+  private readonly listMembersStatement: Database.Statement;
+  private readonly getMemberStatement: Database.Statement;
+  private readonly listMembershipsForSubjectStatement: Database.Statement;
+  private readonly upsertMemberStatement: Database.Statement;
+  private readonly removeMemberStatement: Database.Statement;
+
+  constructor(private readonly db: Database.Database) {
+    this.listMembersStatement = db.prepare(
+      "select workspace_id, subject, role, created_at, updated_at from workspace_members where workspace_id = ? order by subject asc"
+    );
+    this.getMemberStatement = db.prepare(
+      "select workspace_id, subject, role, created_at, updated_at from workspace_members where workspace_id = ? and subject = ?"
+    );
+    this.listMembershipsForSubjectStatement = db.prepare(
+      "select workspace_id, subject, role, created_at, updated_at from workspace_members where subject = ? order by workspace_id asc"
+    );
+    this.upsertMemberStatement = db.prepare(`
+      insert into workspace_members (workspace_id, subject, role, created_at, updated_at)
+      values (@workspaceId, @subject, @role, @createdAt, @updatedAt)
+      on conflict(workspace_id, subject) do update set
+        role = excluded.role,
+        updated_at = excluded.updated_at
+    `);
+    this.removeMemberStatement = db.prepare("delete from workspace_members where workspace_id = ? and subject = ?");
+  }
+
+  listMembers(workspaceId: string): WorkspaceMemberRecord[] {
+    return this.listMembersStatement.all(workspaceId).map((row) => mapWorkspaceMemberRow(row as WorkspaceMemberRow));
+  }
+
+  getMember(workspaceId: string, subject: string): WorkspaceMemberRecord | undefined {
+    const row = this.getMemberStatement.get(workspaceId, subject) as WorkspaceMemberRow | undefined;
+    return row ? mapWorkspaceMemberRow(row) : undefined;
+  }
+
+  listMembershipsForSubject(subject: string): WorkspaceMemberRecord[] {
+    return this.listMembershipsForSubjectStatement
+      .all(subject)
+      .map((row) => mapWorkspaceMemberRow(row as WorkspaceMemberRow));
+  }
+
+  upsertMember(input: { workspaceId: string; subject: string; role: AthenaRbacRole; now?: Date }): WorkspaceMemberRecord {
+    const existing = this.getMember(input.workspaceId, input.subject);
+    const now = (input.now ?? new Date()).toISOString();
+    this.upsertMemberStatement.run({
+      workspaceId: input.workspaceId,
+      subject: input.subject,
+      role: input.role,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now
+    });
+    const record = this.getMember(input.workspaceId, input.subject);
+    if (!record) {
+      throw new Error(`Failed to load workspace member ${input.subject} in ${input.workspaceId}.`);
+    }
+    return record;
+  }
+
+  removeMember(workspaceId: string, subject: string): boolean {
+    const result = this.removeMemberStatement.run(workspaceId, subject);
+    return result.changes > 0;
+  }
+}
+
+function mapWorkspaceMemberRow(row: WorkspaceMemberRow): WorkspaceMemberRecord {
+  return {
+    workspaceId: row.workspace_id,
+    subject: row.subject,
+    role: row.role,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };

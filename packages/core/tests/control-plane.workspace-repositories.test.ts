@@ -83,6 +83,10 @@ describe("workspace-aware app-state repositories", () => {
         });
         expect(appState.connectedRepositories.update("repo-alpha", { status: "ready" })?.workspaceId).toBe("workspace-alpha");
         expect(appState.connectedRepositories.list({ workspaceId: "workspace-alpha" }).map((repo) => repo.id)).toEqual(["repo-alpha"]);
+        expect(
+          new Set(appState.connectedRepositories.list({ workspaceIds: ["workspace-alpha", "workspace-beta"] }).map((repo) => repo.id))
+        ).toEqual(new Set(["repo-alpha", "repo-beta"]));
+        expect(appState.connectedRepositories.list({ workspaceIds: [] })).toEqual([]);
 
         appState.modelProviderConfigs.create({
           id: "provider-alpha",
@@ -106,6 +110,14 @@ describe("workspace-aware app-state repositories", () => {
         expect(appState.modelProviderConfigs.list({ workspaceId: "workspace-alpha" }).map((provider) => provider.id)).toEqual([
           "provider-alpha"
         ]);
+        expect(
+          new Set(
+            appState.modelProviderConfigs
+              .list({ workspaceIds: ["workspace-alpha", "workspace-beta"] })
+              .map((provider) => provider.id)
+          )
+        ).toEqual(new Set(["provider-alpha", "provider-beta"]));
+        expect(appState.modelProviderConfigs.list({ workspaceIds: [] })).toEqual([]);
 
         appState.connectorCredentialBindings.upsert({
           pluginId: "plugin-alpha",
@@ -132,6 +144,58 @@ describe("workspace-aware app-state repositories", () => {
         expect(appState.connectorCredentialBindings.list({ workspaceId: "workspace-alpha" }).map((binding) => binding.pluginId)).toEqual([
           "plugin-alpha"
         ]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("stores workspace members with subject lookup, role validation, uniqueness, and delete", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-workspace-members-"));
+    try {
+      const appState = openAppStateDatabase(loadConfig(dir));
+      try {
+        appState.workspaces.create({
+          id: "workspace-alpha",
+          name: "Workspace Alpha",
+          slug: "workspace-alpha"
+        });
+        const created = appState.workspaceMembers.upsertMember({
+          workspaceId: "workspace-alpha",
+          subject: "alice",
+          role: "Viewer",
+          now: new Date("2026-06-16T00:00:00.000Z")
+        });
+        expect(created).toMatchObject({
+          workspaceId: "workspace-alpha",
+          subject: "alice",
+          role: "Viewer"
+        });
+
+        const updated = appState.workspaceMembers.upsertMember({
+          workspaceId: "workspace-alpha",
+          subject: "alice",
+          role: "Admin",
+          now: new Date("2026-06-16T00:01:00.000Z")
+        });
+        expect(updated.role).toBe("Admin");
+        expect(appState.workspaceMembers.listMembers("workspace-alpha")).toHaveLength(1);
+        expect(appState.workspaceMembers.getMember("workspace-alpha", "alice")?.role).toBe("Admin");
+        expect(appState.workspaceMembers.listMembershipsForSubject("alice").map((member) => member.workspaceId)).toEqual([
+          "workspace-alpha"
+        ]);
+
+        expect(() =>
+          appState.workspaceMembers.upsertMember({
+            workspaceId: "workspace-alpha",
+            subject: "mallory",
+            role: "Owner" as "Admin"
+          })
+        ).toThrow(/CHECK constraint failed/);
+        expect(appState.workspaceMembers.removeMember("workspace-alpha", "alice")).toBe(true);
+        expect(appState.workspaceMembers.removeMember("workspace-alpha", "alice")).toBe(false);
       } finally {
         appState.close();
       }

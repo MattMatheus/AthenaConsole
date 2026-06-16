@@ -89,7 +89,13 @@ export function resolveApiRouteFamily(method: string, path: string): ApiRouteFam
 export function createApiServer(options: ApiServerOptions): ApiServerHandle {
   initializeApplicationInsights(options.config);
   const services = options.services ?? createLocalControlPlaneServices({ config: options.config });
-  const authMiddleware = createIdentityExtractionMiddleware(options.config);
+  const authMiddleware = createIdentityExtractionMiddleware(options.config, {
+    resolveWorkspaceMemberships: async (subject) =>
+      (await services.workspaceService.getMembershipsForSubject(subject)).map((membership) => ({
+        workspaceId: membership.workspaceId,
+        role: membership.role
+      }))
+  });
   const host = options.host ?? "127.0.0.1";
   const port = options.port ?? 8787;
   const server = createServer(async (req, res) => {
@@ -130,7 +136,7 @@ export function createApiServer(options: ApiServerOptions): ApiServerHandle {
     let routeFamily: ApiRouteFamily | undefined;
     let routeParams: Record<string, string> = {};
     try {
-      const auth = authMiddleware.extract(req);
+      const auth = await authMiddleware.extract(req);
       const match = API_V1_ROUTER.findMatch(method, path);
       routeFamily = match?.route.meta?.family;
       routeParams = match?.params ?? {};

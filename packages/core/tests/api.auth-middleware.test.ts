@@ -200,7 +200,7 @@ describe("api identity extraction middleware", () => {
         }
       });
       expect(response.status).toBe(200);
-      expect(observedAuthContext).toEqual({
+      expect(observedAuthContext).toMatchObject({
         subject: "alice",
         role: "Admin",
         scope: {
@@ -211,6 +211,153 @@ describe("api identity extraction middleware", () => {
           workspaces: []
         }
       });
+    } finally {
+      if (started) {
+        await server.stop();
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects workspace scope headers that are not backed by subject membership", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-auth-workspace-scope-"));
+    writeFileSync(
+      join(dir, ".env"),
+      [
+        ...AUTH_WITHOUT_API_TOKEN,
+        "ATHENA_AUTH_IDENTITY_ROLE_MAP=scoped-op:Operator"
+      ].join("\n"),
+      "utf8"
+    );
+    const config = loadConfig(dir);
+    const appState = openAppStateDatabase(config);
+    try {
+      appState.workspaces.create({
+        id: "workspace-alpha",
+        name: "Workspace Alpha",
+        slug: "workspace-alpha"
+      });
+      appState.workspaces.create({
+        id: "workspace-beta",
+        name: "Workspace Beta",
+        slug: "workspace-beta"
+      });
+      appState.workspaceMembers.upsertMember({
+        workspaceId: "workspace-alpha",
+        subject: "scoped-op",
+        role: "Operator"
+      });
+    } finally {
+      appState.close();
+    }
+    const server = createApiServer({ config, host: "127.0.0.1", port: 0 });
+    let bound: { host: string; port: number } | undefined;
+    let started = false;
+    try {
+      try {
+        bound = await server.start();
+        started = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("EPERM")) {
+          return;
+        }
+        throw error;
+      }
+      if (!bound) {
+        throw new Error("Server failed to bind");
+      }
+
+      const response = await fetch(`http://${bound.host}:${bound.port}/api/v1/capabilities`, {
+        headers: {
+          "x-athena-identity": "scoped-op",
+          "x-athena-scope-workspaces": "workspace-beta"
+        }
+      });
+      expect(response.status).toBe(403);
+      const payload = (await response.json()) as { error: { code: string; message: string } };
+      expect(payload.error.code).toBe("AUTHZ_DENIED");
+      expect(payload.error.message).toContain("workspace-beta");
+    } finally {
+      if (started) {
+        await server.stop();
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("does not honor x-athena-scope-global for non-admin subjects", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-api-auth-global-scope-"));
+    writeFileSync(
+      join(dir, ".env"),
+      [
+        ...AUTH_WITHOUT_API_TOKEN,
+        "ATHENA_AUTH_IDENTITY_ROLE_MAP=scoped-op:Operator"
+      ].join("\n"),
+      "utf8"
+    );
+    const config = loadConfig(dir);
+    const appState = openAppStateDatabase(config);
+    try {
+      appState.workspaces.create({
+        id: "workspace-alpha",
+        name: "Workspace Alpha",
+        slug: "workspace-alpha"
+      });
+      appState.workspaces.create({
+        id: "workspace-beta",
+        name: "Workspace Beta",
+        slug: "workspace-beta"
+      });
+      appState.workspaceMembers.upsertMember({
+        workspaceId: "workspace-alpha",
+        subject: "scoped-op",
+        role: "Operator"
+      });
+      appState.workspaceMembers.upsertMember({
+        workspaceId: "workspace-beta",
+        subject: "scoped-op",
+        role: "Viewer"
+      });
+    } finally {
+      appState.close();
+    }
+    const services = createLocalControlPlaneServices({ config });
+    let observedAuthContext = getRequestAuthContext();
+    const baseCapabilityService = services.capabilityService;
+    services.capabilityService = {
+      async getCapabilities() {
+        observedAuthContext = getRequestAuthContext();
+        return baseCapabilityService.getCapabilities();
+      }
+    };
+
+    const server = createApiServer({ config, services, host: "127.0.0.1", port: 0 });
+    let bound: { host: string; port: number } | undefined;
+    let started = false;
+    try {
+      try {
+        bound = await server.start();
+        started = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("EPERM")) {
+          return;
+        }
+        throw error;
+      }
+      if (!bound) {
+        throw new Error("Server failed to bind");
+      }
+
+      const response = await fetch(`http://${bound.host}:${bound.port}/api/v1/capabilities`, {
+        headers: {
+          "x-athena-identity": "scoped-op",
+          "x-athena-scope-global": "true"
+        }
+      });
+      expect(response.status).toBe(200);
+      expect(observedAuthContext?.scope.global).toBe(false);
     } finally {
       if (started) {
         await server.stop();
@@ -282,6 +429,31 @@ describe("api identity extraction middleware", () => {
       "utf8"
     );
     const config = loadConfig(dir);
+    const appState = openAppStateDatabase(config);
+    try {
+      appState.workspaces.create({
+        id: "workspace-alpha",
+        name: "Workspace Alpha",
+        slug: "workspace-alpha"
+      });
+      appState.workspaces.create({
+        id: "workspace-beta",
+        name: "Workspace Beta",
+        slug: "workspace-beta"
+      });
+      appState.workspaceMembers.upsertMember({
+        workspaceId: "workspace-alpha",
+        subject: "scoped-op",
+        role: "Operator"
+      });
+      appState.workspaceMembers.upsertMember({
+        workspaceId: "workspace-beta",
+        subject: "scoped-op",
+        role: "Viewer"
+      });
+    } finally {
+      appState.close();
+    }
     const services = createLocalControlPlaneServices({ config });
     let observedAuthContext = getRequestAuthContext();
     const baseCapabilityService = services.capabilityService;
@@ -320,9 +492,13 @@ describe("api identity extraction middleware", () => {
         }
       });
       expect(response.status).toBe(200);
-      expect(observedAuthContext).toEqual({
+      expect(observedAuthContext).toMatchObject({
         subject: "scoped-op",
         role: "Operator",
+        workspaceMemberships: expect.arrayContaining([
+          expect.objectContaining({ workspaceId: "workspace-alpha", role: "Operator" }),
+          expect.objectContaining({ workspaceId: "workspace-beta", role: "Viewer" })
+        ]),
         scope: {
           global: false,
           agents: ["alpha", "beta"],
@@ -447,6 +623,16 @@ describe("api identity extraction middleware", () => {
         title: "API authz task",
         status: "ready",
         assignedAgentId: "software.api-authz.local"
+      });
+      appState.workspaceMembers.upsertMember({
+        workspaceId: "default",
+        subject: "viewer-user",
+        role: "Viewer"
+      });
+      appState.workspaceMembers.upsertMember({
+        workspaceId: "default",
+        subject: "operator-user",
+        role: "Operator"
       });
     } finally {
       appState.close();

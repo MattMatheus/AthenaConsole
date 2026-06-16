@@ -26,6 +26,7 @@ import {
   HarnessProfileRepository,
   PluginIndexRepository,
   RunTemplateRepository,
+  WorkspaceMemberRepository,
   WorkspaceRepository,
   WorkflowTemplateIndexRepository
 } from "./repositories.js";
@@ -43,6 +44,7 @@ export interface AppStateDatabase {
   readonly migrations: AppStateMigrationRepository;
   readonly settings: AppSettingsRepository;
   readonly workspaces: WorkspaceRepository;
+  readonly workspaceMembers: WorkspaceMemberRepository;
   readonly connectorCredentialBindings: ConnectorCredentialBindingRepository;
   readonly plugins: PluginIndexRepository;
   readonly agents: AgentIndexRepository;
@@ -92,6 +94,7 @@ export function openAppStateDatabase(config: AthenaConfig, options: AppStateData
     migrations,
     settings: new AppSettingsRepository(db),
     workspaces: new WorkspaceRepository(db),
+    workspaceMembers: new WorkspaceMemberRepository(db),
     connectorCredentialBindings: new ConnectorCredentialBindingRepository(db),
     plugins: new PluginIndexRepository(db),
     agents: new AgentIndexRepository(db),
