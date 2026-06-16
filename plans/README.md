@@ -50,8 +50,50 @@ knowledge from other plans unless a plan lists it under "Depends on".
 | 025 | Promote ADR 0028 → 2026.44 workspace/RBAC impl epic | P1 | M | ADR 0028 | direction/security | DONE ✓ verified 2026-06-15 |
 | 026 | Promote ADR 0029 → 2026.45 cost-governance impl epic | P2 | M | ADR 0029 (soft 025) | direction | DONE ✓ verified 2026-06-15 |
 | 027 | Postgres step-1 spike: direct-open inventory + 2026.46 epic | P2 | M | plan 023 (DONE) | direction/tech-debt | DONE ✓ verified 2026-06-15 |
+| 028 | Docs IA, conventions, preview-banner standard + teardown manifest | P1 | M | none | docs | DONE ✓ merged to main (`8d5ac93`) 2026-06-15 |
+| 029 | Rewrite entry/narrative docs → enterprise/multiplayer-primary | P1 | M | 028 | docs | DONE ✓ merged to main (`cd2bcdb`) 2026-06-15 |
+| 030 | Enterprise & Multiplayer User Manual (consolidate two doc trees) | P1 | L | 028 (soft 029) | docs | DONE ✓ merged to main (`79ede34`) 2026-06-15 |
+| 031 | SDK Guide Pt.1 — Agent Developer Kit (`@athena/pdk`) | P1 | M-L | 028 | docs | DONE ✓ merged to main (`b1b4f63`) 2026-06-15 |
+| 032 | SDK Guide Pt.2 — HTTP Control-Plane API Reference | P1 | L | 028, **031 (shares `docs/sdk/README.md`)** | docs | DONE ✓ merged to main (`fd4738c`) 2026-06-15 |
+| 033 | Internal-docs coherence + repo-wide final sweep | P2 | M | 028–032 | docs | DONE ✓ merged to main (`f145af5`) 2026-06-15 |
+
+> **Docs Rewrite Epic COMPLETE (2026-06-15).** All six plans (028–033) executed via worktree executors, reviewed, and merged to `main` (tip `f145af5`). Repo-wide `npm run check:docs` is green (216 files, no broken links). Net: enterprise/multiplayer-primary positioning across all entry docs; one consolidated 11-page user manual + 18-page SDK/API guide (PDK + HTTP `/api/v1`); 39 dead docs deleted; two parallel doc trees merged into one; ADR 0028/0029 promoted to Accepted; preview banners on all unbuilt-multiplayer surfaces.
+> **Follow-ups surfaced:** (1) five API families (`missions`, `workflow-templates`, `run-templates`, `harness-profiles`, `agent-catalog`) have **no RBAC authorizer** — now documented, but a real gap to close with epic 2026.44 before multi-user exposure; (2) remove the preview banners when 2026.44 stories .02–.04 land (`grep "Preview — not yet enforced" docs/`).
+
+> **Execution log (2026-06-15):** 028 executed in a worktree, reviewed, merged to main by the operator. 029/030/031 executed in parallel worktrees — the harness based those worktrees on the pre-028 commit `9acdfd6`, so each rebased/merged onto 028; one (029) left the main working dir checked out on its branch (recovered). All three reviewed (APPROVED) and merged in order 029→030→031. A cross-plan link break (030's `05-running-work.md` → files 031 deleted) was caught by `check:docs` at integration and repointed to `docs/sdk/agent-developer-kit.md` (commit `39f5a51`). **Lesson for 032/033: dispatch sequentially; the executor's worktree may be based on `9acdfd6` — it must `git merge main` first to pick up 028–031.**
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (one-line reason) | REJECTED (one-line rationale) | SUPERSEDED BY <reason>.
+
+## Docs Rewrite Epic (028–033) — appended 2026-06-15 (commit `9acdfd6`)
+
+A full, comprehensive documentation rewrite for the **enterprise + multiplayer (team)**
+push. Scoped by four operator decisions (2026-06-15):
+
+1. **Positioning** — enterprise/multiplayer is the **primary** narrative; local-first is **one deployment mode**.
+2. **Multiplayer maturity** — document the **target** architecture with **preview banners** on unbuilt isolation. (Multi-user tenancy isolation is NOT enforced today: scope is client-asserted at `api/middleware/auth.ts:81`; epic 2026.44 stories .02–.04 unbuilt. Story .01 — workspace CRUD + Admin RBAC — IS built.)
+3. **Removal** — **hard-delete** stale narrative docs; **keep ADRs** as history; **delete the 33 completed-epic files**; keep active epics + roadmap.
+4. **SDK guide** — covers **both** `@athena/pdk` (Agent Developer Kit) **and** the HTTP control-plane API.
+
+A second coherence problem the recon surfaced and these plans fix: docs are split
+across **two parallel trees** — `docs/` and `packages/core/docs/user/*` — i.e. two
+user manuals and two SDK guides. Plans 030–032 **consolidate**, not just rewrite.
+
+**Dependency graph**: `028` (foundation: IA + `docs/conventions.md` + preview-banner
+standard + teardown) must land first. Then `029`, `030`, `031`, `032` run in
+parallel (they touch disjoint files and all consume 028's conventions). `033`
+(coherence sweep + ADR statuses + repo-wide `check:docs`) runs **last**, after
+029–032.
+
+**Recommended order**: 028 → (029 ∥ 030 ∥ 031 ∥ 032) → 033.
+
+**Shared verification gate** (all six): `npm run check:docs` (validates relative
+links in all tracked `*.md` repo-wide; stage new/moved files before running so
+their own links are checked). Plan 031 also runs `npm --workspace @athena/pdk run
+build`. No source-code changes in any plan — docs only.
+
+**Preview-banner debt to retire later**: when epic 2026.44 stories .02–.04 (and
+2026.45 enforcement) land, grep `"Preview — not yet enforced"` across `docs/` and
+remove the banners (noted in each plan's Maintenance section).
 
 ## Reconcile log — 2026-06-15 (working tree on `main`, base commit `0bd2fc8`)
 
