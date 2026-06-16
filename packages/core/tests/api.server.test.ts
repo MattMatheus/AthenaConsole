@@ -2248,6 +2248,7 @@ describe("api server", () => {
       join(dir, ".env"),
       [
         "ATHENA_AUTH_ENABLED=true",
+        "ATHENA_AUTH_API_TOKEN=",
         "ATHENA_AUTHZ_MODE=enforce",
         "ATHENA_AUTH_IDENTITY_ROLE_MAP=bootstrap-admin:Admin,*:Viewer"
       ].join("\n"),

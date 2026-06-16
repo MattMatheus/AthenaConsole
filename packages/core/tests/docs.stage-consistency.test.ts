@@ -13,7 +13,7 @@ describe("current docs consistency", () => {
     expect(existsSync(resolve(root, "IMPLEMENT.MD"))).toBe(false);
     expect(agents).toContain("docs/product/direction/current-direction.md");
     expect(readme).toContain("[Getting Started](../GETTING_STARTED.md)");
-    expect(readme).toContain("[Team Orchestrator User Guide](user-guide/README.md)");
+    expect(readme).toContain("[User Guide](user-guide/README.md)");
     expect(gettingStarted).toContain("first-run demo");
     expect(gettingStarted).toContain("http://127.0.0.1:5173/workflows");
   });

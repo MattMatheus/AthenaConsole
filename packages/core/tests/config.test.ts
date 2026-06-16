@@ -5,11 +5,32 @@ import { describe, expect, it } from "vitest";
 import { AthenaError } from "../src/runtime/errors.js";
 import { loadConfig } from "../src/shared/config.js";
 
+const DEFAULT_CONFIG_ENV_KEYS = ["ATHENA_AUTH_API_TOKEN", "ATHENA_SANDBOX_WORKSPACE_HOST_PATH"] as const;
+
+function withoutProcessEnv<T>(keys: readonly string[], run: () => T): T {
+  const previous = new Map<string, string | undefined>();
+  for (const key of keys) {
+    previous.set(key, process.env[key]);
+    delete process.env[key];
+  }
+  try {
+    return run();
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
+}
+
 describe("loadConfig", () => {
   it("loads defaults when no .env exists", () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-config-"));
     try {
-      const config = loadConfig(dir);
+      const config = withoutProcessEnv(DEFAULT_CONFIG_ENV_KEYS, () => loadConfig(dir));
       expect(config.executionProviderDefault).toBe("local-placeholder");
       expect(config.lockProviderDefault).toBe("local");
       expect(config.defaultProvider).toBe("mock");

@@ -8,6 +8,8 @@ import { getRequestAuthContext } from "../src/control-plane/auth.js";
 import { createLocalControlPlaneServices } from "../src/control-plane/services.js";
 import { loadConfig } from "../src/shared/config.js";
 
+const AUTH_WITHOUT_API_TOKEN = ["ATHENA_AUTH_ENABLED=true", "ATHENA_AUTHZ_MODE=enforce", "ATHENA_AUTH_API_TOKEN="];
+
 describe("api identity extraction middleware", () => {
   it("rejects requests when API bearer token is missing in token-protected mode", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-api-auth-token-"));
@@ -116,7 +118,7 @@ describe("api identity extraction middleware", () => {
 
   it("rejects requests when identity header is missing in enforce mode", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-api-auth-"));
-    writeFileSync(join(dir, ".env"), "ATHENA_AUTH_ENABLED=true\nATHENA_AUTHZ_MODE=enforce", "utf8");
+    writeFileSync(join(dir, ".env"), AUTH_WITHOUT_API_TOKEN.join("\n"), "utf8");
     const config = loadConfig(dir);
     const server = createApiServer({ config, host: "127.0.0.1", port: 0 });
     let bound: { host: string; port: number } | undefined;
@@ -158,8 +160,7 @@ describe("api identity extraction middleware", () => {
     writeFileSync(
       join(dir, ".env"),
       [
-        "ATHENA_AUTH_ENABLED=true",
-        "ATHENA_AUTHZ_MODE=enforce",
+        ...AUTH_WITHOUT_API_TOKEN,
         "ATHENA_AUTH_IDENTITY_ROLE_MAP=alice:Admin,*:Viewer",
         "ATHENA_AUTH_DEFAULT_ROLE=Viewer"
       ].join("\n"),
@@ -223,8 +224,7 @@ describe("api identity extraction middleware", () => {
     writeFileSync(
       join(dir, ".env"),
       [
-        "ATHENA_AUTH_ENABLED=true",
-        "ATHENA_AUTHZ_MODE=enforce",
+        ...AUTH_WITHOUT_API_TOKEN,
         "ATHENA_AUTH_IDENTITY_HEADER=x-athena-subject",
         "ATHENA_AUTH_IDENTITY_ROLE_MAP=svc-control:Admin,*:Operator"
       ].join("\n"),
@@ -276,8 +276,7 @@ describe("api identity extraction middleware", () => {
     writeFileSync(
       join(dir, ".env"),
       [
-        "ATHENA_AUTH_ENABLED=true",
-        "ATHENA_AUTHZ_MODE=enforce",
+        ...AUTH_WITHOUT_API_TOKEN,
         "ATHENA_AUTH_IDENTITY_ROLE_MAP=scoped-op:Operator"
       ].join("\n"),
       "utf8"
@@ -345,8 +344,7 @@ describe("api identity extraction middleware", () => {
     writeFileSync(
       join(dir, ".env"),
       [
-        "ATHENA_AUTH_ENABLED=true",
-        "ATHENA_AUTHZ_MODE=enforce",
+        ...AUTH_WITHOUT_API_TOKEN,
         "ATHENA_AUTH_IDENTITY_ROLE_MAP=viewer-user:Viewer"
       ].join("\n"),
       "utf8"
@@ -403,8 +401,7 @@ describe("api identity extraction middleware", () => {
     writeFileSync(
       join(dir, ".env"),
       [
-        "ATHENA_AUTH_ENABLED=true",
-        "ATHENA_AUTHZ_MODE=enforce",
+        ...AUTH_WITHOUT_API_TOKEN,
         "ATHENA_AUTH_IDENTITY_ROLE_MAP=viewer-user:Viewer,operator-user:Operator,admin-user:Admin"
       ].join("\n"),
       "utf8"
@@ -534,8 +531,7 @@ describe("api identity extraction middleware", () => {
     writeFileSync(
       join(dir, ".env"),
       [
-        "ATHENA_AUTH_ENABLED=true",
-        "ATHENA_AUTHZ_MODE=enforce",
+        ...AUTH_WITHOUT_API_TOKEN,
         "ATHENA_AUTH_IDENTITY_ROLE_MAP=alice:Viewer,*:Viewer"
       ].join("\n"),
       "utf8"
