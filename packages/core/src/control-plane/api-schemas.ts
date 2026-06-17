@@ -3784,11 +3784,6 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       additionalProperties: false,
       properties: {
         id: STRING_SCHEMA,
-        sessionId: STRING_SCHEMA,
-        input: STRING_SCHEMA,
-        everyMinutes: { type: "integer", minimum: 1 },
-        enabled: { type: "boolean" },
-        startNow: { type: "boolean" },
         name: STRING_SCHEMA,
         targetType: { type: "string", enum: ["task", "mission", "workflow-template"] },
         targetId: STRING_SCHEMA,
@@ -3797,9 +3792,11 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
         rrule: { type: "string", minLength: 1 },
         timezone: STRING_SCHEMA,
         status: { type: "string", enum: ["active", "paused", "disabled", "error"] },
-        failurePolicy: JSON_VALUE_SCHEMA
+        failurePolicy: JSON_VALUE_SCHEMA,
+        enabled: { type: "boolean" }
       },
-      required: ["id"]
+      required: ["id", "targetType", "targetId"],
+      anyOf: [{ type: "object", required: ["runAt"] }, { type: "object", required: ["rrule"] }]
     },
     responseSchema: { $ref: "#/components/schemas/ScheduledTask" }
   },
@@ -3819,11 +3816,6 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
       type: "object",
       additionalProperties: false,
       properties: {
-        sessionId: STRING_SCHEMA,
-        input: STRING_SCHEMA,
-        everyMinutes: { type: "integer", minimum: 1 },
-        enabled: { type: "boolean" },
-        startNow: { type: "boolean" },
         name: STRING_SCHEMA,
         targetType: { type: "string", enum: ["task", "mission", "workflow-template"] },
         targetId: STRING_SCHEMA,
@@ -3832,8 +3824,11 @@ export const API_V1_OPERATION_SCHEMAS: Record<string, ApiOperationSchema> = {
         rrule: { type: "string", minLength: 1 },
         timezone: STRING_SCHEMA,
         status: { type: "string", enum: ["active", "paused", "disabled", "error"] },
-        failurePolicy: JSON_VALUE_SCHEMA
-      }
+        failurePolicy: JSON_VALUE_SCHEMA,
+        enabled: { type: "boolean" }
+      },
+      required: ["targetType", "targetId"],
+      anyOf: [{ type: "object", required: ["runAt"] }, { type: "object", required: ["rrule"] }]
     },
     responseSchema: { $ref: "#/components/schemas/ScheduledTask" }
   },

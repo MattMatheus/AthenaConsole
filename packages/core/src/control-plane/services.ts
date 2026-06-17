@@ -117,7 +117,7 @@ import type {
   WorkService
 } from "./interfaces.js";
 import { FileStateStore, type StateStore } from "./state-store.js";
-import { openAppStateDatabase } from "./app-state/index.js";
+import { createAppStateProvider, openAppStateDatabase } from "./app-state/index.js";
 import { indexConfiguredLocalPlugins } from "./plugins/index.js";
 import { SqliteHarnessProfileStateStore } from "./state-store/sqlite-harness-profile-state-store.js";
 import { SqliteDurableMemoryServerStorage } from "../durable-memory/server-storage.js";
@@ -207,14 +207,12 @@ function createDistributedLock(options: LocalControlPlaneOptions): IDistributedL
 }
 
 export function createLocalControlPlaneServices(options: LocalControlPlaneOptions): ControlPlaneServices {
-  const appState = openAppStateDatabase(options.config);
-  try {
+  const appStateProvider = createAppStateProvider(options.config);
+  appStateProvider.withAppState((appState) => {
     indexConfiguredLocalPlugins(options.config, { appState });
     recoverStaleTaskAndMissionRuns(appState);
     recoverStaleWorkflowDagRuns(appState);
-  } finally {
-    appState.close();
-  }
+  });
 
   const baseExecutionBackend = options.executionBackend ?? new LocalExecutionBackend({ config: options.config });
   const sandboxExecutionBackend = options.sandboxExecutionBackend ?? createSandboxExecutionBackend(options);
@@ -252,14 +250,17 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
   );
   const baseLspService = options.lspService ?? new LocalLspService(options.config, options.lspOptions);
   const scheduleService = new AuthorizedScheduleService(
-    new LocalScheduleService(options.config, executionBackend, policyService),
+    new LocalScheduleService(options.config, executionBackend, policyService, { appStateProvider }),
     authorizer
   );
   const sessionService = new AuthorizedSessionService(new LocalSessionService(stateStore, options.config), authorizer);
   const directiveService = new AuthorizedDirectiveService(new LocalDirectiveService(stateStore), authorizer);
-  const workflowStatusService = new AuthorizedWorkflowStatusService(new LocalWorkflowStatusService(options.config), authorizer);
+  const workflowStatusService = new AuthorizedWorkflowStatusService(
+    new LocalWorkflowStatusService(options.config, { appStateProvider }),
+    authorizer
+  );
   const workflowQueueStatusService = new AuthorizedWorkflowQueueStatusService(
-    new LocalWorkflowQueueStatusService(options.config),
+    new LocalWorkflowQueueStatusService(options.config, { appStateProvider }),
     authorizer
   );
   const workService = new AuthorizedWorkService(new LocalWorkService(options.config, executionBackend), authorizer);
@@ -283,15 +284,15 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
   const governanceAuditService = new AuthorizedGovernanceAuditService(new LocalGovernanceAuditService(eventService), authorizer);
 
   const stateDiagnosticsService = new LocalStateDiagnosticsService(options.config, stateStore);
-  const agentCatalogService = new LocalAgentCatalogService(options.config);
-  const workflowTemplateCatalogService = new LocalWorkflowTemplateCatalogService(options.config);
+  const agentCatalogService = new LocalAgentCatalogService(options.config, { appStateProvider });
+  const workflowTemplateCatalogService = new LocalWorkflowTemplateCatalogService(options.config, { appStateProvider });
   const harnessProfileService = new LocalHarnessProfileService(stateStore, options.config);
-  const workflowDagExecutorService = new LocalWorkflowDagExecutorService(options.config);
+  const workflowDagExecutorService = new LocalWorkflowDagExecutorService(options.config, { appStateProvider });
   const capabilityService = new LocalCapabilityService(executionBackend, operationsMetricsProvider, sandboxExecutionBackend);
   const modelProviderConfigService = new LocalModelProviderConfigService(options.config, { eventService });
   const authorizedModelProviderConfigService = new AuthorizedModelProviderConfigService(modelProviderConfigService, authorizer);
   const taskWorkbenchService = new AuthorizedTaskWorkbenchService(
-    new LocalTaskWorkbenchService(options.config, { durableMemoryService, eventService }),
+    new LocalTaskWorkbenchService(options.config, { appStateProvider, durableMemoryService, eventService }),
     authorizer
   );
   const readinessService = new LocalReadinessService(options.config, {
@@ -340,7 +341,7 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     stateDiagnosticsService,
     agentCatalogService: new AuthorizedAgentCatalogService(agentCatalogService, authorizer),
     missionWorkbenchService: new AuthorizedMissionWorkbenchService(
-      new LocalMissionWorkbenchService(options.config),
+      new LocalMissionWorkbenchService(options.config, { appStateProvider }),
       authorizer,
       taskWorkbenchService
     ),

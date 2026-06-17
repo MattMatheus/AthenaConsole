@@ -117,14 +117,6 @@ export class SqliteHarnessProfileStateStore implements StateStore {
     return this.delegate.getWorkQueue(sessionId);
   }
 
-  listSchedules(): ReturnType<StateStore["listSchedules"]> {
-    return this.delegate.listSchedules();
-  }
-
-  getScheduleLogs(scheduleId: string, options?: { limit?: number }): ReturnType<StateStore["getScheduleLogs"]> {
-    return this.delegate.getScheduleLogs(scheduleId, options);
-  }
-
   async listHarnessProfiles(): Promise<HarnessProfile[]> {
     const appState = openAppStateDatabase(this.config);
     try {

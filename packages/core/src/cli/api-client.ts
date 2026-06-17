@@ -6,6 +6,7 @@ import type {
   RunResult,
   ScheduledTask,
   ScheduleRunLog,
+  UpsertScheduleRequest,
   WorkItem,
   WorkQueueState
 } from "../shared/contracts.js";
@@ -88,14 +89,7 @@ export interface CliApiClient {
     }>
   >;
   getMemory(request: { path: string; from?: number; lines?: number }): Promise<MemoryGetResult>;
-  createSchedule(request: {
-    id: string;
-    sessionId: string;
-    input: string;
-    everyMinutes: number;
-    startNow?: boolean;
-    enabled?: boolean;
-  }): Promise<ScheduledTask>;
+  createSchedule(request: UpsertScheduleRequest): Promise<ScheduledTask>;
   listSchedules(limit?: number): Promise<{ items: ScheduledTask[]; nextCursor?: string }>;
   removeSchedule(id: string): Promise<{ id: string; removed: boolean }>;
   runSchedule(request: { id: string; provider?: string; model?: string }): Promise<{
@@ -214,20 +208,18 @@ export function createCliApiClient(options: CliApiClientOptions): CliApiClient {
         ...(request.lines !== undefined ? { lines: request.lines } : {})
       });
     },
-    async createSchedule(request: {
-      id: string;
-      sessionId: string;
-      input: string;
-      everyMinutes: number;
-      startNow?: boolean;
-      enabled?: boolean;
-    }): Promise<ScheduledTask> {
+    async createSchedule(request: UpsertScheduleRequest): Promise<ScheduledTask> {
       return requestJson<ScheduledTask>(baseUrl, timeoutMs, "POST", "/api/v1/schedules", {
         id: request.id,
-        sessionId: request.sessionId,
-        input: request.input,
-        everyMinutes: request.everyMinutes,
-        ...(request.startNow !== undefined ? { startNow: request.startNow } : {}),
+        ...(request.name ? { name: request.name } : {}),
+        targetType: request.targetType,
+        targetId: request.targetId,
+        ...(request.inputBindings !== undefined ? { inputBindings: request.inputBindings } : {}),
+        ...(request.runAt ? { runAt: request.runAt } : {}),
+        ...(request.rrule ? { rrule: request.rrule } : {}),
+        ...(request.timezone ? { timezone: request.timezone } : {}),
+        ...(request.status ? { status: request.status } : {}),
+        ...(request.failurePolicy !== undefined ? { failurePolicy: request.failurePolicy } : {}),
         ...(request.enabled !== undefined ? { enabled: request.enabled } : {})
       });
     },

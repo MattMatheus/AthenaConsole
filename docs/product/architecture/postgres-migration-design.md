@@ -46,25 +46,20 @@ Goal: move SQLite-backed app state toward repository interfaces that can support
 | `workflowDagRuns` | No | Unknown | Needs a dedicated contract because workflow DAG transitions are stateful and should be adapter-neutral before Postgres implementation. |
 | `runEvents` / `artifacts` | No | Mostly | Existing workspace tests cover append/create and list-for-run behavior; the contract suite should add event ordering and bounded-read contracts. |
 
-Confirmed direct `openAppStateDatabase` call sites that block repository-interface freeze:
+Confirmed direct `openAppStateDatabase` call-site clusters that still block
+repository-interface freeze:
 
-- `packages/core/src/control-plane/plugins/local-loader.ts`
-- `packages/core/src/control-plane/services.ts`
-- `packages/core/src/control-plane/services/workflow-template-catalog.ts`
 - `packages/core/src/control-plane/state-store/sqlite-harness-profile-state-store.ts`
-- `packages/core/src/control-plane/services/workflow-queue-status.ts`
-- `packages/core/src/control-plane/services/repositories.ts`
+- `packages/core/src/control-plane/services.ts` durable-memory storage construction
+- `packages/core/src/control-plane/services/workspaces.ts`
 - `packages/core/src/control-plane/services/model-providers.ts`
-- `packages/core/src/control-plane/services/agent-catalog.ts`
-- `packages/core/src/control-plane/services/task-workbench.ts`
-- `packages/core/src/control-plane/services/workflow-status.ts`
-- `packages/core/src/control-plane/services/workflow-dag-executor.ts`
-- `packages/core/src/control-plane/services/worker-heartbeats.ts`
+- `packages/core/src/control-plane/services/repositories.ts`
 - `packages/core/src/control-plane/services/operations.ts`
-- `packages/core/src/control-plane/services/local-services.ts`
-- `packages/core/src/control-plane/services/mission-workbench.ts`
 
-Step 1 of the migration should replace these direct opens with injected repository/app-state providers before a Postgres adapter is introduced.
+The first already-seamed migration step has moved local-loader, schedule,
+task/mission/workflow services, worker heartbeats, and agent catalog behind
+`AppStateProvider`. Remaining steps should convert the clusters above before a
+Postgres adapter is introduced.
 
 ## Step-1 Direct App-State Open Inventory
 
@@ -73,38 +68,29 @@ Live command:
 
 | File:line | Enclosing service/method | Already-injectable seam? | Conversion note |
 | --- | --- | --- | --- |
-| `packages/core/src/control-plane/plugins/local-loader.ts:153` | `indexConfiguredLocalPlugins` | Yes | Already accepts `options.appState`; make callers supply the app-state provider instead of opening locally. |
 | `packages/core/src/control-plane/state-store/sqlite-harness-profile-state-store.ts:37` | `SqliteHarnessProfileStateStore.listDirectives` | No | Convert the state-store wrapper to receive app-state or directive repositories. |
 | `packages/core/src/control-plane/state-store/sqlite-harness-profile-state-store.ts:46` | `SqliteHarnessProfileStateStore.createDirective` | No | Same state-store cluster as above. |
 | `packages/core/src/control-plane/state-store/sqlite-harness-profile-state-store.ts:55` | `SqliteHarnessProfileStateStore.listRunTemplates` | No | Same state-store cluster as above. |
 | `packages/core/src/control-plane/state-store/sqlite-harness-profile-state-store.ts:64` | `SqliteHarnessProfileStateStore.createRunTemplate` | No | Same state-store cluster as above. |
-| `packages/core/src/control-plane/state-store/sqlite-harness-profile-state-store.ts:129` | `SqliteHarnessProfileStateStore.listHarnessProfiles` | No | Same state-store cluster as above. |
-| `packages/core/src/control-plane/state-store/sqlite-harness-profile-state-store.ts:138` | `SqliteHarnessProfileStateStore.createHarnessProfile` | No | Same state-store cluster as above. |
-| `packages/core/src/control-plane/services.ts:200` | `createLocalControlPlaneServices` startup recovery | No | Composition root opens app-state for plugin indexing and stale-run recovery; pass a provider through service construction. |
-| `packages/core/src/control-plane/services.ts:257` | `createLocalControlPlaneServices` durable memory storage | No | Composition root opens the SQLite app-state database to construct durable-memory storage; separate storage/provider injection. |
+| `packages/core/src/control-plane/state-store/sqlite-harness-profile-state-store.ts:121` | `SqliteHarnessProfileStateStore.listHarnessProfiles` | No | Same state-store cluster as above. |
+| `packages/core/src/control-plane/state-store/sqlite-harness-profile-state-store.ts:130` | `SqliteHarnessProfileStateStore.createHarnessProfile` | No | Same state-store cluster as above. |
+| `packages/core/src/control-plane/services.ts:268` | `createLocalControlPlaneServices` durable memory storage | No | Composition root opens the SQLite app-state database to construct durable-memory storage; separate storage/provider injection. |
+| `packages/core/src/control-plane/services/workspaces.ts:152` | `LocalWorkspaceService.withAppState` | No | Hard helper-local open; add an injected app-state/repository option. |
 | `packages/core/src/control-plane/services/model-providers.ts:158` | `LocalModelProviderService.withAppState` | No | Hard helper-local open; add an injected app-state/repository option. |
-| `packages/core/src/control-plane/services/local-services.ts:1145` | `LocalScheduleService.withAppState` | Yes | Already checks `this.options.appState`; make the option mandatory or provider-backed. |
-| `packages/core/src/control-plane/services/local-services.ts:1157` | `LocalScheduleService.withAppStateAsync` | Yes | Same schedule-service seam as above. |
-| `packages/core/src/control-plane/services/task-workbench.ts:1023` | `LocalTaskWorkbenchService.withAppState` | Yes | Already checks `this.options.appState`; replace fallback open with injected provider. |
-| `packages/core/src/control-plane/services/task-workbench.ts:1035` | `LocalTaskWorkbenchService.withAppStateAsync` | Yes | Same task-workbench seam as above. |
 | `packages/core/src/control-plane/services/repositories.ts:192` | `LocalRepositoryService.withAppState` | No | Hard helper-local open; add an injected app-state/repository option. |
 | `packages/core/src/control-plane/services/repositories.ts:201` | `LocalRepositoryService.withAppStateAsync` | No | Same repository-service helper cluster as above. |
-| `packages/core/src/control-plane/services/workflow-queue-status.ts:82` | `LocalWorkflowQueueStatusService.withAppState` | Yes | Already checks `this.options.appState`; replace fallback open with injected provider. |
-| `packages/core/src/control-plane/services/workflow-template-catalog.ts:230` | `LocalWorkflowTemplateCatalogService.withAppState` | Yes | Already checks `this.options.appState`; replace fallback open with injected provider. |
-| `packages/core/src/control-plane/services/workflow-template-catalog.ts:242` | `LocalWorkflowTemplateCatalogService.withAppStateAsync` | Yes | Same workflow-template seam as above. |
 | `packages/core/src/control-plane/services/operations.ts:420` | `LocalOperationsService.listUsageLedgerRows` | No | Hard open inside read helper with catch-and-empty behavior; inject usage-ledger repository and preserve fallback semantics explicitly. |
-| `packages/core/src/control-plane/services/mission-workbench.ts:291` | `LocalMissionWorkbenchService.withAppState` | Yes | Already checks `this.options.appState`; replace fallback open with injected provider. |
-| `packages/core/src/control-plane/services/mission-workbench.ts:303` | `LocalMissionWorkbenchService.withAppStateAsync` | Yes | Same mission-workbench seam as above. |
-| `packages/core/src/control-plane/services/workflow-status.ts:31` | `LocalWorkflowStatusService.withAppState` | Yes | Already checks `this.options.appState`; replace fallback open with injected provider. |
-| `packages/core/src/control-plane/services/workflow-dag-executor.ts:137` | `LocalWorkflowDagExecutor.withAppStateAsync` | Yes | Already checks `this.options.appState`; replace fallback open with injected provider. |
-| `packages/core/src/control-plane/services/worker-heartbeats.ts:45` | `LocalWorkerHeartbeatService.withAppState` | Yes | Already checks `this.options.appState`; replace fallback open with injected provider. |
-| `packages/core/src/control-plane/services/agent-catalog.ts:116` | `LocalAgentCatalogService.withAppState` | Yes | Already checks `this.options.appState`; replace fallback open with injected provider. |
 | `packages/core/src/control-plane/app-state/database.ts:73` | `openAppStateDatabase` factory definition | N/A | Not a service conversion target; retained so the count matches the live grep command. |
+| `packages/core/src/control-plane/app-state/provider.ts:18` | `createAppStateProvider.withAppState` | N/A | Provider-owned local SQLite open; this is the backend swap point for current local construction. |
+| `packages/core/src/control-plane/app-state/provider.ts:26` | `createAppStateProvider.withAppStateAsync` | N/A | Async provider-owned local SQLite open; same backend swap point. |
 
-The live inventory has 27 grep hits. Of those, 26 are service/state-store call
-sites that directly open app-state; 14 already have an `options.appState` seam
-and can be converted cheaply by requiring or provider-injecting that dependency.
-The largest conversion units are the six-hit
-`sqlite-harness-profile-state-store.ts` cluster, the two composition-root opens
-in `services.ts`, and the service helpers that still have no injectable app-state
-option (`model-providers.ts`, `repositories.ts`, and `operations.ts`).
+The live inventory has 15 grep hits. Of those, 12 are deferred service or
+state-store call sites that directly open app-state. The already-seamed cluster
+has been converted to an `AppStateProvider`; local-loader, local schedule
+service, task workbench, workflow queue/status/catalog services, workflow DAG
+executor, mission workbench, worker heartbeats, and agent catalog no longer open
+SQLite directly. The remaining conversion units are the six-hit
+`sqlite-harness-profile-state-store.ts` cluster, the durable-memory composition
+root open in `services.ts`, and service helpers that still have no injectable
+app-state option (`workspaces.ts`, `model-providers.ts`, `repositories.ts`, and
+`operations.ts`).

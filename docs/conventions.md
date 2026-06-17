@@ -60,41 +60,39 @@ Incorrect: "Athena needs a provider key."
 
 ---
 
-## Preview Banner Standard
+## Enterprise Readiness Notes
 
-Any doc section describing a capability that is **designed but not yet enforced in the current build** must carry this exact banner:
+Any doc section describing a capability that is **designed but not yet fully production-ready** must state what is built and what still gates shared deployment. Use the specific gate rather than copying old workspace warnings.
 
 ```markdown
-> ⚠️ **Preview — not yet enforced in the current build.**
-> This describes the **target** behavior. As of this build, workspace/multi-user
-> isolation is **not enforced**: workspace scope is client-asserted
-> (`x-athena-scope-workspaces` header), there is no membership model, and
-> cross-workspace reads are not blocked at the data layer. Tracking: epic
-> 2026.44 stories .02–.04. **Do not expose a shared/multi-user deployment to
-> untrusted users until these land.**
+> **Status**: Partially production-ready. Workspace CRUD, workspace membership,
+> Admin RBAC, and membership-backed workspace scope narrowing are implemented.
+> Remaining trusted-server gates include cost-governance enforcement,
+> Postgres/server persistence readiness, and any domain-specific referential
+> integrity or data-layer hardening named below.
 ```
 
-### When to use the preview banner
+### When to use an enterprise readiness note
 
-Place this banner at the top of any section that describes:
+Place a status note at the top of any section that describes:
 
-- Multi-user isolation or per-workspace confinement
-- Server-derived scope (as opposed to client-asserted scope)
 - Per-user cost enforcement or cross-user budget accounting
-- Workspace membership gates on data access
-- Referential integrity across workspace boundaries (e.g., `workspace_members` table, FK enforcement)
+- Referential integrity across workspace-owned records
+- Postgres/server persistence readiness
+- Multi-user deployment guidance that depends on unbuilt operational controls
+- Connector or artifact retention behavior that affects workspace privacy
 
-**Remove the banner only when the corresponding epic story is marked DONE.** The tracking reference is epic 2026.44, stories .02–.04 (story .01, workspace CRUD + Admin RBAC, is built and committed).
+Do not describe workspace membership or server-derived workspace scope as unbuilt. Those controls are implemented in the current build.
 
 ### Background for authors
 
 As of the current build:
 
-- Workspace scope is client-asserted via the `x-athena-scope-workspaces` request header (`packages/core/src/api/middleware/auth.ts:81`).
-- There is no `workspace_members` table.
-- Server-derived scope and referential-integrity FKs are not yet implemented.
-- Epic 2026.44.01 (workspace CRUD + Admin RBAC) is built and committed.
-- Epic 2026.44.02–.04 are designed but not yet enforced.
+- Workspace scope is derived from authenticated subject membership for non-admin users.
+- `x-athena-scope-workspaces` is an optional narrowing hint; requested workspaces outside membership scope are rejected.
+- `workspace_members` exists in SQLite app-state and is exposed through workspace member API routes.
+- Global Admin users can administer workspaces and memberships.
+- Cost budget enforcement and Postgres/server persistence remain separate readiness gates.
 
 ---
 

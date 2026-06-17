@@ -9,8 +9,6 @@ import type {
   WorkflowCreateRequest,
   WorkflowRun,
   WorkflowRunStepState,
-  ScheduleRunLog,
-  ScheduledTask,
   SessionRecord,
   TranscriptEntry,
   WorkQueueState
@@ -73,6 +71,4 @@ export interface StateStore {
     transition: (run: WorkflowRun) => WorkflowRun
   ): Promise<WorkflowRun>;
   getWorkQueue(sessionId: string): Promise<WorkQueueState>;
-  listSchedules(): Promise<ScheduledTask[]>;
-  getScheduleLogs(scheduleId: string, options?: { limit?: number }): Promise<ScheduleRunLog[]>;
 }

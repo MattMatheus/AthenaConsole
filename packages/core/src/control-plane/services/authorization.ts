@@ -2,6 +2,10 @@ import { AthenaError } from "../../runtime/errors.js";
 import type { AthenaConfig, AuthzDefaultDecision, AuthzMode } from "../../shared/config.js";
 import type {
   AthenaRbacRole,
+  DurableMemoryNamespaceRef,
+  DurableMemoryProposal,
+  DurableMemoryRecord,
+  DurableMemorySnapshot,
   IdentityRoleAuditResult,
   IdentityRoleAssignment,
   TemplateRunRequest,
@@ -39,6 +43,7 @@ import type {
   WorkspaceService,
   WorkService
 } from "../interfaces.js";
+import { resolveDurableMemoryNamespaceWorkspaceId } from "../../durable-memory/server-storage.js";
 import type { DurableMemoryService } from "./durable-memory.js";
 
 interface AuthorizationRequirement {
@@ -362,6 +367,9 @@ export class ServiceAuthorizer {
     const workspaces = scope.workspaces ?? [];
     if (workspaceScoped && (workspaces.length > 0 || requirement.workspaceId)) {
       if (!requirement.workspaceId) {
+        if (isWorkflowRunOperation(requirement.operation) && requirement.runId) {
+          return undefined;
+        }
         return "workspaceId is required for this scoped operation.";
       }
       if (!workspaces.includes(requirement.workspaceId)) {
@@ -433,8 +441,7 @@ export class AuthorizedScheduleService implements ScheduleService {
   async upsert(request: Parameters<ScheduleService["upsert"]>[0]) {
     await this.authorizer.assertAllowed({
       operation: "schedules.upsert",
-      requiredRoles: ["Operator", "Admin"],
-      ...(request.sessionId ? { sessionId: request.sessionId } : {})
+      requiredRoles: ["Operator", "Admin"]
     });
     return this.delegate.upsert(request);
   }
@@ -616,13 +623,39 @@ export class AuthorizedWorkflowStatusService implements WorkflowStatusService {
     private readonly authorizer: ServiceAuthorizer
   ) {}
 
-  async getStatus(runId: string) {
+  async getRunWorkspaceId(runId: string) {
+    const workspaceId = await this.loadStatusWorkspaceId(runId);
     await this.authorizer.assertAllowed({
       operation: "workflowRun.status",
       requiredRoles: ["Operator", "Admin"],
-      runId
+      runId,
+      workspaceId
+    });
+    return workspaceId;
+  }
+
+  async getStatus(runId: string) {
+    const workspaceId = await this.loadStatusWorkspaceId(runId);
+    await this.authorizer.assertAllowed({
+      operation: "workflowRun.status",
+      requiredRoles: ["Operator", "Admin"],
+      runId,
+      workspaceId
     });
     return this.delegate.getStatus(runId);
+  }
+
+  private async loadStatusWorkspaceId(runId: string): Promise<string> {
+    try {
+      return await this.delegate.getRunWorkspaceId(runId);
+    } catch (error) {
+      await this.authorizer.assertAllowed({
+        operation: "workflowRun.status",
+        requiredRoles: ["Operator", "Admin"],
+        runId
+      });
+      throw error;
+    }
   }
 }
 
@@ -637,7 +670,10 @@ export class AuthorizedWorkflowQueueStatusService implements WorkflowQueueStatus
       operation: "workflowQueue.status",
       requiredRoles: ["Operator", "Admin"]
     });
-    return this.delegate.getStatus(query);
+    return this.delegate.getStatus({
+      ...query,
+      ...workspaceListOptionsForRoles(["Operator", "Admin"])
+    });
   }
 }
 
@@ -701,22 +737,50 @@ export class AuthorizedWorkflowDagExecutorService implements WorkflowDagExecutor
     private readonly authorizer: ServiceAuthorizer
   ) {}
 
-  async execute(runId: string) {
+  async getRunWorkspaceId(runId: string) {
+    const workspaceId = await this.loadExecuteWorkspaceId(runId);
     await this.authorizer.assertAllowed({
       operation: "workflowRuns.execute",
       requiredRoles: ["Operator", "Admin"],
-      runId
+      runId,
+      workspaceId
+    });
+    return workspaceId;
+  }
+
+  async execute(runId: string) {
+    const workspaceId = await this.loadExecuteWorkspaceId(runId);
+    await this.authorizer.assertAllowed({
+      operation: "workflowRuns.execute",
+      requiredRoles: ["Operator", "Admin"],
+      runId,
+      workspaceId
     });
     return this.delegate.execute(runId);
   }
 
   async resume(runId: string) {
+    const workspaceId = await this.loadExecuteWorkspaceId(runId);
     await this.authorizer.assertAllowed({
       operation: "workflowRuns.execute",
       requiredRoles: ["Operator", "Admin"],
-      runId
+      runId,
+      workspaceId
     });
     return this.delegate.resume(runId);
+  }
+
+  private async loadExecuteWorkspaceId(runId: string): Promise<string> {
+    try {
+      return await this.delegate.getRunWorkspaceId(runId);
+    } catch (error) {
+      await this.authorizer.assertAllowed({
+        operation: "workflowRuns.execute",
+        requiredRoles: ["Operator", "Admin"],
+        runId
+      });
+      throw error;
+    }
   }
 }
 
@@ -1352,15 +1416,22 @@ export class AuthorizedDurableMemoryService implements DurableMemoryService {
   async write(request: Parameters<DurableMemoryService["write"]>[0]) {
     await this.authorizer.assertAllowed({
       operation: "durableMemory.write",
-      requiredRoles: ["Operator", "Admin"]
+      requiredRoles: ["Operator", "Admin"],
+      workspaceId: durableMemoryWorkspaceId(request.namespace)
     });
     return this.delegate.write(request);
   }
 
   async get(request: Parameters<DurableMemoryService["get"]>[0]) {
+    if (!request.namespace) {
+      const record = await this.delegate.get(request);
+      await this.assertRecordAllowed(record, "durableMemory.get", ["Viewer", "Operator", "Admin"]);
+      return record;
+    }
     await this.authorizer.assertAllowed({
       operation: "durableMemory.get",
-      requiredRoles: ["Viewer", "Operator", "Admin"]
+      requiredRoles: ["Viewer", "Operator", "Admin"],
+      workspaceId: durableMemoryWorkspaceId(request.namespace)
     });
     return this.delegate.get(request);
   }
@@ -1368,7 +1439,8 @@ export class AuthorizedDurableMemoryService implements DurableMemoryService {
   async list(request: Parameters<DurableMemoryService["list"]>[0]) {
     await this.authorizer.assertAllowed({
       operation: "durableMemory.list",
-      requiredRoles: ["Viewer", "Operator", "Admin"]
+      requiredRoles: ["Viewer", "Operator", "Admin"],
+      workspaceId: durableMemoryWorkspaceId(request.namespace)
     });
     return this.delegate.list(request);
   }
@@ -1376,7 +1448,8 @@ export class AuthorizedDurableMemoryService implements DurableMemoryService {
   async search(request: Parameters<DurableMemoryService["search"]>[0]) {
     await this.authorizer.assertAllowed({
       operation: "durableMemory.search",
-      requiredRoles: ["Viewer", "Operator", "Admin"]
+      requiredRoles: ["Viewer", "Operator", "Admin"],
+      workspaceId: durableMemoryWorkspaceId(request.namespace)
     });
     return this.delegate.search(request);
   }
@@ -1384,7 +1457,8 @@ export class AuthorizedDurableMemoryService implements DurableMemoryService {
   async archive(request: Parameters<DurableMemoryService["archive"]>[0]) {
     await this.authorizer.assertAllowed({
       operation: "durableMemory.archive",
-      requiredRoles: ["Operator", "Admin"]
+      requiredRoles: ["Operator", "Admin"],
+      workspaceId: durableMemoryWorkspaceId(request.namespace)
     });
     return this.delegate.archive(request);
   }
@@ -1392,7 +1466,8 @@ export class AuthorizedDurableMemoryService implements DurableMemoryService {
   async delete(request: Parameters<DurableMemoryService["delete"]>[0]) {
     await this.authorizer.assertAllowed({
       operation: "durableMemory.delete",
-      requiredRoles: ["Operator", "Admin"]
+      requiredRoles: ["Operator", "Admin"],
+      workspaceId: durableMemoryWorkspaceId(request.namespace)
     });
     return this.delegate.delete(request);
   }
@@ -1400,63 +1475,76 @@ export class AuthorizedDurableMemoryService implements DurableMemoryService {
   async createProposal(request: Parameters<DurableMemoryService["createProposal"]>[0]) {
     await this.authorizer.assertAllowed({
       operation: "durableMemory.proposal.create",
-      requiredRoles: ["Operator", "Admin"]
+      requiredRoles: ["Operator", "Admin"],
+      workspaceId: durableMemoryWorkspaceId(request.targetNamespace)
     });
     return this.delegate.createProposal(request);
+  }
+
+  async getProposal(id: string) {
+    const proposal = await this.delegate.getProposal(id);
+    await this.assertProposalAllowed(proposal, "durableMemory.proposal.list", ["Viewer", "Operator", "Admin"]);
+    return proposal;
   }
 
   async listProposals(request: Parameters<DurableMemoryService["listProposals"]>[0]) {
     await this.authorizer.assertAllowed({
       operation: "durableMemory.proposal.list",
-      requiredRoles: ["Viewer", "Operator", "Admin"]
+      requiredRoles: ["Viewer", "Operator", "Admin"],
+      workspaceId: durableMemoryWorkspaceId(request.namespace)
     });
     return this.delegate.listProposals(request);
   }
 
   async approveProposal(request: Parameters<DurableMemoryService["approveProposal"]>[0]) {
-    await this.authorizer.assertAllowed({
-      operation: "durableMemory.proposal.approve",
-      requiredRoles: ["Operator", "Admin"]
-    });
+    const proposal = await this.loadProposalForMutation(request.id, "durableMemory.proposal.approve", ["Operator", "Admin"]);
+    await this.assertProposalAllowed(proposal, "durableMemory.proposal.approve", ["Operator", "Admin"]);
     return this.delegate.approveProposal(request);
   }
 
   async rejectProposal(request: Parameters<DurableMemoryService["rejectProposal"]>[0]) {
-    await this.authorizer.assertAllowed({
-      operation: "durableMemory.proposal.reject",
-      requiredRoles: ["Operator", "Admin"]
-    });
+    const proposal = await this.loadProposalForMutation(request.id, "durableMemory.proposal.reject", ["Operator", "Admin"]);
+    await this.assertProposalAllowed(proposal, "durableMemory.proposal.reject", ["Operator", "Admin"]);
     return this.delegate.rejectProposal(request);
   }
 
   async archiveProposal(request: Parameters<DurableMemoryService["archiveProposal"]>[0]) {
-    await this.authorizer.assertAllowed({
-      operation: "durableMemory.proposal.archive",
-      requiredRoles: ["Operator", "Admin"]
-    });
+    const proposal = await this.loadProposalForMutation(request.id, "durableMemory.proposal.archive", ["Operator", "Admin"]);
+    await this.assertProposalAllowed(proposal, "durableMemory.proposal.archive", ["Operator", "Admin"]);
     return this.delegate.archiveProposal(request);
   }
 
   async createSnapshot(request: Parameters<DurableMemoryService["createSnapshot"]>[0]) {
     await this.authorizer.assertAllowed({
       operation: "durableMemory.snapshot.create",
-      requiredRoles: ["Operator", "Admin"]
+      requiredRoles: ["Operator", "Admin"],
+      workspaceId: durableMemoryWorkspaceId(request.namespace)
     });
     return this.delegate.createSnapshot(request);
+  }
+
+  async getSnapshot(id: string) {
+    const snapshot = await this.delegate.getSnapshot(id);
+    await this.assertSnapshotAllowed(snapshot, "durableMemory.snapshot.list", ["Viewer", "Operator", "Admin"]);
+    return snapshot;
   }
 
   async listSnapshots(request: Parameters<DurableMemoryService["listSnapshots"]>[0]) {
     await this.authorizer.assertAllowed({
       operation: "durableMemory.snapshot.list",
-      requiredRoles: ["Viewer", "Operator", "Admin"]
+      requiredRoles: ["Viewer", "Operator", "Admin"],
+      workspaceId: durableMemoryWorkspaceId(request.namespace)
     });
     return this.delegate.listSnapshots(request);
   }
 
   async restoreSnapshot(request: Parameters<DurableMemoryService["restoreSnapshot"]>[0]) {
+    const snapshot = await this.loadSnapshotForMutation(request.id, "durableMemory.snapshot.restore", ["Operator", "Admin"]);
+    await this.assertSnapshotAllowed(snapshot, "durableMemory.snapshot.restore", ["Operator", "Admin"]);
     await this.authorizer.assertAllowed({
       operation: "durableMemory.snapshot.restore",
-      requiredRoles: ["Operator", "Admin"]
+      requiredRoles: ["Operator", "Admin"],
+      workspaceId: durableMemoryWorkspaceId(request.targetNamespace)
     });
     return this.delegate.restoreSnapshot(request);
   }
@@ -1468,6 +1556,72 @@ export class AuthorizedDurableMemoryService implements DurableMemoryService {
     });
     return this.delegate.getHealth();
   }
+
+  private async assertRecordAllowed(
+    record: DurableMemoryRecord,
+    operation: AuthorizationRequirement["operation"],
+    requiredRoles: AthenaRbacRole[]
+  ): Promise<void> {
+    await this.assertDurableMemoryNamespaceAllowed(record.namespace, operation, requiredRoles);
+  }
+
+  private async loadProposalForMutation(
+    id: string,
+    operation: AuthorizationRequirement["operation"],
+    requiredRoles: AthenaRbacRole[]
+  ): Promise<DurableMemoryProposal> {
+    try {
+      return await this.delegate.getProposal(id);
+    } catch (error) {
+      await this.authorizer.assertAllowed({ operation, requiredRoles });
+      throw error;
+    }
+  }
+
+  private async loadSnapshotForMutation(
+    id: string,
+    operation: AuthorizationRequirement["operation"],
+    requiredRoles: AthenaRbacRole[]
+  ): Promise<DurableMemorySnapshot> {
+    try {
+      return await this.delegate.getSnapshot(id);
+    } catch (error) {
+      await this.authorizer.assertAllowed({ operation, requiredRoles });
+      throw error;
+    }
+  }
+
+  private async assertProposalAllowed(
+    proposal: DurableMemoryProposal,
+    operation: AuthorizationRequirement["operation"],
+    requiredRoles: AthenaRbacRole[]
+  ): Promise<void> {
+    await this.assertDurableMemoryNamespaceAllowed(proposal.targetNamespace, operation, requiredRoles);
+  }
+
+  private async assertSnapshotAllowed(
+    snapshot: DurableMemorySnapshot,
+    operation: AuthorizationRequirement["operation"],
+    requiredRoles: AthenaRbacRole[]
+  ): Promise<void> {
+    await this.assertDurableMemoryNamespaceAllowed(snapshot.namespace, operation, requiredRoles);
+  }
+
+  private async assertDurableMemoryNamespaceAllowed(
+    namespace: DurableMemoryNamespaceRef,
+    operation: AuthorizationRequirement["operation"],
+    requiredRoles: AthenaRbacRole[]
+  ): Promise<void> {
+    await this.authorizer.assertAllowed({
+      operation,
+      requiredRoles,
+      workspaceId: durableMemoryWorkspaceId(namespace)
+    });
+  }
+}
+
+function durableMemoryWorkspaceId(namespace: DurableMemoryNamespaceRef): string {
+  return resolveDurableMemoryNamespaceWorkspaceId(namespace);
 }
 
 export class AuthorizedLspService implements LspService {
@@ -1764,10 +1918,16 @@ function isWorkspaceScopedOperation(operation: AuthorizationRequirement["operati
     operation === "taskWorkbench.runTask" ||
     operation === "taskWorkbench.update" ||
     operation === "workflowTemplates.instantiate" ||
+    operation === "workflowRuns.execute" ||
+    operation === "workflowRun.status" ||
     operation === "workspaces.members.delete" ||
     operation === "workspaces.members.list" ||
     operation === "workspaces.members.upsert"
   );
+}
+
+function isWorkflowRunOperation(operation: AuthorizationRequirement["operation"]): boolean {
+  return operation === "workflowRuns.execute" || operation === "workflowRun.status";
 }
 
 function resolveListWorkspaceId(requested?: string): string | undefined {
@@ -1865,7 +2025,7 @@ function workspaceScopeIdsForRoles(
 }
 
 function isWorkspaceListOperation(operation: AuthorizationRequirement["operation"]): boolean {
-  return operation === "modelProviders.list";
+  return operation === "modelProviders.list" || operation === "workflowQueue.status";
 }
 
 function roleSatisfies(actual: AthenaRbacRole, allowedRoles: AthenaRbacRole[]): boolean {

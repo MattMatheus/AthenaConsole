@@ -14,12 +14,12 @@ import type {
 } from "../../shared/contracts.js";
 import type { TaskWorkbenchRunMode } from "../../shared/contracts.js";
 import { DEFAULT_TASK_WORKBENCH_RUN_MODE, TASK_WORKBENCH_RUN_MODES } from "../../shared/contracts.js";
-import type { AppStateDatabase, PluginIndexRecord, WorkflowTemplateIndexRecord } from "../app-state/index.js";
-import { openAppStateDatabase } from "../app-state/index.js";
+import type { AppStateDatabase, AppStateProvider, AppStateProviderOptions, PluginIndexRecord, WorkflowTemplateIndexRecord } from "../app-state/index.js";
+import { resolveAppStateProvider } from "../app-state/index.js";
 import { evaluateConnectorReadiness, type ConnectorMetadata, type ConnectorReadinessReport } from "../connectors.js";
 import type { WorkflowTemplateCatalogService } from "../interfaces.js";
 import { parseWorkflowTemplateDag } from "../workflow-template-dag.js";
-import { LocalTaskWorkbenchService } from "./task-workbench.js";
+import { createTaskInAppState } from "./task-workbench.js";
 import { LocalWorkflowStateService } from "./workflow-state.js";
 import {
   combineProviderReadiness,
@@ -76,15 +76,17 @@ interface RetryPolicy {
   externalWriteRetry: "forbid" | "require-approval" | "allow";
 }
 
-export interface LocalWorkflowTemplateCatalogServiceOptions {
-  appState?: AppStateDatabase;
-}
+export interface LocalWorkflowTemplateCatalogServiceOptions extends AppStateProviderOptions {}
 
 export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCatalogService {
+  private readonly appStateProvider: AppStateProvider;
+
   constructor(
     private readonly config: AthenaConfig,
     private readonly options: LocalWorkflowTemplateCatalogServiceOptions = {}
-  ) {}
+  ) {
+    this.appStateProvider = resolveAppStateProvider(config, options);
+  }
 
   async list(query: WorkflowTemplateCatalogListQuery = {}): Promise<WorkflowTemplateCatalogListResult> {
     return this.withAppState((appState) => {
@@ -130,83 +132,85 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
       const taskIdByTemplateId = new Map(taskTemplates.map((task) => [task.id, `${taskIdPrefix}-${task.id}`]));
       const taskOrder = dag.taskOrder.map((taskId) => requireMappedTaskId(taskIdByTemplateId, taskId));
       const allTasksReady = taskTemplates.every((task) => Boolean(task.assignedAgentId));
-      const workflowDagRun = new LocalWorkflowStateService(appState).createRun({
-        runId: `workflow-run-${missionId}`,
-        workflowTemplateId: template.id,
-        workflowTemplateVersion: template.version,
-        pluginId: template.pluginId,
-        pluginVersion: template.pluginVersion,
-        tasks: taskTemplates
-      });
-
-      const mission = appState.missions.create({
-        id: missionId,
-        title: workflow.name ?? template.name,
-        goal: renderTemplateText(workflow.goal ?? "", inputValues, "workflow.goal"),
-        context: {
-          template: {
-            id: template.id,
-            version: template.version,
-            pluginId: template.pluginId,
-            pluginVersion: template.pluginVersion,
-            workflowDagRunId: workflowDagRun.run.id
-          },
-          workflowDagRunId: workflowDagRun.run.id,
-          inputs: inputValues,
-          value: renderTemplateValue(workflow.context ?? {}, inputValues, "workflow.context")
-        },
-        status: allTasksReady ? "ready" : "draft",
-        taskOrder
-      });
-
-      const taskWorkbench = new LocalTaskWorkbenchService(this.config, { appState });
-      const tasks: TaskWorkbenchTask[] = [];
-      for (const taskTemplate of orderedTaskTemplates) {
-        const task = await taskWorkbench.create({
-          id: requireMappedTaskId(taskIdByTemplateId, taskTemplate.id),
-          title: renderTemplateText(taskTemplate.title, inputValues, `workflow.tasks.${taskTemplate.id}.title`),
-          ...(taskTemplate.description !== undefined
-            ? {
-                description: renderTemplateText(
-                  taskTemplate.description,
-                  inputValues,
-                  `workflow.tasks.${taskTemplate.id}.description`
-                )
-              }
-            : {}),
-          status: taskTemplate.assignedAgentId ? "ready" : "draft",
-          capabilityRequirements: normalizeStringArray(
-            taskTemplate.capabilityRequirements,
-            `workflow.tasks.${taskTemplate.id}.capabilityRequirements`
-          ),
-          ...(taskTemplate.assignedAgentId ? { assignedAgentId: taskTemplate.assignedAgentId } : {}),
-          ...(taskTemplate.assignedAgentVersion ? { assignedAgentVersion: taskTemplate.assignedAgentVersion } : {}),
-          inputs: applyWorkflowRunModeToTaskInputs(
-            renderTemplateValue(taskTemplate.inputs ?? {}, inputValues, `workflow.tasks.${taskTemplate.id}.inputs`),
-            inputValues
-          ),
-          dependsOn: (dag.dependenciesByTaskId[taskTemplate.id] ?? []).map((dependencyId) =>
-            requireMappedTaskId(taskIdByTemplateId, dependencyId)
-          ),
-          missionId: mission.id,
-          ...(request.workspaceId ? { workspaceId: request.workspaceId } : {}),
-          provenance: {
-            source: "workflow-template",
-            workflowTemplateId: template.id,
-            workflowTemplateVersion: template.version,
-            pluginId: template.pluginId,
-            pluginVersion: template.pluginVersion,
-            templateTaskId: taskTemplate.id,
-            workflowDagRunId: workflowDagRun.run.id,
-            workflowDagStepId: taskTemplate.id,
-            ...(taskTemplate.retryPolicy ? { retryPolicy: taskTemplate.retryPolicy } : {})
-          },
-          ...(request.createdBy ? { createdBy: request.createdBy } : {})
+      const workspaceId = request.workspaceId ?? "default";
+      return appState.db.transaction(() => {
+        const workflowDagRun = new LocalWorkflowStateService(appState).createRun({
+          runId: `workflow-run-${missionId}`,
+          workspaceId,
+          workflowTemplateId: template.id,
+          workflowTemplateVersion: template.version,
+          pluginId: template.pluginId,
+          pluginVersion: template.pluginVersion,
+          tasks: taskTemplates
         });
-        tasks.push(task);
-      }
 
-      return {
+        const mission = appState.missions.create({
+          id: missionId,
+          title: workflow.name ?? template.name,
+          goal: renderTemplateText(workflow.goal ?? "", inputValues, "workflow.goal"),
+          context: {
+            template: {
+              id: template.id,
+              version: template.version,
+              pluginId: template.pluginId,
+              pluginVersion: template.pluginVersion,
+              workflowDagRunId: workflowDagRun.run.id
+            },
+            workflowDagRunId: workflowDagRun.run.id,
+            inputs: inputValues,
+            value: renderTemplateValue(workflow.context ?? {}, inputValues, "workflow.context")
+          },
+          status: allTasksReady ? "ready" : "draft",
+          taskOrder
+        });
+
+        const tasks: TaskWorkbenchTask[] = [];
+        for (const taskTemplate of orderedTaskTemplates) {
+          const task = createTaskInAppState(appState, {
+            id: requireMappedTaskId(taskIdByTemplateId, taskTemplate.id),
+            title: renderTemplateText(taskTemplate.title, inputValues, `workflow.tasks.${taskTemplate.id}.title`),
+            ...(taskTemplate.description !== undefined
+              ? {
+                  description: renderTemplateText(
+                    taskTemplate.description,
+                    inputValues,
+                    `workflow.tasks.${taskTemplate.id}.description`
+                  )
+                }
+              : {}),
+            status: taskTemplate.assignedAgentId ? "ready" : "draft",
+            capabilityRequirements: normalizeStringArray(
+              taskTemplate.capabilityRequirements,
+              `workflow.tasks.${taskTemplate.id}.capabilityRequirements`
+            ),
+            ...(taskTemplate.assignedAgentId ? { assignedAgentId: taskTemplate.assignedAgentId } : {}),
+            ...(taskTemplate.assignedAgentVersion ? { assignedAgentVersion: taskTemplate.assignedAgentVersion } : {}),
+            inputs: applyWorkflowRunModeToTaskInputs(
+              renderTemplateValue(taskTemplate.inputs ?? {}, inputValues, `workflow.tasks.${taskTemplate.id}.inputs`),
+              inputValues
+            ),
+            dependsOn: (dag.dependenciesByTaskId[taskTemplate.id] ?? []).map((dependencyId) =>
+              requireMappedTaskId(taskIdByTemplateId, dependencyId)
+            ),
+            missionId: mission.id,
+            workspaceId,
+            provenance: {
+              source: "workflow-template",
+              workflowTemplateId: template.id,
+              workflowTemplateVersion: template.version,
+              pluginId: template.pluginId,
+              pluginVersion: template.pluginVersion,
+              templateTaskId: taskTemplate.id,
+              workflowDagRunId: workflowDagRun.run.id,
+              workflowDagStepId: taskTemplate.id,
+              ...(taskTemplate.retryPolicy ? { retryPolicy: taskTemplate.retryPolicy } : {})
+            },
+            ...(request.createdBy ? { createdBy: request.createdBy } : {})
+          });
+          tasks.push(task);
+        }
+
+        return {
         template: {
           id: template.id,
           version: template.version,
@@ -220,32 +224,17 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
         mission: mapMissionRecord(mission),
         tasks,
         inputValues
-      };
+        };
+      })();
     });
   }
 
   private withAppState<T>(read: (appState: AppStateDatabase) => T): T {
-    if (this.options.appState) {
-      return read(this.options.appState);
-    }
-    const appState = openAppStateDatabase(this.config);
-    try {
-      return read(appState);
-    } finally {
-      appState.close();
-    }
+    return this.appStateProvider.withAppState(read);
   }
 
   private async withAppStateAsync<T>(read: (appState: AppStateDatabase) => Promise<T>): Promise<T> {
-    if (this.options.appState) {
-      return read(this.options.appState);
-    }
-    const appState = openAppStateDatabase(this.config);
-    try {
-      return await read(appState);
-    } finally {
-      appState.close();
-    }
+    return this.appStateProvider.withAppStateAsync(read);
   }
 }
 

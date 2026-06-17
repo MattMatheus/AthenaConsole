@@ -1,7 +1,6 @@
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { ScheduleManager, assertValidScheduleId } from "../schedule/index.js";
 import { acquireSessionLock } from "../runtime/session-lock.js";
 import { assertValidSessionId, resolveRuntimePaths, SessionStore, type RuntimePaths } from "../runtime/session-store.js";
 import { AthenaError } from "../runtime/errors.js";
@@ -17,8 +16,6 @@ import type {
   WorkflowCreateRequest,
   WorkflowRun,
   WorkflowRunStepState,
-  ScheduleRunLog,
-  ScheduledTask,
   SessionRecord,
   TranscriptEntry,
   WorkQueueState
@@ -49,7 +46,6 @@ export class FileStateStore implements StateStore {
   private readonly paths: RuntimePaths;
   private readonly sessionStore: SessionStore;
   private readonly workManager: WorkManager;
-  private readonly scheduleManager: ScheduleManager;
   private readonly directivesDir: string;
   private readonly directivesLockPath: string;
   private readonly harnessProfilesDir: string;
@@ -67,7 +63,6 @@ export class FileStateStore implements StateStore {
     this.paths = resolveRuntimePaths(config);
     this.sessionStore = new SessionStore(config);
     this.workManager = new WorkManager(config);
-    this.scheduleManager = new ScheduleManager(config);
     this.directivesDir = resolve(this.paths.stateRoot, "directives");
     this.directivesLockPath = resolve(this.directivesDir, "directives.lock");
     this.harnessProfilesDir = resolve(this.paths.stateRoot, "harness-profiles");
@@ -525,15 +520,6 @@ export class FileStateStore implements StateStore {
     } finally {
       await lock.release();
     }
-  }
-
-  listSchedules(): Promise<ScheduledTask[]> {
-    return this.scheduleManager.listTasks();
-  }
-
-  async getScheduleLogs(scheduleId: string, options: { limit?: number } = {}): Promise<ScheduleRunLog[]> {
-    assertValidScheduleId(scheduleId);
-    return this.scheduleManager.readLogs(scheduleId, options.limit ?? 20);
   }
 
   private async ensureDirectivesDirectory(): Promise<void> {

@@ -12,6 +12,7 @@ export interface WorkflowStateTemplateTask extends WorkflowTemplateDagTask {
 
 export interface CreateWorkflowStateRunRequest {
   workflowTemplateId: string;
+  workspaceId?: string;
   workflowTemplateVersion?: string;
   pluginId?: string;
   pluginVersion?: string;
@@ -27,6 +28,7 @@ export class LocalWorkflowStateService {
     const dag = parseWorkflowTemplateDag(request.tasks);
     return this.appState.workflowDagRuns.create({
       id: request.runId,
+      workspaceId: request.workspaceId,
       workflowTemplateId: request.workflowTemplateId,
       workflowTemplateVersion: request.workflowTemplateVersion,
       pluginId: request.pluginId,
@@ -37,9 +39,10 @@ export class LocalWorkflowStateService {
     });
   }
 
-  createRunFromTemplate(template: WorkflowTemplateIndexRecord, options: { runId?: string; now?: Date } = {}): WorkflowDagRunSnapshot {
+  createRunFromTemplate(template: WorkflowTemplateIndexRecord, options: { runId?: string; workspaceId?: string; now?: Date } = {}): WorkflowDagRunSnapshot {
     return this.createRun({
       runId: options.runId,
+      workspaceId: options.workspaceId,
       workflowTemplateId: template.id,
       workflowTemplateVersion: template.version,
       pluginId: template.pluginId,

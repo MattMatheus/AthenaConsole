@@ -14,7 +14,7 @@ Schedules allow recurring or time-delayed execution of sessions or task workflow
 
 List all schedules (paginated).
 
-**Required role**: no role check — `scheduleService.list()` has no authorizer wrapper (`AuthorizedScheduleService.list` passes through)  
+**Required role**: none; schedule read endpoint
 **Query params**: `cursor`, `limit` (standard pagination)
 
 **Response** (`200`): Paginated schedule items with `nextCursor`.
@@ -34,7 +34,7 @@ curl \
 
 Create a schedule.
 
-**Required role**: `Operator` or `Admin`  
+**Required role**: `Operator` or `Admin`
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -70,7 +70,7 @@ curl -X POST \
 
 Get a schedule by ID.
 
-**Required role**: no role check — `scheduleService.get()` passes through  
+**Required role**: none; schedule read endpoint
 **Path params**: `id` — schedule ID
 
 **Response** (`200`): Schedule object (or `null` if not found).
@@ -90,8 +90,8 @@ curl \
 
 Update a schedule (upsert semantics).
 
-**Required role**: `Operator` or `Admin`  
-**Path params**: `id` — schedule ID  
+**Required role**: `Operator` or `Admin`
+**Path params**: `id` — schedule ID
 **Request body**: Same fields as `POST /api/v1/schedules` (except `id`)
 
 **Response** (`200`): Updated schedule.
@@ -113,7 +113,7 @@ curl -X PUT \
 
 Delete a schedule.
 
-**Required role**: `Operator` or `Admin`  
+**Required role**: `Operator` or `Admin`
 **Path params**: `id` — schedule ID
 
 **Response** (`200`): `{ id: "...", removed: true }`
@@ -133,8 +133,8 @@ curl -X DELETE \
 
 Immediately trigger a schedule run (one-shot, outside the normal timer).
 
-**Required role**: `Operator` or `Admin` (via `schedules.upsert` check)  
-**Path params**: `id` — schedule ID  
+**Required role**: `Operator` or `Admin` (via `schedules.upsert` check)
+**Path params**: `id` — schedule ID
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -161,8 +161,8 @@ curl -X POST \
 
 Enable a paused schedule.
 
-**Required role**: `Operator` or `Admin`  
-**Path params**: `id` — schedule ID  
+**Required role**: `Operator` or `Admin`
+**Path params**: `id` — schedule ID
 **Request body**: `{}`
 
 **Response** (`200`): `{ id: "...", updated: true, schedule: {...} }`
@@ -184,8 +184,8 @@ curl -X POST \
 
 Disable (pause) a schedule.
 
-**Required role**: `Operator` or `Admin`  
-**Path params**: `id` — schedule ID  
+**Required role**: `Operator` or `Admin`
+**Path params**: `id` — schedule ID
 **Request body**: `{}`
 
 **Response** (`200`): `{ id: "...", updated: true, schedule: {...} }`
@@ -207,8 +207,8 @@ curl -X POST \
 
 Get the execution log for a schedule.
 
-**Required role**: no role check — `scheduleService.logs` passes through  
-**Path params**: `id` — schedule ID  
+**Required role**: none; schedule log read endpoint
+**Path params**: `id` — schedule ID
 **Query params**:
 
 | Parameter | Type | Description |
@@ -232,7 +232,7 @@ curl \
 
 Trigger execution of all schedules due at the specified time. Used by the internal scheduler daemon.
 
-**Required role**: `Operator` or `Admin` (via `schedules.upsert`)  
+**Required role**: `Operator` or `Admin` (via `schedules.upsert`)
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -262,7 +262,7 @@ curl -X POST \
 
 Get the current system policy.
 
-**Required role**: no role check — `policyService.get()` passes through  
+**Required role**: none; policy read endpoint
 **Query params**: none
 
 **Response** (`200`):
@@ -297,7 +297,7 @@ curl \
 
 Replace the system policy.
 
-**Required role**: `Admin`  
+**Required role**: `Admin`
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -347,7 +347,7 @@ curl -X PUT \
 
 List concurrency rejections (flattened event list).
 
-**Required role**: no role check — `policyService.listConcurrencyRejections` passes through  
+**Required role**: none; policy diagnostics endpoint
 **Query params**: `cursor`, `limit`, `sessionId`, `after`
 
 **Response** (`200`):
@@ -385,5 +385,5 @@ curl \
 
 Legacy alias for `GET /api/v1/policy/rejections`. Prefer the `/api/v1/policy/rejections` path.
 
-**Required role**: no role check  
+**Required role**: none; policy diagnostics endpoint
 **Query params**: same as `/policy/rejections`

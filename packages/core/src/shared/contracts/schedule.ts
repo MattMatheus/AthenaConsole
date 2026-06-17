@@ -51,3 +51,36 @@ export interface ScheduleRunLog {
   error?: string;
   errorCode?: AthenaErrorCode;
 }
+
+export interface UpsertScheduleRequest {
+  id: string;
+  name?: string;
+  targetType: ScheduleTargetType;
+  targetId: string;
+  inputBindings?: unknown;
+  runAt?: string;
+  rrule?: string;
+  timezone?: string;
+  status?: ScheduleStatus;
+  failurePolicy?: unknown;
+  enabled?: boolean;
+}
+
+export interface RunScheduleResult {
+  status: "ok" | "failed" | "already-running";
+  id: string;
+  sessionId: string;
+  startedAt: string;
+  finishedAt: string;
+  targetType?: ScheduleTargetType;
+  targetId?: string;
+  runId?: string;
+  workflowDagRunId?: string;
+  missionId?: string;
+  taskIds?: string[];
+  nextRunAt?: string;
+  missedRunAt?: string;
+  reason?: string;
+  error?: string;
+  errorCode?: AthenaErrorCode;
+}

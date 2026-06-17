@@ -19,20 +19,22 @@ import type {
   MissionWorkbenchMissionUpdateRequest,
   TaskWorkbenchTaskRun
 } from "../../shared/contracts.js";
-import type { AppStateDatabase, MissionRecord, RunRecord, TaskRecord } from "../app-state/index.js";
-import { openAppStateDatabase } from "../app-state/index.js";
+import type { AppStateDatabase, AppStateProvider, AppStateProviderOptions, MissionRecord, RunRecord, TaskRecord } from "../app-state/index.js";
+import { resolveAppStateProvider } from "../app-state/index.js";
 import type { MissionWorkbenchService } from "../interfaces.js";
 import { LocalTaskWorkbenchService, mapRunEventRecord, mapTaskRecord } from "./task-workbench.js";
 
-export interface LocalMissionWorkbenchServiceOptions {
-  appState?: AppStateDatabase;
-}
+export interface LocalMissionWorkbenchServiceOptions extends AppStateProviderOptions {}
 
 export class LocalMissionWorkbenchService implements MissionWorkbenchService {
+  private readonly appStateProvider: AppStateProvider;
+
   constructor(
     private readonly config: AthenaConfig,
     private readonly options: LocalMissionWorkbenchServiceOptions = {}
-  ) {}
+  ) {
+    this.appStateProvider = resolveAppStateProvider(config, options);
+  }
 
   async list(query: MissionWorkbenchMissionListQuery = {}): Promise<MissionWorkbenchMissionListResult> {
     return this.withAppState((appState) => {
@@ -285,27 +287,11 @@ export class LocalMissionWorkbenchService implements MissionWorkbenchService {
   }
 
   private withAppState<T>(access: (appState: AppStateDatabase) => T): T {
-    if (this.options.appState) {
-      return access(this.options.appState);
-    }
-    const appState = openAppStateDatabase(this.config);
-    try {
-      return access(appState);
-    } finally {
-      appState.close();
-    }
+    return this.appStateProvider.withAppState(access);
   }
 
   private async withAppStateAsync<T>(access: (appState: AppStateDatabase) => Promise<T>): Promise<T> {
-    if (this.options.appState) {
-      return access(this.options.appState);
-    }
-    const appState = openAppStateDatabase(this.config);
-    try {
-      return await access(appState);
-    } finally {
-      appState.close();
-    }
+    return this.appStateProvider.withAppStateAsync(access);
   }
 }
 

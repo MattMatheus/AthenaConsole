@@ -4,17 +4,7 @@
 
 **Route family**: `workspaces`
 
-Workspaces are the top-level organizational unit for multi-user deployments. Tasks, providers, and repositories are scoped to a workspace. All workspace operations require `Admin` role.
-
-> ⚠️ **Preview — not yet enforced in the current build.**
-> This describes the **target** behavior. As of this build, workspace/multi-user
-> isolation is **not enforced**: workspace scope is client-asserted
-> (`x-athena-scope-workspaces` header), there is no membership model, and
-> cross-workspace reads are not blocked at the data layer. Tracking: epic
-> 2026.44 stories .02–.04. **Do not expose a shared/multi-user deployment to
-> untrusted users until these land.**
-
-Epic 2026.44.01 (workspace CRUD and Admin RBAC) is built and committed. Stories .02–.04 (server-derived scope, membership tables, cross-workspace isolation) are designed but not yet enforced.
+Workspaces are the top-level organizational unit for multi-user deployments. Tasks, providers, and repositories are scoped to a workspace. Workspace administration requires `Admin` role, and workspace membership controls per-workspace access for non-admin subjects.
 
 ---
 
@@ -24,7 +14,7 @@ Epic 2026.44.01 (workspace CRUD and Admin RBAC) is built and committed. Stories 
 
 List all workspaces.
 
-**Required role**: `Admin`  
+**Required role**: `Admin`
 **Query params**: none
 
 **Response** (`200`):
@@ -61,7 +51,7 @@ curl \
 
 Create a workspace.
 
-**Required role**: `Admin`  
+**Required role**: `Admin`
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -88,7 +78,7 @@ curl -X POST \
 
 Get a workspace by ID.
 
-**Required role**: `Admin`  
+**Required role**: `Admin`
 **Path params**: `id` — workspace ID
 
 **Response** (`200`): Workspace object.
@@ -108,8 +98,8 @@ curl \
 
 Update a workspace.
 
-**Required role**: `Admin`  
-**Path params**: `id` — workspace ID  
+**Required role**: `Admin`
+**Path params**: `id` — workspace ID
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -136,7 +126,7 @@ curl -X PUT \
 
 Delete a workspace.
 
-**Required role**: `Admin`  
+**Required role**: `Admin`
 **Path params**: `id` — workspace ID
 
 **Response** (`200`): `{ id: "...", deleted: true }`
@@ -148,4 +138,71 @@ curl -X DELETE \
   -H "Authorization: Bearer $ATHENA_AUTH_API_TOKEN" \
   -H "x-athena-identity: $USER" \
   http://127.0.0.1:8787/api/v1/workspaces/ws-old
+```
+
+---
+
+### `GET /api/v1/workspaces/:id/members`
+
+List workspace members.
+
+**Required role**: `Admin`
+**Path params**: `id` — workspace ID
+
+**Response** (`200`): `{ members: [...], total: 1 }`
+
+**curl**:
+
+```bash
+curl \
+  -H "Authorization: Bearer $ATHENA_AUTH_API_TOKEN" \
+  -H "x-athena-identity: $USER" \
+  http://127.0.0.1:8787/api/v1/workspaces/ws-default/members
+```
+
+---
+
+### `PUT /api/v1/workspaces/:id/members/:subject`
+
+Add or update a workspace member.
+
+**Required role**: `Admin`
+**Path params**: `id` — workspace ID; `subject` — normalized identity subject
+**Request body**:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `role` | `Viewer` \| `Operator` \| `Admin` | yes | Workspace-local role |
+
+**Response** (`200`): Workspace member object.
+
+**curl**:
+
+```bash
+curl -X PUT \
+  -H "Authorization: Bearer $ATHENA_AUTH_API_TOKEN" \
+  -H "x-athena-identity: $USER" \
+  -H "Content-Type: application/json" \
+  -d '{"role": "Operator"}' \
+  http://127.0.0.1:8787/api/v1/workspaces/ws-default/members/alice
+```
+
+---
+
+### `DELETE /api/v1/workspaces/:id/members/:subject`
+
+Remove a workspace member.
+
+**Required role**: `Admin`
+**Path params**: `id` — workspace ID; `subject` — normalized identity subject
+
+**Response** (`200`): `{ workspaceId: "...", subject: "...", deleted: true }`
+
+**curl**:
+
+```bash
+curl -X DELETE \
+  -H "Authorization: Bearer $ATHENA_AUTH_API_TOKEN" \
+  -H "x-athena-identity: $USER" \
+  http://127.0.0.1:8787/api/v1/workspaces/ws-default/members/alice
 ```

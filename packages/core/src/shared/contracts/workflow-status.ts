@@ -4,6 +4,7 @@ export type WorkflowRunGraphEventLevel = "info" | "warning" | "error";
 
 export interface WorkflowRunStatusSummary {
   id: string;
+  workspaceId: string;
   status: WorkflowRunGraphRunStatus;
   workflowTemplate: {
     id: string;

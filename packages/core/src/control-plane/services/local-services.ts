@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { ScheduleManager, type RunScheduleResult, type UpsertScheduleRequest } from "../../schedule/index.js";
 import { AthenaError } from "../../runtime/errors.js";
 import { assertValidSessionId } from "../../runtime/session-store.js";
 import { transcriptStreamBroker, type TranscriptSubscription } from "../../runtime/transcript-stream.js";
@@ -18,6 +17,7 @@ import type {
   RunTemplateListQuery,
   RunTemplateListResult,
   RunResult,
+  RunScheduleResult,
   ScheduleRunLog,
   ScheduleStatus,
   ScheduledTask,
@@ -32,6 +32,7 @@ import type {
   SessionRecord,
   TemplateRunRequest,
   TranscriptEntry,
+  UpsertScheduleRequest,
   WorkflowTemplateInstantiateRequest,
   WorkQueueState
 } from "../../shared/contracts.js";
@@ -56,8 +57,8 @@ import type {
   SessionService,
   WorkService
 } from "../interfaces.js";
-import type { AppStateDatabase, ScheduleRecord } from "../app-state/index.js";
-import { openAppStateDatabase } from "../app-state/index.js";
+import type { AppStateDatabase, AppStateProvider, AppStateProviderOptions, ScheduleRecord } from "../app-state/index.js";
+import { resolveAppStateProvider } from "../app-state/index.js";
 import type { StateStore } from "../state-store.js";
 import { clampLimit, decodeOffsetCursor, encodeOffsetCursor } from "./pagination.js";
 import { LocalTaskWorkbenchService } from "./task-workbench.js";
@@ -733,20 +734,20 @@ export class LocalWorkService implements WorkService {
 }
 
 export class LocalScheduleService implements ScheduleService {
-  private readonly manager: ScheduleManager;
   private readonly runningAppStateScheduleIds = new Set<string>();
+  private readonly appStateProvider: AppStateProvider;
 
   constructor(
     private readonly config: AthenaConfig,
     private readonly backend: ExecutionBackend,
     private readonly policyService: PolicyService,
-    private readonly options: { appState?: AppStateDatabase } = {}
+    private readonly options: AppStateProviderOptions = {}
   ) {
-    this.manager = new ScheduleManager(config);
+    this.appStateProvider = resolveAppStateProvider(config, options);
   }
 
   async list(): Promise<ScheduledTask[]> {
-    return [...(await this.listAppStateSchedules()), ...(await this.manager.listTasks())];
+    return this.listAppStateSchedules();
   }
 
   async get(id: string): Promise<ScheduledTask | undefined> {
@@ -754,57 +755,50 @@ export class LocalScheduleService implements ScheduleService {
     if (appStateSchedule) {
       return mapScheduleRecord(appStateSchedule);
     }
-    return (await this.manager.listTasks()).find((schedule) => schedule.id === id);
+    return undefined;
   }
 
   async upsert(request: UpsertScheduleRequest): Promise<ScheduledTask> {
-    if (request.targetType) {
-      return this.withAppState((appState) => {
-        const targetId = request.targetId;
-        if (!targetId) {
-          throw new AthenaError("CONFIG_ERROR", "schedules.create.targetId is required.");
+    return this.withAppState((appState) => {
+      const targetId = request.targetId;
+      if (!targetId) {
+        throw new AthenaError("CONFIG_ERROR", "schedules.create.targetId is required.");
+      }
+      if (request.targetType === "task") {
+        const task = appState.tasks.get(targetId);
+        if (!task) {
+          throw new AthenaError("PROVIDER_NOT_FOUND", `Scheduled task target not found: ${targetId}`);
         }
-        if (request.targetType === "task") {
-          const task = appState.tasks.get(targetId);
-          if (!task) {
-            throw new AthenaError("PROVIDER_NOT_FOUND", `Scheduled task target not found: ${request.targetId ?? ""}`);
-          }
-          if (task.status !== "ready") {
-            throw new AthenaError("CONFIG_ERROR", `Scheduled task target must be ready: ${task.id}`);
-          }
-        } else if (request.targetType === "workflow-template") {
-          assertWorkflowTemplateScheduleTarget(appState, targetId, request.inputBindings);
-        } else {
-          throw new AthenaError("CONFIG_ERROR", `Unsupported schedule target type: ${request.targetType}`);
+        if (task.status !== "ready") {
+          throw new AthenaError("CONFIG_ERROR", `Scheduled task target must be ready: ${task.id}`);
         }
-        const timezone = request.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC";
-        const nextRunAt = request.runAt ?? nextRunFromRRule(request.rrule);
-        const status = request.status ?? statusFromEnabled(request.enabled);
-        return mapScheduleRecord(
-          appState.schedules.upsert({
-            id: request.id,
-            name: request.name ?? request.id,
-            targetType: request.targetType,
-            targetId,
-            inputBindings: request.inputBindings ?? {},
-            ...(request.rrule ? { rrule: request.rrule } : {}),
-            timezone,
-            status,
-            nextRunAt,
-            failurePolicy: request.failurePolicy ?? { overlap: "skip-if-running" }
-          })
-        );
-      });
-    }
-    return this.manager.upsertTask(request);
+      } else if (request.targetType === "workflow-template") {
+        assertWorkflowTemplateScheduleTarget(appState, targetId, request.inputBindings);
+      } else {
+        throw new AthenaError("CONFIG_ERROR", `Unsupported schedule target type: ${request.targetType}`);
+      }
+      const timezone = request.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC";
+      const nextRunAt = request.runAt ?? nextRunFromRRule(request.rrule);
+      const status = request.status ?? statusFromEnabled(request.enabled);
+      return mapScheduleRecord(
+        appState.schedules.upsert({
+          id: request.id,
+          name: request.name ?? request.id,
+          targetType: request.targetType,
+          targetId,
+          inputBindings: request.inputBindings ?? {},
+          ...(request.rrule ? { rrule: request.rrule } : {}),
+          timezone,
+          status,
+          nextRunAt,
+          failurePolicy: request.failurePolicy ?? { overlap: "skip-if-running" }
+        })
+      );
+    });
   }
 
   async remove(id: string): Promise<boolean> {
-    const removedAppStateSchedule = this.withAppState((appState) => appState.schedules.delete(id));
-    if (removedAppStateSchedule) {
-      return true;
-    }
-    return this.manager.removeTask(id);
+    return this.withAppState((appState) => appState.schedules.delete(id));
   }
 
   async run(id: string, options: { provider?: string; model?: string } = {}) {
@@ -812,44 +806,11 @@ export class LocalScheduleService implements ScheduleService {
     if (appStateSchedule) {
       return this.runAppStateSchedule(id, new Date(), options);
     }
-    return this.manager.runTask(id, async (task, runOptions) => {
-      const timeoutMs = await this.resolveScheduleRunTimeoutMs();
-      await this.backend.run(
-        {
-          sessionId: task.sessionId,
-          input: task.input,
-          ...(options.provider ? { provider: options.provider } : {}),
-          ...(options.model ? { model: options.model } : {})
-        },
-        {
-          ...(runOptions?.signal ? { signal: runOptions.signal } : {}),
-          timeoutMs
-        }
-      );
-    });
+    throw new AthenaError("PROVIDER_NOT_FOUND", `Schedule '${id}' not found`);
   }
 
   async runDue(at: Date, options: { provider?: string; model?: string } = {}) {
-    const appStateResult = await this.runDueAppStateSchedules(at, options);
-    const legacyResult = await this.manager.runDue(at, async (task, runOptions) => {
-      const timeoutMs = await this.resolveScheduleRunTimeoutMs();
-      await this.backend.run(
-        {
-          sessionId: task.sessionId,
-          input: task.input,
-          ...(options.provider ? { provider: options.provider } : {}),
-          ...(options.model ? { model: options.model } : {})
-        },
-        {
-          ...(runOptions?.signal ? { signal: runOptions.signal } : {}),
-          timeoutMs
-        }
-      );
-    });
-    return {
-      run: [...appStateResult.run, ...legacyResult.run],
-      skipped: appStateResult.skipped + legacyResult.skipped
-    };
+    return this.runDueAppStateSchedules(at, options);
   }
 
   async logs(id: string, options: { limit?: number } = {}): Promise<ScheduleRunLog[]> {
@@ -858,8 +819,7 @@ export class LocalScheduleService implements ScheduleService {
       const schedule = appState.schedules.get(id);
       return schedule ? appState.scheduleRunHistory.listForSchedule(id, { limit }) : [];
     });
-    const legacyLogs = await this.manager.readLogs(id, limit);
-    return [...appStateLogs, ...legacyLogs]
+    return appStateLogs
       .sort((left, right) => right.startedAt.localeCompare(left.startedAt))
       .slice(0, limit);
   }
@@ -1139,27 +1099,11 @@ export class LocalScheduleService implements ScheduleService {
   }
 
   private withAppState<T>(access: (appState: AppStateDatabase) => T): T {
-    if (this.options.appState) {
-      return access(this.options.appState);
-    }
-    const appState = openAppStateDatabase(this.config);
-    try {
-      return access(appState);
-    } finally {
-      appState.close();
-    }
+    return this.appStateProvider.withAppState(access);
   }
 
   private async withAppStateAsync<T>(access: (appState: AppStateDatabase) => Promise<T>): Promise<T> {
-    if (this.options.appState) {
-      return access(this.options.appState);
-    }
-    const appState = openAppStateDatabase(this.config);
-    try {
-      return await access(appState);
-    } finally {
-      appState.close();
-    }
+    return this.appStateProvider.withAppStateAsync(access);
   }
 }
 

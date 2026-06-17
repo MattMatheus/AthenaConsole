@@ -64,7 +64,7 @@ Canonical definitions for Team Orchestrator product vocabulary. Use these terms 
 
 **Schedule**: A recurring work definition driven by a cron expression. Schedules run a specified agent or workflow at the configured cadence.
 
-**Scope**: The set of workspaces a request is authorized to access. As of this build, scope is client-asserted via the `x-athena-scope-workspaces` header. See [Workspaces and Multiplayer](03-workspaces-and-multiplayer.md) for the preview status of server-derived scope.
+**Scope**: The set of workspaces a request is authorized to access. The server derives workspace scope from authenticated subject membership, and `x-athena-scope-workspaces` can narrow that scope for a request.
 
 **Session**: A unit of conversational or directed work context. Sessions group related runs and their transcripts.
 

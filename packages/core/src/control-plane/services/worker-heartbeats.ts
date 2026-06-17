@@ -1,9 +1,8 @@
 import type { AthenaConfig } from "../../shared/config.js";
-import type { AppStateDatabase, WorkerHeartbeatRecord, WorkerHeartbeatUpsert } from "../app-state/index.js";
-import { openAppStateDatabase } from "../app-state/index.js";
+import type { AppStateDatabase, AppStateProvider, AppStateProviderOptions, WorkerHeartbeatRecord, WorkerHeartbeatUpsert } from "../app-state/index.js";
+import { resolveAppStateProvider } from "../app-state/index.js";
 
-export interface LocalWorkerHeartbeatServiceOptions {
-  appState?: AppStateDatabase;
+export interface LocalWorkerHeartbeatServiceOptions extends AppStateProviderOptions {
   defaultTtlMs?: number;
 }
 
@@ -12,10 +11,14 @@ export interface WorkerHeartbeatRequest extends Omit<WorkerHeartbeatUpsert, "ttl
 }
 
 export class LocalWorkerHeartbeatService {
+  private readonly appStateProvider: AppStateProvider;
+
   constructor(
     private readonly config: AthenaConfig,
     private readonly options: LocalWorkerHeartbeatServiceOptions = {}
-  ) {}
+  ) {
+    this.appStateProvider = resolveAppStateProvider(config, options);
+  }
 
   heartbeat(request: WorkerHeartbeatRequest): WorkerHeartbeatRecord {
     return this.withAppState((appState) =>
@@ -39,14 +42,6 @@ export class LocalWorkerHeartbeatService {
   }
 
   private withAppState<T>(read: (appState: AppStateDatabase) => T): T {
-    if (this.options.appState) {
-      return read(this.options.appState);
-    }
-    const appState = openAppStateDatabase(this.config);
-    try {
-      return read(appState);
-    } finally {
-      appState.close();
-    }
+    return this.appStateProvider.withAppState(read);
   }
 }

@@ -4,15 +4,7 @@
 
 **Route family**: `repositories`
 
-Connected repositories provide the file system context that agents can read and write. Repositories are workspace-scoped.
-
-> ⚠️ **Preview — not yet enforced in the current build.**
-> This describes the **target** behavior. As of this build, workspace/multi-user
-> isolation is **not enforced**: workspace scope is client-asserted
-> (`x-athena-scope-workspaces` header), there is no membership model, and
-> cross-workspace reads are not blocked at the data layer. Tracking: epic
-> 2026.44 stories .02–.04. **Do not expose a shared/multi-user deployment to
-> untrusted users until these land.**
+Connected repositories provide the file system context that agents can read and write. Repositories are workspace-scoped and filtered through membership-backed workspace scope.
 
 ---
 

@@ -1,14 +1,13 @@
 import { AthenaError } from "../../runtime/errors.js";
 import type { AthenaConfig } from "../../shared/config.js";
 import type { TaskWorkbenchTaskRun } from "../../shared/contracts.js";
-import type { AppStateDatabase, TaskRecord, WorkflowDagRunSnapshot, WorkflowDagStepRecord } from "../app-state/index.js";
-import { openAppStateDatabase } from "../app-state/index.js";
+import type { AppStateDatabase, AppStateProvider, AppStateProviderOptions, TaskRecord, WorkflowDagRunSnapshot, WorkflowDagStepRecord } from "../app-state/index.js";
+import { resolveAppStateProvider } from "../app-state/index.js";
 import { LocalTaskWorkbenchService } from "./task-workbench.js";
 import { computeRetryBackoffMs, isRetryFailurePhase, parseWorkflowTaskRetryPolicy, type RetryFailurePhase } from "./workflow-retry-policy.js";
 import { LocalWorkflowStateService } from "./workflow-state.js";
 
-export interface LocalWorkflowDagExecutorOptions {
-  appState?: AppStateDatabase;
+export interface LocalWorkflowDagExecutorOptions extends AppStateProviderOptions {
   sleep?: (ms: number) => Promise<void>;
 }
 
@@ -29,12 +28,14 @@ interface RetryDecision {
 
 export class LocalWorkflowDagExecutorService {
   private readonly inFlightRuns = new Map<string, Promise<WorkflowDagExecutionResult>>();
+  private readonly appStateProvider: AppStateProvider;
   private readonly sleep: (ms: number) => Promise<void>;
 
   constructor(
     private readonly config: AthenaConfig,
     private readonly options: LocalWorkflowDagExecutorOptions = {}
   ) {
+    this.appStateProvider = resolveAppStateProvider(config, options);
     this.sleep = options.sleep ?? defaultWorkflowDagExecutorSleep;
   }
 
@@ -44,6 +45,16 @@ export class LocalWorkflowDagExecutorService {
 
   async resume(runId: string): Promise<WorkflowDagExecutionResult> {
     return this.withRunGuard(runId, () => this.resumeInternal(runId));
+  }
+
+  async getRunWorkspaceId(runId: string): Promise<string> {
+    return this.withAppStateAsync(async (appState) => {
+      const run = appState.workflowDagRuns.get(runId);
+      if (!run) {
+        throw new AthenaError("CONFIG_ERROR", `Workflow DAG run not found: ${runId}`);
+      }
+      return run.workspaceId;
+    });
   }
 
   private async withRunGuard(
@@ -131,15 +142,7 @@ export class LocalWorkflowDagExecutorService {
   }
 
   private async withAppStateAsync<T>(access: (appState: AppStateDatabase) => Promise<T>): Promise<T> {
-    if (this.options.appState) {
-      return access(this.options.appState);
-    }
-    const appState = openAppStateDatabase(this.config);
-    try {
-      return await access(appState);
-    } finally {
-      appState.close();
-    }
+    return this.appStateProvider.withAppStateAsync(access);
   }
 }
 

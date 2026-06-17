@@ -42,6 +42,7 @@ export interface DurableMemoryServerStorage {
   listProposals(namespace: DurableMemoryNamespaceRef): DurableMemoryProposal[];
   updateProposalStatus(id: string, status: DurableMemoryProposalStatus, reviewedBy: string, now?: Date): DurableMemoryProposal | undefined;
   createSnapshot(request: DurableMemoryServerSnapshotCreateInput): DurableMemorySnapshot;
+  getSnapshot(id: string): DurableMemorySnapshot | undefined;
   listSnapshots(namespace: DurableMemoryNamespaceRef): DurableMemorySnapshotListResult;
   restoreSnapshot(request: DurableMemorySnapshotRestoreRequest): DurableMemorySnapshot | undefined;
 }
@@ -653,7 +654,7 @@ export class SqliteDurableMemoryServerStorage implements DurableMemoryServerStor
     return snapshot;
   }
 
-  private getSnapshot(id: string): DurableMemorySnapshot | undefined {
+  getSnapshot(id: string): DurableMemorySnapshot | undefined {
     const row = this.getSnapshotStatement.get(id) as DurableMemorySnapshotRow | undefined;
     return row ? mapSnapshotRow(row) : undefined;
   }
@@ -898,16 +899,27 @@ function namespaceKey(namespace: DurableMemoryNamespaceRef): string {
 
 function toNamespaceStorageParts(namespace: DurableMemoryNamespaceRef): { ancestorKeys: string[]; workspaceId: string } {
   const ancestorKeys: string[] = [];
-  let workspaceId = namespace.scope === "workspace" ? namespace.id : "default";
+  let workspaceId = resolveDurableMemoryNamespaceWorkspaceId(namespace);
   let parent = namespace.parent;
   while (parent) {
     ancestorKeys.push(namespaceKey(parent));
-    if (workspaceId === "default" && parent.scope === "workspace") {
-      workspaceId = parent.id;
-    }
     parent = parent.parent;
   }
   return { ancestorKeys, workspaceId };
+}
+
+export function resolveDurableMemoryNamespaceWorkspaceId(namespace: DurableMemoryNamespaceRef): string {
+  if (namespace.scope === "workspace") {
+    return namespace.id;
+  }
+  let parent = namespace.parent;
+  while (parent) {
+    if (parent.scope === "workspace") {
+      return parent.id;
+    }
+    parent = parent.parent;
+  }
+  return "default";
 }
 
 function clampLimit(limit: number | undefined): number {

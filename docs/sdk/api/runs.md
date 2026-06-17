@@ -14,7 +14,7 @@ The low-level runs API creates and cancels agent runs directly (without a task).
 
 Create and immediately start a run.
 
-**Required role**: `Viewer`, `Operator`, or `Admin` (scoped by agent and session)  
+**Required role**: `Viewer`, `Operator`, or `Admin` (scoped by agent and session)
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -74,7 +74,7 @@ curl -X POST \
 
 List currently active (in-progress) runs.
 
-**Required role**: no role check enforced in the current build (handler calls `runService.listActiveRuns` with no authorizer wrapper)  
+**Required role**: none; diagnostic read endpoint
 **Query params**:
 
 | Parameter | Type | Description |
@@ -119,7 +119,7 @@ curl \
 
 List pending cancellation requests.
 
-**Required role**: no role check enforced in the current build  
+**Required role**: none; diagnostic read endpoint
 **Query params**: same as `GET /api/v1/runs/active`
 
 **Response** (`200`): `{ items: [...], nextCursor? }`
@@ -139,8 +139,8 @@ curl \
 
 Cancel a run by its run ID. **Preferred cancellation path.**
 
-**Required role**: `Operator` or `Admin`  
-**Path params**: `runId`  
+**Required role**: `Operator` or `Admin`
+**Path params**: `runId`
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -177,8 +177,8 @@ curl -X POST \
 
 Cancel a run by session ID. Legacy compatibility path — prefer `POST /api/v1/run-control/by-run/:runId/cancel`.
 
-**Required role**: `Operator` or `Admin`  
-**Path params**: `sessionId`  
+**Required role**: `Operator` or `Admin`
+**Path params**: `sessionId`
 **Request body**: `{ "reason": "..." }` (optional)
 
 **Response** (`200`): Same shape as above.

@@ -25,6 +25,7 @@ describe("workflow template instantiation service", () => {
         const result = await service.instantiate("templates.release.workflow", {
           missionId: "mission-release",
           taskIdPrefix: "release",
+          workspaceId: "workspace-alpha",
           inputs: {
             releaseName: "v1.2.0"
           },
@@ -56,6 +57,7 @@ describe("workflow template instantiation service", () => {
         expect(result.workflowDagRun).toEqual({ id: "workflow-run-mission-release" });
         expect(appState.workflowDagRuns.requireSnapshot(result.workflowDagRun.id).run).toMatchObject({
           id: "workflow-run-mission-release",
+          workspaceId: "workspace-alpha",
           workflowTemplateId: "templates.release.workflow",
           workflowTemplateVersion: "0.1.0",
           pluginId: "team-orchestrator.test.templates",
@@ -76,6 +78,7 @@ describe("workflow template instantiation service", () => {
             runMode: "read-only"
           },
           dependsOn: [],
+          workspaceId: "workspace-alpha",
           missionId: "mission-release",
           provenance: {
             source: "workflow-template",
@@ -93,6 +96,7 @@ describe("workflow template instantiation service", () => {
         expect(appState.missions.require("mission-release")).toMatchObject({ taskOrder: ["release-plan", "release-review"] });
         expect(appState.tasks.require("release-review")).toMatchObject({
           missionId: "mission-release",
+          workspaceId: "workspace-alpha",
           dependsOn: ["release-plan"]
         });
       } finally {
@@ -318,6 +322,47 @@ describe("workflow template instantiation service", () => {
       } finally {
         rmSync(dir, { recursive: true, force: true });
       }
+    }
+  });
+
+  it("rolls back workflow DAG run and mission when generated task creation fails", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-workflow-template-rollback-"));
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        seedPluginAndAgent(appState);
+        seedWorkflowTemplate(appState);
+        appState.tasks.create({
+          id: "rollback-review",
+          title: "Pre-existing review task"
+        });
+        const service = new LocalWorkflowTemplateCatalogService(config, { appState });
+
+        await expect(
+          service.instantiate("templates.release.workflow", {
+            missionId: "mission-rollback",
+            taskIdPrefix: "rollback",
+            inputs: {
+              releaseName: "v9.9.9"
+            }
+          })
+        ).rejects.toMatchObject({
+          code: "PROVIDER_ERROR"
+        });
+
+        expect(appState.workflowDagRuns.get("workflow-run-mission-rollback")).toBeUndefined();
+        expect(appState.missions.get("mission-rollback")).toBeUndefined();
+        expect(appState.tasks.get("rollback-plan")).toBeUndefined();
+        expect(appState.tasks.get("rollback-review")).toMatchObject({
+          id: "rollback-review",
+          title: "Pre-existing review task"
+        });
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 

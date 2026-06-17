@@ -29,11 +29,13 @@ export interface DurableMemoryService {
   archive(request: DurableMemoryArchiveRequest): Promise<DurableMemoryRecord>;
   delete(request: DurableMemoryDeleteRequest): Promise<DurableMemoryRecord>;
   createProposal(request: DurableMemoryProposalCreateRequest): Promise<DurableMemoryProposal>;
+  getProposal(id: string): Promise<DurableMemoryProposal>;
   listProposals(request: DurableMemoryListRequest): Promise<DurableMemoryProposal[]>;
   approveProposal(request: DurableMemoryProposalReviewRequest): Promise<DurableMemoryProposal>;
   rejectProposal(request: DurableMemoryProposalReviewRequest): Promise<DurableMemoryProposal>;
   archiveProposal(request: DurableMemoryProposalReviewRequest): Promise<DurableMemoryProposal>;
   createSnapshot(request: DurableMemorySnapshotCreateRequest): Promise<DurableMemorySnapshot>;
+  getSnapshot(id: string): Promise<DurableMemorySnapshot>;
   listSnapshots(request: DurableMemoryListRequest): Promise<DurableMemorySnapshotListResult>;
   restoreSnapshot(request: DurableMemorySnapshotRestoreRequest): Promise<DurableMemorySnapshot>;
   getHealth(): Promise<DurableMemoryProviderHealth>;
@@ -91,6 +93,14 @@ export class LocalDurableMemoryService implements DurableMemoryService {
     });
   }
 
+  async getProposal(id: string): Promise<DurableMemoryProposal> {
+    const proposal = this.storage.getProposal(id);
+    if (!proposal) {
+      throw notFound("durable memory proposal", id);
+    }
+    return proposal;
+  }
+
   async listProposals(request: DurableMemoryListRequest): Promise<DurableMemoryProposal[]> {
     return this.storage.listProposals(request.namespace);
   }
@@ -141,6 +151,14 @@ export class LocalDurableMemoryService implements DurableMemoryService {
       ...request,
       id: `dms_${randomUUID()}`
     });
+  }
+
+  async getSnapshot(id: string): Promise<DurableMemorySnapshot> {
+    const snapshot = this.storage.getSnapshot(id);
+    if (!snapshot) {
+      throw notFound("durable memory snapshot", id);
+    }
+    return snapshot;
   }
 
   async listSnapshots(request: DurableMemoryListRequest): Promise<DurableMemorySnapshotListResult> {

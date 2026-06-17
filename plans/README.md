@@ -30,6 +30,19 @@ every verification command, and update the table when done.
 > authorization for six API families, client-asserted workspace scope, and high
 > runtime dependency advisories. Unlike 024-027, these are implementation plans.
 
+> **Simplification round appended 2026-06-17 (commit `c082a64`).** Plans 037-041
+> came from a standard simplification/cruft audit after the enterprise pivot.
+> They focus on removing stale pre-enterprise assumptions from docs, preventing
+> SDK authorization-reference drift, retiring the old file-backed schedule path,
+> tightening app-state access boundaries for Postgres readiness, and removing
+> stale nested npm lockfiles.
+
+> **Deep security/consistency round appended 2026-06-17 (commit `c082a64`).**
+> Plans 042-047 came from a follow-up `$improve deep` audit. They cover static
+> Admin credentials in the console bundle, workspace scoping for durable memory
+> and workflow DAG runs, atomic workflow-template instantiation, a still-failing
+> production dependency audit, and stale workspace/RBAC epic language.
+
 These plans are **self-contained**: everything needed is in each file. They were
 written for an executor with zero context from the audit session. Do not assume
 knowledge from other plans unless a plan lists it under "Depends on".
@@ -65,6 +78,17 @@ knowledge from other plans unless a plan lists it under "Depends on".
 | 034 | Add authorization wrappers for remaining API families | P1 | M | none | security | DONE ✓ reviewed 2026-06-16 (`7818911`) |
 | 035 | Derive workspace scope from server-side membership | P1 | L | none; recommended after 034 | security | DONE ✓ reviewed 2026-06-16 (`378774f`) |
 | 036 | Refresh vulnerable runtime dependency lockfile entries | P1 | S-M | none | security/migration | DONE ✓ reviewed 2026-06-16 (`edb20c8`) |
+| 037 | Reconcile enterprise preview docs with implemented workspace membership | P1 | M | none | docs | DONE |
+| 038 | Generate or check SDK authorization reference from route metadata | P1 | M | 037 | docs/dx | DONE |
+| 039 | Retire legacy file-backed schedule manager from API runtime paths | P1 | M | none | tech-debt | DONE |
+| 040 | Introduce a shared app-state access boundary for already-seamed services | P2 | L | recommended after 039 | tech-debt/migration | DONE |
+| 041 | Remove stale nested package-lock files from npm workspace packages | P2 | S | none | dx/migration | DONE |
+| 042 | Remove static admin credentials from the console bundle | P1 | M | none | security | DONE |
+| 043 | Enforce workspace scope in durable-memory authorization | P1 | M | none | security | DONE |
+| 044 | Add workspace ownership to workflow DAG runs | P1 | L | none | security/migration | DONE |
+| 045 | Make workflow-template instantiation atomic | P1 | M | none; coordinate with 044 | bug | DONE |
+| 046 | Refresh runtime dependencies until production audit passes | P1 | S-M | none | security/migration | DONE |
+| 047 | Reconcile workspace RBAC epic status with implemented controls | P2 | S | none | docs | DONE |
 
 > **Docs Rewrite Epic COMPLETE (2026-06-15).** All six plans (028–033) executed via worktree executors, reviewed, and merged to `main` (tip `f145af5`). Repo-wide `npm run check:docs` is green (216 files, no broken links). Net: enterprise/multiplayer-primary positioning across all entry docs; one consolidated 11-page user manual + 18-page SDK/API guide (PDK + HTTP `/api/v1`); 39 dead docs deleted; two parallel doc trees merged into one; ADR 0028/0029 promoted to Accepted; preview banners on all unbuilt-multiplayer surfaces.
 > **Follow-ups surfaced:** (1) five API families (`missions`, `workflow-templates`, `run-templates`, `harness-profiles`, `agent-catalog`) have **no RBAC authorizer** — now planned as 034; (2) remove the preview banners when 2026.44 stories .02–.04 land (`grep "Preview — not yet enforced" docs/`).
@@ -160,6 +184,30 @@ What exists:
 
 ## Dependency notes
 
+- **037 before 038**: 037 updates the workspace/membership status language that
+  the SDK API reference should use. Running 038 first risks baking stale
+  preview language into a new drift guard.
+- **039 before 040 is recommended, not required**: 039 removes the legacy
+  schedule manager path. 040 can still convert other already-seamed app-state
+  opens first, but doing 039 first reduces the schedule-service surface the
+  app-state provider has to preserve.
+- **041 is independent**: it only removes nested lockfile metadata and can run
+  in parallel with docs or service work if executors coordinate package-lock
+  ownership and avoid running dependency updates.
+- **042 should land before any shared/trusted-server console exposure**: the
+  browser bundle currently receives Admin-capable API credentials. It is
+  independent of 043-047.
+- **043 and 044 are workspace-boundary fixes and can run in parallel if
+  executors coordinate `authorization.ts` tests**: 043 covers durable memory;
+  044 covers workflow DAG runs. Both are needed before treating workspace
+  membership as a complete tenancy boundary.
+- **045 is independent but conflicts textually with 044 in
+  `workflow-template-catalog.ts`**: run after 044 or coordinate branches if both
+  are active.
+- **046 is independent but owns `package-lock.json`**: do not run alongside
+  other dependency-update work without coordination.
+- **047 can run anytime**: it is docs-only and should mention 043/044 as
+  remaining workspace-hardening gates until those plans land.
 - **034 should land before exposing shared deployments**: it closes missing
   service-level authorization on mission, workflow-template, workflow-run,
   run-template, harness-profile, and agent-catalog APIs. It can land before 035;

@@ -67,7 +67,7 @@ npm run athena -- memory get --path MEMORY.md --from 1 --lines 20
 
 ### Add a Schedule
 ```bash
-npm run athena -- schedule add --id <id> --session <session_id> --input "<input>" --every-minutes <minutes> --start-now <true|false>
+npm run athena -- schedule add --id <id> --target-type task --target-id <task_id> --run-at <iso_datetime>
 ```
 
 ### List Schedules

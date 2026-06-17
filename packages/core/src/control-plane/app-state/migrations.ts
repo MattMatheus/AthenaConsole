@@ -707,6 +707,18 @@ export const APP_STATE_MIGRATIONS: readonly AppStateMigration[] = [
       create index if not exists workspace_members_subject_idx
         on workspace_members(subject, workspace_id);
     `
+  },
+  {
+    version: 22,
+    name: "add-workflow-dag-run-workspace",
+    sql: `
+      alter table workflow_dag_runs add column workspace_id text not null default 'default';
+
+      update workflow_dag_runs set workspace_id = 'default' where workspace_id is null or workspace_id = '';
+
+      create index if not exists idx_workflow_dag_runs_workspace_status_updated
+        on workflow_dag_runs(workspace_id, status, updated_at desc);
+    `
   }
 ];
 

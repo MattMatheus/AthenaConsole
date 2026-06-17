@@ -1,9 +1,10 @@
 import { loadConfig } from "../../shared/config.js";
 import { createLocalControlPlaneServices } from "../../control-plane/services.js";
+import type { ScheduleStatus, ScheduleTargetType, UpsertScheduleRequest } from "../../shared/contracts.js";
 import { createCliApiClient } from "../api-client.js";
 import type { CliOptions } from "../types.js";
 import { parseArgs } from "../helpers/args.js";
-import { parseBooleanFlag, parsePositiveInt } from "../helpers/flags.js";
+import { parsePositiveInt } from "../helpers/flags.js";
 import { runWithSelectedTransport, resolveCliTransport } from "../helpers/transport.js";
 import { usage } from "../helpers/usage.js";
 
@@ -16,37 +17,44 @@ export async function runScheduleCli(argv: string[], options: CliOptions): Promi
 
   if (action === "add") {
     const id = parsed.flags.id;
-    const sessionId = parsed.flags.session;
-    const input = parsed.flags.input;
-    const everyMinutes = parsePositiveInt(parsed.flags["every-minutes"]);
-    if (!id || !sessionId || !input || !everyMinutes) {
-      throw new Error(`'schedule add' requires --id --session --input --every-minutes\n${usage()}`);
+    const targetType = parsed.flags["target-type"];
+    const targetId = parsed.flags["target-id"];
+    const runAt = parsed.flags["run-at"];
+    const rrule = parsed.flags.rrule;
+    if (!id || !targetType || !targetId || (!runAt && !rrule)) {
+      throw new Error(`'schedule add' requires --id --target-type --target-id and --run-at or --rrule\n${usage()}`);
     }
-    const rawStartNow = parsed.flags["start-now"];
-    const parsedStartNow = parseBooleanFlag(rawStartNow);
-    if (rawStartNow !== undefined && parsedStartNow === undefined) {
-      throw new Error(`Invalid --start-now '${rawStartNow}'. Expected true|false.`);
+    if (targetType !== "task" && targetType !== "mission" && targetType !== "workflow-template") {
+      throw new Error(`Invalid --target-type '${targetType}'. Expected task|mission|workflow-template.`);
     }
-    const startNow = parsedStartNow ?? false;
+    if (
+      parsed.flags.status &&
+      parsed.flags.status !== "active" &&
+      parsed.flags.status !== "paused" &&
+      parsed.flags.status !== "disabled" &&
+      parsed.flags.status !== "error"
+    ) {
+      throw new Error(`Invalid --status '${parsed.flags.status}'. Expected active|paused|disabled|error.`);
+    }
+    if (runAt && Number.isNaN(new Date(runAt).getTime())) {
+      throw new Error(`Invalid --run-at value '${runAt}'`);
+    }
+    const request: UpsertScheduleRequest = {
+      id,
+      targetType: targetType as ScheduleTargetType,
+      targetId,
+      ...(parsed.flags.name ? { name: parsed.flags.name } : {}),
+      ...(runAt ? { runAt: new Date(runAt).toISOString() } : {}),
+      ...(rrule ? { rrule } : {}),
+      ...(parsed.flags.timezone ? { timezone: parsed.flags.timezone } : {}),
+      ...(parsed.flags.status ? { status: parsed.flags.status as ScheduleStatus } : {})
+    };
     const task = await runWithSelectedTransport(
       transport,
-      async () =>
-        services.scheduleService.upsert({
-          id,
-          sessionId,
-          input,
-          everyMinutes,
-          startNow
-        }),
+      async () => services.scheduleService.upsert(request),
       async (apiBaseUrl, timeoutMs) => {
         const client = createCliApiClient({ baseUrl: apiBaseUrl, timeoutMs });
-        return client.createSchedule({
-          id,
-          sessionId,
-          input,
-          everyMinutes,
-          startNow
-        });
+        return client.createSchedule(request);
       }
     );
     return JSON.stringify(task, null, 2);

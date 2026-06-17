@@ -53,10 +53,10 @@ describe("control-plane authorization wrappers", () => {
         withRole("Viewer", () =>
           services.scheduleService.upsert({
             id: "job-authz",
-            sessionId: "s1",
-            input: "test",
-            everyMinutes: 5,
-            startNow: false
+            targetType: "task",
+            targetId: "task-authz-denied",
+            runAt: "2026-06-01T09:00:00.000Z",
+            timezone: "UTC"
           })
         )
       ).rejects.toMatchObject({
@@ -266,14 +266,20 @@ describe("control-plane authorization wrappers", () => {
           })
         )
       ).resolves.toContain("id,createdAt,resolvedAt,status,severity");
+      const appState = openAppStateDatabase(config);
+      try {
+        seedReadyScheduleTask(appState, "task-operator");
+      } finally {
+        appState.close();
+      }
       await expect(
         withRole("Operator", () =>
           services.scheduleService.upsert({
             id: "job-operator",
-            sessionId: "s2",
-            input: "run",
-            everyMinutes: 10,
-            startNow: false
+            targetType: "task",
+            targetId: "task-operator",
+            runAt: "2026-06-01T09:00:00.000Z",
+            timezone: "UTC"
           })
         )
       ).resolves.toMatchObject({
@@ -1063,6 +1069,174 @@ describe("control-plane authorization wrappers", () => {
     }
   });
 
+  it("enforces workspace membership for durable memory namespaces and review actions", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-authz-durable-memory-"));
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_AUTH_ENABLED=true\nATHENA_AUTHZ_MODE=enforce", "utf8");
+      const config = loadConfig(dir);
+      const services = createLocalControlPlaneServices({ config });
+      const alphaNamespace = {
+        scope: "repository" as const,
+        id: "repo-alpha",
+        parent: { scope: "workspace" as const, id: "workspace-alpha" }
+      };
+      const betaNamespace = {
+        scope: "repository" as const,
+        id: "repo-beta",
+        parent: { scope: "workspace" as const, id: "workspace-beta" }
+      };
+      const provenance = {
+        sourceKind: "operator" as const,
+        actorType: "operator" as const,
+        actorId: "operator",
+        createdByAction: "authorization-test"
+      };
+
+      const alphaRecord = await withMembershipRole("Viewer", "workspace-alpha", "Operator", () =>
+        services.durableMemoryService.write({
+          namespace: alphaNamespace,
+          provenance,
+          memoryType: "repo-note",
+          body: "alpha memory"
+        })
+      );
+      await withRole("Admin", () =>
+        services.durableMemoryService.write({
+          namespace: betaNamespace,
+          provenance,
+          memoryType: "repo-note",
+          body: "beta memory"
+        })
+      );
+      const betaProposal = await withRole("Admin", () =>
+        services.durableMemoryService.createProposal({
+          targetNamespace: betaNamespace,
+          provenance,
+          memoryType: "repo-note",
+          proposedBody: "beta proposal",
+          reason: "seed beta proposal"
+        })
+      );
+
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Viewer", () =>
+          services.durableMemoryService.list({ namespace: alphaNamespace })
+        )
+      ).resolves.toMatchObject({
+        records: [expect.objectContaining({ id: alphaRecord.id, body: "alpha memory" })]
+      });
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Viewer", () =>
+          services.durableMemoryService.search({ namespace: alphaNamespace, query: "alpha" })
+        )
+      ).resolves.toMatchObject({
+        records: [expect.objectContaining({ id: alphaRecord.id })],
+        total: 1
+      });
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Viewer", () =>
+          services.durableMemoryService.get({ id: alphaRecord.id })
+        )
+      ).resolves.toMatchObject({
+        id: alphaRecord.id,
+        body: "alpha memory"
+      });
+
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Viewer", () =>
+          services.durableMemoryService.list({ namespace: betaNamespace })
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Operator", () =>
+          services.durableMemoryService.write({
+            namespace: betaNamespace,
+            provenance,
+            memoryType: "repo-note",
+            body: "denied beta write"
+          })
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Operator", () =>
+          services.durableMemoryService.approveProposal({
+            id: betaProposal.id,
+            actorId: "operator",
+            reason: "should be denied"
+          })
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("enforces workspace membership for workflow DAG status, queue, and execution", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-authz-workflow-dag-workspace-"));
+    try {
+      writeFileSync(join(dir, ".env"), "ATHENA_AUTH_ENABLED=true\nATHENA_AUTHZ_MODE=enforce", "utf8");
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        appState.workflowDagRuns.create({
+          id: "workflow-run-alpha",
+          workspaceId: "workspace-alpha",
+          workflowTemplateId: "template-alpha",
+          stepOrder: ["step-alpha"],
+          dependencies: { "step-alpha": [] }
+        });
+        appState.workflowDagRuns.create({
+          id: "workflow-run-beta",
+          workspaceId: "workspace-beta",
+          workflowTemplateId: "template-beta",
+          stepOrder: ["step-beta"],
+          dependencies: { "step-beta": [] }
+        });
+      } finally {
+        appState.close();
+      }
+      const services = createLocalControlPlaneServices({ config });
+
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Operator", () =>
+          services.workflowStatusService.getStatus("workflow-run-alpha")
+        )
+      ).resolves.toMatchObject({
+        run: {
+          id: "workflow-run-alpha",
+          workspaceId: "workspace-alpha"
+        }
+      });
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Operator", () =>
+          services.workflowStatusService.getStatus("workflow-run-beta")
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Operator", () =>
+          services.workflowDagExecutorService.execute("workflow-run-beta")
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Operator", async () => services.workflowQueueStatusService.getStatus())
+      ).resolves.toMatchObject({
+        items: [expect.objectContaining({ workflowRunId: "workflow-run-alpha" })]
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("supports observe and soft-enforce rollout modes", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-authz-rollout-"));
     let observeServices: ControlPlaneServices | undefined;
@@ -1105,15 +1279,21 @@ describe("control-plane authorization wrappers", () => {
       );
       const soft = createLocalControlPlaneServices({ config: loadConfig(dir) });
       softServices = soft;
+      const appState = openAppStateDatabase(loadConfig(dir));
+      try {
+        seedReadyScheduleTask(appState, "task-soft");
+      } finally {
+        appState.close();
+      }
 
       await expect(
         withRole("Viewer", () =>
           soft.scheduleService.upsert({
             id: "job-soft",
-            sessionId: "s-soft",
-            input: "allowed",
-            everyMinutes: 5,
-            startNow: false
+            targetType: "task",
+            targetId: "task-soft",
+            runAt: "2026-06-01T09:00:00.000Z",
+            timezone: "UTC"
           })
         )
       ).resolves.toMatchObject({
@@ -1258,5 +1438,17 @@ function seedRunnableTaskAgent(appState: ReturnType<typeof openAppStateDatabase>
         }
       }
     }
+  });
+}
+
+function seedReadyScheduleTask(appState: ReturnType<typeof openAppStateDatabase>, taskId: string): void {
+  seedRunnableTaskAgent(appState);
+  appState.tasks.create({
+    id: taskId,
+    title: "Scheduled authz task",
+    status: "ready",
+    assignedAgentId: "software.authz.local",
+    assignedAgentVersion: "1.0.0",
+    capabilityRequirements: ["test.run"]
   });
 }

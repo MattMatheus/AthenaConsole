@@ -1,8 +1,9 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import { createApiServer } from "../src/api/server.js";
+import { openAppStateDatabase } from "../src/control-plane/app-state/index.js";
 import { runCli } from "../src/cli/index.js";
 import { loadConfig } from "../src/shared/config.js";
 
@@ -10,26 +11,41 @@ describe("CLI schedule commands", () => {
   it("adds, lists, runs, reads logs, and removes a schedule", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-cli-schedule-"));
     try {
+      const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "success.js"),
+        "process.stdout.write(JSON.stringify({ output: { ok: true }, artifacts: [] }));",
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableTask(appState, pluginDir, "success.js", "task-cli-scheduled");
+      } finally {
+        appState.close();
+      }
       const addOut = await runCli(
         [
           "schedule",
           "add",
           "--id",
           "job1",
-          "--session",
-          "s1",
-          "--input",
-          "hello from schedule",
-          "--every-minutes",
-          "10",
-          "--start-now",
-          "true"
+          "--target-type",
+          "task",
+          "--target-id",
+          "task-cli-scheduled",
+          "--run-at",
+          "2026-06-01T09:00:00.000Z",
+          "--timezone",
+          "UTC"
         ],
         { cwd: dir }
       );
-      const added = JSON.parse(addOut) as { id: string; sessionId: string };
+      const added = JSON.parse(addOut) as { id: string; targetType?: string; targetId?: string };
       expect(added.id).toBe("job1");
-      expect(added.sessionId).toBe("s1");
+      expect(added.targetType).toBe("task");
+      expect(added.targetId).toBe("task-cli-scheduled");
 
       const listOut = await runCli(["schedule", "list"], { cwd: dir });
       const listed = JSON.parse(listOut) as { count: number };
@@ -54,8 +70,8 @@ describe("CLI schedule commands", () => {
     }
   });
 
-  it("rejects invalid --start-now values", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "athena-cli-schedule-invalid-bool-"));
+  it("rejects invalid target types", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-cli-schedule-invalid-target-"));
     try {
       await expect(
         runCli(
@@ -64,18 +80,16 @@ describe("CLI schedule commands", () => {
             "add",
             "--id",
             "job1",
-            "--session",
-            "s1",
-            "--input",
-            "hello from schedule",
-            "--every-minutes",
-            "10",
-            "--start-now",
-            "maybe"
+            "--target-type",
+            "session",
+            "--target-id",
+            "task-1",
+            "--run-at",
+            "2026-06-01T09:00:00.000Z"
           ],
           { cwd: dir }
         )
-      ).rejects.toThrow("Invalid --start-now 'maybe'. Expected true|false.");
+      ).rejects.toThrow("Invalid --target-type 'session'. Expected task|mission|workflow-template.");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -85,6 +99,19 @@ describe("CLI schedule commands", () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-cli-schedule-api-"));
     try {
       const config = loadConfig(dir);
+      const pluginDir = join(dir, "plugin");
+      mkdirSync(pluginDir, { recursive: true });
+      writeFileSync(
+        join(pluginDir, "success.js"),
+        "process.stdout.write(JSON.stringify({ output: { ok: true }, artifacts: [] }));",
+        "utf8"
+      );
+      const appState = openAppStateDatabase(config);
+      try {
+        seedRunnableTask(appState, pluginDir, "success.js", "task-cli-api-scheduled");
+      } finally {
+        appState.close();
+      }
       const server = createApiServer({
         config,
         host: "127.0.0.1",
@@ -108,14 +135,14 @@ describe("CLI schedule commands", () => {
             "add",
             "--id",
             "job-api",
-            "--session",
-            "s1",
-            "--input",
-            "hello from api schedule",
-            "--every-minutes",
-            "10",
-            "--start-now",
-            "false",
+            "--target-type",
+            "task",
+            "--target-id",
+            "task-cli-api-scheduled",
+            "--run-at",
+            "2026-06-01T09:00:00.000Z",
+            "--timezone",
+            "UTC",
             "--transport",
             "api",
             "--api-base-url",
@@ -223,3 +250,51 @@ describe("CLI schedule commands", () => {
     }
   });
 });
+
+function seedRunnableTask(
+  appState: ReturnType<typeof openAppStateDatabase>,
+  pluginDir: string,
+  scriptName: string,
+  taskId: string
+): void {
+  appState.plugins.upsert({
+    id: "team-orchestrator.test.cli-scheduler-runnable",
+    version: "0.1.0",
+    path: pluginDir,
+    enabled: true,
+    status: "loaded",
+    sourceType: "local",
+    manifest: { plugin: { name: "CLI Runnable Scheduler Test" } },
+    validationErrors: []
+  });
+  appState.agents.upsert({
+    id: "cli.scheduler.runnable.agent",
+    version: "1.0.0",
+    pluginId: "team-orchestrator.test.cli-scheduler-runnable",
+    pluginVersion: "0.1.0",
+    name: "CLI Runnable Scheduler Agent",
+    capabilities: ["test.run"],
+    manifest: {
+      agent: {
+        implementation: {
+          type: "local-command",
+          command: process.execPath,
+          args: [scriptName]
+        },
+        runtime: {
+          preferredBackend: "local-process",
+          workingDirectory: "."
+        }
+      }
+    },
+    status: "loaded"
+  });
+  appState.tasks.create({
+    id: taskId,
+    title: "CLI scheduled runnable task",
+    status: "ready",
+    assignedAgentId: "cli.scheduler.runnable.agent",
+    assignedAgentVersion: "1.0.0",
+    capabilityRequirements: ["test.run"]
+  });
+}

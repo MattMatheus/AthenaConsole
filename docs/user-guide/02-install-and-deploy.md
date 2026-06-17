@@ -55,13 +55,10 @@ docker compose -f docker-compose.server.yml up --build
 - `ATHENA_ALLOW_EXTERNAL_UNAUTHENTICATED` is NOT set; the server expects a trusted proxy to forward identity.
 - See [Trusted Proxy Auth](../developer/product-dev-guides/trusted-proxy-auth.md) for proxy header configuration.
 
-> ⚠️ **Preview — not yet enforced in the current build.**
-> This describes the **target** behavior. As of this build, workspace/multi-user
-> isolation is **not enforced**: workspace scope is client-asserted
-> (`x-athena-scope-workspaces` header), there is no membership model, and
-> cross-workspace reads are not blocked at the data layer. Tracking: epic
-> 2026.44 stories .02–.04. **Do not expose a shared/multi-user deployment to
-> untrusted users until these land.**
+> **Status**: Trusted-server deployment has workspace membership and
+> membership-backed workspace scope narrowing. Before exposing it to mixed-trust
+> users, also review the remaining cost-governance, Postgres/server persistence,
+> and operational-hardening gates in [Workspaces and Multiplayer](03-workspaces-and-multiplayer.md).
 
 ---
 

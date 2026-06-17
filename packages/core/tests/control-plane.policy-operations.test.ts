@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { describe, expect, it, vi } from "vitest";
 import type { ExecutionBackend, SandboxExecutionBackend } from "../src/control-plane/backends.js";
 import type { IDistributedLock } from "../src/control-plane/distributed-lock.js";
+import { openAppStateDatabase } from "../src/control-plane/app-state/index.js";
 import { InMemoryRejectionEventStore } from "../src/control-plane/rejection-event-store.js";
 import { createLocalControlPlaneServices } from "../src/control-plane/services.js";
 import { AthenaError } from "../src/runtime/errors.js";
@@ -132,7 +133,7 @@ describe("control-plane policy and operations services", () => {
     }
   });
 
-  it("enforces policy limits and default timeouts in control-plane services", async () => {
+  it("enforces policy limits and default run timeouts in control-plane services", async () => {
     const dir = mkdtempSync(join(tmpdir(), "athena-control-plane-policy-enforce-"));
     try {
       const observedTimeouts: number[] = [];
@@ -183,16 +184,6 @@ describe("control-plane policy and operations services", () => {
         input: "hello"
       });
       expect(observedTimeouts[0]).toBe(1234);
-
-      await services.scheduleService.upsert({
-        id: "job-timeout",
-        sessionId: "schedule-timeout-test",
-        input: "scheduled",
-        everyMinutes: 5,
-        startNow: true
-      });
-      await services.scheduleService.run("job-timeout");
-      expect(observedTimeouts[1]).toBe(2345);
 
       const heldRun = services.runService.run({
         sessionId: "hold-session",
@@ -1572,12 +1563,18 @@ describe("control-plane policy and operations services", () => {
         payload: "todo",
         mode: "followup"
       });
+      const appState = openAppStateDatabase(config);
+      try {
+        seedReadyScheduleTask(appState, "task-operations-summary");
+      } finally {
+        appState.close();
+      }
       await services.scheduleService.upsert({
         id: "job1",
-        sessionId: "s1",
-        input: "scheduled",
-        everyMinutes: 5,
-        startNow: true
+        targetType: "task",
+        targetId: "task-operations-summary",
+        runAt: "2026-06-01T09:00:00.000Z",
+        timezone: "UTC"
       });
       const putPolicy = await services.policyService.put({
         schemaVersion: 1,
@@ -1967,3 +1964,34 @@ describe("control-plane policy and operations services", () => {
     }
   });
 });
+
+function seedReadyScheduleTask(appState: ReturnType<typeof openAppStateDatabase>, taskId: string): void {
+  appState.plugins.upsert({
+    id: "team-orchestrator.test.policy-scheduler",
+    version: "0.1.0",
+    path: "/tmp/team-orchestrator-policy-scheduler",
+    enabled: true,
+    status: "loaded",
+    sourceType: "local",
+    manifest: { plugin: { name: "Policy Scheduler Test" } },
+    validationErrors: []
+  });
+  appState.agents.upsert({
+    id: "policy.scheduler.agent",
+    version: "1.0.0",
+    pluginId: "team-orchestrator.test.policy-scheduler",
+    pluginVersion: "0.1.0",
+    name: "Policy Scheduler Agent",
+    capabilities: ["test.run"],
+    manifest: {},
+    status: "loaded"
+  });
+  appState.tasks.create({
+    id: taskId,
+    title: "Scheduled policy task",
+    status: "ready",
+    assignedAgentId: "policy.scheduler.agent",
+    assignedAgentVersion: "1.0.0",
+    capabilityRequirements: ["test.run"]
+  });
+}

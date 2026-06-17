@@ -2,7 +2,7 @@
 
 # Agent Catalog
 
-**Route family**: `agent-catalog`  
+**Route family**: `agent-catalog`
 **No role check** — these endpoints are publicly readable (no `assertAllowed` call in route handlers; authorization.ts has no `AuthorizedAgentCatalogService`).
 
 ---
@@ -13,7 +13,7 @@
 
 List all loaded plugins with their catalog diagnostics and loaded agent counts.
 
-**Required role**: none (no role check in handler)  
+**Required role**: `Viewer`, `Operator`, or `Admin`
 **Query params**: none
 
 **Response** (`200`):
@@ -50,7 +50,7 @@ curl \
 
 List available agents, optionally filtered by capability.
 
-**Required role**: none (no role check in handler)  
+**Required role**: `Viewer`, `Operator`, or `Admin`
 **Query params**:
 
 | Parameter | Type | Description |
@@ -101,7 +101,7 @@ curl \
 
 List connector readiness status for all loaded connector packs.
 
-**Required role**: none (no role check in handler)  
+**Required role**: `Viewer`, `Operator`, or `Admin`
 **Query params**: none
 
 **Response** (`200`):

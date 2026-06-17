@@ -7,25 +7,30 @@ import type {
 } from "../../shared/contracts.js";
 import type {
   AppStateDatabase,
+  AppStateProvider,
+  AppStateProviderOptions,
   RunRecord,
   TaskRecord,
   WorkflowDagRunSnapshot,
   WorkflowDagStepRecord,
   WorkerHeartbeatRecord
 } from "../app-state/index.js";
-import { openAppStateDatabase } from "../app-state/index.js";
+import { resolveAppStateProvider } from "../app-state/index.js";
 import { isRetryFailurePhase, parseWorkflowTaskRetryPolicy, type RetryFailurePhase } from "./workflow-retry-policy.js";
 
-interface LocalWorkflowQueueStatusServiceOptions {
-  appState?: AppStateDatabase;
+interface LocalWorkflowQueueStatusServiceOptions extends AppStateProviderOptions {
   defaultStaleAfterMs?: number;
 }
 
 export class LocalWorkflowQueueStatusService {
+  private readonly appStateProvider: AppStateProvider;
+
   constructor(
     private readonly config: AthenaConfig,
     private readonly options: LocalWorkflowQueueStatusServiceOptions = {}
-  ) {}
+  ) {
+    this.appStateProvider = resolveAppStateProvider(config, options);
+  }
 
   getStatus(query: WorkflowQueueStatusQuery = {}): WorkflowQueueStatusResult {
     return this.withAppState((appState) => {
@@ -38,7 +43,7 @@ export class LocalWorkflowQueueStatusService {
       const workerEntries = workers.map((worker) => mapWorker(worker, at));
       const items: WorkflowQueueStatusItem[] = [];
 
-      for (const run of appState.workflowDagRuns.list({ limit })) {
+      for (const run of appState.workflowDagRuns.list({ limit, workspaceIds: query.workspaceIds })) {
         if (items.length >= limit) {
           break;
         }
@@ -76,15 +81,7 @@ export class LocalWorkflowQueueStatusService {
   }
 
   private withAppState<T>(read: (appState: AppStateDatabase) => T): T {
-    if (this.options.appState) {
-      return read(this.options.appState);
-    }
-    const appState = openAppStateDatabase(this.config);
-    try {
-      return read(appState);
-    } finally {
-      appState.close();
-    }
+    return this.appStateProvider.withAppState(read);
   }
 }
 

@@ -2,17 +2,19 @@ import { createHash } from "node:crypto";
 import { AthenaError } from "../../runtime/errors.js";
 import type { AthenaConfig } from "../../shared/config.js";
 import type { WorkflowRunGraphStatus, WorkflowRunStatusNode, WorkflowRunStatusTaskRunEvidence } from "../../shared/contracts.js";
-import { openAppStateDatabase, type AppStateDatabase, type WorkflowDagRunSnapshot } from "../app-state/index.js";
+import { resolveAppStateProvider, type AppStateDatabase, type AppStateProvider, type AppStateProviderOptions, type WorkflowDagRunSnapshot } from "../app-state/index.js";
 
-export interface LocalWorkflowStatusServiceOptions {
-  appState?: AppStateDatabase;
-}
+export interface LocalWorkflowStatusServiceOptions extends AppStateProviderOptions {}
 
 export class LocalWorkflowStatusService {
+  private readonly appStateProvider: AppStateProvider;
+
   constructor(
     private readonly config: AthenaConfig,
     private readonly options: LocalWorkflowStatusServiceOptions = {}
-  ) {}
+  ) {
+    this.appStateProvider = resolveAppStateProvider(config, options);
+  }
 
   async getStatus(runId: string): Promise<WorkflowRunGraphStatus> {
     return this.withAppState((appState) => {
@@ -24,16 +26,18 @@ export class LocalWorkflowStatusService {
     });
   }
 
+  async getRunWorkspaceId(runId: string): Promise<string> {
+    return this.withAppState((appState) => {
+      const run = appState.workflowDagRuns.get(runId);
+      if (!run) {
+        throw new AthenaError("CONFIG_ERROR", `workflowRuns.status.runId must reference an existing workflow run. Received: ${runId}.`);
+      }
+      return run.workspaceId;
+    });
+  }
+
   private withAppState<T>(read: (appState: AppStateDatabase) => T): T {
-    if (this.options.appState) {
-      return read(this.options.appState);
-    }
-    const appState = openAppStateDatabase(this.config);
-    try {
-      return read(appState);
-    } finally {
-      appState.close();
-    }
+    return this.appStateProvider.withAppState(read);
   }
 }
 
@@ -101,6 +105,7 @@ export function buildWorkflowRunGraphStatus(snapshot: WorkflowDagRunSnapshot, ap
   const status: WorkflowRunGraphStatus = {
     run: {
       id: snapshot.run.id,
+      workspaceId: snapshot.run.workspaceId,
       status: snapshot.run.status,
       workflowTemplate: {
         id: snapshot.run.workflowTemplateId,

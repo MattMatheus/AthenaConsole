@@ -257,26 +257,15 @@ async function setScheduleEnabled(services: ControlPlaneServices, id: string, en
   }
   const updated = await services.scheduleService.upsert({
     id: current.id,
-    ...(current.targetType
-      ? {
-          name: current.name,
-          targetType: current.targetType,
-          targetId: current.targetId,
-          inputBindings: current.inputBindings,
-          ...(current.rrule ? { rrule: current.rrule } : { runAt: current.nextRunAt }),
-          ...(current.timezone ? { timezone: current.timezone } : {}),
-          status: enabled ? "active" : "paused",
-          failurePolicy: current.failurePolicy
-        }
-      : {
-          sessionId: current.sessionId,
-          input: current.input,
-          everyMinutes: current.everyMinutes,
-          enabled,
-          startNow: false
-        }),
-    enabled,
-    startNow: false
+    name: current.name,
+    targetType: current.targetType ?? "task",
+    targetId: current.targetId ?? current.sessionId,
+    inputBindings: current.inputBindings,
+    ...(current.rrule ? { rrule: current.rrule } : { runAt: current.nextRunAt }),
+    ...(current.timezone ? { timezone: current.timezone } : {}),
+    status: enabled ? "active" : "paused",
+    failurePolicy: current.failurePolicy,
+    enabled
   });
   return {
     id,

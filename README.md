@@ -4,15 +4,13 @@ Team Orchestrator is a work control plane for teams and operators. Deploy it as 
 
 The product is built around a simple idea: agent systems should be inspectable and governable while they run. Operators and platform owners should be able to see which agent is doing what, which workspace owns the work, what state was persisted, what cost was incurred, what artifacts were produced, and why a run succeeded, failed, paused, or required approval.
 
-Deployment modes range from a single-operator local stack to a shared trusted-server profile. The default local path uses manifest-backed agents, plugins, SQLite app state, workflow templates, runtime safety policies, and a console-first operator experience. The enterprise/team path adds workspaces, RBAC, cost governance, distributed coordination, and Postgres-ready app-state boundaries.
+Deployment modes range from a single-operator local stack to a shared trusted-server profile. The default local path uses manifest-backed agents, plugins, SQLite app state, workflow templates, runtime safety policies, and a console-first operator experience. The enterprise/team path adds workspaces, membership-backed RBAC, cost governance, distributed coordination, and Postgres-ready app-state boundaries.
 
-> ⚠️ **Preview — not yet enforced in the current build.**
-> This describes the **target** behavior. As of this build, workspace/multi-user
-> isolation is **not enforced**: workspace scope is client-asserted
-> (`x-athena-scope-workspaces` header), there is no membership model, and
-> cross-workspace reads are not blocked at the data layer. Tracking: epic
-> 2026.44 stories .02–.04. **Do not expose a shared/multi-user deployment to
-> untrusted users until these land.**
+> **Status**: Partially production-ready for trusted-server use. Workspace CRUD,
+> workspace membership, Admin RBAC, and membership-backed workspace scope
+> narrowing are implemented. Remaining production-readiness gates include cost
+> budget enforcement, Postgres/server persistence readiness, and the operational
+> hardening documented in the user guide.
 
 ## What It Does
 
@@ -25,7 +23,7 @@ Team Orchestrator provides:
 - File-backed artifact payloads for transcripts, run evidence, agent reports, and other inspectable outputs.
 - Workflow-template DAG execution with restart-safe run state and status inspection.
 - Runtime safety defaults, loop limits, approval hooks, and pluggable execution backends.
-- Workspace, RBAC, usage/cost, and server-readiness foundations for enterprise operation.
+- Workspace, membership-backed RBAC, usage/cost, and server-readiness foundations for enterprise operation.
 - A checked-in first-run sample plugin at `sample-plugins/first-run-demo`.
 
 ## Current Status
@@ -157,4 +155,4 @@ For an end-to-end local-server proof, follow [Fresh Server Real-Work Walkthrough
 
 The package names still use `athena` in several places while the product direction has moved to Team Orchestrator. Treat `athena` package names and CLI names as implementation history for now.
 
-This project is enterprise-first by narrative and supports local deployment as one profile. Production-grade multi-user operation is gated by workspace lifecycle, server-bound RBAC, cost governance, and Postgres-readiness work — see the preview banner above and [docs/conventions.md](docs/conventions.md) for what is and is not yet enforced.
+This project is enterprise-first by narrative and supports local deployment as one profile. Production-grade multi-user operation is gated by the remaining cost-governance, Postgres-readiness, and operational-hardening work documented in [docs/conventions.md](docs/conventions.md) and the user guide.

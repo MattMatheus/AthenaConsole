@@ -35,17 +35,20 @@ services:
     build:
       context: .
       dockerfile: packages/core/infrastructure/docker/console.prod.Dockerfile
-      args:
-        VITE_ATHENA_API_TOKEN: ${ATHENA_AUTH_API_TOKEN:?Set ATHENA_AUTH_API_TOKEN to a production API token of at least 16 characters}
-        VITE_ATHENA_IDENTITY: console
-        VITE_CONSOLE_PASSWORD: ${ATHENA_CONSOLE_PASSWORD:?Set ATHENA_CONSOLE_PASSWORD for production-like console access}
+    environment:
+      ATHENA_AUTH_API_TOKEN: ${ATHENA_AUTH_API_TOKEN:?Set ATHENA_AUTH_API_TOKEN to a production API token of at least 16 characters}
+      ATHENA_CONSOLE_PASSWORD: ${ATHENA_CONSOLE_PASSWORD:?Set ATHENA_CONSOLE_PASSWORD for production-like console access}
     depends_on:
       api:
         condition: service_healthy
     ports:
       - "5173:80"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "AUTH=$$(printf 'operator:%s' \"$$ATHENA_CONSOLE_PASSWORD\" | base64 | tr -d '\\n'); wget -q -O /dev/null --header \"Authorization: Basic $$AUTH\" http://127.0.0.1/ || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5

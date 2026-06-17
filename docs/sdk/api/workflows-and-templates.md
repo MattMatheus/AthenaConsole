@@ -14,7 +14,7 @@ Workflows are DAG-based execution graphs defined by workflow templates. A workfl
 
 List available workflow templates.
 
-**Required role**: no role check enforced in the current build (no `AuthorizedWorkflowTemplateCatalogService`)  
+**Required role**: `Viewer`, `Operator`, or `Admin`
 **Query params**:
 
 | Parameter | Type | Description |
@@ -54,8 +54,8 @@ curl \
 
 Instantiate a workflow template. Creates a mission and its constituent tasks from the template graph.
 
-**Required role**: no role check enforced in the current build  
-**Path params**: `id` — workflow template ID  
+**Required role**: `Operator` or `Admin`
+**Path params**: `id` — workflow template ID
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -85,7 +85,7 @@ curl -X POST \
 
 Get the current workflow queue status.
 
-**Required role**: `Operator` or `Admin` (authorization.ts `workflowQueue.status` operation)  
+**Required role**: `Operator` or `Admin` (authorization.ts `workflowQueue.status` operation)
 **Query params**:
 
 | Parameter | Type | Description |
@@ -111,7 +111,7 @@ curl \
 
 Get the execution graph status for a workflow run.
 
-**Required role**: `Operator` or `Admin` (authorization.ts `workflowRun.status` operation)  
+**Required role**: `Operator` or `Admin` (authorization.ts `workflowRun.status` operation)
 **Path params**: `runId` — workflow run ID
 
 **Response** (`200`):
@@ -160,8 +160,8 @@ curl \
 
 Advance a workflow run by executing all pending nodes whose dependencies are satisfied.
 
-**Required role**: no role check enforced in the current build (no authorizer for `workflowDagExecutorService`)  
-**Path params**: `runId` — workflow run ID  
+**Required role**: `Operator` or `Admin`
+**Path params**: `runId` — workflow run ID
 **Request body**: empty `{}`
 
 **Response** (`200`): Execution result with executed step IDs and current graph snapshot.

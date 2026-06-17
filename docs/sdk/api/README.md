@@ -39,19 +39,9 @@ Relevant error codes when auth is misconfigured:
 | `AUTH_IDENTITY_MISSING` | Identity header is absent |
 | `AUTHZ_DENIED` | Caller's role does not meet the required role for the operation |
 
-### Scope headers (client-asserted)
+### Scope headers
 
-> ⚠️ **Preview — not yet enforced in the current build.**
-> This describes the **target** behavior. As of this build, workspace/multi-user
-> isolation is **not enforced**: workspace scope is client-asserted
-> (`x-athena-scope-workspaces` header), there is no membership model, and
-> cross-workspace reads are not blocked at the data layer. Tracking: epic
-> 2026.44 stories .02–.04. **Do not expose a shared/multi-user deployment to
-> untrusted users until these land.**
-
-The following optional request headers allow a client token to narrow its own scope.
-These are not security boundaries — they are self-imposed restrictions used by
-embedded clients (e.g. CLI harnesses, agent runners) to limit which resources they can touch.
+The following optional request headers allow a client token to narrow its request scope. Workspace scope is membership-backed for non-admin subjects: `x-athena-scope-workspaces` can only name workspaces the authenticated subject belongs to, otherwise the request fails with `AUTHZ_DENIED`. Other scope headers remain self-imposed restrictions used by embedded clients (e.g. CLI harnesses, agent runners) to limit which resources they can touch.
 
 | Header | Purpose |
 | --- | --- |
@@ -61,7 +51,11 @@ embedded clients (e.g. CLI harnesses, agent runners) to limit which resources th
 | `x-athena-scope-runs` | Comma-separated run IDs to restrict to |
 | `x-athena-scope-global` | `true` to assert global (unrestricted) scope |
 
-**Reference**: `packages/core/src/api/middleware/auth.ts:77`
+**Reference**: `packages/core/src/api/middleware/auth.ts`
+
+> **Maintainer note**: Endpoint role statements in this reference must be kept
+> aligned with `packages/core/src/control-plane/services/authorization.ts`.
+> `npm run check:docs` fails on stale role-reference phrases.
 
 ---
 

@@ -1302,6 +1302,12 @@ describe("api server", () => {
         )
       ).toBe(true);
 
+      const scheduleAppState = openAppStateDatabase(config);
+      try {
+        seedRunnableScheduleTask(scheduleAppState, "task-api-server-scheduled");
+      } finally {
+        scheduleAppState.close();
+      }
       const createScheduleResponse = await fetch(`${base}/api/v1/schedules`, {
         method: "POST",
         headers: {
@@ -1309,19 +1315,20 @@ describe("api server", () => {
         },
         body: JSON.stringify({
           id: "job1",
-          sessionId: "s1",
-          input: "scheduled hello",
-          everyMinutes: 5,
-          startNow: false
+          targetType: "task",
+          targetId: "task-api-server-scheduled",
+          runAt: "2026-06-01T09:00:00.000Z",
+          timezone: "UTC"
         })
       });
       expect(createScheduleResponse.status).toBe(200);
       const createScheduleEnvelope = (await createScheduleResponse.json()) as {
         ok: boolean;
-        data: { id: string; sessionId: string };
+        data: { id: string; targetType?: string; targetId?: string };
       };
       expect(createScheduleEnvelope.ok).toBe(true);
       expect(createScheduleEnvelope.data.id).toBe("job1");
+      expect(createScheduleEnvelope.data.targetType).toBe("task");
 
       const runScheduleResponse = await fetch(`${base}/api/v1/schedules/job1/run`, {
         method: "POST",
@@ -3183,6 +3190,49 @@ function seedConnectorReadinessCatalog(appState: ReturnType<typeof openAppStateD
       });
     }
   }
+}
+
+function seedRunnableScheduleTask(appState: ReturnType<typeof openAppStateDatabase>, taskId: string): void {
+  appState.plugins.upsert({
+    id: "team-orchestrator.test.api-server-scheduler",
+    version: "0.1.0",
+    path: process.cwd(),
+    enabled: true,
+    status: "loaded",
+    sourceType: "local",
+    manifest: { plugin: { name: "API Server Scheduler Test" } },
+    validationErrors: []
+  });
+  appState.agents.upsert({
+    id: "api.server.scheduler.agent",
+    version: "1.0.0",
+    pluginId: "team-orchestrator.test.api-server-scheduler",
+    pluginVersion: "0.1.0",
+    name: "API Server Scheduler Agent",
+    capabilities: ["test.run"],
+    manifest: {
+      agent: {
+        implementation: {
+          type: "local-command",
+          command: process.execPath,
+          args: ["-e", 'process.stdout.write(JSON.stringify({ output: { ok: true }, artifacts: [] }));']
+        },
+        runtime: {
+          preferredBackend: "local-process",
+          workingDirectory: "."
+        }
+      }
+    },
+    status: "loaded"
+  });
+  appState.tasks.create({
+    id: taskId,
+    title: "API server scheduled task",
+    status: "ready",
+    assignedAgentId: "api.server.scheduler.agent",
+    assignedAgentVersion: "1.0.0",
+    capabilityRequirements: ["test.run"]
+  });
 }
 
 function connectorManifest(readiness?: Record<string, unknown>): Record<string, unknown> {

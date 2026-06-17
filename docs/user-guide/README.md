@@ -39,6 +39,6 @@ For agent authoring, capability pack development, and the HTTP API reference, se
 
 ---
 
-## Preview Status
+## Enterprise Readiness
 
-Some multi-user capabilities are designed but not yet enforced. Every section that describes an unbuilt or partially-enforced capability carries the preview banner from [docs/conventions.md](../conventions.md). Read those banners before deploying to untrusted users.
+Some enterprise capabilities are still partially production-ready rather than complete. Sections that depend on remaining gates call out the specific status: workspace membership and scope narrowing are implemented, while cost-governance enforcement and server persistence readiness remain active work. Read those status notes before deploying to mixed-trust users.

@@ -15,8 +15,8 @@ import type {
   AgentCatalogValidationIssue
 } from "../../shared/contracts.js";
 import type { AgentCatalogService } from "../interfaces.js";
-import type { AppStateDatabase, AgentIndexRecord, PluginIndexRecord } from "../app-state/index.js";
-import { openAppStateDatabase } from "../app-state/index.js";
+import type { AppStateDatabase, AgentIndexRecord, AppStateProvider, AppStateProviderOptions, PluginIndexRecord } from "../app-state/index.js";
+import { resolveAppStateProvider } from "../app-state/index.js";
 import { evaluateConnectorReadiness } from "../connectors.js";
 import { evaluateProviderReadiness, normalizeModelProviderRequirement } from "./provider-readiness.js";
 
@@ -54,15 +54,17 @@ interface PluginManifestDocument {
   };
 }
 
-export interface LocalAgentCatalogServiceOptions {
-  appState?: AppStateDatabase;
-}
+export interface LocalAgentCatalogServiceOptions extends AppStateProviderOptions {}
 
 export class LocalAgentCatalogService implements AgentCatalogService {
+  private readonly appStateProvider: AppStateProvider;
+
   constructor(
     private readonly config: AthenaConfig,
     private readonly options: LocalAgentCatalogServiceOptions = {}
-  ) {}
+  ) {
+    this.appStateProvider = resolveAppStateProvider(config, options);
+  }
 
   async listPlugins(): Promise<AgentCatalogPluginListResult> {
     return this.withAppState((appState) => {
@@ -110,15 +112,7 @@ export class LocalAgentCatalogService implements AgentCatalogService {
   }
 
   private withAppState<T>(read: (appState: AppStateDatabase) => T): T {
-    if (this.options.appState) {
-      return read(this.options.appState);
-    }
-    const appState = openAppStateDatabase(this.config);
-    try {
-      return read(appState);
-    } finally {
-      appState.close();
-    }
+    return this.appStateProvider.withAppState(read);
   }
 }
 

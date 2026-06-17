@@ -9,17 +9,15 @@ COPY packages/pdk/package*.json ./packages/pdk/
 RUN npm ci
 
 COPY . .
-ARG VITE_ATHENA_API_TOKEN
-ARG VITE_ATHENA_IDENTITY
-ARG VITE_CONSOLE_PASSWORD
-ENV VITE_ATHENA_API_TOKEN=$VITE_ATHENA_API_TOKEN
-ENV VITE_ATHENA_IDENTITY=$VITE_ATHENA_IDENTITY
-ENV VITE_CONSOLE_PASSWORD=$VITE_CONSOLE_PASSWORD
 RUN npm run build --workspace @athena/console
 
 FROM nginx:1.27-alpine
-COPY packages/core/infrastructure/docker/console.nginx.prod.conf /etc/nginx/conf.d/default.conf
+RUN apk add --no-cache apache2-utils
+COPY packages/core/infrastructure/docker/console.nginx.prod.conf /etc/nginx/templates/athena-console.conf.template
+COPY packages/core/infrastructure/docker/console-entrypoint.sh /usr/local/bin/athena-console-entrypoint.sh
+RUN chmod +x /usr/local/bin/athena-console-entrypoint.sh
 COPY --from=builder /workspace/apps/console/dist /usr/share/nginx/html
 
 EXPOSE 80
+ENTRYPOINT ["/usr/local/bin/athena-console-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]

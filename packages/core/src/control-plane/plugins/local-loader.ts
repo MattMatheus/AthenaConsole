@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync } from "node:fs";
 import { isAbsolute, resolve, sep } from "node:path";
-import type { AppStateDatabase } from "../app-state/index.js";
-import { openAppStateDatabase } from "../app-state/index.js";
+import type { AppStateDatabase, AppStateProviderOptions } from "../app-state/index.js";
+import { resolveAppStateProvider } from "../app-state/index.js";
 import {
   loadYamlManifest,
   validateManifestFile,
@@ -52,8 +52,7 @@ export interface PluginIndexResult {
   plugins: IndexedPluginSummary[];
 }
 
-export interface PluginIndexOptions {
-  appState?: AppStateDatabase;
+export interface PluginIndexOptions extends AppStateProviderOptions {
   searchPaths?: string[];
   systemPluginPaths?: string[];
 }
@@ -149,9 +148,8 @@ export function discoverLocalPluginRoots(searchPath: string): string[] {
 }
 
 export function indexConfiguredLocalPlugins(config: AthenaConfig, options: PluginIndexOptions = {}): PluginIndexResult {
-  const ownsAppState = !options.appState;
-  const appState = options.appState ?? openAppStateDatabase(config);
-  try {
+  const appStateProvider = resolveAppStateProvider(config, options);
+  return appStateProvider.withAppState((appState) => {
     const searchPaths = resolveConfiguredPluginSearchPaths(config, options);
     const seenPluginRoots = new Set<string>();
     const discoveredPlugins: DiscoveredPluginRoot[] = [];
@@ -181,11 +179,7 @@ export function indexConfiguredLocalPlugins(config: AthenaConfig, options: Plugi
     });
 
     return { plugins };
-  } finally {
-    if (ownsAppState) {
-      appState.close();
-    }
-  }
+  });
 }
 
 export function indexLocalPluginPackage(

@@ -59,6 +59,8 @@ import type {
 import type {
   AgentIndexRecord,
   AppStateDatabase,
+  AppStateProvider,
+  AppStateProviderOptions,
   ArtifactMetadataRecord,
   PluginIndexRecord,
   RunVerificationStatus,
@@ -67,15 +69,14 @@ import type {
   RunRecord,
   TaskRecord
 } from "../app-state/index.js";
-import { openAppStateDatabase } from "../app-state/index.js";
+import { resolveAppStateProvider } from "../app-state/index.js";
 import type { EventService, TaskWorkbenchService } from "../interfaces.js";
 import { LocalModelProviderConfigService } from "./model-providers.js";
 import type { DurableMemoryService } from "./durable-memory.js";
 import { evaluateProviderReadiness, normalizeModelProviderRequirement } from "./provider-readiness.js";
 import { LocalWorkflowStateService } from "./workflow-state.js";
 
-export interface LocalTaskWorkbenchServiceOptions {
-  appState?: AppStateDatabase;
+export interface LocalTaskWorkbenchServiceOptions extends AppStateProviderOptions {
   durableMemoryService?: DurableMemoryService;
   eventService?: EventService;
 }
@@ -107,6 +108,32 @@ interface ActiveTaskRun {
   agentId: string;
   backend: TaskExecutionBackend;
   cancellationRequested: boolean;
+}
+
+export function createTaskInAppState(appState: AppStateDatabase, request: TaskWorkbenchTaskCreateRequest): TaskWorkbenchTask {
+  validateReadyAssignment(request.status ?? "draft", request.assignedAgentId);
+  validateCompatibleAssignment(appState, request.assignedAgentId, request.assignedAgentVersion, request.capabilityRequirements ?? []);
+  try {
+    const created = appState.tasks.create({
+      id: request.id ?? `task-${randomUUID()}`,
+      title: request.title,
+      ...(request.description !== undefined ? { description: request.description } : {}),
+      ...(request.status !== undefined ? { status: request.status } : {}),
+      ...(request.capabilityRequirements !== undefined ? { capabilityRequirements: request.capabilityRequirements } : {}),
+      ...(request.assignedAgentId !== undefined ? { assignedAgentId: request.assignedAgentId } : {}),
+      ...(request.assignedAgentVersion !== undefined ? { assignedAgentVersion: request.assignedAgentVersion } : {}),
+      inputs: normalizeTaskInputsWithRunMode(request.inputs),
+      ...(request.dependsOn !== undefined ? { dependsOn: request.dependsOn } : {}),
+      ...(request.workspaceId !== undefined ? { workspaceId: request.workspaceId } : {}),
+      ...(request.missionId !== undefined ? { missionId: request.missionId } : {}),
+      ...(request.sourceRunId !== undefined ? { sourceRunId: request.sourceRunId } : {}),
+      ...(request.provenance !== undefined ? { provenance: request.provenance } : {}),
+      ...(request.createdBy !== undefined ? { createdBy: request.createdBy } : {})
+    });
+    return mapTaskRecord(created, appState);
+  } catch (error) {
+    throw normalizeTaskRepositoryError(error);
+  }
 }
 
 type TaskExecutionBackend = "local-process" | "container-command" | "http-api";
@@ -322,12 +349,15 @@ interface RuntimeMemoryProposeRequest {
 }
 
 export class LocalTaskWorkbenchService implements TaskWorkbenchService {
+  private readonly appStateProvider: AppStateProvider;
   private readonly activeRuns = new Map<string, ActiveTaskRun>();
 
   constructor(
     private readonly config: AthenaConfig,
     private readonly options: LocalTaskWorkbenchServiceOptions = {}
-  ) {}
+  ) {
+    this.appStateProvider = resolveAppStateProvider(config, options);
+  }
 
   async metadata(): Promise<TaskWorkbenchMetadata> {
     return {
@@ -362,29 +392,7 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
 
   async create(request: TaskWorkbenchTaskCreateRequest): Promise<TaskWorkbenchTask> {
     return this.withAppState((appState) => {
-      validateReadyAssignment(request.status ?? "draft", request.assignedAgentId);
-      validateCompatibleAssignment(appState, request.assignedAgentId, request.assignedAgentVersion, request.capabilityRequirements ?? []);
-      try {
-        const created = appState.tasks.create({
-          id: request.id ?? `task-${randomUUID()}`,
-          title: request.title,
-          ...(request.description !== undefined ? { description: request.description } : {}),
-          ...(request.status !== undefined ? { status: request.status } : {}),
-          ...(request.capabilityRequirements !== undefined ? { capabilityRequirements: request.capabilityRequirements } : {}),
-          ...(request.assignedAgentId !== undefined ? { assignedAgentId: request.assignedAgentId } : {}),
-          ...(request.assignedAgentVersion !== undefined ? { assignedAgentVersion: request.assignedAgentVersion } : {}),
-          inputs: normalizeTaskInputsWithRunMode(request.inputs),
-          ...(request.dependsOn !== undefined ? { dependsOn: request.dependsOn } : {}),
-          ...(request.workspaceId !== undefined ? { workspaceId: request.workspaceId } : {}),
-          ...(request.missionId !== undefined ? { missionId: request.missionId } : {}),
-          ...(request.sourceRunId !== undefined ? { sourceRunId: request.sourceRunId } : {}),
-          ...(request.provenance !== undefined ? { provenance: request.provenance } : {}),
-          ...(request.createdBy !== undefined ? { createdBy: request.createdBy } : {})
-        });
-        return mapTaskRecord(created, appState);
-      } catch (error) {
-        throw normalizeTaskRepositoryError(error);
-      }
+      return createTaskInAppState(appState, request);
     });
   }
 
@@ -1017,27 +1025,11 @@ export class LocalTaskWorkbenchService implements TaskWorkbenchService {
   }
 
   private withAppState<T>(access: (appState: AppStateDatabase) => T): T {
-    if (this.options.appState) {
-      return access(this.options.appState);
-    }
-    const appState = openAppStateDatabase(this.config);
-    try {
-      return access(appState);
-    } finally {
-      appState.close();
-    }
+    return this.appStateProvider.withAppState(access);
   }
 
   private async withAppStateAsync<T>(access: (appState: AppStateDatabase) => Promise<T>): Promise<T> {
-    if (this.options.appState) {
-      return access(this.options.appState);
-    }
-    const appState = openAppStateDatabase(this.config);
-    try {
-      return await access(appState);
-    } finally {
-      appState.close();
-    }
+    return this.appStateProvider.withAppStateAsync(access);
   }
 
   private async emitEvidenceBundleExportedAudit(audit: EvidenceBundleExportAudit): Promise<void> {

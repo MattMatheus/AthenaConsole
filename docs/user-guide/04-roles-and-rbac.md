@@ -37,17 +37,9 @@ This matrix is derived from `packages/core/src/control-plane/services/authorizat
 
 ---
 
-## Per-Workspace RBAC (Preview)
+## Per-Workspace RBAC
 
-> ⚠️ **Preview — not yet enforced in the current build.**
-> This describes the **target** behavior. As of this build, workspace/multi-user
-> isolation is **not enforced**: workspace scope is client-asserted
-> (`x-athena-scope-workspaces` header), there is no membership model, and
-> cross-workspace reads are not blocked at the data layer. Tracking: epic
-> 2026.44 stories .02–.04. **Do not expose a shared/multi-user deployment to
-> untrusted users until these land.**
-
-Target: role assignments will be scoped per workspace, so a user can be an Operator in workspace A and a Viewer in workspace B. As of this build, role assignments are global — there is no per-workspace role scoping.
+Workspace membership records assign `Viewer`, `Operator`, or `Admin` roles per workspace. A user can be an Operator in one workspace and a Viewer in another. The `x-athena-scope-workspaces` header can narrow a request to specific workspaces, and the server rejects workspace IDs outside the caller's membership scope.
 
 ---
 

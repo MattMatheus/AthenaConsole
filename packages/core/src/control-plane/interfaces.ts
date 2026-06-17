@@ -80,6 +80,8 @@ import type {
   RunResult,
   ScheduleRunLog,
   ScheduledTask,
+  RunScheduleResult,
+  UpsertScheduleRequest,
   SessionArtifactRecord,
   SessionArtifactSummary,
   IdentityRoleAssignment,
@@ -123,7 +125,6 @@ import type {
   ConnectedRepositoryListResult
 } from "../shared/contracts/repositories.js";
 import type { WorkflowDagExecutionResult } from "./services/workflow-dag-executor.js";
-import type { RunScheduleResult, UpsertScheduleRequest } from "../schedule/index.js";
 import type { DrainResult, EnqueueWorkRequest } from "../work/index.js";
 import type { MemoryGetRequest, MemoryGetResult, MemorySearchOptions } from "../memory/index.js";
 import type { TranscriptSubscription } from "../runtime/transcript-stream.js";
@@ -183,6 +184,7 @@ export interface RunTemplateService {
 }
 
 export interface WorkflowStatusService {
+  getRunWorkspaceId(runId: string): Promise<string>;
   getStatus(runId: string): Promise<WorkflowRunGraphStatus>;
 }
 
@@ -191,6 +193,7 @@ export interface WorkflowQueueStatusService {
 }
 
 export interface WorkflowDagExecutorService {
+  getRunWorkspaceId(runId: string): Promise<string>;
   execute(runId: string): Promise<WorkflowDagExecutionResult>;
   resume(runId: string): Promise<WorkflowDagExecutionResult>;
 }

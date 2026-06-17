@@ -1,61 +1,44 @@
 import { AthenaError } from "../../runtime/errors.js";
-import type { ScheduleStatus, ScheduleTargetType } from "../../shared/contracts.js";
-import { optionalBoolean, optionalString, requirePositiveInt, requireString } from "../validation.js";
+import type { ScheduleStatus, ScheduleTargetType, UpsertScheduleRequest } from "../../shared/contracts.js";
+import { optionalBoolean, optionalString, requireString } from "../validation.js";
 
 export function parseScheduleUpsertRequest(
   body: Record<string, unknown>,
   context: "schedules.create" | "schedules.update"
-): {
-  sessionId?: string;
-  input?: string;
-  everyMinutes?: number;
-  enabled?: boolean;
-  startNow?: boolean;
-  name?: string;
-  targetType?: ScheduleTargetType;
-  targetId?: string;
-  inputBindings?: unknown;
-  runAt?: string;
-  rrule?: string;
-  timezone?: string;
-  status?: ScheduleStatus;
-  failurePolicy?: unknown;
-} {
+): Omit<UpsertScheduleRequest, "id"> & { id?: string } {
   const enabled = optionalBoolean(body, "enabled", context);
-  const startNow = optionalBoolean(body, "startNow", context);
   const targetType = parseOptionalTargetType(body.targetType, `${context}.targetType`);
-  if (targetType) {
-    const runAt = optionalString(body, "runAt", context);
-    const rrule = optionalString(body, "rrule", context);
-    if (!runAt && !rrule) {
-      throw new AthenaError("CONFIG_ERROR", `${context} requires runAt or rrule for target schedules.`);
-    }
-    if (runAt && Number.isNaN(new Date(runAt).getTime())) {
-      throw new AthenaError("CONFIG_ERROR", `${context}.runAt must be a valid ISO datetime.`);
-    }
-    if (targetType === "workflow-template") {
-      validateWorkflowTemplateScheduleBindings(body.inputBindings, `${context}.inputBindings`);
-    }
-    return {
-      name: optionalString(body, "name", context),
-      targetType,
-      targetId: requireString(body, "targetId", context),
-      ...(body.inputBindings !== undefined ? { inputBindings: body.inputBindings } : {}),
-      ...(runAt ? { runAt } : {}),
-      ...(rrule ? { rrule } : {}),
-      ...(optionalString(body, "timezone", context) ? { timezone: optionalString(body, "timezone", context) } : {}),
-      ...(parseOptionalStatus(body.status, `${context}.status`) ? { status: parseOptionalStatus(body.status, `${context}.status`) } : {}),
-      ...(body.failurePolicy !== undefined ? { failurePolicy: body.failurePolicy } : {}),
-      ...(enabled !== undefined ? { enabled } : {}),
-      ...(startNow !== undefined ? { startNow } : {})
-    };
+  if (!targetType) {
+    throw new AthenaError(
+      "CONFIG_ERROR",
+      `${context}.targetType is required; schedules must target task, mission, or workflow-template.`
+    );
   }
+  const runAt = optionalString(body, "runAt", context);
+  const rrule = optionalString(body, "rrule", context);
+  if (!runAt && !rrule) {
+    throw new AthenaError("CONFIG_ERROR", `${context} requires runAt or rrule for target schedules.`);
+  }
+  if (runAt && Number.isNaN(new Date(runAt).getTime())) {
+    throw new AthenaError("CONFIG_ERROR", `${context}.runAt must be a valid ISO datetime.`);
+  }
+  if (targetType === "workflow-template") {
+    validateWorkflowTemplateScheduleBindings(body.inputBindings, `${context}.inputBindings`);
+  }
+  const timezone = optionalString(body, "timezone", context);
+  const status = parseOptionalStatus(body.status, `${context}.status`);
   return {
-    sessionId: requireString(body, "sessionId", context),
-    input: requireString(body, "input", context),
-    everyMinutes: requirePositiveInt(body, "everyMinutes", context),
-    ...(enabled !== undefined ? { enabled } : {}),
-    ...(startNow !== undefined ? { startNow } : {})
+    ...(body.id !== undefined ? { id: requireString(body, "id", context) } : {}),
+    name: optionalString(body, "name", context),
+    targetType,
+    targetId: requireString(body, "targetId", context),
+    ...(body.inputBindings !== undefined ? { inputBindings: body.inputBindings } : {}),
+    ...(runAt ? { runAt } : {}),
+    ...(rrule ? { rrule } : {}),
+    ...(timezone ? { timezone } : {}),
+    ...(status ? { status } : {}),
+    ...(body.failurePolicy !== undefined ? { failurePolicy: body.failurePolicy } : {}),
+    ...(enabled !== undefined ? { enabled } : {})
   };
 }
 

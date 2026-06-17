@@ -14,7 +14,7 @@ A mission is a container for a group of related tasks. Missions allow you to org
 
 List missions.
 
-**Required role**: no role check enforced in the current build (no `AuthorizedMissionWorkbenchService` in authorization.ts)  
+**Required role**: `Viewer`, `Operator`, or `Admin`
 **Query params**:
 
 | Parameter | Type | Description |
@@ -56,7 +56,7 @@ curl \
 
 Create a mission.
 
-**Required role**: no role check enforced in the current build  
+**Required role**: `Operator` or `Admin`
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -83,7 +83,7 @@ curl -X POST \
 
 Get a single mission.
 
-**Required role**: no role check enforced in the current build  
+**Required role**: `Viewer`, `Operator`, or `Admin`
 **Path params**: `id` — mission ID
 
 **Response** (`200`): Full mission object.
@@ -103,8 +103,8 @@ curl \
 
 Update a mission.
 
-**Required role**: no role check enforced in the current build  
-**Path params**: `id` — mission ID  
+**Required role**: `Operator` or `Admin`
+**Path params**: `id` — mission ID
 **Request body**: Same optional fields as `POST /api/v1/missions`
 
 **Response** (`200`): Updated mission object.
@@ -126,8 +126,8 @@ curl -X PUT \
 
 Run a mission (trigger execution of all ready tasks).
 
-**Required role**: no role check enforced in the current build  
-**Path params**: `id` — mission ID  
+**Required role**: `Operator` or `Admin`
+**Path params**: `id` — mission ID
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -154,7 +154,7 @@ curl -X POST \
 
 List all runs for a mission.
 
-**Required role**: no role check enforced in the current build  
+**Required role**: `Viewer`, `Operator`, or `Admin`
 **Path params**: `id` — mission ID
 
 **Response** (`200`): `{ items: [...] }`
@@ -174,7 +174,7 @@ curl \
 
 List tasks belonging to a mission.
 
-**Required role**: no role check enforced in the current build  
+**Required role**: `Viewer`, `Operator`, or `Admin`
 **Path params**: `id` — mission ID
 
 **Response** (`200`): Task list.
@@ -194,8 +194,8 @@ curl \
 
 Create a new task and add it to the mission.
 
-**Required role**: no role check enforced in the current build  
-**Path params**: `id` — mission ID  
+**Required role**: `Operator` or `Admin`
+**Path params**: `id` — mission ID
 **Request body**: Same as `POST /api/v1/tasks` (the `missionId` is set automatically).
 
 **Response** (`200`): Created task object.
@@ -217,8 +217,8 @@ curl -X POST \
 
 Attach an existing task to a mission.
 
-**Required role**: no role check enforced in the current build  
-**Path params**: `id` — mission ID  
+**Required role**: `Operator` or `Admin`
+**Path params**: `id` — mission ID
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -244,7 +244,7 @@ curl -X POST \
 
 Get a mission run by ID.
 
-**Required role**: no role check enforced in the current build  
+**Required role**: `Viewer`, `Operator`, or `Admin`
 **Path params**: `runId` — mission run ID
 
 **Response** (`200`): Mission run detail.

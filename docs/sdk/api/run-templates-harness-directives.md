@@ -20,7 +20,7 @@ Combine them in `POST /api/v1/runs` via `directiveId` and `harnessProfileId`, or
 
 List run templates.
 
-**Required role**: no role check enforced in the current build (no `AuthorizedRunTemplateService`)  
+**Required role**: `Operator` or `Admin`
 **Query params**: `cursor`, `limit` (standard pagination)
 
 **Response** (`200`):
@@ -57,7 +57,7 @@ curl \
 
 Create a run template.
 
-**Required role**: no role check enforced in the current build  
+**Required role**: `Operator` or `Admin`
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -86,8 +86,8 @@ curl -X POST \
 
 Execute a run template.
 
-**Required role**: no role check enforced in the current build  
-**Path params**: `id` — run template ID  
+**Required role**: `Operator` or `Admin`
+**Path params**: `id` — run template ID
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -117,7 +117,7 @@ curl -X POST \
 
 List harness profiles.
 
-**Required role**: no role check enforced in the current build (no `AuthorizedHarnessProfileService`)  
+**Required role**: `Operator` or `Admin`
 **Query params**: `cursor`, `limit` (standard pagination)
 
 **Response** (`200`):
@@ -163,7 +163,7 @@ curl \
 
 Create a harness profile.
 
-**Required role**: no role check enforced in the current build  
+**Required role**: `Operator` or `Admin`
 **Request body**:
 
 | Field | Type | Required | Description |
@@ -200,7 +200,7 @@ curl -X POST \
 
 List directives. Scoped: token holders can restrict to agent-scoped directives via `x-athena-scope-agents`.
 
-**Required role**: `Operator` or `Admin`  
+**Required role**: `Operator` or `Admin`
 **Query params**: `cursor`, `limit` (standard pagination)
 
 **Response** (`200`):
@@ -237,7 +237,7 @@ curl \
 
 Create a directive.
 
-**Required role**: `Operator` or `Admin`  
+**Required role**: `Operator` or `Admin`
 **Request body**:
 
 | Field | Type | Required | Description |

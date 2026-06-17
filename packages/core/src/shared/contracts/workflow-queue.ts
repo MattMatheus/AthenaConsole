@@ -4,6 +4,7 @@ export interface WorkflowQueueStatusQuery {
   at?: string;
   staleAfterMs?: number;
   limit?: number;
+  workspaceIds?: string[];
 }
 
 export interface WorkflowQueueStatusWorker {

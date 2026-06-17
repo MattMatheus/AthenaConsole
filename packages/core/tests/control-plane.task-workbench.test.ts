@@ -3041,11 +3041,29 @@ function createMockDurableMemoryService(): DurableMemoryService {
       status: "pending" as const,
       createdAt: "2026-01-01T00:00:00.000Z"
     })),
+    getProposal: vi.fn(async () => ({
+      id: "proposal-test",
+      targetNamespace: { scope: "repository" as const, id: "demo" },
+      provenance: { sourceKind: "task-run" as const, createdByAction: "test" },
+      memoryType: "repo-note",
+      proposedBody: "body",
+      reason: "test",
+      status: "pending" as const,
+      createdAt: "2026-01-01T00:00:00.000Z"
+    })),
     listProposals: vi.fn(),
     approveProposal: vi.fn(),
     rejectProposal: vi.fn(),
     archiveProposal: vi.fn(),
     createSnapshot: vi.fn(),
+    getSnapshot: vi.fn(async () => ({
+      id: "snapshot-test",
+      namespace: { scope: "repository" as const, id: "demo" },
+      provenance: { sourceKind: "operator" as const, createdByAction: "test" },
+      recordIds: [],
+      createdAt: "2026-01-01T00:00:00.000Z",
+      reason: "test"
+    })),
     listSnapshots: vi.fn(),
     restoreSnapshot: vi.fn(),
     getHealth: vi.fn()

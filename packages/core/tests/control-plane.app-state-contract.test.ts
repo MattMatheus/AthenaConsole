@@ -2,7 +2,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { openAppStateDatabase, type AppStateDatabase } from "../src/control-plane/app-state/index.js";
+import { createAppStateProviderFromDatabase, openAppStateDatabase, type AppStateDatabase } from "../src/control-plane/app-state/index.js";
+import { LocalWorkerHeartbeatService } from "../src/control-plane/services/worker-heartbeats.js";
 import { loadConfig } from "../src/shared/config.js";
 
 // Backend-agnostic contract for app-state repositories. Any future backend
@@ -23,6 +24,34 @@ function withAppState(assertions: (appState: AppStateDatabase) => void): void {
 }
 
 describe("app-state repository contracts", () => {
+  it("services can use an injected app-state provider", () => {
+    const dir = mkdtempSync(join(tmpdir(), "athena-app-state-provider-contract-"));
+    try {
+      const config = loadConfig(dir);
+      const appState = openAppStateDatabase(config);
+      try {
+        const provider = createAppStateProviderFromDatabase(appState);
+        const service = new LocalWorkerHeartbeatService(config, {
+          appStateProvider: provider,
+          defaultTtlMs: 30_000
+        });
+
+        service.heartbeat({
+          workerId: "worker-provider-contract",
+          lastHeartbeatAt: new Date("2026-06-14T00:00:00.000Z")
+        });
+
+        expect(service.listActive(new Date("2026-06-14T00:00:10.000Z")).map((worker) => worker.workerId)).toEqual([
+          "worker-provider-contract"
+        ]);
+      } finally {
+        appState.close();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("tasks can be created, retrieved, listed with bounds, and updated", () => {
     withAppState((appState) => {
       const created = appState.tasks.create({

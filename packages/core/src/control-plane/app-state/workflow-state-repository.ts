@@ -8,6 +8,7 @@ export type WorkflowDagRunEventLevel = "info" | "warning" | "error";
 
 interface WorkflowDagRunRow {
   id: string;
+  workspace_id: string;
   workflow_template_id: string;
   workflow_template_version: string | null;
   plugin_id: string | null;
@@ -62,6 +63,7 @@ interface WorkflowDagRunStepAttemptRow {
 
 export interface WorkflowDagRunRecord {
   id: string;
+  workspaceId: string;
   workflowTemplateId: string;
   workflowTemplateVersion?: string;
   pluginId?: string;
@@ -123,6 +125,7 @@ export interface WorkflowDagRunSnapshot {
 
 export interface CreateWorkflowDagRunInput {
   id?: string;
+  workspaceId?: string;
   workflowTemplateId: string;
   workflowTemplateVersion?: string;
   pluginId?: string;
@@ -134,6 +137,8 @@ export interface CreateWorkflowDagRunInput {
 
 export interface ListWorkflowDagRunsOptions {
   status?: WorkflowDagRunStatus;
+  workspaceId?: string;
+  workspaceIds?: string[];
   limit?: number;
 }
 
@@ -198,6 +203,7 @@ export class WorkflowDagRunRepository {
     this.insertRunStatement = db.prepare(`
       insert into workflow_dag_runs (
         id,
+        workspace_id,
         workflow_template_id,
         workflow_template_version,
         plugin_id,
@@ -213,6 +219,7 @@ export class WorkflowDagRunRepository {
       )
       values (
         @id,
+        @workspaceId,
         @workflowTemplateId,
         @workflowTemplateVersion,
         @pluginId,
@@ -358,6 +365,7 @@ export class WorkflowDagRunRepository {
     const createTransaction = this.db.transaction(() => {
       this.insertRunStatement.run({
         id,
+        workspaceId: input.workspaceId ?? "default",
         workflowTemplateId: input.workflowTemplateId,
         workflowTemplateVersion: input.workflowTemplateVersion ?? null,
         pluginId: input.pluginId ?? null,
@@ -443,6 +451,26 @@ export class WorkflowDagRunRepository {
   }
 
   list(options: ListWorkflowDagRunsOptions = {}): WorkflowDagRunRecord[] {
+    if (options.workspaceIds && options.workspaceIds.length === 0) {
+      return [];
+    }
+    if (options.workspaceId || options.workspaceIds) {
+      const clauses: string[] = [];
+      const values: unknown[] = [];
+      if (options.status) {
+        clauses.push("status = ?");
+        values.push(options.status);
+      }
+      const workspaceIds = options.workspaceId ? [options.workspaceId] : (options.workspaceIds ?? []);
+      const placeholders = workspaceIds.map(() => "?").join(", ");
+      clauses.push(`workspace_id in (${placeholders})`);
+      values.push(...workspaceIds);
+      const where = clauses.length > 0 ? `where ${clauses.join(" and ")}` : "";
+      return this.db
+        .prepare(workflowDagRunSelectSql(`${where} order by updated_at desc, created_at desc limit ?`))
+        .all(...values, clampWorkflowDagRunListLimit(options.limit))
+        .map((row) => mapWorkflowDagRunRow(row as WorkflowDagRunRow));
+    }
     const clauses: string[] = [];
     const params: Record<string, unknown> = {
       limit: clampWorkflowDagRunListLimit(options.limit)
@@ -596,12 +624,13 @@ export class WorkflowDagRunRepository {
 }
 
 function workflowDagRunSelectSql(suffix: string): string {
-  return `select id, workflow_template_id, workflow_template_version, plugin_id, plugin_version, status, step_order_json, dependencies_json, failure_json, created_at, updated_at, started_at, finished_at from workflow_dag_runs ${suffix}`;
+  return `select id, workspace_id, workflow_template_id, workflow_template_version, plugin_id, plugin_version, status, step_order_json, dependencies_json, failure_json, created_at, updated_at, started_at, finished_at from workflow_dag_runs ${suffix}`;
 }
 
 function mapWorkflowDagRunRow(row: WorkflowDagRunRow): WorkflowDagRunRecord {
   return {
     id: row.id,
+    workspaceId: row.workspace_id,
     workflowTemplateId: row.workflow_template_id,
     ...(row.workflow_template_version ? { workflowTemplateVersion: row.workflow_template_version } : {}),
     ...(row.plugin_id ? { pluginId: row.plugin_id } : {}),

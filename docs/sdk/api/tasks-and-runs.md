@@ -6,14 +6,6 @@
 
 Tasks are the primary work primitive. A task describes what to do, which agent to assign it to, and what inputs it needs. Running a task creates a task run.
 
-> ⚠️ **Preview — not yet enforced in the current build.**
-> This describes the **target** behavior. As of this build, workspace/multi-user
-> isolation is **not enforced**: workspace scope is client-asserted
-> (`x-athena-scope-workspaces` header), there is no membership model, and
-> cross-workspace reads are not blocked at the data layer. Tracking: epic
-> 2026.44 stories .02–.04. **Do not expose a shared/multi-user deployment to
-> untrusted users until these land.**
-
 ---
 
 ## Task Status Values
@@ -60,9 +52,7 @@ curl \
 
 ### `GET /api/v1/tasks`
 
-> ⚠️ **Preview**: workspace filtering via `workspaceId` or `x-athena-scope-workspaces` is client-asserted only.
-
-List tasks. Results are filtered by workspace scope header when present.
+List tasks. Results are filtered by workspace scope when present. For non-admin subjects, requested workspaces must be backed by membership rows.
 
 **Required role**: `Viewer`, `Operator`, or `Admin`  
 **Query params**:

@@ -12,7 +12,7 @@ export function usage(): string {
     "  athena work status --session <id> [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",
     "  athena memory search --query <text> [--max-results <n>] [--min-score <n>] [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",
     "  athena memory get --path <workspace-relative-path> [--from <line>] [--lines <count>] [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",
-    "  athena schedule add --id <id> --session <id> --input <text> --every-minutes <n> [--start-now true|false] [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",
+    "  athena schedule add --id <id> --target-type task|mission|workflow-template --target-id <id> (--run-at <iso>|--rrule <rule>) [--timezone <tz>] [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",
     "  athena schedule list [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",
     "  athena schedule run --id <id> [--provider <id>] [--model <id>] [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",
     "  athena schedule tick [--at <iso-datetime>] [--provider <id>] [--model <id>] [--transport local|api|auto] [--api-base-url <url>] [--api-timeout-ms <n>]",
