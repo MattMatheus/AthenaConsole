@@ -236,6 +236,10 @@ export class ServiceAuthorizer {
       workspaceMemberships?: { workspaceId: string; role: AthenaRbacRole }[];
     }
   ): boolean {
+    if (!context.scope.global && requirement.workspaceId && context.workspaceMemberships !== undefined) {
+      const membership = context.workspaceMemberships.find((entry) => entry.workspaceId === requirement.workspaceId);
+      return membership ? roleSatisfies(membership.role, requirement.requiredRoles) : false;
+    }
     if (roleSatisfies(context.role, requirement.requiredRoles)) {
       return true;
     }
@@ -731,11 +735,16 @@ export class AuthorizedWorkflowTemplateCatalogService implements WorkflowTemplat
   }
 
   async instantiate(id: string, request?: Parameters<WorkflowTemplateCatalogService["instantiate"]>[1]) {
+    const workspaceId = resolveMutationWorkspaceId(request?.workspaceId);
     await this.authorizer.assertAllowed({
       operation: "workflowTemplates.instantiate",
-      requiredRoles: ["Operator", "Admin"]
+      requiredRoles: ["Operator", "Admin"],
+      ...(workspaceId ? { workspaceId } : {})
     });
-    return this.delegate.instantiate(id, request);
+    return this.delegate.instantiate(id, {
+      ...request,
+      ...(workspaceId ? { workspaceId } : {})
+    });
   }
 }
 
@@ -1089,6 +1098,13 @@ export class AuthorizedTaskWorkbenchService implements TaskWorkbenchService {
       requiredRoles: ["Operator", "Admin"],
       workspaceId: task.workspaceId
     });
+    if (request.workspaceId && request.workspaceId !== task.workspaceId) {
+      await this.authorizer.assertAllowed({
+        operation: "taskWorkbench.update",
+        requiredRoles: ["Operator", "Admin"],
+        workspaceId: request.workspaceId
+      });
+    }
     return this.delegate.update(id, request);
   }
 
@@ -1161,7 +1177,8 @@ export class AuthorizedTaskWorkbenchService implements TaskWorkbenchService {
 export class AuthorizedMissionWorkbenchService implements MissionWorkbenchService {
   constructor(
     private readonly delegate: MissionWorkbenchService,
-    private readonly authorizer: ServiceAuthorizer
+    private readonly authorizer: ServiceAuthorizer,
+    private readonly taskWorkbenchService?: TaskWorkbenchService
   ) {}
 
   async list(query?: Parameters<MissionWorkbenchService["list"]>[0]) {
@@ -1173,11 +1190,9 @@ export class AuthorizedMissionWorkbenchService implements MissionWorkbenchServic
   }
 
   async get(id: string) {
-    await this.authorizer.assertAllowed({
-      operation: "missionWorkbench.get",
-      requiredRoles: ["Viewer", "Operator", "Admin"]
-    });
-    return this.delegate.get(id);
+    const mission = await this.delegate.get(id);
+    await this.assertMissionTaskWorkspacesAllowed(id, "missionWorkbench.get", ["Viewer", "Operator", "Admin"]);
+    return mission;
   }
 
   async create(request: Parameters<MissionWorkbenchService["create"]>[0]) {
@@ -1193,15 +1208,18 @@ export class AuthorizedMissionWorkbenchService implements MissionWorkbenchServic
       operation: "missionWorkbench.update",
       requiredRoles: ["Operator", "Admin"]
     });
+    await this.assertMissionTaskWorkspacesAllowed(id, "missionWorkbench.update", ["Operator", "Admin"]);
     return this.delegate.update(id, request);
   }
 
   async listTasks(id: string) {
-    await this.authorizer.assertAllowed({
-      operation: "missionWorkbench.listTasks",
-      requiredRoles: ["Viewer", "Operator", "Admin"]
-    });
-    return this.delegate.listTasks(id);
+    const listed = await this.delegate.listTasks(id);
+    await this.assertTaskWorkspacesAllowed(
+      listed.tasks,
+      "missionWorkbench.listTasks",
+      ["Viewer", "Operator", "Admin"]
+    );
+    return listed;
   }
 
   async attachTask(id: string, request: Parameters<MissionWorkbenchService["attachTask"]>[1]) {
@@ -1209,16 +1227,27 @@ export class AuthorizedMissionWorkbenchService implements MissionWorkbenchServic
       operation: "missionWorkbench.attachTask",
       requiredRoles: ["Operator", "Admin"]
     });
+    const task = this.taskWorkbenchService ? await this.taskWorkbenchService.get(request.taskId) : undefined;
+    await this.authorizer.assertAllowed({
+      operation: "missionWorkbench.attachTask",
+      requiredRoles: ["Operator", "Admin"],
+      ...(task ? { workspaceId: task.workspaceId } : {})
+    });
     return this.delegate.attachTask(id, request);
   }
 
   async createTask(id: string, request: Parameters<MissionWorkbenchService["createTask"]>[1]) {
+    const workspaceId = resolveMutationWorkspaceId(request.workspaceId);
     await this.authorizer.assertAllowed({
       operation: "missionWorkbench.createTask",
       requiredRoles: ["Operator", "Admin"],
+      ...(workspaceId ? { workspaceId } : {}),
       ...(request.assignedAgentId ? { agentName: request.assignedAgentId } : {})
     });
-    return this.delegate.createTask(id, request);
+    return this.delegate.createTask(id, {
+      ...request,
+      ...(workspaceId ? { workspaceId } : {})
+    });
   }
 
   async runMission(id: string, request?: Parameters<MissionWorkbenchService["runMission"]>[1]) {
@@ -1227,24 +1256,59 @@ export class AuthorizedMissionWorkbenchService implements MissionWorkbenchServic
       requiredRoles: ["Operator", "Admin"],
       runId: request?.runId
     });
+    const listed = await this.delegate.listTasks(id);
+    await this.assertTaskWorkspacesAllowed(listed.tasks, "missionWorkbench.runMission", ["Operator", "Admin"], {
+      runId: request?.runId,
+      includeAgent: true
+    });
     return this.delegate.runMission(id, request);
   }
 
   async listMissionRuns(id: string) {
-    await this.authorizer.assertAllowed({
-      operation: "missionWorkbench.listRuns",
-      requiredRoles: ["Viewer", "Operator", "Admin"]
-    });
+    await this.assertMissionTaskWorkspacesAllowed(id, "missionWorkbench.listRuns", ["Viewer", "Operator", "Admin"]);
     return this.delegate.listMissionRuns(id);
   }
 
   async getMissionRun(runId: string) {
-    await this.authorizer.assertAllowed({
-      operation: "missionWorkbench.getRun",
-      requiredRoles: ["Viewer", "Operator", "Admin"],
+    const detail = await this.delegate.getMissionRun(runId);
+    await this.assertTaskWorkspacesAllowed(detail.childRuns, "missionWorkbench.getRun", ["Viewer", "Operator", "Admin"], {
       runId
     });
-    return this.delegate.getMissionRun(runId);
+    return detail;
+  }
+
+  private async assertMissionTaskWorkspacesAllowed(
+    id: string,
+    operation: AuthorizationRequirement["operation"],
+    requiredRoles: AthenaRbacRole[]
+  ): Promise<void> {
+    const listed = await this.delegate.listTasks(id);
+    await this.assertTaskWorkspacesAllowed(listed.tasks, operation, requiredRoles);
+  }
+
+  private async assertTaskWorkspacesAllowed(
+    tasks: Array<{ workspaceId: string; assignedAgentId?: string }>,
+    operation: AuthorizationRequirement["operation"],
+    requiredRoles: AthenaRbacRole[],
+    options: { runId?: string; includeAgent?: boolean } = {}
+  ): Promise<void> {
+    if (tasks.length === 0) {
+      await this.authorizer.assertAllowed({
+        operation,
+        requiredRoles,
+        ...(options.runId ? { runId: options.runId } : {})
+      });
+      return;
+    }
+    for (const task of tasks) {
+      await this.authorizer.assertAllowed({
+        operation,
+        requiredRoles,
+        workspaceId: task.workspaceId,
+        ...(options.runId ? { runId: options.runId } : {}),
+        ...(options.includeAgent && task.assignedAgentId ? { agentName: task.assignedAgentId } : {})
+      });
+    }
   }
 }
 
@@ -1699,6 +1763,7 @@ function isWorkspaceScopedOperation(operation: AuthorizationRequirement["operati
     operation === "taskWorkbench.run.read" ||
     operation === "taskWorkbench.runTask" ||
     operation === "taskWorkbench.update" ||
+    operation === "workflowTemplates.instantiate" ||
     operation === "workspaces.members.delete" ||
     operation === "workspaces.members.list" ||
     operation === "workspaces.members.upsert"

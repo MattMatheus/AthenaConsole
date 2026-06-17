@@ -55,6 +55,7 @@ export interface WorkflowTemplateInstantiateRequest {
   pluginVersion?: string;
   missionId?: string;
   taskIdPrefix?: string;
+  workspaceId?: string;
   inputs?: Record<string, unknown>;
   createdBy?: string;
 }

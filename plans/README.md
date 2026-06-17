@@ -24,6 +24,12 @@ every verification command, and update the table when done.
 > certification). All four are design/spike plans — they produce ADRs/epics, not
 > production code. See "Direction round (024–027)" below for selection rationale.
 
+> **Security remediation round appended 2026-06-16 (commit `54f2135`).** Plans
+> 034-036 came from a standard `$improve` audit after the docs rewrite. They turn
+> the top three approved findings into executable handoffs: missing service-level
+> authorization for six API families, client-asserted workspace scope, and high
+> runtime dependency advisories. Unlike 024-027, these are implementation plans.
+
 These plans are **self-contained**: everything needed is in each file. They were
 written for an executor with zero context from the audit session. Do not assume
 knowledge from other plans unless a plan lists it under "Depends on".
@@ -56,9 +62,12 @@ knowledge from other plans unless a plan lists it under "Depends on".
 | 031 | SDK Guide Pt.1 — Agent Developer Kit (`@athena/pdk`) | P1 | M-L | 028 | docs | DONE ✓ merged to main (`b1b4f63`) 2026-06-15 |
 | 032 | SDK Guide Pt.2 — HTTP Control-Plane API Reference | P1 | L | 028, **031 (shares `docs/sdk/README.md`)** | docs | DONE ✓ merged to main (`fd4738c`) 2026-06-15 |
 | 033 | Internal-docs coherence + repo-wide final sweep | P2 | M | 028–032 | docs | DONE ✓ merged to main (`f145af5`) 2026-06-15 |
+| 034 | Add authorization wrappers for remaining API families | P1 | M | none | security | DONE ✓ reviewed 2026-06-16 (`7818911`) |
+| 035 | Derive workspace scope from server-side membership | P1 | L | none; recommended after 034 | security | DONE ✓ reviewed 2026-06-16 (`378774f`) |
+| 036 | Refresh vulnerable runtime dependency lockfile entries | P1 | S-M | none | security/migration | DONE ✓ reviewed 2026-06-16 (`edb20c8`) |
 
 > **Docs Rewrite Epic COMPLETE (2026-06-15).** All six plans (028–033) executed via worktree executors, reviewed, and merged to `main` (tip `f145af5`). Repo-wide `npm run check:docs` is green (216 files, no broken links). Net: enterprise/multiplayer-primary positioning across all entry docs; one consolidated 11-page user manual + 18-page SDK/API guide (PDK + HTTP `/api/v1`); 39 dead docs deleted; two parallel doc trees merged into one; ADR 0028/0029 promoted to Accepted; preview banners on all unbuilt-multiplayer surfaces.
-> **Follow-ups surfaced:** (1) five API families (`missions`, `workflow-templates`, `run-templates`, `harness-profiles`, `agent-catalog`) have **no RBAC authorizer** — now documented, but a real gap to close with epic 2026.44 before multi-user exposure; (2) remove the preview banners when 2026.44 stories .02–.04 land (`grep "Preview — not yet enforced" docs/`).
+> **Follow-ups surfaced:** (1) five API families (`missions`, `workflow-templates`, `run-templates`, `harness-profiles`, `agent-catalog`) have **no RBAC authorizer** — now planned as 034; (2) remove the preview banners when 2026.44 stories .02–.04 land (`grep "Preview — not yet enforced" docs/`).
 
 > **Execution log (2026-06-15):** 028 executed in a worktree, reviewed, merged to main by the operator. 029/030/031 executed in parallel worktrees — the harness based those worktrees on the pre-028 commit `9acdfd6`, so each rebased/merged onto 028; one (029) left the main working dir checked out on its branch (recovered). All three reviewed (APPROVED) and merged in order 029→030→031. A cross-plan link break (030's `05-running-work.md` → files 031 deleted) was caught by `check:docs` at integration and repointed to `docs/sdk/agent-developer-kit.md` (commit `39f5a51`). **Lesson for 032/033: dispatch sequentially; the executor's worktree may be based on `9acdfd6` — it must `git merge main` first to pick up 028–031.**
 
@@ -151,6 +160,16 @@ What exists:
 
 ## Dependency notes
 
+- **034 should land before exposing shared deployments**: it closes missing
+  service-level authorization on mission, workflow-template, workflow-run,
+  run-template, harness-profile, and agent-catalog APIs. It can land before 035;
+  plan 035 may later enrich wrapper metadata for per-workspace role resolution.
+- **035 is the multi-user safety gate**: it replaces client-asserted workspace
+  scope with server-derived membership. Do not treat workspace isolation as a
+  tenant boundary until 035 and its stated query-level scoping acceptance checks
+  are done.
+- **036 is independent**: it only touches dependency manifests/lockfiles and can
+  run in parallel with 034/035 if executors coordinate package-lock ownership.
 - **007 requires 006**: the concurrency guard relies on each step transition being atomic; do the transaction wrapping first so a serialized transition can't leave partial state.
 - **009 requires 004**: backoff application should consume the single consolidated retry-policy parser, not the pre-existing divergent copies.
 - **011 soft-depends on 010**: both touch `task-workbench.ts` readiness/mapping; doing the mapper consolidation first reduces merge churn. They can be done independently if needed.
@@ -198,7 +217,7 @@ Recommended order: **024 (independent, smallest) → 025 (strategic gate) → 02
 ## Findings considered and NOT planned (so they are not re-audited)
 
 - **CORS default `["*"]` + Origin reflection + credentials** (`api/server.ts:107`): real but narrow — auth is header/bearer (no cookies), so the credentialed angle is moot; the only live risk is the local default (any visited site can call `127.0.0.1:8787`). Worth a follow-up to default `allowedOrigins` to a loopback allowlist + add a Host check, but lower leverage than the planned set. Not selected by the operator this round.
-- **Client-asserted scope headers not server-bound** (`middleware/auth.ts:36`): confirmed NOT privilege escalation (server-side role resolution wins; scopes are self-asserted UX filters today). It is a design footgun if scopes are ever relied on for confinement — revisit when/if service-token scoping is introduced. Not an active break.
+- **Client-asserted scope headers not server-bound** (`middleware/auth.ts:36`): this older note is superseded by the 2026-06-16 audit and **plan 035**. It was not an active break while scopes were UX-only, but workspace tenancy is now in scope and the README explicitly warns that client-asserted workspace scope must not be treated as isolation.
 - **ADR 0016 service decomposition** (`task-workbench.ts` 3350 LOC): real, high-value, but L-effort and already an accepted ADR with its own plan. Execute incrementally per ADR 0016, not as a single advisor plan.
 - **Managed-clone accepts absolute-local/any-http source** (`repositories.ts:323`): LOW impact for local-first (operator already controls the host); argument injection is blocked (`--` + execFile). Document as accepted local behavior if clone is ever exposed beyond a trusted operator.
 - **`run-service` has no direct test** (M): covered transitively by control-plane suites; add characterization tests before any refactor of that module, not preemptively.

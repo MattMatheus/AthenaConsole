@@ -953,6 +953,35 @@ describe("control-plane authorization wrappers", () => {
       });
 
       await expect(
+        withMembershipRoles(
+          "Operator",
+          ["workspace-alpha", "workspace-beta"],
+          [
+            { workspaceId: "workspace-alpha", role: "Operator" },
+            { workspaceId: "workspace-beta", role: "Viewer" }
+          ],
+          () =>
+            services.taskWorkbenchService.create({
+              id: "task-membership-global-operator-beta-denied",
+              title: "Global operator cannot override beta viewer",
+              workspaceId: "workspace-beta"
+            })
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Operator", () =>
+          services.taskWorkbenchService.update("task-membership-operator", {
+            workspaceId: "workspace-beta"
+          })
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+
+      await expect(
         withMembershipRole("Viewer", "workspace-alpha", "Viewer", () =>
           services.taskWorkbenchService.get("task-membership-operator")
         )
@@ -978,6 +1007,42 @@ describe("control-plane authorization wrappers", () => {
         withMembershipRole("Viewer", "workspace-alpha", "Viewer", () => services.modelProviderConfigService.list())
       ).rejects.toMatchObject({
         code: "AUTHZ_DENIED"
+      });
+
+      const mission = await withRole("Admin", () =>
+        services.missionWorkbenchService.create({
+          id: "mission-membership",
+          title: "Mission membership"
+        })
+      );
+      await expect(
+        withMembershipRoles(
+          "Operator",
+          ["workspace-alpha", "workspace-beta"],
+          [
+            { workspaceId: "workspace-alpha", role: "Operator" },
+            { workspaceId: "workspace-beta", role: "Viewer" }
+          ],
+          () =>
+            services.missionWorkbenchService.createTask(mission.id, {
+              id: "mission-task-beta-denied",
+              title: "Mission beta denied",
+              workspaceId: "workspace-beta"
+            })
+        )
+      ).rejects.toMatchObject({
+        code: "AUTHZ_DENIED"
+      });
+      await expect(
+        withMembershipRole("Viewer", "workspace-alpha", "Operator", () =>
+          services.missionWorkbenchService.createTask(mission.id, {
+            id: "mission-task-alpha-allowed",
+            title: "Mission alpha allowed",
+            workspaceId: "workspace-alpha"
+          })
+        )
+      ).resolves.toMatchObject({
+        tasks: [expect.objectContaining({ id: "mission-task-alpha-allowed", workspaceId: "workspace-alpha" })]
       });
       await expect(
         withMembershipRoles(

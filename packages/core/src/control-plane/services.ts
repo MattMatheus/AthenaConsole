@@ -290,6 +290,10 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
   const capabilityService = new LocalCapabilityService(executionBackend, operationsMetricsProvider, sandboxExecutionBackend);
   const modelProviderConfigService = new LocalModelProviderConfigService(options.config, { eventService });
   const authorizedModelProviderConfigService = new AuthorizedModelProviderConfigService(modelProviderConfigService, authorizer);
+  const taskWorkbenchService = new AuthorizedTaskWorkbenchService(
+    new LocalTaskWorkbenchService(options.config, { durableMemoryService, eventService }),
+    authorizer
+  );
   const readinessService = new LocalReadinessService(options.config, {
     stateDiagnosticsService,
     agentCatalogService,
@@ -335,11 +339,12 @@ export function createLocalControlPlaneServices(options: LocalControlPlaneOption
     readinessService,
     stateDiagnosticsService,
     agentCatalogService: new AuthorizedAgentCatalogService(agentCatalogService, authorizer),
-    missionWorkbenchService: new AuthorizedMissionWorkbenchService(new LocalMissionWorkbenchService(options.config), authorizer),
-    taskWorkbenchService: new AuthorizedTaskWorkbenchService(
-      new LocalTaskWorkbenchService(options.config, { durableMemoryService, eventService }),
-      authorizer
+    missionWorkbenchService: new AuthorizedMissionWorkbenchService(
+      new LocalMissionWorkbenchService(options.config),
+      authorizer,
+      taskWorkbenchService
     ),
+    taskWorkbenchService,
     connectedRepositoryService: new AuthorizedConnectedRepositoryService(new LocalConnectedRepositoryService(options.config), authorizer),
     modelProviderConfigService: authorizedModelProviderConfigService,
     shutdown: async () => {

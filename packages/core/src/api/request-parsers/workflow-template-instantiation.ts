@@ -13,6 +13,7 @@ export function parseWorkflowTemplateInstantiateRequest(body: Record<string, unk
   const pluginVersion = optionalString(body, "pluginVersion", context);
   const missionId = optionalString(body, "missionId", context);
   const taskIdPrefix = optionalString(body, "taskIdPrefix", context);
+  const workspaceId = optionalString(body, "workspaceId", context);
   const createdBy = optionalString(body, "createdBy", context);
 
   return {
@@ -21,6 +22,7 @@ export function parseWorkflowTemplateInstantiateRequest(body: Record<string, unk
     ...(pluginVersion ? { pluginVersion } : {}),
     ...(missionId ? { missionId } : {}),
     ...(taskIdPrefix ? { taskIdPrefix } : {}),
+    ...(workspaceId ? { workspaceId } : {}),
     ...(inputs !== undefined ? { inputs: inputs as Record<string, unknown> } : {}),
     ...(createdBy ? { createdBy } : {})
   };

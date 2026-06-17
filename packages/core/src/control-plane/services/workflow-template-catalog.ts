@@ -189,6 +189,7 @@ export class LocalWorkflowTemplateCatalogService implements WorkflowTemplateCata
             requireMappedTaskId(taskIdByTemplateId, dependencyId)
           ),
           missionId: mission.id,
+          ...(request.workspaceId ? { workspaceId: request.workspaceId } : {}),
           provenance: {
             source: "workflow-template",
             workflowTemplateId: template.id,

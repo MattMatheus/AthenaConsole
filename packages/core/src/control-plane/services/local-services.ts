@@ -1240,6 +1240,9 @@ function workflowTemplateInstantiationRequestFromSchedule(inputBindings: unknown
     ...(typeof inputBindings.pluginVersion === "string" && inputBindings.pluginVersion.trim()
       ? { pluginVersion: inputBindings.pluginVersion }
       : {}),
+    ...(typeof inputBindings.workspaceId === "string" && inputBindings.workspaceId.trim()
+      ? { workspaceId: inputBindings.workspaceId }
+      : {}),
     ...(inputs ? { inputs } : {})
   };
 }

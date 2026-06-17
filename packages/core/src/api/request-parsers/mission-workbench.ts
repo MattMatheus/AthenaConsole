@@ -75,6 +75,7 @@ export function parseMissionWorkbenchCreateTaskRequest(body: Record<string, unkn
   const dependsOn = parseOptionalStringArray(body.dependsOn, "missions.createTask.dependsOn");
   const sourceRunId = optionalString(body, "sourceRunId", "missions.createTask");
   const createdBy = optionalString(body, "createdBy", "missions.createTask");
+  const workspaceId = optionalString(body, "workspaceId", "missions.createTask");
   const position = parseOptionalPosition(body.position, "missions.createTask.position");
   return {
     ...(id ? { id } : {}),
@@ -87,6 +88,7 @@ export function parseMissionWorkbenchCreateTaskRequest(body: Record<string, unkn
     ...(body.inputs !== undefined ? { inputs: body.inputs } : {}),
     ...(dependsOn ? { dependsOn } : {}),
     ...(sourceRunId ? { sourceRunId } : {}),
+    ...(workspaceId ? { workspaceId } : {}),
     ...(body.provenance !== undefined ? { provenance: body.provenance } : {}),
     ...(createdBy ? { createdBy } : {}),
     ...(position !== undefined ? { position } : {})
